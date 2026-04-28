@@ -12,6 +12,36 @@
 
 ---
 
+### Task 0: Pre-flight checks
+
+These run **before** any work that creates files or commits. If any fails, halt and fix the underlying config — do not proceed to Task 1.
+
+- [ ] **Step 1:** Verify git identity (must be set globally before any commit lands).
+
+```bash
+git config --global user.name && git config --global user.email
+```
+
+Expected: `taewanu` / `twlim.dev@gmail.com`. If either is missing or wrong, set with `git config --global user.name "..."` / `git config --global user.email "..."` and re-run.
+
+- [ ] **Step 2:** Verify Node + pnpm via mise resolve to expected versions in this directory.
+
+```bash
+cd /Users/wanu/projects/sounds-abroad && mise current
+```
+
+Expected output includes `node 24.x.x` and `pnpm 10.x.x`. If absent, ensure `mise.toml` is in the project root and run `mise install`.
+
+- [ ] **Step 3:** Verify gh CLI is authenticated.
+
+```bash
+gh auth status
+```
+
+Expected: logged in as `taewanu` with `repo` scope. If not, run `gh auth login` (interactive — user runs this directly).
+
+---
+
 ### Task 1: Next.js 16 scaffold
 
 **Files:**
@@ -86,17 +116,9 @@ Expected: build succeeds, no errors, route `/` listed in output.
 cd /Users/wanu/projects/sounds-abroad && git init -b main
 ```
 
-Expected: "Initialized empty Git repository in .../sounds-abroad/.git/"
+Expected: "Initialized empty Git repository in .../sounds-abroad/.git/". Author config was already verified in Task 0 Step 1, so no re-check here.
 
-- [ ] **Step 2:** Verify git author resolves to user (global config already set).
-
-```bash
-cd /Users/wanu/projects/sounds-abroad && git config user.name && git config user.email
-```
-
-Expected: `taewanu` / `twlim.dev@gmail.com`.
-
-- [ ] **Step 3:** Inspect `.gitignore` from create-next-app.
+- [ ] **Step 2:** Inspect `.gitignore` from create-next-app.
 
 ```bash
 cat /Users/wanu/projects/sounds-abroad/.gitignore
@@ -104,7 +126,7 @@ cat /Users/wanu/projects/sounds-abroad/.gitignore
 
 Expected: includes `node_modules/`, `.next/`, `.env*`, `.DS_Store`. Add `.DS_Store` if missing (macOS quality-of-life).
 
-- [ ] **Step 4:** Stage and review the initial commit.
+- [ ] **Step 3:** Stage and review the initial commit.
 
 ```bash
 cd /Users/wanu/projects/sounds-abroad && git add -A && git status
@@ -112,7 +134,7 @@ cd /Users/wanu/projects/sounds-abroad && git add -A && git status
 
 Expected: ~30 files staged (Next.js scaffold + mise.toml + plan doc). Confirm no `node_modules/`, no `.env*`, no secrets.
 
-- [ ] **Step 5:** Create initial commit.
+- [ ] **Step 4:** Create initial commit.
 
 ```bash
 cd /Users/wanu/projects/sounds-abroad && git commit -m "$(cat <<'EOF'
@@ -643,7 +665,7 @@ cd /Users/wanu/projects/sounds-abroad && git tag -a phase-1 -m "Phase 1: infrast
 **User-asked items**:
 
 - ✅ Public GitHub repo (`taewanu/sounds-abroad`) — Task 4
-- ✅ Git author verification — Task 2 Step 2
+- ✅ Git author verification — Task 0 Step 1 (pre-flight)
 - ✅ Per-step confirmation flow — built into structure
 - ✅ Wanu's first Sentry experience guided — Task 9 walks through
 
