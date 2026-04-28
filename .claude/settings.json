@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mise ls)",
+      "Bash(mise current)",
+      "Bash(pnpm --version)"
+    ]
+  }
+}
