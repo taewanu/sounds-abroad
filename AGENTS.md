@@ -20,3 +20,18 @@ Phase 1 commits directly to `main`. From Phase 2 onward, each Phase gets its own
 
 - `docs/plans/` — Phase implementation plans (committed roadmaps)
 - `docs/adr/` — Architecture Decision Records (why we chose X over Y)
+- `docs/agents/` — per-repo configuration that the engineering skills assume
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues on `taewanu/sounds-abroad`, accessed via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical labels (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) used as-is, no overrides. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context — `CONTEXT.md` (created lazily) and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
