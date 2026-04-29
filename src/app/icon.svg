@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Sounds Abroad">
+  
+  <circle cx="32" cy="32" r="24" stroke="#0A0B10" stroke-width="2" opacity="0.85"></circle>
+  <line x1="8" y1="32" x2="56" y2="32" stroke="#0A0B10" stroke-width="1.6" opacity="0.6"></line>
+  <ellipse cx="32" cy="32" rx="7.416" ry="24" stroke="#0A0B10" stroke-width="1.6" opacity="0.45"></ellipse>
+  <circle cx="46.3" cy="23" r="5.5" fill="#FF6B47"></circle>
+</svg>
