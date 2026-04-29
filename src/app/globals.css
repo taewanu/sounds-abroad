@@ -1,26 +1,106 @@
 @import "tailwindcss";
 
+/* Sounds Abroad design tokens — cosmic dark theme, warm sunrise accent, editorial type. */
+
+@theme {
+  /* Backgrounds — deep to elevated */
+  --color-void: #050608;
+  --color-night: #0a0b10;
+  --color-dusk: #11131b;
+  --color-atmos: #1a1d29;
+  --color-orbit: #262a3a;
+
+  /* Foreground — warm whites, never pure */
+  --color-fg-1: #f5f2ec;
+  --color-fg-2: #b8b5ae;
+  --color-fg-3: #6e6b66;
+  --color-fg-4: #3e3d3a;
+
+  /* Brand accents */
+  --color-sunrise: #ff6b47;
+  --color-sunrise-bright: #ff8866;
+  --color-sunrise-dim: #c24f33;
+  --color-aurora: #6be5c5;
+  --color-aurora-dim: #3fa38b;
+  --color-magenta: #e5489b;
+  --color-gold: #f2c94c;
+
+  /* Globe glow tones */
+  --color-glow-warm: #ff8866;
+  --color-glow-cool: #6bc4ff;
+
+  /* Semantic */
+  --color-success: #6be5c5;
+  --color-warn: #f2c94c;
+  --color-error: #ff6b7a;
+  --color-info: #6bc4ff;
+
+  /* Type families — `next/font` injects --font-poppins / --font-instrument /
+     --font-jetbrains on <html>; we alias them into Tailwind's font namespaces. */
+  --font-sans:
+    var(--font-poppins), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-instrument), "Times New Roman", serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SF Mono", monospace;
+
+  /* Type scale (px to keep parity with the design system source) */
+  --text-display-lg: 64px;
+  --text-display: 44px;
+  --text-h1: 32px;
+  --text-h2: 24px;
+  --text-h3: 18px;
+  --text-body: 15px;
+  --text-small: 13px;
+  --text-micro: 11px;
+  --text-rank: 28px;
+
+  /* Radii */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+  --radius-pill: 9999px;
+
+  /* Shadows — cosmic glow rather than drop shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.6), 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-sheet:
+    0 -8px 32px rgba(0, 0, 0, 0.5), 0 -1px 0 rgba(245, 242, 236, 0.06) inset;
+  --shadow-glow-accent: 0 0 24px rgba(255, 107, 71, 0.35);
+  --shadow-glow-aurora: 0 0 32px rgba(107, 229, 197, 0.25);
+
+  /* Motion — Toss-inspired easing tokens */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* CSS-only tokens (effects + bespoke durations) — referenced via var() */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --globe-line: rgba(107, 196, 255, 0.18);
+  --globe-grid: rgba(245, 242, 236, 0.04);
+  --scrim-light: rgba(245, 242, 236, 0.04);
+  --scrim: rgba(5, 6, 8, 0.7);
+  --scrim-deep: rgba(5, 6, 8, 0.92);
+  --blur-glass: blur(24px) saturate(140%);
+
+  --dur-fast: 160ms;
+  --dur-base: 240ms;
+  --dur-slow: 400ms;
+  --dur-globe: 900ms;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html,
+  body {
+    background: var(--color-void);
+    color: var(--color-fg-1);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
