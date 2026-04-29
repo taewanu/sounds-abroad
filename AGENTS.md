@@ -1,6 +1,6 @@
 # Sounds Abroad
 
-A 3D globe-based world music discovery web app — tap a country, taste its Apple Music Top 25 in 30-second previews.
+A 3D globe-based world music discovery web app — explore trending music around the world.
 
 ## Run commands
 

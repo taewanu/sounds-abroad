@@ -49,11 +49,11 @@ const jetbrainsMono = localFont({
 export const metadata: Metadata = {
   title: "Sounds Abroad — World music discovery",
   description:
-    "Spin the globe, tap a country, taste 30 seconds of what's on top there right now.",
+    "A 3D globe-based world music discovery web app — explore trending music around the world.",
   metadataBase: new URL("https://soundsabroad.com"),
   openGraph: {
     title: "Sounds Abroad",
-    description: "World music discovery on a 3D globe",
+    description: "Explore trending music around the world, on a 3D globe.",
     type: "website",
   },
 };
