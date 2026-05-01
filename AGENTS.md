@@ -18,9 +18,10 @@ Phase 1 commits directly to `main`. From Phase 2 onward, each Phase gets its own
 
 ## Where to look
 
-- `docs/plans/` — Phase implementation plans (committed roadmaps)
-- `docs/adr/` — Architecture Decision Records (why we chose X over Y)
-- `docs/agents/` — per-repo configuration that the engineering skills assume
+- Phase boundaries — annotated git tags. `git show phase-1` for the retrospective; `git tag --list` for the timeline.
+- In-flight work — GitHub Issues. `gh issue list` (see `docs/agents/issue-tracker.md`).
+- `docs/adr/` — Architecture Decision Records (why we chose X over Y).
+- `docs/agents/` — per-repo configuration that the engineering skills assume.
 
 ## Agent skills
 
