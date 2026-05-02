@@ -1,0 +1,92 @@
+language: "en-US"
+tone_instructions: "No emojis. Plain language, no superlatives. Skip nits if pre-commit catches them. Comments only when WHY is non-obvious."
+early_access: false
+
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  in_progress_fortune: false
+  changed_files_summary: true
+  sequence_diagrams: true
+  estimate_code_review_effort: true
+  assess_linked_issues: true
+  related_issues: true
+  related_prs: true
+  suggested_labels: false
+  auto_apply_labels: false
+  suggested_reviewers: false
+  collapse_walkthrough: true
+  enable_prompt_for_ai_agents: true
+
+  path_filters:
+    - "!**/.next/**"
+    - "!**/.vercel/**"
+    - "!**/node_modules/**"
+    - "!pnpm-lock.yaml"
+    - "!next-env.d.ts"
+    - "!tsconfig.tsbuildinfo"
+    - "!public/**"
+    - "!**/*.svg"
+
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - "main"
+    auto_incremental_review: true
+    auto_pause_after_reviewed_commits: 15
+    ignore_title_keywords:
+      - "WIP"
+
+  tools:
+    eslint:
+      enabled: true
+    markdownlint:
+      enabled: true
+    semgrep:
+      enabled: true
+    gitleaks:
+      enabled: true
+    actionlint:
+      enabled: true
+    biome:
+      enabled: false
+    ruff:
+      enabled: false
+    shellcheck:
+      enabled: false
+
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+
+  pre_merge_checks:
+    title:
+      mode: "warning"
+      requirements: "Use Conventional Commits: type(scope): description. Types allowed: feat, fix, docs, chore, refactor, test, perf, build, ci."
+    description:
+      mode: "warning"
+    issue_assessment:
+      mode: "warning"
+
+chat:
+  art: false
+  auto_reply: true
+
+knowledge_base:
+  opt_out: false
+  web_search:
+    enabled: true
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "CLAUDE.md"
+      - "AGENTS.md"
+      - "docs/adr/**/*.md"
+      - "docs/agents/**/*.md"
+  learnings:
+    scope: "local"
