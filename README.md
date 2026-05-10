@@ -28,6 +28,7 @@ mise exec -- pnpm typecheck
 
 ## Where to look
 
-- [`docs/plans/`](docs/plans) — Phase implementation plans (committed roadmaps)
-- [`docs/adr/`](docs/adr) — Architecture Decision Records
-- [`AGENTS.md`](AGENTS.md) — agent-facing project notes (also served as `CLAUDE.md` via symlink)
+- Phase boundaries — annotated git tags (`git tag --list`)
+- PRDs and tickets — GitHub Issues (`gh issue list`)
+- Architecture Decision Records — [`docs/adr/`](docs/adr)
+- Agent-facing project notes — [`AGENTS.md`](AGENTS.md) (also served as `CLAUDE.md` via symlink)
