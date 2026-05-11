@@ -1,0 +1,104 @@
+{
+  "lastUpdated": "2026-04-25T03:00:00Z",
+  "countries": {
+    "kr": {
+      "name": "South Korea",
+      "valid": true,
+      "tracks": [
+        {
+          "rank": 1,
+          "name": "소문의 낙원",
+          "artist": "악뮤",
+          "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioFixture/v1/kr-01.m4a",
+          "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Fixture/kr-01.jpg/600x600bb.jpg",
+          "appleUrl": "https://music.apple.com/kr/album/example-album/1700000001?i=1700000002",
+          "spotifySearchUrl": "https://open.spotify.com/search/%EC%86%8C%EB%AC%B8%EC%9D%98%20%EB%82%99%EC%9B%90%20%EC%95%85%EB%AE%A4"
+        },
+        {
+          "rank": 2,
+          "name": "Drowning",
+          "artist": "WOODZ",
+          "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioFixture/v1/kr-02.m4a",
+          "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Fixture/kr-02.jpg/600x600bb.jpg",
+          "appleUrl": "https://music.apple.com/kr/album/example-album/1700000003?i=1700000004",
+          "spotifySearchUrl": "https://open.spotify.com/search/Drowning%20WOODZ"
+        },
+        {
+          "rank": 3,
+          "name": "Supernova",
+          "artist": "aespa",
+          "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioFixture/v1/kr-03.m4a",
+          "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Fixture/kr-03.jpg/600x600bb.jpg",
+          "appleUrl": "https://music.apple.com/kr/album/example-album/1700000005?i=1700000006",
+          "spotifySearchUrl": "https://open.spotify.com/search/Supernova%20aespa"
+        }
+      ]
+    },
+    "us": {
+      "name": "United States",
+      "valid": true,
+      "tracks": [
+        {
+          "rank": 1,
+          "name": "Espresso",
+          "artist": "Sabrina Carpenter",
+          "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioFixture/v1/us-01.m4a",
+          "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Fixture/us-01.jpg/600x600bb.jpg",
+          "appleUrl": "https://music.apple.com/us/album/example-album/1700000101?i=1700000102",
+          "spotifySearchUrl": "https://open.spotify.com/search/Espresso%20Sabrina%20Carpenter"
+        },
+        {
+          "rank": 2,
+          "name": "Birds of a Feather",
+          "artist": "Billie Eilish",
+          "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioFixture/v1/us-02.m4a",
+          "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Fixture/us-02.jpg/600x600bb.jpg",
+          "appleUrl": "https://music.apple.com/us/album/example-album/1700000103?i=1700000104",
+          "spotifySearchUrl": "https://open.spotify.com/search/Birds%20of%20a%20Feather%20Billie%20Eilish"
+        },
+        {
+          "rank": 3,
+          "name": "Not Like Us",
+          "artist": "Kendrick Lamar",
+          "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioFixture/v1/us-03.m4a",
+          "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Fixture/us-03.jpg/600x600bb.jpg",
+          "appleUrl": "https://music.apple.com/us/album/example-album/1700000105?i=1700000106",
+          "spotifySearchUrl": "https://open.spotify.com/search/Not%20Like%20Us%20Kendrick%20Lamar"
+        }
+      ]
+    },
+    "br": {
+      "name": "Brazil",
+      "valid": true,
+      "tracks": [
+        {
+          "rank": 1,
+          "name": "Tá OK",
+          "artist": "Dennis e Kevin O Chris",
+          "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioFixture/v1/br-01.m4a",
+          "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Fixture/br-01.jpg/600x600bb.jpg",
+          "appleUrl": "https://music.apple.com/br/album/example-album/1700000201?i=1700000202",
+          "spotifySearchUrl": "https://open.spotify.com/search/T%C3%A1%20OK%20Dennis"
+        },
+        {
+          "rank": 2,
+          "name": "Gata Only",
+          "artist": "FloyyMenor & Cris MJ",
+          "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioFixture/v1/br-02.m4a",
+          "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Fixture/br-02.jpg/600x600bb.jpg",
+          "appleUrl": "https://music.apple.com/br/album/example-album/1700000203?i=1700000204",
+          "spotifySearchUrl": "https://open.spotify.com/search/Gata%20Only%20FloyyMenor"
+        },
+        {
+          "rank": 3,
+          "name": "Pedro",
+          "artist": "Raffaela Carrà & Jaxomy & Agatino Romero",
+          "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioFixture/v1/br-03.m4a",
+          "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Fixture/br-03.jpg/600x600bb.jpg",
+          "appleUrl": "https://music.apple.com/br/album/example-album/1700000205?i=1700000206",
+          "spotifySearchUrl": "https://open.spotify.com/search/Pedro%20Raffaela%20Carr%C3%A0"
+        }
+      ]
+    }
+  }
+}
