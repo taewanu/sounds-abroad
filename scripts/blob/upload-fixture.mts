@@ -29,14 +29,19 @@ async function main(): Promise<void> {
   }
 
   const raw = await readFile(FIXTURE_PATH, "utf8");
-  const parsed: { lastUpdated: string } = JSON.parse(raw);
+  const parsed: {
+    lastUpdated: string;
+  } = JSON.parse(raw);
 
   console.log("Upload 1: original fixture body");
   const url1 = await uploadOnce(raw);
   console.log(`  → ${url1}`);
 
   const bumped = JSON.stringify(
-    { ...parsed, lastUpdated: new Date().toISOString() },
+    {
+      ...parsed,
+      lastUpdated: new Date().toISOString(),
+    },
     null,
     2,
   );
