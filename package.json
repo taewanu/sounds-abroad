@@ -12,6 +12,7 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
+    "test:ci": "vitest --watch=false --reporter=default --reporter=github-actions",
     "prepare": "husky"
   },
   "dependencies": {

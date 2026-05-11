@@ -1,0 +1,46 @@
+name: CI
+
+# Drop all GITHUB_TOKEN permissions; checkout works without them on public repos.
+permissions: {}
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Cancel superseded PR runs; main pushes use SHA so each commit gets its own run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: Lint, Typecheck, Test, Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node and pnpm via mise
+        uses: jdx/mise-action@v2
+
+      - name: Install dependencies
+        run: mise exec -- pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: mise exec -- pnpm lint
+
+      - name: Format check
+        run: mise exec -- pnpm format:check
+
+      - name: Typecheck
+        run: mise exec -- pnpm typecheck
+
+      - name: Test
+        run: mise exec -- pnpm test:ci
+
+      - name: Build
+        run: mise exec -- pnpm build
