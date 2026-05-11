@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { resolve, dirname } from "node:path";
 import { put } from "@vercel/blob";
+import { ChartFileSchema } from "../../src/lib/chart-schema";
 
 const FIXTURE_PATH = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -29,9 +30,7 @@ async function main(): Promise<void> {
   }
 
   const raw = await readFile(FIXTURE_PATH, "utf8");
-  const parsed: {
-    lastUpdated: string;
-  } = JSON.parse(raw);
+  const parsed = ChartFileSchema.parse(JSON.parse(raw));
 
   console.log("Upload 1: original fixture body");
   const url1 = await uploadOnce(raw);
@@ -45,6 +44,7 @@ async function main(): Promise<void> {
     null,
     2,
   );
+  ChartFileSchema.parse(JSON.parse(bumped));
   console.log("Upload 2: lastUpdated bumped to now");
   const url2 = await uploadOnce(bumped);
   console.log(`  → ${url2}`);

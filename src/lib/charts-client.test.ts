@@ -18,7 +18,7 @@ function mockFetch(response: Response): void {
 }
 
 test("fetchCharts returns parsed ChartFile when body matches schema", async () => {
-  mockFetch(
+  const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
     new Response(JSON.stringify(fixture), {
       status: 200,
       headers: { "content-type": "application/json" },
@@ -30,6 +30,10 @@ test("fetchCharts returns parsed ChartFile when body matches schema", async () =
   expect(result.countries.kr.tracks[0].rank).toBe(1);
   expect(result.countries.kr.tracks[0].artist).toBe("악뮤");
   expect(result.lastUpdated).toBe("2026-04-25T03:00:00Z");
+  expect(spy).toHaveBeenCalledWith(FIXTURE_URL, {
+    cache: "force-cache",
+    next: { tags: ["charts"] },
+  });
 });
 
 test("fetchCharts throws ChartsValidationError when payload is malformed", async () => {
@@ -48,6 +52,29 @@ test("fetchCharts throws ChartsValidationError when payload is malformed", async
 
 test("fetchCharts throws ChartsFetchError on non-OK status", async () => {
   mockFetch(new Response(null, { status: 500, statusText: "Server Error" }));
+
+  await expect(fetchCharts(FIXTURE_URL)).rejects.toBeInstanceOf(
+    ChartsFetchError,
+  );
+});
+
+test("fetchCharts throws ChartsFetchError when fetch rejects (network error)", async () => {
+  vi.spyOn(globalThis, "fetch").mockRejectedValue(
+    new TypeError("fetch failed"),
+  );
+
+  await expect(fetchCharts(FIXTURE_URL)).rejects.toBeInstanceOf(
+    ChartsFetchError,
+  );
+});
+
+test("fetchCharts throws ChartsFetchError when body is not valid JSON", async () => {
+  mockFetch(
+    new Response("not json at all", {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }),
+  );
 
   await expect(fetchCharts(FIXTURE_URL)).rejects.toBeInstanceOf(
     ChartsFetchError,

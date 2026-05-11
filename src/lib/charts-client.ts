@@ -21,17 +21,36 @@ export class ChartsValidationError extends Error {
 }
 
 export async function fetchCharts(url: string): Promise<ChartFile> {
-  const res = await fetch(url, {
-    cache: "force-cache",
-    next: { tags: ["charts"] },
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      cache: "force-cache",
+      next: { tags: ["charts"] },
+    });
+  } catch (err) {
+    throw new ChartsFetchError(
+      0,
+      `Charts fetch failed: ${err instanceof Error ? err.message : "network error"}`,
+    );
+  }
+
   if (!res.ok) {
     throw new ChartsFetchError(
       res.status,
       `Charts fetch failed: ${res.status} ${res.statusText}`,
     );
   }
-  const json: unknown = await res.json();
+
+  let json: unknown;
+  try {
+    json = await res.json();
+  } catch (err) {
+    throw new ChartsFetchError(
+      res.status,
+      `Charts fetch failed: invalid JSON (${err instanceof Error ? err.message : "parse error"})`,
+    );
+  }
+
   const parsed = ChartFileSchema.safeParse(json);
   if (!parsed.success) {
     throw new ChartsValidationError(
