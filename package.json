@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:ci": "vitest --watch=false --reporter=default --reporter=github-actions",
+    "blob:upload-fixture": "tsx --env-file=.env.local scripts/blob/upload-fixture.ts",
     "prepare": "husky"
   },
   "dependencies": {
