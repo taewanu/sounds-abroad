@@ -28,19 +28,19 @@ jobs:
         uses: jdx/mise-action@v2
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: mise exec -- pnpm install --frozen-lockfile
 
       - name: Lint
-        run: pnpm lint
+        run: mise exec -- pnpm lint
 
       - name: Format check
-        run: pnpm format:check
+        run: mise exec -- pnpm format:check
 
       - name: Typecheck
-        run: pnpm typecheck
+        run: mise exec -- pnpm typecheck
 
       - name: Test
-        run: pnpm test:ci
+        run: mise exec -- pnpm test:ci
 
       - name: Build
-        run: pnpm build
+        run: mise exec -- pnpm build
