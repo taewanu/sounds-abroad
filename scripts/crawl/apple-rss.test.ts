@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { AppleRssError, fetchAppleRss } from "./apple-rss.mjs";
+import { AppleRssError, fetchAppleRss } from "./apple-rss";
 
 const FIXTURE_PATH = resolve(
   dirname(fileURLToPath(import.meta.url)),

@@ -1,9 +1,9 @@
-import { fetchAppleRss } from "./apple-rss.mjs";
-import { lookupTrack } from "./itunes-lookup.mjs";
-import { triggerRevalidate } from "./revalidate-trigger.mjs";
-import { crawlCountry } from "./run.mjs";
-import { createThrottle } from "./throttle.mjs";
-import { uploadCharts } from "./upload-blob.mjs";
+import { fetchAppleRss } from "./apple-rss";
+import { lookupTrack } from "./itunes-lookup";
+import { triggerRevalidate } from "./revalidate-trigger";
+import { crawlCountry } from "./run";
+import { createThrottle } from "./throttle";
+import { uploadCharts } from "./upload-blob";
 
 const COUNTRY_NAMES: Readonly<Record<string, string>> = {
   kr: "South Korea",
@@ -24,7 +24,7 @@ async function main(): Promise<void> {
     );
   }
 
-  const throttle = createThrottle(20);
+  const throttle = createThrottle();
 
   console.log(`[crawl] starting one-country crawl for ${cc} (${name})...`);
   const result = await crawlCountry({

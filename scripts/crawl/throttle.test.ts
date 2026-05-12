@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createThrottle } from "./throttle.mjs";
+import { createThrottle } from "./throttle";
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -10,48 +10,63 @@ afterEach(() => {
 });
 
 describe("createThrottle", () => {
-  it("does not delay the first call", async () => {
-    const throttle = createThrottle(20);
-    const t0 = Date.now();
+  it("runs the first call without scheduling any delay", async () => {
+    const throttle = createThrottle();
+    let resolved = false;
+    const pending = throttle(async () => "first").then((v) => {
+      resolved = true;
+      return v;
+    });
 
-    await throttle(async () => "first");
+    await vi.advanceTimersByTimeAsync(0);
 
-    expect(Date.now()).toBe(t0);
+    expect(resolved).toBe(true);
+    expect(await pending).toBe("first");
   });
 
-  it("waits the min gap before the second call", async () => {
-    const throttle = createThrottle(20);
-
+  it("delays the second call by exactly 3000ms (Apple 20/min ceiling)", async () => {
+    const throttle = createThrottle();
     await throttle(async () => "a");
-    const t1 = Date.now();
 
-    const pending = throttle(async () => "b");
-    await vi.advanceTimersByTimeAsync(3000);
+    let resolved = false;
+    const pending = throttle(async () => "b").then((v) => {
+      resolved = true;
+      return v;
+    });
 
+    await vi.advanceTimersByTimeAsync(2999);
+    expect(resolved).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(resolved).toBe(true);
     expect(await pending).toBe("b");
-    expect(Date.now() - t1).toBe(3000);
   });
 
-  it("does not delay when natural elapsed time already exceeds the gap", async () => {
-    const throttle = createThrottle(20);
-
+  it("skips the delay when natural elapsed time already meets the gap", async () => {
+    const throttle = createThrottle();
     await throttle(async () => "a");
     await vi.advanceTimersByTimeAsync(5000);
-    const t1 = Date.now();
 
-    await throttle(async () => "b");
+    let resolved = false;
+    const pending = throttle(async () => "b").then((v) => {
+      resolved = true;
+      return v;
+    });
 
-    expect(Date.now()).toBe(t1);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(resolved).toBe(true);
+    expect(await pending).toBe("b");
   });
 
-  it("returns the wrapped fn's resolved value", async () => {
-    const throttle = createThrottle(60);
+  it("passes the wrapped fn's resolved value through", async () => {
+    const throttle = createThrottle();
 
     expect(await throttle(async () => 42)).toBe(42);
   });
 
   it("propagates errors thrown by the wrapped fn", async () => {
-    const throttle = createThrottle(60);
+    const throttle = createThrottle();
 
     await expect(
       throttle(async () => {

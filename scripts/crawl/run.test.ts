@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { ChartFileSchema } from "../../src/lib/chart-schema";
-import type { AppleRssTrack } from "./apple-rss.mjs";
-import { ItunesLookupError, type LookupResult } from "./itunes-lookup.mjs";
-import { crawlCountry, type CrawlCountryDeps } from "./run.mjs";
+import type { AppleRssTrack } from "./apple-rss";
+import { ItunesLookupError, type LookupResult } from "./itunes-lookup";
+import { crawlCountry, type CrawlCountryDeps } from "./run";
 
 const FROZEN_NOW = new Date("2026-05-12T12:00:00.000Z");
 

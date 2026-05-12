@@ -1,7 +1,7 @@
 import type { ChartFile, Country, Track } from "../../src/lib/chart-schema";
-import type { AppleRssTrack } from "./apple-rss.mjs";
-import type { LookupResult } from "./itunes-lookup.mjs";
-import type { Throttle } from "./throttle.mjs";
+import type { AppleRssTrack } from "./apple-rss";
+import type { LookupResult } from "./itunes-lookup";
+import type { Throttle } from "./throttle";
 
 export interface CrawlCountryDeps {
   cc: string;
