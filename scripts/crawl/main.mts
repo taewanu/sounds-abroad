@@ -24,7 +24,7 @@ async function main(): Promise<void> {
     );
   }
 
-  const throttle = createThrottle({ rpm: 20 });
+  const throttle = createThrottle(20);
 
   console.log(`[crawl] starting one-country crawl for ${cc} (${name})...`);
   const result = await crawlCountry({

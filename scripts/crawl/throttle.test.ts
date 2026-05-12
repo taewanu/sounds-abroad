@@ -1,83 +1,57 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createThrottle } from "./throttle.mjs";
 
-function fakeClock() {
-  let nowMs = 0;
-  const sleeps: number[] = [];
-  return {
-    now: () => nowMs,
-    sleep: async (ms: number) => {
-      sleeps.push(ms);
-      nowMs += ms;
-    },
-    advance: (ms: number) => {
-      nowMs += ms;
-    },
-    sleeps,
-  };
-}
+beforeEach(() => {
+  vi.useFakeTimers();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe("createThrottle", () => {
-  it("does not sleep on the first call", async () => {
-    const clock = fakeClock();
-    const throttle = createThrottle({
-      rpm: 20,
-      now: clock.now,
-      sleep: clock.sleep,
-    });
+  it("does not delay the first call", async () => {
+    const throttle = createThrottle(20);
+    const t0 = Date.now();
 
     await throttle(async () => "first");
 
-    expect(clock.sleeps).toEqual([]);
+    expect(Date.now()).toBe(t0);
   });
 
-  it("enforces min gap between consecutive calls", async () => {
-    const clock = fakeClock();
-    const throttle = createThrottle({
-      rpm: 20,
-      now: clock.now,
-      sleep: clock.sleep,
-    });
+  it("waits the min gap before the second call", async () => {
+    const throttle = createThrottle(20);
 
     await throttle(async () => "a");
-    await throttle(async () => "b");
+    const t1 = Date.now();
 
-    expect(clock.sleeps).toEqual([3000]);
+    const pending = throttle(async () => "b");
+    await vi.advanceTimersByTimeAsync(3000);
+
+    expect(await pending).toBe("b");
+    expect(Date.now() - t1).toBe(3000);
   });
 
-  it("does not sleep when natural elapsed time already exceeds gap", async () => {
-    const clock = fakeClock();
-    const throttle = createThrottle({
-      rpm: 20,
-      now: clock.now,
-      sleep: clock.sleep,
-    });
+  it("does not delay when natural elapsed time already exceeds the gap", async () => {
+    const throttle = createThrottle(20);
 
     await throttle(async () => "a");
-    clock.advance(5000);
+    await vi.advanceTimersByTimeAsync(5000);
+    const t1 = Date.now();
+
     await throttle(async () => "b");
 
-    expect(clock.sleeps).toEqual([]);
+    expect(Date.now()).toBe(t1);
   });
 
-  it("returns the wrapped fn's result", async () => {
-    const throttle = createThrottle({
-      rpm: 60,
-      now: () => 0,
-      sleep: async () => {},
-    });
+  it("returns the wrapped fn's resolved value", async () => {
+    const throttle = createThrottle(60);
 
-    const result = await throttle(async () => 42);
-
-    expect(result).toBe(42);
+    expect(await throttle(async () => 42)).toBe(42);
   });
 
-  it("propagates errors from the wrapped fn", async () => {
-    const throttle = createThrottle({
-      rpm: 60,
-      now: () => 0,
-      sleep: async () => {},
-    });
+  it("propagates errors thrown by the wrapped fn", async () => {
+    const throttle = createThrottle(60);
 
     await expect(
       throttle(async () => {
