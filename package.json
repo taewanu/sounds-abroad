@@ -14,7 +14,6 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:ci": "vitest --watch=false --reporter=default --reporter=github-actions",
-    "blob:upload-fixture": "tsx --env-file=.env.local scripts/blob/upload-fixture.ts",
     "crawl": "tsx --env-file=.env.local scripts/crawl/main.ts",
     "prepare": "husky"
   },
