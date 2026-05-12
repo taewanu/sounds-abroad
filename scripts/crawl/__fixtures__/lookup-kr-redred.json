@@ -1,0 +1,36 @@
+{
+  "resultCount": 1,
+  "results": [
+    {
+      "wrapperType": "track",
+      "kind": "song",
+      "artistId": 1831651635,
+      "collectionId": 1887671065,
+      "trackId": 1887671067,
+      "artistName": "코르티스",
+      "collectionName": "GREENGREEN - EP",
+      "trackName": "REDRED",
+      "collectionCensoredName": "GREENGREEN - EP",
+      "trackCensoredName": "REDRED",
+      "artistViewUrl": "https://music.apple.com/kr/artist/%EC%BD%94%EB%A5%B4%ED%8B%B0%EC%8A%A4/1831651635?uo=4",
+      "collectionViewUrl": "https://music.apple.com/kr/album/redred/1887671065?i=1887671067&uo=4",
+      "trackViewUrl": "https://music.apple.com/kr/album/redred/1887671065?i=1887671067&uo=4",
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/b9/a9/23/b9a92352-f4a2-fd4e-c2de-4985bc38133c/mzaf_7598194542973128311.plus.aac.p.m4a",
+      "artworkUrl30": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/9b/5f/47/9b5f4711-dc78-2dea-6721-d06709ea5121/198704992810_Cover.jpg/30x30bb.jpg",
+      "artworkUrl60": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/9b/5f/47/9b5f4711-dc78-2dea-6721-d06709ea5121/198704992810_Cover.jpg/60x60bb.jpg",
+      "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/9b/5f/47/9b5f4711-dc78-2dea-6721-d06709ea5121/198704992810_Cover.jpg/100x100bb.jpg",
+      "releaseDate": "2026-04-20T12:00:00Z",
+      "collectionExplicitness": "notExplicit",
+      "trackExplicitness": "notExplicit",
+      "discCount": 1,
+      "discNumber": 1,
+      "trackCount": 6,
+      "trackNumber": 2,
+      "trackTimeMillis": 163002,
+      "country": "KOR",
+      "currency": "KRW",
+      "primaryGenreName": "K-Pop",
+      "isStreamable": true
+    }
+  ]
+}
