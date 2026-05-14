@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { assert, describe, expect, it } from "vitest";
+import { assert, expect, test } from "vitest";
 
 import { AppleRssError, fetchAppleRss } from "./apple-rss";
 
@@ -26,105 +26,103 @@ function fakeFetch(response: {
     })) as typeof fetch;
 }
 
-describe("fetchAppleRss", () => {
-  it("parses the captured kr fixture into 25 ranked tracks", async () => {
-    const body = await loadFixture();
-    const raw = JSON.parse(body).feed.results[0];
-    const tracks = await fetchAppleRss("kr", {
-      fetch: fakeFetch({ ok: true, body }),
-    });
-
-    expect(tracks).toHaveLength(25);
-    expect(tracks[0]).toEqual({
-      rank: 1,
-      id: raw.id,
-      name: raw.name,
-      artist: raw.artistName,
-      appleUrl: raw.url,
-      artworkUrl: raw.artworkUrl100.replace("/100x100bb.jpg", "/600x600bb.jpg"),
-    });
+test("parses the captured kr fixture into 25 ranked tracks", async () => {
+  const body = await loadFixture();
+  const raw = JSON.parse(body).feed.results[0];
+  const tracks = await fetchAppleRss("kr", {
+    fetch: fakeFetch({ ok: true, body }),
   });
 
-  it("rewrites 100x100 artwork URL to 600x600", async () => {
-    const body = await loadFixture();
-    const tracks = await fetchAppleRss("kr", {
-      fetch: fakeFetch({ ok: true, body }),
-    });
+  expect(tracks).toHaveLength(25);
+  expect(tracks[0]).toEqual({
+    rank: 1,
+    id: raw.id,
+    name: raw.name,
+    artist: raw.artistName,
+    appleUrl: raw.url,
+    artworkUrl: raw.artworkUrl100.replace("/100x100bb.jpg", "/600x600bb.jpg"),
+  });
+});
 
-    for (const t of tracks) {
-      expect(t.artworkUrl).not.toContain("/100x100bb.jpg");
-      expect(t.artworkUrl).toContain("/600x600bb.jpg");
-    }
+test("rewrites 100x100 artwork URL to 600x600", async () => {
+  const body = await loadFixture();
+  const tracks = await fetchAppleRss("kr", {
+    fetch: fakeFetch({ ok: true, body }),
   });
 
-  it("hits the canonical rss.marketingtools.apple.com endpoint", async () => {
-    const body = await loadFixture();
-    const seen: string[] = [];
-    const spyFetch: typeof fetch = (async (input: RequestInfo | URL) => {
-      seen.push(typeof input === "string" ? input : input.toString());
-      return new Response(body, { status: 200 });
-    }) as typeof fetch;
+  for (const t of tracks) {
+    expect(t.artworkUrl).not.toContain("/100x100bb.jpg");
+    expect(t.artworkUrl).toContain("/600x600bb.jpg");
+  }
+});
 
-    await fetchAppleRss("kr", { fetch: spyFetch });
+test("hits the canonical rss.marketingtools.apple.com endpoint", async () => {
+  const body = await loadFixture();
+  const seen: string[] = [];
+  const spyFetch: typeof fetch = (async (input: RequestInfo | URL) => {
+    seen.push(typeof input === "string" ? input : input.toString());
+    return new Response(body, { status: 200 });
+  }) as typeof fetch;
 
-    expect(seen).toHaveLength(1);
-    expect(seen[0]).toBe(
-      "https://rss.marketingtools.apple.com/api/v2/kr/music/most-played/25/songs.json",
-    );
-  });
+  await fetchAppleRss("kr", { fetch: spyFetch });
 
-  it("throws AppleRssError on non-OK status", async () => {
-    await expect(
-      fetchAppleRss("kr", {
-        fetch: fakeFetch({
-          ok: false,
-          status: 503,
-          body: "Service Unavailable",
-        }),
+  expect(seen).toHaveLength(1);
+  expect(seen[0]).toBe(
+    "https://rss.marketingtools.apple.com/api/v2/kr/music/most-played/25/songs.json",
+  );
+});
+
+test("throws AppleRssError on non-OK status", async () => {
+  await expect(
+    fetchAppleRss("kr", {
+      fetch: fakeFetch({
+        ok: false,
+        status: 503,
+        body: "Service Unavailable",
       }),
-    ).rejects.toBeInstanceOf(AppleRssError);
-  });
+    }),
+  ).rejects.toBeInstanceOf(AppleRssError);
+});
 
-  it("throws AppleRssError on invalid JSON", async () => {
-    await expect(
-      fetchAppleRss("kr", {
-        fetch: fakeFetch({ ok: true, body: "<html>nope</html>" }),
+test("throws AppleRssError on invalid JSON", async () => {
+  await expect(
+    fetchAppleRss("kr", {
+      fetch: fakeFetch({ ok: true, body: "<html>nope</html>" }),
+    }),
+  ).rejects.toBeInstanceOf(AppleRssError);
+});
+
+test("throws AppleRssError on shape mismatch", async () => {
+  await expect(
+    fetchAppleRss("kr", {
+      fetch: fakeFetch({
+        ok: true,
+        body: JSON.stringify({ feed: { results: [] } }),
       }),
-    ).rejects.toBeInstanceOf(AppleRssError);
-  });
+    }),
+  ).rejects.toBeInstanceOf(AppleRssError);
+});
 
-  it("throws AppleRssError on shape mismatch", async () => {
-    await expect(
-      fetchAppleRss("kr", {
-        fetch: fakeFetch({
-          ok: true,
-          body: JSON.stringify({ feed: { results: [] } }),
-        }),
-      }),
-    ).rejects.toBeInstanceOf(AppleRssError);
-  });
+test("requires exactly 25 results", async () => {
+  const body = await loadFixture();
+  const fixture = JSON.parse(body);
+  assert.equal(fixture.feed.results.length, 25);
 
-  it("requires exactly 25 results", async () => {
-    const body = await loadFixture();
-    const fixture = JSON.parse(body);
-    assert.equal(fixture.feed.results.length, 25);
+  fixture.feed.results.pop();
 
-    fixture.feed.results.pop();
+  await expect(
+    fetchAppleRss("kr", {
+      fetch: fakeFetch({ ok: true, body: JSON.stringify(fixture) }),
+    }),
+  ).rejects.toBeInstanceOf(AppleRssError);
+});
 
-    await expect(
-      fetchAppleRss("kr", {
-        fetch: fakeFetch({ ok: true, body: JSON.stringify(fixture) }),
-      }),
-    ).rejects.toBeInstanceOf(AppleRssError);
-  });
+test("throws AppleRssError when fetch itself rejects", async () => {
+  const failingFetch: typeof fetch = (async () => {
+    throw new TypeError("network down");
+  }) as typeof fetch;
 
-  it("throws AppleRssError when fetch itself rejects", async () => {
-    const failingFetch: typeof fetch = (async () => {
-      throw new TypeError("network down");
-    }) as typeof fetch;
-
-    await expect(
-      fetchAppleRss("kr", { fetch: failingFetch }),
-    ).rejects.toBeInstanceOf(AppleRssError);
-  });
+  await expect(
+    fetchAppleRss("kr", { fetch: failingFetch }),
+  ).rejects.toBeInstanceOf(AppleRssError);
 });
