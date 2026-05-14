@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { assert, describe, expect, it } from "vitest";
 import { AppleRssError, fetchAppleRss } from "./apple-rss";
 
 const FIXTURE_PATH = resolve(
@@ -98,6 +98,20 @@ describe("fetchAppleRss", () => {
           ok: true,
           body: JSON.stringify({ feed: { results: [] } }),
         }),
+      }),
+    ).rejects.toBeInstanceOf(AppleRssError);
+  });
+
+  it("requires exactly 25 results", async () => {
+    const body = await loadFixture();
+    const fixture = JSON.parse(body);
+    assert.equal(fixture.feed.results.length, 25);
+
+    fixture.feed.results.pop();
+
+    await expect(
+      fetchAppleRss("kr", {
+        fetch: fakeFetch({ ok: true, body: JSON.stringify(fixture) }),
       }),
     ).rejects.toBeInstanceOf(AppleRssError);
   });

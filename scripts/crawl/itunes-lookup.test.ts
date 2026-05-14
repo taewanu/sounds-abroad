@@ -105,6 +105,27 @@ describe("lookupTrack", () => {
     });
   });
 
+  it("throws miss when the response trackId differs from the requested id", async () => {
+    const requestedId = "222"; // string: function arg type
+    const mismatchedResponseId = 333; // number: Apple API trackId type
+    const body = JSON.stringify({
+      resultCount: 1,
+      results: [
+        {
+          trackId: mismatchedResponseId,
+          previewUrl: `https://preview/${mismatchedResponseId}.m4a`,
+        },
+      ],
+    });
+
+    await expect(
+      lookupTrack(requestedId, "kr", { fetch: fakeFetch({ ok: true, body }) }),
+    ).rejects.toMatchObject({
+      name: "ItunesLookupError",
+      kind: "miss",
+    });
+  });
+
   it("throws network when fetch rejects", async () => {
     const failingFetch: typeof fetch = (async () => {
       throw new TypeError("boom");

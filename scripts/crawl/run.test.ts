@@ -104,16 +104,27 @@ describe("crawlCountry", () => {
   });
 
   it("rethrows when RSS fetch fails (no upload attempted)", async () => {
-    const uploadCharts = vi.fn(async () => "unused");
+    const errorMessage = "rss fetch error";
     const deps = makeDeps({
       fetchRss: vi.fn(async () => {
-        throw new Error("rss boom");
+        throw new Error(errorMessage);
       }),
-      uploadCharts,
     });
 
-    await expect(crawlCountry(deps)).rejects.toThrow("rss boom");
-    expect(uploadCharts).not.toHaveBeenCalled();
+    await expect(crawlCountry(deps)).rejects.toThrow(errorMessage);
+    expect(deps.uploadCharts).not.toHaveBeenCalled();
+  });
+
+  it("rethrows non-ItunesLookupError from lookupTrack (no silent recovery)", async () => {
+    const errorMessage = "unexpected lookup error";
+    const deps = makeDeps({
+      lookupTrack: vi.fn(async () => {
+        throw new TypeError(errorMessage);
+      }),
+    });
+
+    await expect(crawlCountry(deps)).rejects.toThrow(errorMessage);
+    expect(deps.uploadCharts).not.toHaveBeenCalled();
   });
 
   it("uploads the chart file and triggers revalidate exactly once", async () => {

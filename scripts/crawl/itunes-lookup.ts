@@ -113,6 +113,15 @@ export async function lookupTrack(
     );
   }
 
+  if (String(track.data.trackId) !== id) {
+    throw new ItunesLookupError(
+      id,
+      cc,
+      "miss",
+      `iTunes Lookup returned mismatched trackId=${track.data.trackId} for id=${id}`,
+    );
+  }
+
   return {
     id: String(track.data.trackId),
     previewUrl: track.data.previewUrl,

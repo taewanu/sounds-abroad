@@ -33,7 +33,7 @@ const RssTrackSchema = z.object({
 
 const RssResponseSchema = z.object({
   feed: z.object({
-    results: z.array(RssTrackSchema).min(1).max(25),
+    results: z.array(RssTrackSchema).length(25),
   }),
 });
 

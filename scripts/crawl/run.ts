@@ -1,6 +1,6 @@
 import type { ChartFile, Country, Track } from "../../src/lib/chart-schema";
 import type { AppleRssTrack } from "./apple-rss";
-import type { LookupResult } from "./itunes-lookup";
+import { ItunesLookupError, type LookupResult } from "./itunes-lookup";
 import type { Throttle } from "./throttle";
 
 export interface CrawlCountryDeps {
@@ -54,10 +54,11 @@ export async function crawlCountry(
         spotifySearchUrl: spotifySearchUrl(rss.name, rss.artist),
       });
     } catch (err) {
+      if (!(err instanceof ItunesLookupError)) throw err;
+
       failures += 1;
-      const reason = err instanceof Error ? err.message : "unknown";
       console.warn(
-        `[crawl ${cc}] lookup failed for rank ${rss.rank} id=${rss.id}: ${reason}`,
+        `[crawl ${cc}] lookup failed for rank ${rss.rank} id=${rss.id}: ${err.message}`,
       );
     }
   }
