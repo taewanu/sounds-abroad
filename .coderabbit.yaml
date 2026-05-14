@@ -72,6 +72,9 @@ reviews:
       mode: "warning"
     issue_assessment:
       mode: "warning"
+    docstrings:
+      mode: "warning"
+      threshold: 0
 
 chat:
   art: false
