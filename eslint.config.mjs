@@ -1,3 +1,4 @@
+import vitest from "@vitest/eslint-plugin";
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
@@ -48,6 +49,13 @@ const eslintConfig = defineConfig([
     },
   },
   prettier,
+  {
+    files: ["**/*.test.{ts,tsx}"],
+    plugins: { vitest },
+    rules: {
+      "vitest/consistent-test-it": ["error", { fn: "test" }],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
