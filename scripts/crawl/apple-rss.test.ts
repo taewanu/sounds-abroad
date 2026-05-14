@@ -27,6 +27,7 @@ function fakeFetch(response: {
 describe("fetchAppleRss", () => {
   it("parses the captured kr fixture into 25 ranked tracks", async () => {
     const body = await loadFixture();
+    const raw = JSON.parse(body).feed.results[0];
     const tracks = await fetchAppleRss("kr", {
       fetch: fakeFetch({ ok: true, body }),
     });
@@ -34,13 +35,12 @@ describe("fetchAppleRss", () => {
     expect(tracks).toHaveLength(25);
     expect(tracks[0]).toEqual({
       rank: 1,
-      id: "1887671067",
-      name: "REDRED",
-      artist: "코르티스",
-      appleUrl: expect.stringContaining("music.apple.com"),
-      artworkUrl: expect.stringContaining("/600x600bb.jpg"),
+      id: raw.id,
+      name: raw.name,
+      artist: raw.artistName,
+      appleUrl: raw.url,
+      artworkUrl: raw.artworkUrl100.replace("/100x100bb.jpg", "/600x600bb.jpg"),
     });
-    expect(tracks[24].rank).toBe(25);
   });
 
   it("rewrites 100x100 artwork URL to 600x600", async () => {

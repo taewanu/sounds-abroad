@@ -27,30 +27,31 @@ function fakeFetch(response: {
 describe("lookupTrack", () => {
   it("resolves previewUrl from the captured kr fixture", async () => {
     const body = await loadFixture();
-    const result = await lookupTrack("1887671067", "kr", {
+    const raw = JSON.parse(body).results[0];
+    const id = String(raw.trackId);
+    const result = await lookupTrack(id, "kr", {
       fetch: fakeFetch({ ok: true, body }),
     });
 
-    expect(result.id).toBe("1887671067");
-    expect(result.previewUrl).toBe(
-      "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/b9/a9/23/b9a92352-f4a2-fd4e-c2de-4985bc38133c/mzaf_7598194542973128311.plus.aac.p.m4a",
-    );
+    expect(result.id).toBe(id);
+    expect(result.previewUrl).toBe(raw.previewUrl);
   });
 
   it("hits the canonical itunes.apple.com lookup endpoint with id+country", async () => {
     const body = await loadFixture();
+    const id = String(JSON.parse(body).results[0].trackId);
     const seen: string[] = [];
     const spyFetch: typeof fetch = (async (input: RequestInfo | URL) => {
       seen.push(typeof input === "string" ? input : input.toString());
       return new Response(body, { status: 200 });
     }) as typeof fetch;
 
-    await lookupTrack("1887671067", "kr", { fetch: spyFetch });
+    await lookupTrack(id, "kr", { fetch: spyFetch });
 
     expect(seen).toHaveLength(1);
     const url = new URL(seen[0]);
     expect(url.origin + url.pathname).toBe("https://itunes.apple.com/lookup");
-    expect(url.searchParams.get("id")).toBe("1887671067");
+    expect(url.searchParams.get("id")).toBe(id);
     expect(url.searchParams.get("country")).toBe("kr");
     expect(url.searchParams.get("entity")).toBe("song");
   });

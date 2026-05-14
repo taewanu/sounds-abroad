@@ -69,19 +69,21 @@ describe("crawlCountry", () => {
   });
 
   it("composes RSS + Lookup into typed tracks with synthesized spotifySearchUrl", async () => {
+    const [firstRss] = sampleRssTracks();
     const deps = makeDeps();
 
     const { chartFile } = await crawlCountry(deps);
 
     expect(chartFile.countries.kr.tracks[0]).toEqual({
-      rank: 1,
-      name: "REDRED",
-      artist: "코르티스",
-      previewUrl: "https://preview/1.m4a",
-      artworkUrl: "https://art/1/600x600bb.jpg",
-      appleUrl: "https://music.apple.com/kr/album/1",
-      spotifySearchUrl:
-        "https://open.spotify.com/search/REDRED%20%EC%BD%94%EB%A5%B4%ED%8B%B0%EC%8A%A4",
+      rank: firstRss.rank,
+      name: firstRss.name,
+      artist: firstRss.artist,
+      appleUrl: firstRss.appleUrl,
+      artworkUrl: firstRss.artworkUrl,
+      previewUrl: `https://preview/${firstRss.id}.m4a`,
+      spotifySearchUrl: `https://open.spotify.com/search/${encodeURIComponent(
+        `${firstRss.name} ${firstRss.artist}`,
+      )}`,
     });
   });
 
