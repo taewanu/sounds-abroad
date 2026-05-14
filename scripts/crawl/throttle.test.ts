@@ -74,4 +74,38 @@ describe("createThrottle", () => {
       }),
     ).rejects.toThrow("boom");
   });
+
+  it("serializes concurrent calls — each reserves its slot synchronously", async () => {
+    const throttle = createThrottle();
+    // First call on a throttle doesn't wait. Use it here so the next two calls wait.
+    await throttle(async () => "first");
+
+    let secondDone = false;
+    let thirdDone = false;
+    const secondCall = throttle(async () => {
+      secondDone = true;
+      return "second";
+    });
+    const thirdCall = throttle(async () => {
+      thirdDone = true;
+      return "third";
+    });
+
+    await vi.advanceTimersByTimeAsync(2999);
+    expect(secondDone).toBe(false);
+    expect(thirdDone).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(1); // t = +3000
+    expect(secondDone).toBe(true);
+    expect(thirdDone).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(2999);
+    expect(thirdDone).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(1); // t = +6000
+    expect(thirdDone).toBe(true);
+
+    expect(await secondCall).toBe("second");
+    expect(await thirdCall).toBe("third");
+  });
 });
