@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+
 import { fetchCharts } from "@/lib/charts-client";
 
 export const dynamic = "force-dynamic";
