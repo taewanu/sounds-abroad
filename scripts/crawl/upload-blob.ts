@@ -1,4 +1,5 @@
 import { put } from "@vercel/blob";
+
 import type { ChartFile } from "../../src/lib/chart-schema";
 
 const BLOB_PATHNAME = "charts/v1/charts.json";

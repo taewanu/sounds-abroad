@@ -1,4 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
+
 import fixture from "./__fixtures__/charts.json";
 import {
   ChartsFetchError,
