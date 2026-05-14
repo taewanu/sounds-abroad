@@ -2,6 +2,7 @@
   "name": "sounds-abroad",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "packageManager": "pnpm@10.23.0",
   "scripts": {
     "dev": "next dev",
@@ -13,7 +14,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:ci": "vitest --watch=false --reporter=default --reporter=github-actions",
-    "blob:upload-fixture": "tsx --env-file=.env.local scripts/blob/upload-fixture.mts",
+    "crawl": "tsx --env-file=.env.local scripts/crawl/main.ts",
     "prepare": "husky"
   },
   "dependencies": {
