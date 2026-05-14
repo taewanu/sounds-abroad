@@ -113,6 +113,7 @@ describe("crawlCountry", () => {
 
     await expect(crawlCountry(deps)).rejects.toThrow(errorMessage);
     expect(deps.uploadCharts).not.toHaveBeenCalled();
+    expect(deps.triggerRevalidate).not.toHaveBeenCalled();
   });
 
   it("rethrows non-ItunesLookupError from lookupTrack (no silent recovery)", async () => {
@@ -125,6 +126,7 @@ describe("crawlCountry", () => {
 
     await expect(crawlCountry(deps)).rejects.toThrow(errorMessage);
     expect(deps.uploadCharts).not.toHaveBeenCalled();
+    expect(deps.triggerRevalidate).not.toHaveBeenCalled();
   });
 
   it("uploads the chart file and triggers revalidate exactly once", async () => {
