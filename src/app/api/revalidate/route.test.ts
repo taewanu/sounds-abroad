@@ -4,13 +4,20 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { MUSIC_CHARTS_TAG } from "@/lib/cache-tags";
 
-import { BREADCRUMB, revalidateCharts } from "./route";
+import { BREADCRUMB, MISCONFIGURED_MESSAGE, revalidateCharts } from "./route";
 
-// First module-mock pattern in this repo. `revalidateTag` and `addBreadcrumb`
-// are named ESM exports from third-party modules; `vi.spyOn(globalThis, ...)`
-// (the repo's existing pattern) does not apply here.
+// First module-mock pattern in this repo. `revalidateTag`, `addBreadcrumb`, and
+// `captureMessage` are named ESM exports from third-party modules;
+// `vi.spyOn(globalThis, ...)` (the repo's existing pattern) does not apply here.
 vi.mock("next/cache", () => ({ revalidateTag: vi.fn() }));
-vi.mock("@sentry/nextjs", () => ({ addBreadcrumb: vi.fn() }));
+vi.mock("@sentry/nextjs", () => ({
+  addBreadcrumb: vi.fn(),
+  captureMessage: vi.fn(),
+}));
+
+const revalidateTagMock = vi.mocked(revalidateTag);
+const addBreadcrumbMock = vi.mocked(Sentry.addBreadcrumb);
+const captureMessageMock = vi.mocked(Sentry.captureMessage);
 
 const SECRET = "test-fixture-secret";
 
@@ -43,8 +50,6 @@ afterEach(() => {
 
 test("returns 200 and revalidates MUSIC_CHARTS_TAG with valid bearer", async () => {
   const req = makeReq({ authorization: `Bearer ${SECRET}` });
-  const revalidateTagMock = vi.mocked(revalidateTag);
-  const addBreadcrumbMock = vi.mocked(Sentry.addBreadcrumb);
 
   const res = await revalidateCharts(req);
   const body = await res.json();
@@ -63,8 +68,6 @@ test("returns 200 and revalidates MUSIC_CHARTS_TAG with valid bearer", async () 
 
 test("returns 401 with WWW-Authenticate when Authorization header is missing", async () => {
   const req = makeReq();
-  const revalidateTagMock = vi.mocked(revalidateTag);
-  const addBreadcrumbMock = vi.mocked(Sentry.addBreadcrumb);
 
   const res = await revalidateCharts(req);
   const body = await res.json();
@@ -83,8 +86,6 @@ test("returns 401 with WWW-Authenticate when Authorization header is missing", a
 
 test("returns 401 when bearer token is wrong", async () => {
   const req = makeReq({ authorization: "Bearer wrong" });
-  const revalidateTagMock = vi.mocked(revalidateTag);
-  const addBreadcrumbMock = vi.mocked(Sentry.addBreadcrumb);
 
   const res = await revalidateCharts(req);
   const body = await res.json();
@@ -111,13 +112,19 @@ test("401 responses are byte-identical for missing vs wrong bearer", async () =>
   expect(missing).toEqual(wrong);
 });
 
-test("returns 500 when REVALIDATE_SECRET env var is unset", async () => {
+test("returns 500 and captures message when REVALIDATE_SECRET is unset", async () => {
   delete process.env.REVALIDATE_SECRET;
   const req = makeReq({ authorization: `Bearer ${SECRET}` });
-  const revalidateTagMock = vi.mocked(revalidateTag);
 
   const res = await revalidateCharts(req);
+  const body = await res.json();
 
   expect(res.status).toBe(500);
+  expect(body).toEqual({ ok: false });
   expect(revalidateTagMock).not.toHaveBeenCalled();
+  expect(addBreadcrumbMock).not.toHaveBeenCalled();
+  expect(captureMessageMock).toHaveBeenCalledWith(
+    MISCONFIGURED_MESSAGE,
+    "error",
+  );
 });

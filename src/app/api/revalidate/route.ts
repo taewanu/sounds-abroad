@@ -14,6 +14,8 @@ export const BREADCRUMB = {
   unauthorized: "revalidate.unauthorized",
 } as const;
 
+export const MISCONFIGURED_MESSAGE = "REVALIDATE_SECRET is not configured";
+
 function sha256(s: string): Buffer {
   return createHash("sha256").update(s).digest();
 }
@@ -26,6 +28,7 @@ function extractBearer(req: Request): string {
 export async function revalidateCharts(req: Request): Promise<Response> {
   const expected = process.env.REVALIDATE_SECRET;
   if (!expected) {
+    Sentry.captureMessage(MISCONFIGURED_MESSAGE, "error");
     return new Response(JSON.stringify({ ok: false }), {
       status: 500,
       headers: { "content-type": "application/json" },
