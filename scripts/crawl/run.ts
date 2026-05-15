@@ -1,4 +1,5 @@
-import type { Country, Track } from "../../src/lib/chart-schema";
+import type { ChartFile, Country, Track } from "../../src/lib/chart-schema";
+import type { CountryEntry } from "../../src/lib/countries";
 
 import { AppleRssError, type AppleRssTrack } from "./apple-rss";
 import { ItunesLookupError, type LookupResult } from "./itunes-lookup";
@@ -15,6 +16,21 @@ export interface CrawlCountryDeps {
 export interface CrawlCountryResult {
   cc: string;
   country: Country;
+}
+
+export interface CrawlAllDeps {
+  countries: readonly CountryEntry[];
+  fetchRss: (cc: string) => Promise<AppleRssTrack[]>;
+  lookupTrack: (id: string, cc: string) => Promise<LookupResult>;
+  throttle: Throttle;
+  uploadCharts: (chartFile: ChartFile) => Promise<string>;
+  triggerRevalidate: () => Promise<void>;
+  now?: () => Date;
+}
+
+export interface CrawlAllResult {
+  url: string;
+  chartFile: ChartFile;
 }
 
 function spotifySearchUrl(name: string, artist: string): string {
@@ -57,4 +73,46 @@ export async function crawlCountry(
   }
 
   return { cc, country: { name, valid: true, tracks } };
+}
+
+export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
+  const {
+    countries,
+    fetchRss,
+    lookupTrack,
+    throttle,
+    uploadCharts,
+    triggerRevalidate,
+  } = deps;
+  const now = deps.now ?? (() => new Date());
+
+  console.log(
+    `[crawl] starting all-countries crawl (${countries.length} countries)...`,
+  );
+
+  const countriesMap: ChartFile["countries"] = {};
+  for (const entry of countries) {
+    const { cc, country } = await crawlCountry({
+      cc: entry.code,
+      name: entry.name,
+      fetchRss,
+      lookupTrack,
+      throttle,
+    });
+    countriesMap[cc] = country;
+    console.log(
+      `[crawl ${cc}] ${country.tracks.length} tracks (valid=${country.valid})`,
+    );
+  }
+
+  const chartFile: ChartFile = {
+    lastUpdated: now().toISOString(),
+    countries: countriesMap,
+  };
+
+  const url = await uploadCharts(chartFile);
+  console.log(`[crawl] uploaded → ${url}`);
+  await triggerRevalidate();
+
+  return { url, chartFile };
 }

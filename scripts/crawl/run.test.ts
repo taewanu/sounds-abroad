@@ -1,8 +1,16 @@
 import { expect, test, vi } from "vitest";
 
+import { ChartFileSchema } from "../../src/lib/chart-schema";
+import type { CountryEntry } from "../../src/lib/countries";
+
 import { AppleRssError, type AppleRssTrack } from "./apple-rss";
 import { ItunesLookupError, type LookupResult } from "./itunes-lookup";
-import { crawlCountry, type CrawlCountryDeps } from "./run";
+import {
+  crawlAll,
+  crawlCountry,
+  type CrawlAllDeps,
+  type CrawlCountryDeps,
+} from "./run";
 
 function sampleRssTracks(): AppleRssTrack[] {
   return [
@@ -155,4 +163,86 @@ test("crawlCountry routes every external call through the injected throttle", as
   await crawlCountry(deps);
 
   expect(count).toBe(expectedCount);
+});
+
+const FROZEN_NOW = new Date("2026-05-15T12:00:00.000Z");
+const BLOB_URL = "https://blob/charts/v1/charts.json";
+
+function fakeRssFor(cc: string): AppleRssTrack[] {
+  return [
+    {
+      rank: 1,
+      id: `${cc}-1`,
+      name: `${cc} song`,
+      artist: `${cc} artist`,
+      appleUrl: `https://music.apple.com/${cc}/album/1`,
+      artworkUrl: `https://art/${cc}/1/600x600bb.jpg`,
+    },
+  ];
+}
+
+function makeCrawlAllDeps(input: {
+  countries: readonly CountryEntry[];
+  fetchRss?: (cc: string) => Promise<AppleRssTrack[]>;
+}): CrawlAllDeps {
+  return {
+    countries: input.countries,
+    fetchRss: input.fetchRss ?? vi.fn(async (cc) => fakeRssFor(cc)),
+    lookupTrack: vi.fn<(id: string, cc: string) => Promise<LookupResult>>(
+      async (id, cc) => ({ id, previewUrl: `https://preview/${cc}/${id}.m4a` }),
+    ),
+    throttle: async (fn) => fn(),
+    uploadCharts: vi.fn(async () => BLOB_URL),
+    triggerRevalidate: vi.fn(async () => {}),
+    now: () => FROZEN_NOW,
+  };
+}
+
+test("crawlAll assembles a valid ChartFile, uploads once, and revalidates once", async () => {
+  const countries: CountryEntry[] = [
+    { code: "kr", name: "South Korea", region: "Asia" },
+    { code: "us", name: "United States", region: "Americas" },
+  ];
+  const deps = makeCrawlAllDeps({ countries });
+  const expectedCodes = countries.map((c) => c.code);
+
+  const result = await crawlAll(deps);
+  const parsed = ChartFileSchema.parse(result.chartFile);
+
+  expect(parsed.lastUpdated).toBe(FROZEN_NOW.toISOString());
+  expect(Object.keys(parsed.countries)).toEqual(expectedCodes);
+  for (const code of expectedCodes) {
+    expect(parsed.countries[code].valid).toBe(true);
+    expect(parsed.countries[code].tracks).toHaveLength(fakeRssFor(code).length);
+  }
+  expect(deps.uploadCharts).toHaveBeenCalledTimes(1);
+  expect(deps.uploadCharts).toHaveBeenCalledWith(result.chartFile);
+  expect(deps.triggerRevalidate).toHaveBeenCalledTimes(1);
+});
+
+test("crawlAll publishes whatever succeeded when one country's RSS fails", async () => {
+  const failingCode = "ng";
+  const successCode = "kr";
+  const countries: CountryEntry[] = [
+    { code: successCode, name: "South Korea", region: "Asia" },
+    { code: failingCode, name: "Nigeria", region: "Africa" },
+  ];
+  const fetchRss = vi.fn(async (cc: string) => {
+    if (cc === failingCode) {
+      throw new AppleRssError(cc, "503 Service Unavailable");
+    }
+    return fakeRssFor(cc);
+  });
+  const deps = makeCrawlAllDeps({ countries, fetchRss });
+
+  const result = await crawlAll(deps);
+
+  expect(result.chartFile.countries[successCode].valid).toBe(true);
+  expect(result.chartFile.countries[successCode].tracks).toHaveLength(
+    fakeRssFor(successCode).length,
+  );
+  expect(result.chartFile.countries[failingCode].valid).toBe(false);
+  expect(result.chartFile.countries[failingCode].tracks).toEqual([]);
+  expect(deps.uploadCharts).toHaveBeenCalledTimes(1);
+  expect(deps.triggerRevalidate).toHaveBeenCalledTimes(1);
 });
