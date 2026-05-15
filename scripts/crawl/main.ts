@@ -2,17 +2,18 @@ import { COUNTRIES } from "../../src/lib/countries";
 
 import { fetchAppleRss } from "./apple-rss";
 import { lookupTrack } from "./itunes-lookup";
-import { crawlCountry } from "./run";
+import { triggerRevalidate } from "./revalidate-trigger";
+import { crawlAll, crawlCountry } from "./run";
 import { createThrottle } from "./throttle";
+import { uploadCharts } from "./upload-blob";
 
 async function main(): Promise<void> {
   const cc = process.argv[2];
-  if (!cc) {
-    throw new Error(
-      "All-countries mode not wired up yet. For now run: pnpm crawl <cc>",
-    );
+  if (cc) {
+    await runSingleCountry(cc);
+    return;
   }
-  await runSingleCountry(cc);
+  await runAllCountries();
 }
 
 async function runSingleCountry(cc: string): Promise<void> {
@@ -37,6 +38,23 @@ async function runSingleCountry(cc: string): Promise<void> {
   );
   console.log("[crawl] (dry run — no upload, no revalidate)");
   console.log(JSON.stringify({ [cc]: country }, null, 2));
+}
+
+async function runAllCountries(): Promise<void> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    throw new Error(
+      "BLOB_READ_WRITE_TOKEN missing. Run with: pnpm crawl (loads .env.local via tsx --env-file).",
+    );
+  }
+  const throttle = createThrottle();
+  await crawlAll({
+    countries: COUNTRIES,
+    fetchRss: fetchAppleRss,
+    lookupTrack,
+    throttle,
+    uploadCharts,
+    triggerRevalidate,
+  });
 }
 
 await main();
