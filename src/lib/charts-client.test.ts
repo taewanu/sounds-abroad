@@ -1,6 +1,7 @@
 import { afterEach, expect, test, vi } from "vitest";
 
 import fixture from "./__fixtures__/charts.json";
+import { MUSIC_CHARTS_TAG } from "./cache-tags";
 import {
   ChartsFetchError,
   ChartsValidationError,
@@ -33,7 +34,7 @@ test("fetchCharts returns parsed ChartFile when body matches schema", async () =
   expect(result.lastUpdated).toBe("2026-04-25T03:00:00Z");
   expect(spy).toHaveBeenCalledWith(FIXTURE_URL, {
     cache: "force-cache",
-    next: { tags: ["charts"] },
+    next: { tags: [MUSIC_CHARTS_TAG] },
   });
 });
 
