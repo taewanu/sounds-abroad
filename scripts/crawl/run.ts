@@ -1,6 +1,6 @@
-import type { ChartFile, Country, Track } from "../../src/lib/chart-schema";
+import type { Country, Track } from "../../src/lib/chart-schema";
 
-import type { AppleRssTrack } from "./apple-rss";
+import { AppleRssError, type AppleRssTrack } from "./apple-rss";
 import { ItunesLookupError, type LookupResult } from "./itunes-lookup";
 import type { Throttle } from "./throttle";
 
@@ -10,14 +10,11 @@ export interface CrawlCountryDeps {
   fetchRss: (cc: string) => Promise<AppleRssTrack[]>;
   lookupTrack: (id: string, cc: string) => Promise<LookupResult>;
   throttle: Throttle;
-  uploadCharts: (chartFile: ChartFile) => Promise<string>;
-  triggerRevalidate: () => Promise<void>;
-  now?: () => Date;
 }
 
 export interface CrawlCountryResult {
-  url: string;
-  chartFile: ChartFile;
+  cc: string;
+  country: Country;
 }
 
 function spotifySearchUrl(name: string, artist: string): string {
@@ -27,21 +24,18 @@ function spotifySearchUrl(name: string, artist: string): string {
 export async function crawlCountry(
   deps: CrawlCountryDeps,
 ): Promise<CrawlCountryResult> {
-  const {
-    cc,
-    name,
-    fetchRss,
-    lookupTrack,
-    throttle,
-    uploadCharts,
-    triggerRevalidate,
-  } = deps;
-  const now = deps.now ?? (() => new Date());
+  const { cc, name, fetchRss, lookupTrack, throttle } = deps;
 
-  const rssTracks = await throttle(() => fetchRss(cc));
+  let rssTracks: AppleRssTrack[];
+  try {
+    rssTracks = await throttle(() => fetchRss(cc));
+  } catch (err) {
+    if (!(err instanceof AppleRssError)) throw err;
+    console.warn(`[crawl ${cc}] RSS failed: ${err.message}`);
+    return { cc, country: { name, valid: false, tracks: [] } };
+  }
 
   const tracks: Track[] = [];
-  let failures = 0;
   for (const rss of rssTracks) {
     try {
       const lookup = await throttle(() => lookupTrack(rss.id, cc));
@@ -56,27 +50,11 @@ export async function crawlCountry(
       });
     } catch (err) {
       if (!(err instanceof ItunesLookupError)) throw err;
-
-      failures += 1;
       console.warn(
         `[crawl ${cc}] lookup failed for rank ${rss.rank} id=${rss.id}: ${err.message}`,
       );
     }
   }
 
-  const country: Country = {
-    name,
-    valid: failures === 0,
-    tracks,
-  };
-
-  const chartFile: ChartFile = {
-    lastUpdated: now().toISOString(),
-    countries: { [cc]: country },
-  };
-
-  const url = await uploadCharts(chartFile);
-  await triggerRevalidate();
-
-  return { url, chartFile };
+  return { cc, country: { name, valid: true, tracks } };
 }
