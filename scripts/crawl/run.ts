@@ -53,23 +53,26 @@ export async function crawlCountry(
 
   const tracks: Track[] = [];
   for (const rss of rssTracks) {
+    let previewUrl: string | null;
     try {
       const lookup = await throttle(() => lookupTrack(rss.id, cc));
-      tracks.push({
-        rank: rss.rank,
-        name: rss.name,
-        artist: rss.artist,
-        previewUrl: lookup.previewUrl,
-        artworkUrl: rss.artworkUrl,
-        appleUrl: rss.appleUrl,
-        spotifySearchUrl: spotifySearchUrl(rss.name, rss.artist),
-      });
+      previewUrl = lookup.previewUrl;
     } catch (err) {
       if (!(err instanceof ItunesLookupError)) throw err;
       console.warn(
-        `[crawl ${cc}] lookup failed for rank ${rss.rank} id=${rss.id}: ${err.message}`,
+        `[crawl ${cc}] lookup ${err.kind} for rank ${rss.rank} id=${rss.id}: ${err.message}`,
       );
+      previewUrl = null;
     }
+    tracks.push({
+      rank: rss.rank,
+      name: rss.name,
+      artist: rss.artist,
+      previewUrl,
+      artworkUrl: rss.artworkUrl,
+      appleUrl: rss.appleUrl,
+      spotifySearchUrl: spotifySearchUrl(rss.name, rss.artist),
+    });
   }
 
   return { cc, country: { name, valid: true, tracks } };

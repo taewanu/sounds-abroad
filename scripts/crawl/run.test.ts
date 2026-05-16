@@ -91,25 +91,29 @@ test("crawlCountry composes RSS + Lookup into typed tracks with synthesized spot
   });
 });
 
-test("crawlCountry drops a missed track but keeps the country valid=true", async () => {
+test("crawlCountry inserts a placeholder with previewUrl=null on lookup failure", async () => {
   const failingId = "2";
   const lookupTrack = vi.fn<(id: string, cc: string) => Promise<LookupResult>>(
     async (id, cc) => {
       if (id === failingId)
-        throw new ItunesLookupError(id, cc, "miss", "no track");
+        throw new ItunesLookupError(id, cc, "http", "503 Service Unavailable");
       return { id, previewUrl: previewUrlForId(id) };
     },
   );
   const deps = makeCrawlCountryDeps({ lookupTrack });
-  const expectedSurvivingRanks = sampleRssTracks()
-    .filter((t) => t.id !== failingId)
-    .map((t) => t.rank);
+  const allRss = sampleRssTracks();
+  const failingRss = allRss.find((t) => t.id === failingId)!;
 
   const { country } = await crawlCountry(deps);
 
   expect(country.valid).toBe(true);
-  expect(country.tracks).toHaveLength(expectedSurvivingRanks.length);
-  expect(country.tracks.map((t) => t.rank)).toEqual(expectedSurvivingRanks);
+  expect(country.tracks).toHaveLength(allRss.length);
+  const failingTrack = country.tracks.find((t) => t.rank === failingRss.rank);
+  expect(failingTrack?.previewUrl).toBeNull();
+  expect(failingTrack?.name).toBe(failingRss.name);
+  expect(failingTrack?.artist).toBe(failingRss.artist);
+  expect(failingTrack?.appleUrl).toBe(failingRss.appleUrl);
+  expect(failingTrack?.artworkUrl).toBe(failingRss.artworkUrl);
 });
 
 test("crawlCountry returns valid=false with empty tracks when RSS throws AppleRssError", async () => {

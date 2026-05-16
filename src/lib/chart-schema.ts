@@ -4,7 +4,7 @@ const TrackSchema = z.object({
   rank: z.number().int().min(1).max(25),
   name: z.string().min(1),
   artist: z.string().min(1),
-  previewUrl: z.url(),
+  previewUrl: z.url().nullable(),
   artworkUrl: z.url(),
   appleUrl: z.url(),
   spotifySearchUrl: z.url(),
