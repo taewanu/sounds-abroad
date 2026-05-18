@@ -13,6 +13,9 @@ export async function triggerRevalidate(): Promise<void> {
   const res = await fetch(`${url}/api/revalidate`, {
     method: "POST",
     headers: { Authorization: `Bearer ${secret}` },
+    // Bound the request so a hung endpoint doesn't push the cron past its
+    // schedule window. TimeoutError surfaces unchanged via Sentry.
+    signal: AbortSignal.timeout(15_000),
   });
   if (!res.ok) {
     throw new Error(`revalidate failed: ${res.status} ${res.statusText}`);

@@ -46,10 +46,14 @@ test("waits PROPAGATION_MS before issuing the bearer POST", async () => {
   await pending;
 
   expect(fetchSpy).toHaveBeenCalledTimes(1);
-  expect(fetchSpy).toHaveBeenCalledWith(`${SITE_URL}/api/revalidate`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${SECRET}` },
-  });
+  expect(fetchSpy).toHaveBeenCalledWith(
+    `${SITE_URL}/api/revalidate`,
+    expect.objectContaining({
+      method: "POST",
+      headers: { Authorization: `Bearer ${SECRET}` },
+      signal: expect.any(AbortSignal),
+    }),
+  );
 });
 
 test("throws with status code when revalidate responds non-2xx", async () => {
