@@ -1,0 +1,39 @@
+name: Cron Crawl
+
+# Drop all GITHUB_TOKEN permissions; this workflow only runs pnpm install + crawl.
+permissions: {}
+
+on:
+  schedule:
+    - cron: "0 4,11,16,22 * * *" # UTC; ADR-0002
+  workflow_dispatch:
+
+# A run takes ~50 minutes; never cancel an in-flight run for a superseding trigger.
+concurrency:
+  group: cron-crawl
+  cancel-in-progress: false
+
+jobs:
+  crawl:
+    name: Crawl + Publish + Revalidate
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    env:
+      SITE_URL: https://sounds-abroad.vercel.app
+      BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+      REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
+      NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node and pnpm via mise
+        uses: jdx/mise-action@v2
+
+      - name: Install dependencies
+        run: mise exec -- pnpm install --frozen-lockfile
+
+      - name: Crawl, publish, and revalidate
+        run: mise exec -- pnpm crawl:cron

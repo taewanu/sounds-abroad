@@ -2,7 +2,6 @@ import { COUNTRIES } from "../../src/lib/countries";
 
 import { fetchAppleRss } from "./apple-rss";
 import { lookupTrack } from "./itunes-lookup";
-import { triggerRevalidate } from "./revalidate-trigger";
 import { crawlAll, crawlCountry } from "./run";
 import { createThrottle } from "./throttle";
 import { uploadCharts } from "./upload-blob";
@@ -53,7 +52,10 @@ async function runAllCountries(): Promise<void> {
     lookupTrack,
     throttle,
     uploadCharts,
-    triggerRevalidate,
+    // Local debug entry never hits production revalidate — cron.ts injects the real one.
+    triggerRevalidate: async () => {
+      console.log("[crawl] revalidate skipped (local debug)");
+    },
   });
 }
 

@@ -15,6 +15,7 @@
     "test": "vitest",
     "test:ci": "vitest --watch=false --reporter=default --reporter=github-actions",
     "crawl": "tsx --env-file=.env.local scripts/crawl/main.ts",
+    "crawl:cron": "tsx scripts/crawl/cron.ts",
     "prepare": "husky"
   },
   "dependencies": {
