@@ -1,5 +1,5 @@
 import "./sentry-init";
-import * as Sentry from "@sentry/nextjs";
+import * as Sentry from "@sentry/node";
 
 import { COUNTRIES } from "../../src/lib/countries";
 
