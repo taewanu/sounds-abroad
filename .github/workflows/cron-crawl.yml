@@ -5,7 +5,7 @@ permissions: {}
 
 on:
   schedule:
-    - cron: "0 4,11,16,22 * * *" # UTC; ADR-0002
+    - cron: "17 4,11,16,22 * * *" # UTC; ADR-0002. Minute off :00 to avoid GH Actions scheduler peak.
   workflow_dispatch:
 
 # A run takes ~50 minutes; never cancel an in-flight run for a superseding trigger.
