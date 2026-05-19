@@ -8,13 +8,13 @@ Uses pnpm 10 + Node 24 via mise. Wrap commands with `mise exec --` so non-intera
 
 - `mise exec -- pnpm dev` — dev server (Turbopack)
 - `mise exec -- pnpm build` — production build
-- `mise exec -- pnpm lint` / `pnpm format` / `pnpm typecheck`
+- `mise exec -- pnpm lint` / `pnpm format` / `pnpm typecheck` / `pnpm test`
 
 Pre-commit hook runs format + lint + typecheck on staged files via Husky 9 + lint-staged.
 
 ## Branching
 
-Phase 1 commits directly to `main`. From Phase 2 onward, each Phase gets its own feature branch and PR.
+Phase 1 commits directly to `main`. From Phase 2 onward, each slice gets its own branch and PR into `main` (no umbrella phase branch).
 
 ## Where to look
 
