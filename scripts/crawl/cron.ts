@@ -41,9 +41,9 @@ try {
       });
     },
     {
-      schedule: { type: "crontab", value: "0 4,11,16,22 * * *" },
+      schedule: { type: "crontab", value: "17 4,11,16,22 * * *" },
       timezone: "UTC",
-      checkinMargin: 5,
+      checkinMargin: 15,
       maxRuntime: 90,
     },
   );
