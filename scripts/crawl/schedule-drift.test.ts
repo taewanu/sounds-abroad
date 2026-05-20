@@ -25,7 +25,7 @@ test(`cron schedule in ${workflowPath} matches ${cronTsPath}`, () => {
   );
   const tsCron = extractCron(
     cronTsPath,
-    /schedule:\s*\{[^}]*value:\s*["']([^"']+)["']/,
+    /^\s*schedule:\s*\{[\s\S]*?\bvalue:\s*["']([^"']+)["']/m,
   );
   expect(workflowCron).toBe(tsCron);
 });
