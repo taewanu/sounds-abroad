@@ -43,7 +43,9 @@ try {
     {
       schedule: { type: "crontab", value: "17 4,11,16,22 * * *" },
       timezone: "UTC",
-      checkinMargin: 15,
+      // Observed GHA dispatch delays up to 60min post-:17 (n=2, #26).
+      // 90 = observed ceiling + 30min buffer.
+      checkinMargin: 90,
       maxRuntime: 90,
     },
   );
