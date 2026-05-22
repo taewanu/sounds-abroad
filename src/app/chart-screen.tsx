@@ -7,6 +7,7 @@ import { ChartSheet, type SnapState } from "@/components/chart-sheet/sheet";
 import { ChartPickStore } from "@/lib/chart-pick-store";
 import type { ChartFile } from "@/lib/chart-schema";
 import { COUNTRIES } from "@/lib/countries";
+import { AudioStoreProvider } from "@/providers/audio-store-provider";
 
 const ALL_CODES = COUNTRIES.map((c) => c.code);
 
@@ -44,5 +45,9 @@ export function ChartScreen({ charts, rng = Math.random }: ChartScreenProps) {
 
   if (country === null) return null;
 
-  return <ChartSheet country={country} snap={snap} onSnapChange={setSnap} />;
+  return (
+    <AudioStoreProvider>
+      <ChartSheet country={country} snap={snap} onSnapChange={setSnap} />
+    </AudioStoreProvider>
+  );
 }

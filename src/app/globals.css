@@ -104,3 +104,68 @@
     -moz-osx-font-smoothing: grayscale;
   }
 }
+
+@layer components {
+  .eq {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 12px;
+    animation: eq-enter 160ms var(--ease-out);
+  }
+
+  .eq span {
+    display: inline-block;
+    width: 2px;
+    background: var(--color-sunrise);
+    border-radius: 1px;
+    animation: eq 1.2s ease-in-out infinite;
+    transform-origin: bottom;
+  }
+
+  .eq span:nth-child(1) {
+    height: 60%;
+    animation-delay: 0s;
+  }
+
+  .eq span:nth-child(2) {
+    height: 90%;
+    animation-delay: 0.2s;
+  }
+
+  .eq span:nth-child(3) {
+    height: 50%;
+    animation-delay: 0.4s;
+  }
+}
+
+@keyframes eq {
+  0%,
+  100% {
+    transform: scaleY(0.4);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes eq-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eq,
+  .eq span {
+    animation: none;
+  }
+  .eq span {
+    transform: scaleY(0.7);
+  }
+}
