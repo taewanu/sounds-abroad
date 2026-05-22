@@ -19,7 +19,6 @@ export function TrackRow({ track }: TrackRowProps) {
   const toggle = useAudioStore((s) => s.toggle);
 
   const hasPreview = track.previewUrl !== null;
-  const isFirst = track.rank === 1;
 
   return (
     <li
@@ -34,11 +33,7 @@ export function TrackRow({ track }: TrackRowProps) {
         aria-label={`${isPlaying ? "Pause" : "Play"} preview of ${track.name} by ${track.artist}`}
         className="focus-visible:outline-aurora flex min-w-0 flex-1 items-center gap-[14px] text-left transition-transform duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none"
       >
-        <span
-          className={`font-display text-rank w-8 shrink-0 text-center leading-none italic tabular-nums ${
-            isFirst ? "text-gold" : "text-fg-2"
-          }`}
-        >
+        <span className="text-fg-3 text-body w-7 shrink-0 text-right font-mono tabular-nums">
           {track.rank}
         </span>
         <div

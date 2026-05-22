@@ -62,25 +62,6 @@ describe("TrackRow", () => {
     expect(artwork?.getAttribute("style")).toContain(track.artworkUrl);
   });
 
-  test("rank #1 uses the gold accent class", () => {
-    const track = makeTrack({ rank: 1 });
-
-    renderTrackRow(track);
-
-    const rank = screen.getByText("1");
-    expect(rank.className).toContain("text-gold");
-  });
-
-  test("non-#1 rank uses the secondary foreground class", () => {
-    const track = makeTrack({ rank: 7 });
-
-    renderTrackRow(track);
-
-    const rank = screen.getByText("7");
-    expect(rank.className).toContain("text-fg-2");
-    expect(rank.className).not.toContain("text-gold");
-  });
-
   test("clicking the row triggers audio store toggle for this track", () => {
     const track = makeTrack();
     const { store } = renderTrackRow(track);
