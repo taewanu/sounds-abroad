@@ -1,16 +1,22 @@
-import Image from "next/image";
+import { Suspense } from "react";
 
-export default function Home() {
+import { fetchCharts } from "@/lib/charts-client";
+
+import { ChartScreen } from "./chart-screen";
+
+export default async function Home() {
+  const url = process.env.CHARTS_BLOB_URL;
+  if (!url) {
+    throw new Error("CHARTS_BLOB_URL is not configured");
+  }
+
+  const charts = await fetchCharts(url);
+
   return (
-    <main className="bg-void text-fg-1 flex min-h-dvh flex-col items-center justify-center gap-6 px-6">
-      <Image src="/logo-mark-dark.svg" alt="" width={64} height={64} priority />
-      <h1 className="font-display text-5xl italic">Sounds Abroad</h1>
-      <p className="text-fg-2 max-w-md text-center text-sm">
-        Explore trending music around the world.
-      </p>
-      <p className="text-fg-3 font-mono text-xs tracking-widest uppercase">
-        Coming soon
-      </p>
+    <main className="bg-void min-h-dvh">
+      <Suspense fallback={null}>
+        <ChartScreen charts={charts} />
+      </Suspense>
     </main>
   );
 }
