@@ -14,14 +14,6 @@ if (!kr || !us || !br) {
   );
 }
 
-if (kr.tracks.length === 0) {
-  throw new Error(
-    "Test fixture kr.tracks is empty — update __fixtures__/charts.json",
-  );
-}
-
 export const COUNTRY_KR = kr;
 export const COUNTRY_US = us;
 export const COUNTRY_BR = br;
-
-export const TRACK_KR_1 = kr.tracks[0];
