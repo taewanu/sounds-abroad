@@ -21,9 +21,14 @@ export type AudioElementFactory = () => AudioElementLike;
 
 const defaultAudioFactory: AudioElementFactory = () => new Audio();
 
+export interface AudioError {
+  previewUrl: string | null;
+}
+
 export interface AudioState {
   currentTrack: Track | null;
   isPlaying: boolean;
+  lastError: AudioError | null;
   toggle: (track: Track) => void;
   stop: () => void;
 }
@@ -45,12 +50,13 @@ export function createAudioStore(
       audio.addEventListener("pause", () => set({ isPlaying: false }));
       audio.addEventListener("ended", () => set({ isPlaying: false }));
       audio.addEventListener("error", () => {
-        set({ isPlaying: false });
+        const previewUrl = get().currentTrack?.previewUrl ?? null;
+        set({ isPlaying: false, lastError: { previewUrl } });
         Sentry.addBreadcrumb({
           category: "audio",
           level: "warning",
           message: "preview audio error",
-          data: { previewUrl: get().currentTrack?.previewUrl ?? null },
+          data: { previewUrl },
         });
       });
       return audio;
@@ -59,6 +65,7 @@ export function createAudioStore(
     return {
       currentTrack: null,
       isPlaying: false,
+      lastError: null,
       toggle: (track) => {
         const state = get();
         const a = getAudio();
@@ -72,12 +79,12 @@ export function createAudioStore(
         }
         a.src = track.previewUrl ?? "";
         void a.play();
-        set({ currentTrack: track, isPlaying: true });
+        set({ currentTrack: track, isPlaying: true, lastError: null });
       },
       stop: () => {
         const a = getAudio();
         a.pause();
-        set({ currentTrack: null, isPlaying: false });
+        set({ currentTrack: null, isPlaying: false, lastError: null });
       },
     };
   });

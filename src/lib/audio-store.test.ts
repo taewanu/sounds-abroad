@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from "vitest";
+import { assert, describe, expect, test, vi } from "vitest";
 
 import type { Track } from "@/lib/chart-schema";
 
@@ -121,6 +121,52 @@ describe("createAudioStore", () => {
 
     expect(store.getState().isPlaying).toBe(false);
     expect(store.getState().currentTrack).toBe(track);
+  });
+
+  test("error event records lastError with the errored track's previewUrl", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    const track = makeTrack({ previewUrl: "https://example.com/broken.m4a" });
+    store.getState().toggle(track);
+
+    audio._trigger("error");
+
+    expect(store.getState().lastError).toEqual({
+      previewUrl: track.previewUrl,
+    });
+  });
+
+  test("toggle clears lastError when switching tracks", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    const errored = makeTrack({ previewUrl: "https://example.com/broken.m4a" });
+    const next = makeTrack({ previewUrl: "https://example.com/working.m4a" });
+    store.getState().toggle(errored);
+    audio._trigger("error");
+    assert(
+      store.getState().lastError !== null,
+      "arrange: error event should set lastError",
+    );
+
+    store.getState().toggle(next);
+
+    expect(store.getState().lastError).toBeNull();
+  });
+
+  test("stop clears lastError", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    const track = makeTrack();
+    store.getState().toggle(track);
+    audio._trigger("error");
+    assert(
+      store.getState().lastError !== null,
+      "arrange: error event should set lastError",
+    );
+
+    store.getState().stop();
+
+    expect(store.getState().lastError).toBeNull();
   });
 
   test("browser pause event syncs store (Layer 1)", () => {
