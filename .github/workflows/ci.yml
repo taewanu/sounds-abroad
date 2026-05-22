@@ -43,4 +43,7 @@ jobs:
         run: mise exec -- pnpm test:ci
 
       - name: Build
+        # `/` is statically generated and reads CHARTS_BLOB_URL at prerender time.
+        env:
+          CHARTS_BLOB_URL: ${{ secrets.CHARTS_BLOB_URL }}
         run: mise exec -- pnpm build
