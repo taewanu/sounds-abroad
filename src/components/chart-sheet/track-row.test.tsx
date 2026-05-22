@@ -137,16 +137,18 @@ describe("TrackRow", () => {
     expect(store.getState().isPlaying).toBe(false);
   });
 
-  test("Apple Music anchor has the track's appleUrl", () => {
+  test("Apple Music anchor: href, opens in new tab, noopener", () => {
     const track = makeTrack({ appleUrl: "https://music.apple.com/song/42" });
 
     renderTrackRow(track);
 
     const apple = screen.getByRole("link", { name: /Apple Music/i });
     expect(apple.getAttribute("href")).toBe(track.appleUrl);
+    expect(apple.getAttribute("target")).toBe("_blank");
+    expect(apple.getAttribute("rel")).toContain("noopener");
   });
 
-  test("Spotify anchor has the track's spotifySearchUrl", () => {
+  test("Spotify anchor: href, opens in new tab, noopener", () => {
     const track = makeTrack({
       spotifySearchUrl: "https://open.spotify.com/search/foo",
     });
@@ -155,6 +157,8 @@ describe("TrackRow", () => {
 
     const spotify = screen.getByRole("link", { name: /Spotify/i });
     expect(spotify.getAttribute("href")).toBe(track.spotifySearchUrl);
+    expect(spotify.getAttribute("target")).toBe("_blank");
+    expect(spotify.getAttribute("rel")).toContain("noopener");
   });
 
   test("error message renders when lastError matches this track's previewUrl", () => {

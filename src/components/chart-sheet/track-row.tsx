@@ -32,7 +32,7 @@ export function TrackRow({ track }: TrackRowProps) {
         disabled={!hasPreview}
         onClick={() => toggle(track)}
         aria-label={`${isPlaying ? "Pause" : "Play"} preview of ${track.name} by ${track.artist}`}
-        className="focus-visible:outline-aurora flex flex-1 items-center gap-[14px] text-left transition-transform duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none"
+        className="focus-visible:outline-aurora flex min-w-0 flex-1 items-center gap-[14px] text-left transition-transform duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none"
       >
         <span
           className={`font-display text-rank w-8 shrink-0 text-center leading-none italic tabular-nums ${
@@ -70,7 +70,8 @@ export function TrackRow({ track }: TrackRowProps) {
       <div className="flex shrink-0 gap-1">
         <a
           href={track.appleUrl}
-          rel="noreferrer"
+          target="_blank"
+          rel="noopener noreferrer"
           aria-label={`Open ${track.name} in Apple Music`}
           className="text-fg-2 hover:bg-orbit hover:text-fg-1 focus-visible:outline-aurora flex h-8 w-8 items-center justify-center rounded-full transition-all duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]"
         >
@@ -78,7 +79,8 @@ export function TrackRow({ track }: TrackRowProps) {
         </a>
         <a
           href={track.spotifySearchUrl}
-          rel="noreferrer"
+          target="_blank"
+          rel="noopener noreferrer"
           aria-label={`Search ${track.name} on Spotify`}
           className="text-fg-2 hover:bg-orbit hover:text-fg-1 focus-visible:outline-aurora flex h-8 w-8 items-center justify-center rounded-full transition-all duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]"
         >
