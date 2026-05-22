@@ -2,13 +2,20 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 
 import { COUNTRY_KR } from "@/lib/__fixtures__";
+import { AudioStoreProvider } from "@/providers/audio-store-provider";
 
 import { ChartSheet, type SnapState } from "./sheet";
 
 function renderSheet(snap: SnapState) {
   const onSnapChange = vi.fn();
   const utils = render(
-    <ChartSheet country={COUNTRY_KR} snap={snap} onSnapChange={onSnapChange} />,
+    <AudioStoreProvider>
+      <ChartSheet
+        country={COUNTRY_KR}
+        snap={snap}
+        onSnapChange={onSnapChange}
+      />
+    </AudioStoreProvider>,
   );
   return { ...utils, onSnapChange };
 }
