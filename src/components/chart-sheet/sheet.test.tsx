@@ -1,10 +1,16 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { COUNTRY_KR } from "@/lib/__fixtures__";
 import { AudioStoreProvider } from "@/providers/audio-store-provider";
 
 import { ChartSheet, type SnapState } from "./sheet";
+
+const originalScrollIntoView = Element.prototype.scrollIntoView;
+
+afterEach(() => {
+  Element.prototype.scrollIntoView = originalScrollIntoView;
+});
 
 function renderSheet(snap: SnapState) {
   const onSnapChange = vi.fn();
