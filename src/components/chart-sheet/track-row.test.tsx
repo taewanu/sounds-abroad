@@ -72,7 +72,7 @@ describe("TrackRow", () => {
     expect(store.getState().isPlaying).toBe(true);
   });
 
-  test("data-playing reflects this track being the active playing track", () => {
+  test("data-state reflects current vs idle, playing vs paused", () => {
     const track = makeTrack();
     const otherTrack = makeTrack({
       rank: 2,
@@ -81,7 +81,7 @@ describe("TrackRow", () => {
 
     const { container, rerender, store } = renderTrackRow(track);
 
-    expect(container.querySelector("[data-playing]")).toBeNull();
+    expect(container.querySelector("[data-state]")).toBeNull();
 
     store.setState({ currentTrack: track, isPlaying: true });
     rerender(
@@ -91,7 +91,17 @@ describe("TrackRow", () => {
         </ul>
       </AudioStoreContext.Provider>,
     );
-    expect(container.querySelector("[data-playing]")).not.toBeNull();
+    expect(container.querySelector('[data-state="playing"]')).not.toBeNull();
+
+    store.setState({ currentTrack: track, isPlaying: false });
+    rerender(
+      <AudioStoreContext.Provider value={store}>
+        <ul>
+          <TrackRow track={track} />
+        </ul>
+      </AudioStoreContext.Provider>,
+    );
+    expect(container.querySelector('[data-state="paused"]')).not.toBeNull();
 
     store.setState({ currentTrack: otherTrack, isPlaying: true });
     rerender(
@@ -101,7 +111,7 @@ describe("TrackRow", () => {
         </ul>
       </AudioStoreContext.Provider>,
     );
-    expect(container.querySelector("[data-playing]")).toBeNull();
+    expect(container.querySelector("[data-state]")).toBeNull();
   });
 
   test("disabled state when previewUrl is null: button disabled, label shown, click is no-op", () => {

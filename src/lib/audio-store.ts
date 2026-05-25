@@ -29,6 +29,7 @@ export interface AudioState {
   currentTrack: Track | null;
   isPlaying: boolean;
   lastError: AudioError | null;
+  endedSignal: number;
   toggle: (track: Track) => void;
   stop: () => void;
 }
@@ -48,7 +49,12 @@ export function createAudioStore(
       // Covers background-tab auto-pause, AirPods disconnect, media keys.
       audio.addEventListener("play", () => set({ isPlaying: true }));
       audio.addEventListener("pause", () => set({ isPlaying: false }));
-      audio.addEventListener("ended", () => set({ isPlaying: false }));
+      audio.addEventListener("ended", () =>
+        set((state) => ({
+          isPlaying: false,
+          endedSignal: state.endedSignal + 1,
+        })),
+      );
       audio.addEventListener("error", () => {
         const previewUrl = get().currentTrack?.previewUrl ?? null;
         set({ isPlaying: false, lastError: { previewUrl } });
@@ -66,6 +72,7 @@ export function createAudioStore(
       currentTrack: null,
       isPlaying: false,
       lastError: null,
+      endedSignal: 0,
       toggle: (track) => {
         const state = get();
         const a = getAudio();

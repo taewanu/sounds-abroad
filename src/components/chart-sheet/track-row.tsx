@@ -1,6 +1,8 @@
 "use client";
 
 import { AppleMusicIcon } from "@/components/icons/apple-music";
+import { PauseIcon } from "@/components/icons/pause";
+import { PlayIcon } from "@/components/icons/play";
 import { SpotifyIcon } from "@/components/icons/spotify";
 import type { Track } from "@/lib/chart-schema";
 import { useAudioStore } from "@/providers/audio-store-provider";
@@ -10,6 +12,9 @@ export interface TrackRowProps {
 }
 
 export function TrackRow({ track }: TrackRowProps) {
+  const isCurrent = useAudioStore(
+    (s) => s.currentTrack?.previewUrl === track.previewUrl,
+  );
   const isPlaying = useAudioStore(
     (s) => s.isPlaying && s.currentTrack?.previewUrl === track.previewUrl,
   );
@@ -19,12 +24,14 @@ export function TrackRow({ track }: TrackRowProps) {
   const toggle = useAudioStore((s) => s.toggle);
 
   const hasPreview = track.previewUrl !== null;
+  const state = isCurrent ? (isPlaying ? "playing" : "paused") : undefined;
 
   return (
     <li
-      data-playing={isPlaying || undefined}
+      data-rank={track.rank}
+      data-state={state}
       data-disabled={!hasPreview || undefined}
-      className="hover:bg-atmos data-[playing]:bg-atmos flex items-center gap-[14px] rounded-[14px] px-3 py-2.5 transition-colors duration-200 data-[disabled]:opacity-40 data-[disabled]:hover:bg-transparent data-[playing]:shadow-[inset_0_0_0_1px_rgba(255,107,71,0.3),_0_0_16px_rgba(255,107,71,0.15)]"
+      className="hover:bg-atmos data-[state]:bg-sunrise/[0.08] data-[state]:hover:bg-sunrise/[0.15] flex items-center gap-[14px] rounded-[14px] px-3 py-2.5 transition-colors duration-200 data-[disabled]:opacity-40 data-[disabled]:hover:bg-transparent"
     >
       <button
         type="button"
@@ -33,8 +40,16 @@ export function TrackRow({ track }: TrackRowProps) {
         aria-label={`${isPlaying ? "Pause" : "Play"} preview of ${track.name} by ${track.artist}`}
         className="focus-visible:outline-aurora flex min-w-0 flex-1 items-center gap-[14px] text-left transition-transform duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none"
       >
-        <span className="text-fg-3 text-body w-7 shrink-0 text-right font-mono tabular-nums">
-          {track.rank}
+        <span className="text-fg-3 text-body flex w-7 shrink-0 items-center justify-center font-mono tabular-nums">
+          {isCurrent ? (
+            isPlaying ? (
+              <PauseIcon className="text-sunrise h-4 w-4" />
+            ) : (
+              <PlayIcon className="text-sunrise h-4 w-4" />
+            )
+          ) : (
+            track.rank
+          )}
         </span>
         <div
           aria-hidden="true"
@@ -42,10 +57,18 @@ export function TrackRow({ track }: TrackRowProps) {
           className="bg-fg-1/5 h-12 w-12 shrink-0 rounded-lg bg-cover bg-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
         />
         <div className="min-w-0 flex-1">
-          <p className="text-fg-1 text-body flex min-w-0 items-center gap-2 font-medium">
+          <p
+            className={`text-body flex min-w-0 items-center gap-2 font-medium ${
+              isCurrent ? "text-sunrise" : "text-fg-1"
+            }`}
+          >
             <span className="truncate">{track.name}</span>
-            {isPlaying && (
-              <span className="eq shrink-0" aria-hidden>
+            {isCurrent && (
+              <span
+                className="eq shrink-0"
+                data-paused={!isPlaying || undefined}
+                aria-hidden
+              >
                 <span />
                 <span />
                 <span />

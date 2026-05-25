@@ -29,3 +29,11 @@ export function useAudioStore<T>(selector: (state: AudioState) => T): T {
   }
   return useStore(store, selector);
 }
+
+export function useAudioStoreApi(): AudioStoreApi {
+  const store = useContext(AudioStoreContext);
+  if (!store) {
+    throw new Error("useAudioStoreApi must be used within AudioStoreProvider");
+  }
+  return store;
+}

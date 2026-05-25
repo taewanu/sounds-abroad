@@ -137,6 +137,10 @@
     height: 50%;
     animation-delay: 0.4s;
   }
+
+  .eq[data-paused] span {
+    animation-play-state: paused;
+  }
 }
 
 @keyframes eq {

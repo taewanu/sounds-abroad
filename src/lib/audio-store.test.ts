@@ -111,6 +111,30 @@ describe("createAudioStore", () => {
     expect(store.getState().currentTrack).toBe(track);
   });
 
+  test("ended event increments endedSignal so subscribers can auto-advance", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    store.getState().toggle(makeTrack());
+
+    audio._trigger("ended");
+
+    expect(store.getState().endedSignal).toBe(1);
+  });
+
+  test("endedSignal accumulates across consecutive ended events", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    const trackA = makeTrack();
+    const trackB = makeTrack({ previewUrl: "https://example.com/b.m4a" });
+    store.getState().toggle(trackA);
+    audio._trigger("ended");
+    store.getState().toggle(trackB);
+
+    audio._trigger("ended");
+
+    expect(store.getState().endedSignal).toBe(2);
+  });
+
   test("error event: isPlaying false, currentTrack preserved", () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
