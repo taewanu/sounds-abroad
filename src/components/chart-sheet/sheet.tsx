@@ -1,8 +1,13 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { motion, type PanInfo } from "motion/react";
+import {
+  motion,
+  type PanInfo,
+  useAnimationControls,
+  useDragControls,
+} from "motion/react";
 
 import type { Country } from "@/lib/chart-schema";
 
@@ -14,53 +19,118 @@ export interface ChartSheetProps {
   country: Country;
   snap: SnapState;
   onSnapChange: (snap: SnapState) => void;
+  currentTrackRank?: number | null;
+  canClose?: boolean;
 }
 
+const SNAP_Y_PCT: Record<SnapState, number> = {
+  full: 0,
+  peek: 65,
+  closed: 100,
+};
+
 const SNAP_Y: Record<SnapState, string> = {
-  closed: "100%",
-  peek: "65%",
-  full: "0%",
+  full: `${SNAP_Y_PCT.full}%`,
+  peek: `${SNAP_Y_PCT.peek}%`,
+  closed: `${SNAP_Y_PCT.closed}%`,
 };
 
 const SNAP_ORDER: SnapState[] = ["full", "peek", "closed"];
-const VELOCITY_THRESHOLD = 500;
-const OFFSET_THRESHOLD = 80;
+const VELOCITY_PROJECTION = 0.15;
 
 function nextSnap(
   current: SnapState,
   offsetY: number,
   velocityY: number,
 ): SnapState {
-  const idx = SNAP_ORDER.indexOf(current);
-  if (velocityY > VELOCITY_THRESHOLD || offsetY > OFFSET_THRESHOLD) {
-    return SNAP_ORDER[Math.min(idx + 1, SNAP_ORDER.length - 1)];
+  const vh = window.innerHeight;
+  const offsetPct = (offsetY / vh) * 100;
+  const velocityPct = (velocityY / vh) * 100;
+  const projected =
+    SNAP_Y_PCT[current] + offsetPct + velocityPct * VELOCITY_PROJECTION;
+
+  let nearest: SnapState = current;
+  let minDist = Infinity;
+  for (const s of SNAP_ORDER) {
+    const dist = Math.abs(SNAP_Y_PCT[s] - projected);
+    if (dist < minDist) {
+      minDist = dist;
+      nearest = s;
+    }
   }
-  if (velocityY < -VELOCITY_THRESHOLD || offsetY < -OFFSET_THRESHOLD) {
-    return SNAP_ORDER[Math.max(idx - 1, 0)];
-  }
-  return current;
+  return nearest;
 }
 
-export function ChartSheet({ country, snap, onSnapChange }: ChartSheetProps) {
+export function ChartSheet({
+  country,
+  snap,
+  onSnapChange,
+  currentTrackRank = null,
+  canClose = true,
+}: ChartSheetProps) {
   const open = snap !== "closed";
+  const animationControls = useAnimationControls();
+  const dragControls = useDragControls();
+  const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    void animationControls.start({ y: SNAP_Y[snap] });
+  }, [snap, animationControls]);
 
   const handleOpenChange = useCallback(
     (next: boolean) => {
+      if (!next && !canClose) {
+        void animationControls.start({ y: SNAP_Y[snap] });
+        return;
+      }
       onSnapChange(next ? "peek" : "closed");
     },
-    [onSnapChange],
+    [onSnapChange, canClose, snap, animationControls],
   );
+
+  const handleDragStart = useCallback(() => setIsDragging(true), []);
 
   const handleDragEnd = useCallback(
     (_event: unknown, info: PanInfo) => {
-      onSnapChange(nextSnap(snap, info.offset.y, info.velocity.y));
+      setIsDragging(false);
+      const next = nextSnap(snap, info.offset.y, info.velocity.y);
+      if (next === "closed" && !canClose) {
+        void animationControls.start({ y: SNAP_Y[snap] });
+        return;
+      }
+      if (next === snap) {
+        void animationControls.start({ y: SNAP_Y[snap] });
+        return;
+      }
+      onSnapChange(next);
     },
-    [snap, onSnapChange],
+    [snap, onSnapChange, canClose, animationControls],
   );
 
   const handleToggle = useCallback(() => {
     onSnapChange(snap === "peek" ? "full" : "peek");
   }, [snap, onSnapChange]);
+
+  const olRef = useRef<HTMLOListElement | null>(null);
+  const prevSnapRef = useRef(snap);
+
+  useEffect(() => {
+    const wasClosed = prevSnapRef.current === "closed";
+    prevSnapRef.current = snap;
+    if (!wasClosed || snap === "closed" || currentTrackRank === null) return;
+    // Defer to next frame so Radix Dialog.Portal has fully mounted its content
+    // and refs inside the portal are populated before we query/scroll.
+    const id = requestAnimationFrame(() => {
+      const el = olRef.current?.querySelector<HTMLElement>(
+        `[data-rank="${currentTrackRank}"]`,
+      );
+      el?.scrollIntoView({
+        block: snap === "peek" ? "start" : "center",
+        behavior: "smooth",
+      });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [snap, currentTrackRank]);
 
   return (
     <Dialog.Root open={open} onOpenChange={handleOpenChange} modal={false}>
@@ -70,23 +140,36 @@ export function ChartSheet({ country, snap, onSnapChange }: ChartSheetProps) {
             data-snap={snap}
             data-testid="chart-sheet"
             drag="y"
+            dragListener={false}
+            dragControls={dragControls}
             dragMomentum={false}
             dragElastic={0.2}
-            animate={{ y: SNAP_Y[snap] }}
+            initial={{ y: SNAP_Y[snap] }}
+            animate={animationControls}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
             className="bg-void text-fg-1 border-fg-1/10 shadow-sheet fixed inset-x-0 bottom-0 flex h-[100dvh] flex-col rounded-t-2xl border-t"
           >
-            <button
-              type="button"
-              onClick={handleToggle}
-              aria-label={snap === "peek" ? "Expand chart" : "Collapse chart"}
-              className="bg-fg-1/15 rounded-pill mx-auto mt-3 mb-2 h-1.5 w-12 shrink-0"
-            />
-            <Dialog.Title className="text-h3 px-6 pb-3 font-semibold">
-              {country.name}
-            </Dialog.Title>
-            <ol className="min-h-0 flex-1 overflow-y-auto px-4 pb-12 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div
+              onPointerDown={(e) => dragControls.start(e)}
+              className="shrink-0 touch-none"
+            >
+              <button
+                type="button"
+                onClick={handleToggle}
+                aria-label={snap === "peek" ? "Expand chart" : "Collapse chart"}
+                className="bg-fg-1/15 rounded-pill mx-auto mt-3 mb-2 block h-1.5 w-12"
+              />
+              <Dialog.Title className="text-h3 px-6 pb-3 font-semibold">
+                {country.name}
+              </Dialog.Title>
+            </div>
+            <ol
+              ref={olRef}
+              data-peek={(snap === "peek" && !isDragging) || undefined}
+              className="min-h-0 flex-1 overflow-y-auto px-4 pb-12 transition-[max-height] duration-300 ease-out [-ms-overflow-style:none] [scrollbar-width:none] data-[peek]:max-h-[calc(35dvh-62px)] [&::-webkit-scrollbar]:hidden"
+            >
               {country.tracks.map((track) => (
                 <TrackRow key={track.rank} track={track} />
               ))}
