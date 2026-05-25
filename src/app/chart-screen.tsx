@@ -65,12 +65,17 @@ function ChartScreenInner({ country }: { country: Country }) {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
       const target = e.target as HTMLElement | null;
       if (
         target &&
         (target.tagName === "INPUT" ||
           target.tagName === "TEXTAREA" ||
-          target.isContentEditable)
+          target.tagName === "SELECT" ||
+          target.isContentEditable ||
+          target.closest(
+            "button, a[href], [role='button'], [role='menuitem'], [role='switch'], [role='checkbox']",
+          ))
       ) {
         return;
       }
