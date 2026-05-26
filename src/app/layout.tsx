@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+
+import { GlobeScene } from "@/components/globe/globe-scene";
+
 import "./globals.css";
 
 const poppins = localFont({
@@ -74,7 +77,12 @@ export default function RootLayout({
       lang="en"
       className={`${poppins.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col">{children}</body>
+      <body className="bg-void flex min-h-full flex-col">
+        <div className="fixed inset-0">
+          <GlobeScene />
+        </div>
+        {children}
+      </body>
     </html>
   );
 }
