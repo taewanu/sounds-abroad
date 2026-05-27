@@ -1,13 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, use, useCallback, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 
 import { COUNTRIES } from "@/lib/countries";
-import type { CountryOutlines } from "@/lib/country-outlines";
-import { loadCountryOutlines } from "@/lib/topo-loader";
+import { getCountryOutlinesPromise } from "@/lib/topo-loader";
 
 import { CountryOutlinesLayer } from "./country-outlines";
 import { CountryPins } from "./country-pins";
@@ -21,27 +20,17 @@ function validateCode(raw: string | null): string | null {
   return ALL_CODES.includes(lower) ? lower : null;
 }
 
+function CountryLayers() {
+  const outlines = use(getCountryOutlinesPromise());
+  if (!outlines) return null;
+  return <CountryOutlinesLayer data={outlines} />;
+}
+
 export function GlobeScene() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedCode = validateCode(searchParams.get("cc"));
-
-  const [outlines, setOutlines] = useState<CountryOutlines | null>(null);
   const [userInteracted, setUserInteracted] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    loadCountryOutlines()
-      .then((data) => {
-        if (!cancelled) setOutlines(data);
-      })
-      .catch((err: unknown) => {
-        console.error("Failed to load country outlines", err);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const handleSelect = useCallback(
     (code: string) => {
@@ -68,7 +57,9 @@ export function GlobeScene() {
           metalness={0.05}
         />
       </mesh>
-      {outlines && <CountryOutlinesLayer data={outlines} />}
+      <Suspense fallback={null}>
+        <CountryLayers />
+      </Suspense>
       <CountryPins selectedCode={selectedCode} onSelect={handleSelect} />
       <OrbitControls
         autoRotate={!userInteracted}

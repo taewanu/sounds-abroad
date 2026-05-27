@@ -1,3 +1,5 @@
+"use client";
+
 import type { GeometryCollection, Topology } from "topojson-specification";
 
 import { buildCountryOutlines, type CountryOutlines } from "./country-outlines";
@@ -16,4 +18,14 @@ export async function loadCountryOutlines(
     countries: GeometryCollection;
   }>;
   return buildCountryOutlines(topology, sphereRadius);
+}
+
+let outlinesPromise: Promise<CountryOutlines | null> | null = null;
+
+export function getCountryOutlinesPromise(): Promise<CountryOutlines | null> {
+  outlinesPromise ??= loadCountryOutlines().catch((err: unknown) => {
+    console.error("Failed to load country outlines", err);
+    return null;
+  });
+  return outlinesPromise;
 }
