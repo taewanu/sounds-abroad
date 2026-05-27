@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ChartSheet, type SnapState } from "@/components/chart-sheet/sheet";
 import { MiniPlayer } from "@/components/mini-player";
 import type { ChartFile, Country } from "@/lib/chart-schema";
-import { COUNTRIES } from "@/lib/countries";
 import { pickUnvisited } from "@/lib/pick-unvisited";
 import { markVisited, readVisited, resetVisited } from "@/lib/visited-storage";
 import {
@@ -15,12 +14,13 @@ import {
   useAudioStoreApi,
 } from "@/providers/audio-store-provider";
 
-const ALL_CODES = COUNTRIES.map((c) => c.code);
-
-function validateUrlCode(raw: string | null): string | null {
+function validateUrlCode(
+  raw: string | null,
+  countries: ChartFile["countries"],
+): string | null {
   if (raw === null) return null;
   const lower = raw.toLowerCase();
-  return ALL_CODES.includes(lower) ? lower : null;
+  return countries[lower] ? lower : null;
 }
 
 export interface ChartScreenProps {
@@ -30,7 +30,7 @@ export interface ChartScreenProps {
 export function ChartScreen({ charts }: ChartScreenProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const validUrlCc = validateUrlCode(searchParams.get("cc"));
+  const validUrlCc = validateUrlCode(searchParams.get("cc"), charts.countries);
 
   useEffect(() => {
     if (validUrlCc !== null) {
@@ -39,7 +39,7 @@ export function ChartScreen({ charts }: ChartScreenProps) {
 
     const visited = readVisited();
     const result = pickUnvisited({
-      allCodes: ALL_CODES,
+      allCodes: Object.keys(charts.countries),
       visited,
       rng: Math.random,
     });
@@ -49,7 +49,7 @@ export function ChartScreen({ charts }: ChartScreenProps) {
 
     markVisited(result.code);
     router.replace(`/?cc=${result.code}`);
-  }, [validUrlCc, router]);
+  }, [validUrlCc, router, charts.countries]);
 
   const country = validUrlCc && charts.countries[validUrlCc];
   if (!country) {
