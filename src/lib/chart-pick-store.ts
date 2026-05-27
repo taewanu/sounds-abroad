@@ -1,4 +1,4 @@
-import { resolveCountry } from "./country-resolution";
+import { pickUnvisited } from "./pick-unvisited";
 import { markVisited, readVisited, resetVisited } from "./visited-storage";
 
 export interface ChartPick {
@@ -14,8 +14,7 @@ export class ChartPickStore {
 
   pickUnvisitedCountryCode(allCodes: readonly string[]): string {
     const visited = readVisited();
-    const result = resolveCountry({
-      urlParam: null,
+    const result = pickUnvisited({
       allCodes,
       visited,
       rng: Math.random,
