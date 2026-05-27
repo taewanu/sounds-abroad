@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 
@@ -79,7 +80,9 @@ export default function RootLayout({
     >
       <body className="bg-void flex min-h-full flex-col">
         <div className="fixed inset-0">
-          <GlobeScene />
+          <Suspense fallback={null}>
+            <GlobeScene />
+          </Suspense>
         </div>
         {children}
       </body>
