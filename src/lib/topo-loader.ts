@@ -25,6 +25,7 @@ let outlinesPromise: Promise<CountryOutlines | null> | null = null;
 export function getCountryOutlinesPromise(): Promise<CountryOutlines | null> {
   outlinesPromise ??= loadCountryOutlines().catch((err: unknown) => {
     console.error("Failed to load country outlines", err);
+    outlinesPromise = null;
     return null;
   });
   return outlinesPromise;
