@@ -13,7 +13,7 @@ export default async function Home() {
   const charts = await fetchCharts(url);
 
   return (
-    <main className="bg-void min-h-dvh">
+    <main className="min-h-dvh">
       <Suspense fallback={null}>
         <ChartScreen charts={charts} />
       </Suspense>

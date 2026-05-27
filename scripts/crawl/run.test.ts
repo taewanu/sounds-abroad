@@ -204,8 +204,22 @@ function makeCrawlAllDeps(input: {
 
 test("crawlAll assembles a valid ChartFile, uploads once, and revalidates once", async () => {
   const countries: CountryEntry[] = [
-    { code: "kr", name: "South Korea", region: "Asia" },
-    { code: "us", name: "United States", region: "Americas" },
+    {
+      code: "kr",
+      name: "South Korea",
+      region: "Asia",
+      lat: 37.5683,
+      lon: 126.9978,
+      isoNum: 410,
+    },
+    {
+      code: "us",
+      name: "United States",
+      region: "Americas",
+      lat: 38.9015,
+      lon: -77.0114,
+      isoNum: 840,
+    },
   ];
   const deps = makeCrawlAllDeps({ countries });
   const expectedCodes = countries.map((c) => c.code);
@@ -228,8 +242,22 @@ test("crawlAll publishes whatever succeeded when one country's RSS fails", async
   const failingCode = "ng";
   const successCode = "kr";
   const countries: CountryEntry[] = [
-    { code: successCode, name: "South Korea", region: "Asia" },
-    { code: failingCode, name: "Nigeria", region: "Africa" },
+    {
+      code: successCode,
+      name: "South Korea",
+      region: "Asia",
+      lat: 37.5683,
+      lon: 126.9978,
+      isoNum: 410,
+    },
+    {
+      code: failingCode,
+      name: "Nigeria",
+      region: "Africa",
+      lat: 9.0853,
+      lon: 7.5314,
+      isoNum: 566,
+    },
   ];
   const fetchRss = vi.fn(async (cc: string) => {
     if (cc === failingCode) {
