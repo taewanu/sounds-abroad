@@ -4,9 +4,13 @@ import raw from "./charts.json";
 
 export const CHARTS = ChartFileSchema.parse(raw);
 
-const kr = CHARTS.countries.kr;
-const us = CHARTS.countries.us;
-const br = CHARTS.countries.br;
+export const CODE_KR = "kr";
+export const CODE_US = "us";
+export const CODE_BR = "br";
+
+const kr = CHARTS.countries[CODE_KR];
+const us = CHARTS.countries[CODE_US];
+const br = CHARTS.countries[CODE_BR];
 
 if (!kr || !us || !br) {
   throw new Error(

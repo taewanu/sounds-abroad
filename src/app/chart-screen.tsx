@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { ChartSheet, type SnapState } from "@/components/chart-sheet/sheet";
 import { MiniPlayer } from "@/components/mini-player";
@@ -24,10 +24,10 @@ function validateUrlCode(raw: string | null): string | null {
 
 export interface ChartScreenProps {
   charts: ChartFile;
-  rng?: () => number;
 }
 
-export function ChartScreen({ charts, rng = Math.random }: ChartScreenProps) {
+export function ChartScreen({ charts }: ChartScreenProps) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const validUrlCc = validateUrlCode(searchParams.get("cc"));
 
@@ -40,8 +40,10 @@ export function ChartScreen({ charts, rng = Math.random }: ChartScreenProps) {
 
   useEffect(() => {
     if (validUrlCc !== null) return;
-    store.initIfNeeded(ALL_CODES, rng);
-  }, [store, validUrlCc, rng]);
+
+    const code = store.pickUnvisitedCountryCode(ALL_CODES);
+    router.replace(`/?cc=${code}`);
+  }, [store, validUrlCc, router]);
 
   const code = validUrlCc ?? pick.code ?? null;
   const country = code !== null ? (charts.countries[code] ?? null) : null;

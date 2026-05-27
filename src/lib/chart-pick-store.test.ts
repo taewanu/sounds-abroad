@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
-import { ChartPickStore } from "./chart-pick-store";
+import { ChartPickStore, INITIAL_PICK } from "./chart-pick-store";
 
 const ALL = ["us", "kr", "jp"] as const;
 
@@ -9,35 +9,46 @@ describe("ChartPickStore", () => {
     localStorage.clear();
   });
 
-  test("initIfNeeded picks a country and writes it to visited-storage", () => {
+  test("pickUnvisitedCountryCode picks an unvisited country and marks it visited", () => {
     const store = new ChartPickStore();
 
-    store.initIfNeeded(ALL, () => 0);
+    store.pickUnvisitedCountryCode(ALL);
 
     const snap = store.getSnapshot();
-    expect(snap.code).toBe("us");
+    expect(ALL).toContain(snap.code);
     expect(snap.didReset).toBe(false);
-    expect(localStorage.getItem("sa:visited")).toContain("us");
+    expect(localStorage.getItem("sa:visited")).toContain(snap.code);
   });
 
-  test("initIfNeeded is idempotent — second call does not re-pick", () => {
+  test("pickUnvisitedCountryCode returns the picked code", () => {
     const store = new ChartPickStore();
-    const rng = vi.fn(() => 0);
 
-    store.initIfNeeded(ALL, rng);
-    store.initIfNeeded(ALL, rng);
+    const picked = store.pickUnvisitedCountryCode(ALL);
 
-    expect(rng).toHaveBeenCalledTimes(1);
+    expect(picked).toBe(store.getSnapshot().code);
+    expect(ALL).toContain(picked);
   });
 
-  test("subscribe receives notification when initIfNeeded picks", () => {
+  test("pickUnvisitedCountryCode picks fresh on each call, skipping visited", () => {
+    const store = new ChartPickStore();
+
+    const first = store.pickUnvisitedCountryCode(ALL);
+    const second = store.pickUnvisitedCountryCode(ALL);
+
+    expect(first).not.toBe(second);
+    expect(ALL).toContain(first);
+    expect(ALL).toContain(second);
+  });
+
+  test("subscribe receives notification on each pickUnvisitedCountryCode call", () => {
     const store = new ChartPickStore();
     const listener = vi.fn();
 
     store.subscribe(listener);
-    store.initIfNeeded(ALL, () => 0);
+    store.pickUnvisitedCountryCode(ALL);
+    store.pickUnvisitedCountryCode(ALL);
 
-    expect(listener).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledTimes(2);
   });
 
   test("subscribe returns unsubscribe function that stops notifications", () => {
@@ -46,31 +57,29 @@ describe("ChartPickStore", () => {
 
     const unsubscribe = store.subscribe(listener);
     unsubscribe();
-    store.initIfNeeded(ALL, () => 0);
+    store.pickUnvisitedCountryCode(ALL);
 
     expect(listener).not.toHaveBeenCalled();
   });
 
-  test("getServerSnapshot returns the empty initial value", () => {
+  test("getServerSnapshot returns the stable INITIAL_PICK reference", () => {
     const store = new ChartPickStore();
 
-    expect(store.getServerSnapshot()).toEqual({
-      code: null,
-      didReset: false,
-    });
+    expect(store.getServerSnapshot()).toBe(INITIAL_PICK);
   });
 
   test("signals didReset and clears prior visited when visited contains all codes", () => {
     localStorage.setItem("sa:visited", JSON.stringify([...ALL]));
-
     const store = new ChartPickStore();
-    store.initIfNeeded(ALL, () => 0);
+
+    store.pickUnvisitedCountryCode(ALL);
 
     const snap = store.getSnapshot();
-    const storedVisited: unknown = JSON.parse(
+    const storedVisited = JSON.parse(
       localStorage.getItem("sa:visited") ?? "[]",
-    );
+    ) as string[];
     expect(snap.didReset).toBe(true);
-    expect(storedVisited).toEqual(["us"]);
+    expect(storedVisited).toHaveLength(1);
+    expect(ALL).toContain(storedVisited[0]);
   });
 });

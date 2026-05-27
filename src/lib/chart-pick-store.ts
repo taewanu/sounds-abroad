@@ -6,21 +6,19 @@ export interface ChartPick {
   didReset: boolean;
 }
 
-const INITIAL: ChartPick = { code: null, didReset: false };
+export const INITIAL_PICK: ChartPick = { code: null, didReset: false };
 
 export class ChartPickStore {
-  private snapshot: ChartPick = INITIAL;
+  private snapshot: ChartPick = INITIAL_PICK;
   private listeners = new Set<() => void>();
 
-  initIfNeeded(allCodes: readonly string[], rng: () => number): void {
-    if (this.snapshot.code !== null) return;
-
+  pickUnvisitedCountryCode(allCodes: readonly string[]): string {
     const visited = readVisited();
     const result = resolveCountry({
       urlParam: null,
       allCodes,
       visited,
-      rng,
+      rng: Math.random,
     });
 
     if (result.didReset) resetVisited();
@@ -28,6 +26,7 @@ export class ChartPickStore {
 
     this.snapshot = { code: result.code, didReset: result.didReset };
     this.notify();
+    return result.code;
   }
 
   subscribe = (callback: () => void): (() => void) => {
@@ -39,7 +38,7 @@ export class ChartPickStore {
 
   getSnapshot = (): ChartPick => this.snapshot;
 
-  getServerSnapshot = (): ChartPick => INITIAL;
+  getServerSnapshot = (): ChartPick => INITIAL_PICK;
 
   private notify(): void {
     for (const listener of this.listeners) listener();
