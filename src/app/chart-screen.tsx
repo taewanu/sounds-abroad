@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { ChartSheet, type SnapState } from "@/components/chart-sheet/sheet";
 import { MiniPlayer } from "@/components/mini-player";
-import { ChartPickStore } from "@/lib/chart-pick-store";
 import type { ChartFile, Country } from "@/lib/chart-schema";
 import { COUNTRIES } from "@/lib/countries";
+import { pickUnvisited } from "@/lib/pick-unvisited";
+import { markVisited, readVisited, resetVisited } from "@/lib/visited-storage";
 import {
   AudioStoreProvider,
   useAudioStore,
@@ -31,24 +32,29 @@ export function ChartScreen({ charts }: ChartScreenProps) {
   const searchParams = useSearchParams();
   const validUrlCc = validateUrlCode(searchParams.get("cc"));
 
-  const store = useMemo(() => new ChartPickStore(), []);
-  const pick = useSyncExternalStore(
-    store.subscribe,
-    store.getSnapshot,
-    store.getServerSnapshot,
-  );
-
   useEffect(() => {
-    if (validUrlCc !== null) return;
+    if (validUrlCc !== null) {
+      return;
+    }
 
-    const code = store.pickUnvisitedCountryCode(ALL_CODES);
-    router.replace(`/?cc=${code}`);
-  }, [store, validUrlCc, router]);
+    const visited = readVisited();
+    const result = pickUnvisited({
+      allCodes: ALL_CODES,
+      visited,
+      rng: Math.random,
+    });
+    if (result.didReset) {
+      resetVisited();
+    }
 
-  const code = validUrlCc ?? pick.code ?? null;
-  const country = code !== null ? (charts.countries[code] ?? null) : null;
+    markVisited(result.code);
+    router.replace(`/?cc=${result.code}`);
+  }, [validUrlCc, router]);
 
-  if (country === null) return null;
+  const country = validUrlCc && charts.countries[validUrlCc];
+  if (!country) {
+    return null;
+  }
 
   return (
     <AudioStoreProvider>
