@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { pickUnvisited } from "./pick-unvisited";
 
-const ALL = ["us", "kr", "jp", "fr"] as const;
+const ALL = ["a", "b", "c", "d"] as const;
 
 describe("pickUnvisited", () => {
   test("picks from the full set when nothing is visited", () => {
@@ -12,18 +12,18 @@ describe("pickUnvisited", () => {
       rng: () => 0,
     });
 
-    expect(result.code).toBe("us");
+    expect(result.code).toBe(ALL[0]);
     expect(result.didReset).toBe(false);
   });
 
   test("excludes codes in visited", () => {
     const result = pickUnvisited({
       allCodes: ALL,
-      visited: new Set(["us", "kr"]),
+      visited: new Set([ALL[0], ALL[1]]),
       rng: () => 0,
     });
 
-    expect(result.code).toBe("jp");
+    expect(result.code).toBe(ALL[2]);
     expect(result.didReset).toBe(false);
   });
 
@@ -34,7 +34,7 @@ describe("pickUnvisited", () => {
       rng: () => 0,
     });
 
-    expect(result.code).toBe("us");
+    expect(result.code).toBe(ALL[0]);
     expect(result.didReset).toBe(true);
   });
 
@@ -45,6 +45,6 @@ describe("pickUnvisited", () => {
       rng: () => 0.9999,
     });
 
-    expect(result.code).toBe("fr");
+    expect(result.code).toBe(ALL[ALL.length - 1]);
   });
 });
