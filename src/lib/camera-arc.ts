@@ -2,6 +2,9 @@ import { Vector3 } from "three";
 
 import { latLonToVec3 } from "./lat-lon-to-vec3";
 
+// Float tolerance for treating dot product as exactly ±1 (degenerate cases).
+const EPSILON = 1e-6;
+
 export interface CameraArcParams {
   from: Vector3;
   toLatLon: { lat: number; lon: number };
@@ -22,10 +25,10 @@ export function cameraArcPath(params: CameraArcParams): (t: number) => Vector3 {
 
 function slerpUnitVectors(from: Vector3, to: Vector3, t: number): Vector3 {
   const dot = Math.max(-1, Math.min(1, from.dot(to)));
-  if (dot > 1 - 1e-6) {
+  if (dot > 1 - EPSILON) {
     return from.clone().lerp(to, t).normalize();
   }
-  if (dot < -1 + 1e-6) {
+  if (dot < -1 + EPSILON) {
     const helper =
       Math.abs(from.x) < 0.9 ? new Vector3(1, 0, 0) : new Vector3(0, 1, 0);
     const axis = new Vector3().crossVectors(from, helper).normalize();
