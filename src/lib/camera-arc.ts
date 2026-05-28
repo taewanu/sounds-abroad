@@ -22,12 +22,22 @@ export function cameraArcPath(params: CameraArcParams): (t: number) => Vector3 {
 
 function slerpUnitVectors(from: Vector3, to: Vector3, t: number): Vector3 {
   const dot = Math.max(-1, Math.min(1, from.dot(to)));
+  if (dot > 1 - 1e-6) {
+    return from.clone().lerp(to, t).normalize();
+  }
+  if (dot < -1 + 1e-6) {
+    const helper =
+      Math.abs(from.x) < 0.9 ? new Vector3(1, 0, 0) : new Vector3(0, 1, 0);
+    const axis = new Vector3().crossVectors(from, helper).normalize();
+    return from.clone().applyAxisAngle(axis, Math.PI * t);
+  }
   const theta = Math.acos(dot);
   const sinTheta = Math.sin(theta);
-  if (Math.abs(sinTheta) < 1e-6) {
-    return from.clone().lerp(to, t);
-  }
   const a = Math.sin((1 - t) * theta) / sinTheta;
   const b = Math.sin(t * theta) / sinTheta;
-  return from.clone().multiplyScalar(a).add(to.clone().multiplyScalar(b));
+  return from
+    .clone()
+    .multiplyScalar(a)
+    .add(to.clone().multiplyScalar(b))
+    .normalize();
 }

@@ -48,3 +48,17 @@ test("cameraArcPath midpoint lies on the great circle from start to target", () 
 
   expect(Math.abs(mid.dot(arcAxis))).toBeLessThan(EPSILON);
 });
+
+test("cameraArcPath survives antipodal target with non-degenerate midpoint", () => {
+  const antipodalPath = cameraArcPath({
+    from: cameraStart,
+    toLatLon: { lat: 0, lon: 180 },
+    baseRadius,
+    riseFactor,
+  });
+
+  const mid = antipodalPath(0.5);
+
+  expect(Number.isFinite(mid.length())).toBe(true);
+  expect(mid.length()).toBeCloseTo(baseRadius * (1 + riseFactor), 6);
+});

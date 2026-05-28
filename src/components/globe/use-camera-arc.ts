@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useThree } from "@react-three/fiber";
 
 import { cameraArcPath } from "@/lib/camera-arc";
@@ -43,7 +43,12 @@ interface ControlsLike {
 export function useCameraArc({ targetCode }: UseCameraArcOptions) {
   const camera = useThree((s) => s.camera);
   const controls = useThree((s) => s.controls) as ControlsLike | null;
+  const controlsRef = useRef<ControlsLike | null>(null);
   const [store] = useState(() => new ArcStore());
+
+  useEffect(() => {
+    controlsRef.current = controls;
+  }, [controls]);
 
   const isAnimating = useSyncExternalStore(
     store.subscribe,
@@ -76,7 +81,7 @@ export function useCameraArc({ targetCode }: UseCameraArcOptions) {
       if (t < 1) {
         rafId = requestAnimationFrame(tick);
       } else {
-        controls?.update?.();
+        controlsRef.current?.update?.();
         store.set(false);
       }
     };
@@ -86,7 +91,7 @@ export function useCameraArc({ targetCode }: UseCameraArcOptions) {
       cancelAnimationFrame(rafId);
       store.set(false);
     };
-  }, [targetCode, camera, controls, store]);
+  }, [targetCode, camera, store]);
 
   return { isAnimating };
 }
