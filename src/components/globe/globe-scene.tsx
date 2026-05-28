@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, use, useCallback, useState } from "react";
+import { Suspense, use, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
@@ -11,6 +11,7 @@ import { getCountryOutlinesPromise } from "@/lib/topo-loader";
 import { CountryOutlinesLayer } from "./country-outlines";
 import { CountryPins } from "./country-pins";
 import { StarBackdrop } from "./star-backdrop";
+import { useCameraArc } from "./use-camera-arc";
 
 const ALL_CODES = COUNTRIES.map((c) => c.code);
 
@@ -26,26 +27,23 @@ function CountryLayers() {
   return <CountryOutlinesLayer data={outlines} />;
 }
 
-export function GlobeScene() {
+function SceneContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedCode = validateCode(searchParams.get("cc"));
-  const [userInteracted, setUserInteracted] = useState(false);
+
+  const { isAnimating } = useCameraArc({ targetCode: selectedCode });
 
   const handleSelect = useCallback(
     (code: string) => {
-      setUserInteracted(true);
+      if (isAnimating) return;
       router.push(`/?cc=${code}`);
     },
-    [router],
+    [router, isAnimating],
   );
 
   return (
-    <Canvas
-      camera={{ fov: 45, position: [0, 0, 3.5] }}
-      dpr={[1, 2]}
-      gl={{ antialias: true }}
-    >
+    <>
       <ambientLight intensity={0.5} />
       <directionalLight position={[5, 3, 5]} intensity={1.2} />
       <StarBackdrop />
@@ -62,14 +60,26 @@ export function GlobeScene() {
       </Suspense>
       <CountryPins selectedCode={selectedCode} onSelect={handleSelect} />
       <OrbitControls
-        autoRotate={!userInteracted}
+        autoRotate={selectedCode === null}
         autoRotateSpeed={0.4}
         enableZoom={false}
         enablePan={false}
+        enableRotate={!isAnimating}
         enableDamping
         makeDefault
-        onStart={() => setUserInteracted(true)}
       />
+    </>
+  );
+}
+
+export function GlobeScene() {
+  return (
+    <Canvas
+      camera={{ fov: 45, position: [0, 0, 3.5] }}
+      dpr={[1, 2]}
+      gl={{ antialias: true }}
+    >
+      <SceneContent />
     </Canvas>
   );
 }
