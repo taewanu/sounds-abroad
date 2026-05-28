@@ -1,7 +1,7 @@
 import type { CountryOutlines } from "@/lib/country-outlines";
 
 const TIER1_COLOR = "#3a4a5a";
-const TIER1_OPACITY = 0.5;
+const TIER1_OPACITY = 0.8;
 const TIER2_COLOR = "#88aacc";
 const TIER2_OPACITY = 0.85;
 
