@@ -45,3 +45,59 @@ test("buildCountryOutlines includes a non-empty geometry for every 40-set countr
     ).toBeGreaterThan(0);
   }
 });
+
+test("buildCountryOutlines exposes lat/lon rings for every 40-set country", () => {
+  const outlines = buildCountryOutlines(realTopology);
+
+  for (const country of COUNTRIES) {
+    const rings = outlines.byIsoRings.get(country.isoNum);
+    expect(
+      rings,
+      `missing rings for ${country.code} (isoNum=${country.isoNum})`,
+    ).toBeDefined();
+    expect(
+      rings!.length,
+      `empty rings for ${country.code} (isoNum=${country.isoNum})`,
+    ).toBeGreaterThan(0);
+  }
+});
+
+test("buildCountryOutlines merges features sharing an ISO num (AU 036: Australia + Ashmore)", () => {
+  const outlines = buildCountryOutlines(realTopology);
+  const auRings = outlines.byIsoRings.get(36);
+
+  expect(auRings).toBeDefined();
+
+  const includesMainland = auRings!.some((ring) => {
+    let minLon = Infinity;
+    let maxLon = -Infinity;
+    let minLat = Infinity;
+    let maxLat = -Infinity;
+    for (const [lon, lat] of ring) {
+      if (lon < minLon) minLon = lon;
+      if (lon > maxLon) maxLon = lon;
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+    }
+    return minLon <= 135 && 135 <= maxLon && minLat <= -25 && -25 <= maxLat;
+  });
+
+  expect(includesMainland).toBe(true);
+});
+
+test("buildCountryOutlines rings entries are [lon, lat] pairs within valid ranges", () => {
+  const outlines = buildCountryOutlines(realTopology);
+  const kr = outlines.byIsoRings.get(410);
+
+  expect(kr).toBeDefined();
+  for (const ring of kr!) {
+    for (const point of ring) {
+      const [lon, lat] = point;
+
+      expect(lon).toBeGreaterThanOrEqual(-180);
+      expect(lon).toBeLessThanOrEqual(180);
+      expect(lat).toBeGreaterThanOrEqual(-90);
+      expect(lat).toBeLessThanOrEqual(90);
+    }
+  }
+});
