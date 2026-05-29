@@ -50,7 +50,9 @@ function SceneContent() {
 
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
   const hoveredIsoNum =
-    hoveredCode !== null ? (ISO_BY_CODE.get(hoveredCode) ?? null) : null;
+    hoveredCode !== null && hoveredCode !== selectedCode
+      ? (ISO_BY_CODE.get(hoveredCode) ?? null)
+      : null;
   const selectedIsoNum =
     selectedCode !== null ? (ISO_BY_CODE.get(selectedCode) ?? null) : null;
 

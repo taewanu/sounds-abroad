@@ -1,5 +1,10 @@
 import { useEffect, useRef } from "react";
-import { CanvasTexture, type MeshBasicMaterial, SRGBColorSpace } from "three";
+import {
+  CanvasTexture,
+  type MeshBasicMaterial,
+  RepeatWrapping,
+  SRGBColorSpace,
+} from "three";
 
 import type { CountryRings } from "@/lib/country-outlines";
 
@@ -28,6 +33,9 @@ export function CountryFill({ selectedIsoNum, byIsoRings }: CountryFillProps) {
     canvas.height = CANVAS_H;
     const tex = new CanvasTexture(canvas);
     tex.offset.x = UV_OFFSET_X;
+    // RepeatWrapping required because offset.x shifts sample u into [0.25, 1.25];
+    // default ClampToEdge would smear the rightmost canvas column across lon=-90 to -180.
+    tex.wrapS = RepeatWrapping;
     tex.colorSpace = SRGBColorSpace;
     canvasRef.current = canvas;
     textureRef.current = tex;
@@ -54,8 +62,8 @@ export function CountryFill({ selectedIsoNum, byIsoRings }: CountryFillProps) {
       const rings = byIsoRings.get(selectedIsoNum);
       if (rings) {
         ctx.fillStyle = FILL_COLOR;
+        ctx.beginPath();
         for (const ring of rings) {
-          ctx.beginPath();
           for (let i = 0; i < ring.length; i++) {
             const [lon, lat] = ring[i];
             const x = ((lon + 180) / 360) * CANVAS_W;
@@ -64,8 +72,8 @@ export function CountryFill({ selectedIsoNum, byIsoRings }: CountryFillProps) {
             else ctx.lineTo(x, y);
           }
           ctx.closePath();
-          ctx.fill();
         }
+        ctx.fill("evenodd");
       }
     }
     texture.needsUpdate = true;
