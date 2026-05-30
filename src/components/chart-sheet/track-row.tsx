@@ -14,10 +14,15 @@ export interface TrackRowProps {
 
 export function TrackRow({ track, countryCode }: TrackRowProps) {
   const isCurrent = useAudioStore(
-    (s) => s.currentTrack?.previewUrl === track.previewUrl,
+    (s) =>
+      s.currentTrack?.previewUrl === track.previewUrl &&
+      s.currentCountryCode === countryCode,
   );
   const isPlaying = useAudioStore(
-    (s) => s.isPlaying && s.currentTrack?.previewUrl === track.previewUrl,
+    (s) =>
+      s.isPlaying &&
+      s.currentTrack?.previewUrl === track.previewUrl &&
+      s.currentCountryCode === countryCode,
   );
   const hasError = useAudioStore(
     (s) => s.lastError?.previewUrl === track.previewUrl,

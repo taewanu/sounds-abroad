@@ -188,6 +188,7 @@ export function ChartSheet({
               </Dialog.Title>
             </div>
             <ol
+              key={countryCode}
               ref={olRef}
               data-peek={(snap === "peek" && !isDragging) || undefined}
               className="min-h-0 flex-1 overflow-y-auto px-4 pb-12 transition-[max-height] duration-300 ease-out [-ms-overflow-style:none] [scrollbar-width:none] data-[peek]:max-h-[calc(35dvh-62px)] [&::-webkit-scrollbar]:hidden"

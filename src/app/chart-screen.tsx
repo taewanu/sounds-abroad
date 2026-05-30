@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { ChartSheet, type SnapState } from "@/components/chart-sheet/sheet";
@@ -58,7 +58,11 @@ export function ChartScreen({ charts }: ChartScreenProps) {
 
   return (
     <AudioStoreProvider>
-      <ChartScreenInner country={country} countryCode={validUrlCc} />
+      <ChartScreenInner
+        country={country}
+        countryCode={validUrlCc}
+        charts={charts}
+      />
     </AudioStoreProvider>
   );
 }
@@ -66,9 +70,11 @@ export function ChartScreen({ charts }: ChartScreenProps) {
 function ChartScreenInner({
   country,
   countryCode,
+  charts,
 }: {
   country: Country;
   countryCode: string;
+  charts: ChartFile;
 }) {
   const router = useRouter();
   const [snap, setSnap] = useState<SnapState>("peek");
@@ -104,21 +110,28 @@ function ChartScreenInner({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [audioStore]);
 
+  // Advance within the source country, not the visible one. Ref-gated so
+  // only an actual ended event triggers advance, never a dep-only re-run.
+  const prevEndedRef = useRef(endedSignal);
   useEffect(() => {
+    if (endedSignal === prevEndedRef.current) return;
+    prevEndedRef.current = endedSignal;
     if (endedSignal === 0) return;
-    const { currentTrack, toggle } = audioStore.getState();
-    if (currentTrack === null) return;
-    const startIdx = country.tracks.findIndex(
+    const { currentTrack, currentCountryCode, toggle } = audioStore.getState();
+    if (currentTrack === null || currentCountryCode === null) return;
+    const source = charts.countries[currentCountryCode];
+    if (!source) return;
+    const startIdx = source.tracks.findIndex(
       (t) => t.previewUrl === currentTrack.previewUrl,
     );
     if (startIdx === -1) return;
-    for (let i = startIdx + 1; i < country.tracks.length; i++) {
-      if (country.tracks[i].previewUrl !== null) {
-        toggle(country.tracks[i], countryCode);
+    for (let i = startIdx + 1; i < source.tracks.length; i++) {
+      if (source.tracks[i].previewUrl !== null) {
+        toggle(source.tracks[i], currentCountryCode);
         return;
       }
     }
-  }, [endedSignal, audioStore, country.tracks, countryCode]);
+  }, [endedSignal, audioStore, charts.countries]);
 
   // Hidden sheet has no on-screen affordance; the next pointerdown anywhere
   // restores it.
