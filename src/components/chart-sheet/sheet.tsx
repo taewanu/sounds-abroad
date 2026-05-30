@@ -22,6 +22,7 @@ export interface ChartSheetProps {
   onSnapChange: (snap: SnapState) => void;
   currentTrackRank?: number | null;
   hasMiniPlayer?: boolean;
+  scrollSignal?: number;
 }
 
 const SNAP_Y_PCT: Record<SnapState, number> = {
@@ -84,6 +85,7 @@ export function ChartSheet({
   onSnapChange,
   currentTrackRank = null,
   hasMiniPlayer = false,
+  scrollSignal = 0,
 }: ChartSheetProps) {
   const animationControls = useAnimationControls();
   const dragControls = useDragControls();
@@ -123,14 +125,17 @@ export function ChartSheet({
 
   const olRef = useRef<HTMLOListElement | null>(null);
   const prevSnapRef = useRef(snap);
+  const prevSignalRef = useRef(scrollSignal);
 
   useEffect(() => {
     const wasMin =
       prevSnapRef.current === "closed" || prevSnapRef.current === "hidden";
+    const signalChanged = prevSignalRef.current !== scrollSignal;
     prevSnapRef.current = snap;
+    prevSignalRef.current = scrollSignal;
     if (snap === "closed" || snap === "hidden") return;
     if (currentTrackRank === null) return;
-    if (!wasMin) return;
+    if (!wasMin && !signalChanged) return;
     // Defer one frame so the portal's content is in the DOM before query.
     const id = requestAnimationFrame(() => {
       const el = olRef.current?.querySelector<HTMLElement>(
@@ -142,7 +147,7 @@ export function ChartSheet({
       });
     });
     return () => cancelAnimationFrame(id);
-  }, [snap, currentTrackRank]);
+  }, [snap, currentTrackRank, scrollSignal]);
 
   return (
     <Dialog.Root open onOpenChange={handleOpenChange} modal={false}>

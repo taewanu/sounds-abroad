@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { ChartSheet, type SnapState } from "@/components/chart-sheet/sheet";
@@ -70,7 +70,9 @@ function ChartScreenInner({
   country: Country;
   countryCode: string;
 }) {
+  const router = useRouter();
   const [snap, setSnap] = useState<SnapState>("peek");
+  const [scrollSignal, setScrollSignal] = useState(0);
   const hasCurrentTrack = useAudioStore((s) => s.currentTrack !== null);
   const currentTrackRank = useAudioStore((s) => s.currentTrack?.rank ?? null);
   const endedSignal = useAudioStore((s) => s.endedSignal);
@@ -127,6 +129,15 @@ function ChartScreenInner({
     return () => window.removeEventListener("pointerdown", handler);
   }, [snap]);
 
+  const handleMiniTap = useCallback(() => {
+    const source = audioStore.getState().currentCountryCode;
+    if (source && source !== countryCode) {
+      router.push(`/?cc=${source}`);
+    }
+    setSnap((s) => (s === "hidden" || s === "closed" ? "peek" : s));
+    setScrollSignal((n) => n + 1);
+  }, [audioStore, countryCode, router]);
+
   return (
     <>
       <ChartSheet
@@ -136,8 +147,9 @@ function ChartScreenInner({
         onSnapChange={setSnap}
         currentTrackRank={currentTrackRank}
         hasMiniPlayer={hasCurrentTrack}
+        scrollSignal={scrollSignal}
       />
-      <MiniPlayer onTap={() => setSnap("peek")} />
+      <MiniPlayer onTap={handleMiniTap} />
     </>
   );
 }

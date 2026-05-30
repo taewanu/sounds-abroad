@@ -187,6 +187,42 @@ describe("ChartSheet", () => {
     expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
   });
 
+  test("scrolls currentTrack into view when scrollSignal increments while open", async () => {
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
+    const rank = COUNTRY_KR.tracks[0].rank;
+
+    const { rerender } = render(
+      <AudioStoreProvider>
+        <ChartSheet
+          country={COUNTRY_KR}
+          countryCode="kr"
+          snap="peek"
+          onSnapChange={vi.fn()}
+          currentTrackRank={rank}
+          scrollSignal={0}
+        />
+      </AudioStoreProvider>,
+    );
+    scrollIntoViewMock.mockClear();
+
+    rerender(
+      <AudioStoreProvider>
+        <ChartSheet
+          country={COUNTRY_KR}
+          countryCode="kr"
+          snap="peek"
+          onSnapChange={vi.fn()}
+          currentTrackRank={rank}
+          scrollSignal={1}
+        />
+      </AudioStoreProvider>,
+    );
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+    expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+  });
+
   test("does not scroll when currentTrackRank is null", async () => {
     const scrollIntoViewMock = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoViewMock;
