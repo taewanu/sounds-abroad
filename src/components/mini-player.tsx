@@ -5,19 +5,18 @@ import { PlayIcon } from "@/components/icons/play";
 import { useAudioStore } from "@/providers/audio-store-provider";
 
 export interface MiniPlayerProps {
-  sheetClosed: boolean;
   onTap: () => void;
 }
 
-export function MiniPlayer({ sheetClosed, onTap }: MiniPlayerProps) {
+export function MiniPlayer({ onTap }: MiniPlayerProps) {
   const currentTrack = useAudioStore((s) => s.currentTrack);
   const isPlaying = useAudioStore((s) => s.isPlaying);
   const toggle = useAudioStore((s) => s.toggle);
 
-  if (currentTrack === null || !sheetClosed) return null;
+  if (currentTrack === null) return null;
 
   return (
-    <div className="bg-void border-fg-1/10 shadow-sheet fixed inset-x-0 bottom-0 border-t">
+    <div className="bg-void border-fg-1/10 shadow-sheet fixed inset-x-0 bottom-0 z-50 border-t">
       <div className="flex items-center gap-[14px] px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)]">
         <button
           type="button"

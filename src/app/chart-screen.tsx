@@ -71,6 +71,7 @@ function ChartScreenInner({
   countryCode: string;
 }) {
   const [snap, setSnap] = useState<SnapState>("peek");
+  const hasCurrentTrack = useAudioStore((s) => s.currentTrack !== null);
   const currentTrackRank = useAudioStore((s) => s.currentTrack?.rank ?? null);
   const endedSignal = useAudioStore((s) => s.endedSignal);
   const audioStore = useAudioStoreApi();
@@ -134,11 +135,9 @@ function ChartScreenInner({
         snap={snap}
         onSnapChange={setSnap}
         currentTrackRank={currentTrackRank}
+        hasMiniPlayer={hasCurrentTrack}
       />
-      <MiniPlayer
-        sheetClosed={snap === "closed"}
-        onTap={() => setSnap("peek")}
-      />
+      <MiniPlayer onTap={() => setSnap("peek")} />
     </>
   );
 }

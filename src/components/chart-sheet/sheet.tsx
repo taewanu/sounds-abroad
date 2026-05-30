@@ -21,6 +21,7 @@ export interface ChartSheetProps {
   snap: SnapState;
   onSnapChange: (snap: SnapState) => void;
   currentTrackRank?: number | null;
+  hasMiniPlayer?: boolean;
 }
 
 const SNAP_Y_PCT: Record<SnapState, number> = {
@@ -39,6 +40,13 @@ const SNAP_Y: Record<SnapState, string> = {
 
 const SNAP_ORDER: SnapState[] = ["full", "peek", "closed", "hidden"];
 const VELOCITY_PROJECTION = 0.15;
+const MINI_PLAYER_HEIGHT_PX = 70;
+
+const SHEET_STYLE_WITH_MINI = {
+  bottom: MINI_PLAYER_HEIGHT_PX,
+  height: `calc(100dvh - ${MINI_PLAYER_HEIGHT_PX}px)`,
+} as const;
+const SHEET_STYLE_NO_MINI = { bottom: 0, height: "100dvh" } as const;
 
 function nextSnap(
   current: SnapState,
@@ -75,6 +83,7 @@ export function ChartSheet({
   snap,
   onSnapChange,
   currentTrackRank = null,
+  hasMiniPlayer = false,
 }: ChartSheetProps) {
   const animationControls = useAnimationControls();
   const dragControls = useDragControls();
@@ -156,7 +165,8 @@ export function ChartSheet({
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
-            className="bg-void text-fg-1 border-fg-1/10 shadow-sheet fixed inset-x-0 bottom-0 flex h-[100dvh] flex-col rounded-t-2xl border-t"
+            style={hasMiniPlayer ? SHEET_STYLE_WITH_MINI : SHEET_STYLE_NO_MINI}
+            className="bg-void text-fg-1 border-fg-1/10 shadow-sheet fixed inset-x-0 flex flex-col rounded-t-2xl border-t"
           >
             <div
               onPointerDown={(e) => dragControls.start(e)}

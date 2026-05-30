@@ -35,7 +35,7 @@ function makeTrack(overrides: Partial<Track> = {}): Track {
 }
 
 function renderMiniPlayer(
-  props: { sheetClosed: boolean; onTap: () => void },
+  props: { onTap: () => void },
   init?: Partial<AudioState>,
 ) {
   const store = createAudioStore(() => makeMockAudio());
@@ -52,26 +52,24 @@ function renderMiniPlayer(
 
 describe("MiniPlayer", () => {
   test("renders nothing when currentTrack is null", () => {
-    const { container } = renderMiniPlayer({
-      sheetClosed: true,
-      onTap: vi.fn(),
-    });
+    const { container } = renderMiniPlayer({ onTap: vi.fn() });
 
     expect(container.firstChild).toBeNull();
   });
 
-  test("renders nothing when sheet is not closed even if currentTrack set", () => {
+  test("renders whenever currentTrack is set, regardless of sheet state", () => {
     const track = makeTrack();
 
     const { container } = renderMiniPlayer(
-      { sheetClosed: false, onTap: vi.fn() },
+      { onTap: vi.fn() },
       { currentTrack: track },
     );
 
-    expect(container.firstChild).toBeNull();
+    expect(container.firstChild).not.toBeNull();
+    expect(screen.getByText(track.name)).toBeDefined();
   });
 
-  test("renders name, artist, artwork when currentTrack set and sheet closed", () => {
+  test("renders name, artist, artwork when currentTrack set", () => {
     const track = makeTrack({
       name: "Hot Track",
       artist: "Hot Artist",
@@ -79,7 +77,7 @@ describe("MiniPlayer", () => {
     });
 
     const { container } = renderMiniPlayer(
-      { sheetClosed: true, onTap: vi.fn() },
+      { onTap: vi.fn() },
       { currentTrack: track },
     );
 
@@ -93,7 +91,7 @@ describe("MiniPlayer", () => {
     const track = makeTrack();
     const onTap = vi.fn();
 
-    renderMiniPlayer({ sheetClosed: true, onTap }, { currentTrack: track });
+    renderMiniPlayer({ onTap }, { currentTrack: track });
 
     fireEvent.click(screen.getByRole("button", { name: /reopen chart/i }));
 
@@ -104,7 +102,7 @@ describe("MiniPlayer", () => {
     const track = makeTrack({ name: "Hot Track" });
 
     const { store } = renderMiniPlayer(
-      { sheetClosed: true, onTap: vi.fn() },
+      { onTap: vi.fn() },
       { currentTrack: track, isPlaying: false },
     );
 
