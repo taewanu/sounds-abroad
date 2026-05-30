@@ -135,7 +135,11 @@ export function ChartSheet({
   return (
     <Dialog.Root open={open} onOpenChange={handleOpenChange} modal={false}>
       <Dialog.Portal>
-        <Dialog.Content asChild aria-describedby={undefined}>
+        <Dialog.Content
+          asChild
+          aria-describedby={undefined}
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <motion.div
             data-snap={snap}
             data-testid="chart-sheet"
