@@ -41,11 +41,15 @@ const SNAP_Y: Record<SnapState, string> = {
 
 const SNAP_ORDER: SnapState[] = ["full", "peek", "closed", "hidden"];
 const VELOCITY_PROJECTION = 0.15;
-const MINI_PLAYER_HEIGHT_PX = 70;
+
+// Mirror MiniPlayer's rendered height: pt-3 (12px) + h-12 artwork (48px)
+// + pb-[max(env(safe-area-inset-bottom), 12px)]. Tracks the iOS safe-area
+// inset so the sheet doesn't sit under the mini on notched devices.
+const MINI_PLAYER_GAP = "calc(60px + max(env(safe-area-inset-bottom), 12px))";
 
 const SHEET_STYLE_WITH_MINI = {
-  bottom: MINI_PLAYER_HEIGHT_PX,
-  height: `calc(100dvh - ${MINI_PLAYER_HEIGHT_PX}px)`,
+  bottom: MINI_PLAYER_GAP,
+  height: `calc(100dvh - ${MINI_PLAYER_GAP})`,
 } as const;
 const SHEET_STYLE_NO_MINI = { bottom: 0, height: "100dvh" } as const;
 
