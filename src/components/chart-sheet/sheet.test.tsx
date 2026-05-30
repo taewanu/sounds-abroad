@@ -18,6 +18,7 @@ function renderSheet(snap: SnapState) {
     <AudioStoreProvider>
       <ChartSheet
         country={COUNTRY_KR}
+        countryCode="kr"
         snap={snap}
         onSnapChange={onSnapChange}
       />
@@ -80,6 +81,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          countryCode="kr"
           snap="closed"
           onSnapChange={vi.fn()}
           currentTrackRank={rank}
@@ -91,6 +93,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          countryCode="kr"
           snap="peek"
           onSnapChange={vi.fn()}
           currentTrackRank={rank}
@@ -111,6 +114,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          countryCode="kr"
           snap="peek"
           onSnapChange={vi.fn()}
           currentTrackRank={rank}
@@ -124,6 +128,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          countryCode="kr"
           snap="full"
           onSnapChange={vi.fn()}
           currentTrackRank={rank}
@@ -144,6 +149,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          countryCode="kr"
           snap="closed"
           onSnapChange={vi.fn()}
           currentTrackRank={null}
@@ -155,6 +161,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          countryCode="kr"
           snap="peek"
           onSnapChange={vi.fn()}
           currentTrackRank={null}

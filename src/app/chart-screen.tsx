@@ -58,12 +58,18 @@ export function ChartScreen({ charts }: ChartScreenProps) {
 
   return (
     <AudioStoreProvider>
-      <ChartScreenInner country={country} />
+      <ChartScreenInner country={country} countryCode={validUrlCc} />
     </AudioStoreProvider>
   );
 }
 
-function ChartScreenInner({ country }: { country: Country }) {
+function ChartScreenInner({
+  country,
+  countryCode,
+}: {
+  country: Country;
+  countryCode: string;
+}) {
   const [snap, setSnap] = useState<SnapState>("peek");
   const hasCurrentTrack = useAudioStore((s) => s.currentTrack !== null);
   const currentTrackRank = useAudioStore((s) => s.currentTrack?.rank ?? null);
@@ -116,6 +122,7 @@ function ChartScreenInner({ country }: { country: Country }) {
     <>
       <ChartSheet
         country={country}
+        countryCode={countryCode}
         snap={snap}
         onSnapChange={setSnap}
         currentTrackRank={currentTrackRank}

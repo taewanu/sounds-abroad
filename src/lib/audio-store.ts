@@ -27,10 +27,11 @@ export interface AudioError {
 
 export interface AudioState {
   currentTrack: Track | null;
+  currentCountryCode: string | null;
   isPlaying: boolean;
   lastError: AudioError | null;
   endedSignal: number;
-  toggle: (track: Track) => void;
+  toggle: (track: Track, countryCode?: string) => void;
   stop: () => void;
 }
 
@@ -70,10 +71,11 @@ export function createAudioStore(
 
     return {
       currentTrack: null,
+      currentCountryCode: null,
       isPlaying: false,
       lastError: null,
       endedSignal: 0,
-      toggle: (track) => {
+      toggle: (track, countryCode) => {
         const state = get();
         const a = getAudio();
         if (
@@ -86,12 +88,27 @@ export function createAudioStore(
         }
         a.src = track.previewUrl ?? "";
         void a.play();
-        set({ currentTrack: track, isPlaying: true, lastError: null });
+        const isNewTrack = state.currentTrack?.previewUrl !== track.previewUrl;
+        if (isNewTrack) {
+          set({
+            currentTrack: track,
+            currentCountryCode: countryCode ?? null,
+            isPlaying: true,
+            lastError: null,
+          });
+        } else {
+          set({ currentTrack: track, isPlaying: true, lastError: null });
+        }
       },
       stop: () => {
         const a = getAudio();
         a.pause();
-        set({ currentTrack: null, isPlaying: false, lastError: null });
+        set({
+          currentTrack: null,
+          currentCountryCode: null,
+          isPlaying: false,
+          lastError: null,
+        });
       },
     };
   });

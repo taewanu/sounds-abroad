@@ -17,6 +17,7 @@ export type SnapState = "closed" | "peek" | "full";
 
 export interface ChartSheetProps {
   country: Country;
+  countryCode: string;
   snap: SnapState;
   onSnapChange: (snap: SnapState) => void;
   currentTrackRank?: number | null;
@@ -63,6 +64,7 @@ function nextSnap(
 
 export function ChartSheet({
   country,
+  countryCode,
   snap,
   onSnapChange,
   currentTrackRank = null,
@@ -175,7 +177,11 @@ export function ChartSheet({
               className="min-h-0 flex-1 overflow-y-auto px-4 pb-12 transition-[max-height] duration-300 ease-out [-ms-overflow-style:none] [scrollbar-width:none] data-[peek]:max-h-[calc(35dvh-62px)] [&::-webkit-scrollbar]:hidden"
             >
               {country.tracks.map((track) => (
-                <TrackRow key={track.rank} track={track} />
+                <TrackRow
+                  key={track.rank}
+                  track={track}
+                  countryCode={countryCode}
+                />
               ))}
             </ol>
           </motion.div>

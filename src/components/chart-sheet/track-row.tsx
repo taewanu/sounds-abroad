@@ -9,9 +9,10 @@ import { useAudioStore } from "@/providers/audio-store-provider";
 
 export interface TrackRowProps {
   track: Track;
+  countryCode: string;
 }
 
-export function TrackRow({ track }: TrackRowProps) {
+export function TrackRow({ track, countryCode }: TrackRowProps) {
   const isCurrent = useAudioStore(
     (s) => s.currentTrack?.previewUrl === track.previewUrl,
   );
@@ -36,7 +37,7 @@ export function TrackRow({ track }: TrackRowProps) {
       <button
         type="button"
         disabled={!hasPreview}
-        onClick={() => toggle(track)}
+        onClick={() => toggle(track, countryCode)}
         aria-label={`${isPlaying ? "Pause" : "Play"} preview of ${track.name} by ${track.artist}`}
         className="focus-visible:outline-aurora flex min-w-0 flex-1 items-center gap-[14px] text-left transition-transform duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none"
       >
