@@ -71,7 +71,6 @@ function ChartScreenInner({
   countryCode: string;
 }) {
   const [snap, setSnap] = useState<SnapState>("peek");
-  const hasCurrentTrack = useAudioStore((s) => s.currentTrack !== null);
   const currentTrackRank = useAudioStore((s) => s.currentTrack?.rank ?? null);
   const endedSignal = useAudioStore((s) => s.endedSignal);
   const audioStore = useAudioStoreApi();
@@ -112,11 +111,20 @@ function ChartScreenInner({
     if (startIdx === -1) return;
     for (let i = startIdx + 1; i < country.tracks.length; i++) {
       if (country.tracks[i].previewUrl !== null) {
-        toggle(country.tracks[i]);
+        toggle(country.tracks[i], countryCode);
         return;
       }
     }
-  }, [endedSignal, audioStore, country.tracks]);
+  }, [endedSignal, audioStore, country.tracks, countryCode]);
+
+  // Hidden sheet has no on-screen affordance; the next pointerdown anywhere
+  // restores it.
+  useEffect(() => {
+    if (snap !== "hidden") return;
+    const handler = () => setSnap("peek");
+    window.addEventListener("pointerdown", handler, { once: true });
+    return () => window.removeEventListener("pointerdown", handler);
+  }, [snap]);
 
   return (
     <>
@@ -126,7 +134,6 @@ function ChartScreenInner({
         snap={snap}
         onSnapChange={setSnap}
         currentTrackRank={currentTrackRank}
-        canClose={hasCurrentTrack}
       />
       <MiniPlayer
         sheetClosed={snap === "closed"}

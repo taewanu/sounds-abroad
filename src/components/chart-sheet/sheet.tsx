@@ -13,7 +13,7 @@ import type { Country } from "@/lib/chart-schema";
 
 import { TrackRow } from "./track-row";
 
-export type SnapState = "closed" | "peek" | "full";
+export type SnapState = "hidden" | "closed" | "peek" | "full";
 
 export interface ChartSheetProps {
   country: Country;
@@ -21,22 +21,23 @@ export interface ChartSheetProps {
   snap: SnapState;
   onSnapChange: (snap: SnapState) => void;
   currentTrackRank?: number | null;
-  canClose?: boolean;
 }
 
 const SNAP_Y_PCT: Record<SnapState, number> = {
   full: 0,
   peek: 65,
-  closed: 100,
+  closed: 90,
+  hidden: 100,
 };
 
 const SNAP_Y: Record<SnapState, string> = {
   full: `${SNAP_Y_PCT.full}%`,
   peek: `${SNAP_Y_PCT.peek}%`,
   closed: `${SNAP_Y_PCT.closed}%`,
+  hidden: `${SNAP_Y_PCT.hidden}%`,
 };
 
-const SNAP_ORDER: SnapState[] = ["full", "peek", "closed"];
+const SNAP_ORDER: SnapState[] = ["full", "peek", "closed", "hidden"];
 const VELOCITY_PROJECTION = 0.15;
 
 function nextSnap(
@@ -50,9 +51,15 @@ function nextSnap(
   const projected =
     SNAP_Y_PCT[current] + offsetPct + velocityPct * VELOCITY_PROJECTION;
 
+  // One-step transitions only — every snap is a required waypoint.
+  const idx = SNAP_ORDER.indexOf(current);
+  const candidates: SnapState[] = [current];
+  if (idx > 0) candidates.push(SNAP_ORDER[idx - 1]);
+  if (idx < SNAP_ORDER.length - 1) candidates.push(SNAP_ORDER[idx + 1]);
+
   let nearest: SnapState = current;
   let minDist = Infinity;
-  for (const s of SNAP_ORDER) {
+  for (const s of candidates) {
     const dist = Math.abs(SNAP_Y_PCT[s] - projected);
     if (dist < minDist) {
       minDist = dist;
@@ -68,9 +75,7 @@ export function ChartSheet({
   snap,
   onSnapChange,
   currentTrackRank = null,
-  canClose = true,
 }: ChartSheetProps) {
-  const open = snap !== "closed";
   const animationControls = useAnimationControls();
   const dragControls = useDragControls();
   const [isDragging, setIsDragging] = useState(false);
@@ -79,15 +84,13 @@ export function ChartSheet({
     void animationControls.start({ y: SNAP_Y[snap] });
   }, [snap, animationControls]);
 
+  // open is pinned true to keep motion.div mounted for hidden↔visible
+  // animation; Escape collapses to closed instead of unmounting.
   const handleOpenChange = useCallback(
     (next: boolean) => {
-      if (!next && !canClose) {
-        void animationControls.start({ y: SNAP_Y[snap] });
-        return;
-      }
-      onSnapChange(next ? "peek" : "closed");
+      if (!next) onSnapChange("closed");
     },
-    [onSnapChange, canClose, snap, animationControls],
+    [onSnapChange],
   );
 
   const handleDragStart = useCallback(() => setIsDragging(true), []);
@@ -96,17 +99,13 @@ export function ChartSheet({
     (_event: unknown, info: PanInfo) => {
       setIsDragging(false);
       const next = nextSnap(snap, info.offset.y, info.velocity.y);
-      if (next === "closed" && !canClose) {
-        void animationControls.start({ y: SNAP_Y[snap] });
-        return;
-      }
       if (next === snap) {
         void animationControls.start({ y: SNAP_Y[snap] });
         return;
       }
       onSnapChange(next);
     },
-    [snap, onSnapChange, canClose, animationControls],
+    [snap, onSnapChange, animationControls],
   );
 
   const handleToggle = useCallback(() => {
@@ -117,11 +116,13 @@ export function ChartSheet({
   const prevSnapRef = useRef(snap);
 
   useEffect(() => {
-    const wasClosed = prevSnapRef.current === "closed";
+    const wasMin =
+      prevSnapRef.current === "closed" || prevSnapRef.current === "hidden";
     prevSnapRef.current = snap;
-    if (!wasClosed || snap === "closed" || currentTrackRank === null) return;
-    // Defer to next frame so Radix Dialog.Portal has fully mounted its content
-    // and refs inside the portal are populated before we query/scroll.
+    if (snap === "closed" || snap === "hidden") return;
+    if (currentTrackRank === null) return;
+    if (!wasMin) return;
+    // Defer one frame so the portal's content is in the DOM before query.
     const id = requestAnimationFrame(() => {
       const el = olRef.current?.querySelector<HTMLElement>(
         `[data-rank="${currentTrackRank}"]`,
@@ -135,7 +136,7 @@ export function ChartSheet({
   }, [snap, currentTrackRank]);
 
   return (
-    <Dialog.Root open={open} onOpenChange={handleOpenChange} modal={false}>
+    <Dialog.Root open onOpenChange={handleOpenChange} modal={false}>
       <Dialog.Portal>
         <Dialog.Content
           asChild
@@ -164,7 +165,7 @@ export function ChartSheet({
               <button
                 type="button"
                 onClick={handleToggle}
-                aria-label={snap === "peek" ? "Expand chart" : "Collapse chart"}
+                aria-label={snap === "full" ? "Collapse chart" : "Expand chart"}
                 className="bg-fg-1/15 rounded-pill mx-auto mt-3 mb-2 block h-1.5 w-12"
               />
               <Dialog.Title className="text-h3 px-6 pb-3 font-semibold">
