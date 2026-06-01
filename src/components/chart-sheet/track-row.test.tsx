@@ -34,7 +34,11 @@ function makeTrack(overrides: Partial<Track> = {}): Track {
   };
 }
 
-function renderTrackRow(track: Track, init?: Partial<AudioState>) {
+function renderTrackRow(
+  track: Track,
+  init?: Partial<AudioState>,
+  countryCode = "kr",
+) {
   const store = createAudioStore(() => makeMockAudio());
   if (init) {
     store.setState(init);
@@ -42,7 +46,7 @@ function renderTrackRow(track: Track, init?: Partial<AudioState>) {
   const utils = render(
     <AudioStoreContext.Provider value={store}>
       <ul>
-        <TrackRow track={track} />
+        <TrackRow track={track} countryCode={countryCode} />
       </ul>
     </AudioStoreContext.Provider>,
   );
@@ -72,6 +76,15 @@ describe("TrackRow", () => {
     expect(store.getState().isPlaying).toBe(true);
   });
 
+  test("clicking the row stores countryCode as source on the audio store", () => {
+    const track = makeTrack();
+    const { store } = renderTrackRow(track, undefined, "br");
+
+    fireEvent.click(screen.getByRole("button", { name: /preview/i }));
+
+    expect(store.getState().currentCountryCode).toBe("br");
+  });
+
   test("data-state reflects current vs idle, playing vs paused", () => {
     const track = makeTrack();
     const otherTrack = makeTrack({
@@ -83,34 +96,57 @@ describe("TrackRow", () => {
 
     expect(container.querySelector("[data-state]")).toBeNull();
 
-    store.setState({ currentTrack: track, isPlaying: true });
+    store.setState({
+      currentTrack: track,
+      isPlaying: true,
+      currentCountryCode: "kr",
+    });
     rerender(
       <AudioStoreContext.Provider value={store}>
         <ul>
-          <TrackRow track={track} />
+          <TrackRow track={track} countryCode="kr" />
         </ul>
       </AudioStoreContext.Provider>,
     );
     expect(container.querySelector('[data-state="playing"]')).not.toBeNull();
 
-    store.setState({ currentTrack: track, isPlaying: false });
+    store.setState({
+      currentTrack: track,
+      isPlaying: false,
+      currentCountryCode: "kr",
+    });
     rerender(
       <AudioStoreContext.Provider value={store}>
         <ul>
-          <TrackRow track={track} />
+          <TrackRow track={track} countryCode="kr" />
         </ul>
       </AudioStoreContext.Provider>,
     );
     expect(container.querySelector('[data-state="paused"]')).not.toBeNull();
 
-    store.setState({ currentTrack: otherTrack, isPlaying: true });
+    store.setState({
+      currentTrack: otherTrack,
+      isPlaying: true,
+      currentCountryCode: "kr",
+    });
     rerender(
       <AudioStoreContext.Provider value={store}>
         <ul>
-          <TrackRow track={track} />
+          <TrackRow track={track} countryCode="kr" />
         </ul>
       </AudioStoreContext.Provider>,
     );
+    expect(container.querySelector("[data-state]")).toBeNull();
+  });
+
+  test("data-state idle when same previewUrl plays in a different country", () => {
+    const track = makeTrack();
+    const { container } = renderTrackRow(
+      track,
+      { currentTrack: track, isPlaying: true, currentCountryCode: "a" },
+      "b",
+    );
+
     expect(container.querySelector("[data-state]")).toBeNull();
   });
 

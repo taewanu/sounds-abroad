@@ -40,11 +40,12 @@ function makeTrack(overrides: Partial<Track> = {}): Track {
 }
 
 describe("createAudioStore", () => {
-  test("initial state: no track, not playing", () => {
+  test("initial state: no track, not playing, no country", () => {
     const store = createAudioStore(() => makeMockAudio());
 
     expect(store.getState().currentTrack).toBeNull();
     expect(store.getState().isPlaying).toBe(false);
+    expect(store.getState().currentCountryCode).toBeNull();
   });
 
   test("toggle plays a new track", () => {
@@ -85,6 +86,47 @@ describe("createAudioStore", () => {
     expect(audio.src).toBe(trackB.previewUrl);
     expect(store.getState().currentTrack).toBe(trackB);
     expect(store.getState().isPlaying).toBe(true);
+  });
+
+  test("toggle on new track stores countryCode when provided", () => {
+    const store = createAudioStore(() => makeMockAudio());
+    const track = makeTrack();
+
+    store.getState().toggle(track, "br");
+
+    expect(store.getState().currentCountryCode).toBe("br");
+  });
+
+  test("toggle on new track without countryCode sets currentCountryCode to null", () => {
+    const store = createAudioStore(() => makeMockAudio());
+    const track = makeTrack();
+
+    store.getState().toggle(track);
+
+    expect(store.getState().currentCountryCode).toBeNull();
+  });
+
+  test("resume (toggle same track after pause) preserves countryCode", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    const track = makeTrack();
+    store.getState().toggle(track, "br");
+    store.getState().toggle(track); // pause
+    assert(store.getState().isPlaying === false, "arrange: paused");
+
+    store.getState().toggle(track); // resume without countryCode
+
+    expect(store.getState().currentCountryCode).toBe("br");
+    expect(store.getState().isPlaying).toBe(true);
+  });
+
+  test("stop clears currentCountryCode", () => {
+    const store = createAudioStore(() => makeMockAudio());
+    store.getState().toggle(makeTrack(), "br");
+
+    store.getState().stop();
+
+    expect(store.getState().currentCountryCode).toBeNull();
   });
 
   test("stop clears currentTrack and isPlaying", () => {

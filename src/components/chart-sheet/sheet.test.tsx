@@ -18,6 +18,7 @@ function renderSheet(snap: SnapState) {
     <AudioStoreProvider>
       <ChartSheet
         country={COUNTRY_KR}
+        countryCode="kr"
         snap={snap}
         onSnapChange={onSnapChange}
       />
@@ -56,6 +57,20 @@ describe("ChartSheet", () => {
     expect(sheet.getAttribute("data-snap")).toBe("full");
   });
 
+  test("exposes data-snap='closed' when snap prop is closed", () => {
+    renderSheet("closed");
+
+    const sheet = screen.getByTestId("chart-sheet");
+    expect(sheet.getAttribute("data-snap")).toBe("closed");
+  });
+
+  test("exposes data-snap='hidden' when snap prop is hidden", () => {
+    renderSheet("hidden");
+
+    const sheet = screen.getByTestId("chart-sheet");
+    expect(sheet.getAttribute("data-snap")).toBe("hidden");
+  });
+
   test("fires onSnapChange with 'full' when handle clicked while peek", () => {
     const { onSnapChange } = renderSheet("peek");
 
@@ -80,6 +95,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          countryCode="kr"
           snap="closed"
           onSnapChange={vi.fn()}
           currentTrackRank={rank}
@@ -91,6 +107,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          countryCode="kr"
           snap="peek"
           onSnapChange={vi.fn()}
           currentTrackRank={rank}
@@ -111,6 +128,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          countryCode="kr"
           snap="peek"
           onSnapChange={vi.fn()}
           currentTrackRank={rank}
@@ -124,6 +142,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          countryCode="kr"
           snap="full"
           onSnapChange={vi.fn()}
           currentTrackRank={rank}
@@ -136,6 +155,74 @@ describe("ChartSheet", () => {
     expect(scrollIntoViewMock).not.toHaveBeenCalled();
   });
 
+  test("scrolls currentTrack into view when sheet transitions from hidden", async () => {
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
+    const rank = COUNTRY_KR.tracks[2].rank;
+    const { rerender } = render(
+      <AudioStoreProvider>
+        <ChartSheet
+          country={COUNTRY_KR}
+          countryCode="kr"
+          snap="hidden"
+          onSnapChange={vi.fn()}
+          currentTrackRank={rank}
+        />
+      </AudioStoreProvider>,
+    );
+
+    rerender(
+      <AudioStoreProvider>
+        <ChartSheet
+          country={COUNTRY_KR}
+          countryCode="kr"
+          snap="peek"
+          onSnapChange={vi.fn()}
+          currentTrackRank={rank}
+        />
+      </AudioStoreProvider>,
+    );
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+    expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("scrolls currentTrack into view when scrollSignal increments while open", async () => {
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
+    const rank = COUNTRY_KR.tracks[0].rank;
+
+    const { rerender } = render(
+      <AudioStoreProvider>
+        <ChartSheet
+          country={COUNTRY_KR}
+          countryCode="kr"
+          snap="peek"
+          onSnapChange={vi.fn()}
+          currentTrackRank={rank}
+          scrollSignal={0}
+        />
+      </AudioStoreProvider>,
+    );
+    scrollIntoViewMock.mockClear();
+
+    rerender(
+      <AudioStoreProvider>
+        <ChartSheet
+          country={COUNTRY_KR}
+          countryCode="kr"
+          snap="peek"
+          onSnapChange={vi.fn()}
+          currentTrackRank={rank}
+          scrollSignal={1}
+        />
+      </AudioStoreProvider>,
+    );
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+    expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+  });
+
   test("does not scroll when currentTrackRank is null", async () => {
     const scrollIntoViewMock = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoViewMock;
@@ -144,6 +231,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          countryCode="kr"
           snap="closed"
           onSnapChange={vi.fn()}
           currentTrackRank={null}
@@ -155,6 +243,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          countryCode="kr"
           snap="peek"
           onSnapChange={vi.fn()}
           currentTrackRank={null}

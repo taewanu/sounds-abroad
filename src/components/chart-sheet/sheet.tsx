@@ -13,30 +13,45 @@ import type { Country } from "@/lib/chart-schema";
 
 import { TrackRow } from "./track-row";
 
-export type SnapState = "closed" | "peek" | "full";
+export type SnapState = "hidden" | "closed" | "peek" | "full";
 
 export interface ChartSheetProps {
   country: Country;
+  countryCode: string;
   snap: SnapState;
   onSnapChange: (snap: SnapState) => void;
   currentTrackRank?: number | null;
-  canClose?: boolean;
+  hasMiniPlayer?: boolean;
+  scrollSignal?: number;
 }
 
 const SNAP_Y_PCT: Record<SnapState, number> = {
   full: 0,
   peek: 65,
-  closed: 100,
+  closed: 90,
+  hidden: 100,
 };
 
 const SNAP_Y: Record<SnapState, string> = {
   full: `${SNAP_Y_PCT.full}%`,
   peek: `${SNAP_Y_PCT.peek}%`,
   closed: `${SNAP_Y_PCT.closed}%`,
+  hidden: `${SNAP_Y_PCT.hidden}%`,
 };
 
-const SNAP_ORDER: SnapState[] = ["full", "peek", "closed"];
+const SNAP_ORDER: SnapState[] = ["full", "peek", "closed", "hidden"];
 const VELOCITY_PROJECTION = 0.15;
+
+// Mirror MiniPlayer's rendered height: pt-3 (12px) + h-12 artwork (48px)
+// + pb-[max(env(safe-area-inset-bottom), 12px)]. Tracks the iOS safe-area
+// inset so the sheet doesn't sit under the mini on notched devices.
+const MINI_PLAYER_GAP = "calc(60px + max(env(safe-area-inset-bottom), 12px))";
+
+const SHEET_STYLE_WITH_MINI = {
+  bottom: MINI_PLAYER_GAP,
+  height: `calc(100dvh - ${MINI_PLAYER_GAP})`,
+} as const;
+const SHEET_STYLE_NO_MINI = { bottom: 0, height: "100dvh" } as const;
 
 function nextSnap(
   current: SnapState,
@@ -49,9 +64,15 @@ function nextSnap(
   const projected =
     SNAP_Y_PCT[current] + offsetPct + velocityPct * VELOCITY_PROJECTION;
 
+  // One-step transitions only — every snap is a required waypoint.
+  const idx = SNAP_ORDER.indexOf(current);
+  const candidates: SnapState[] = [current];
+  if (idx > 0) candidates.push(SNAP_ORDER[idx - 1]);
+  if (idx < SNAP_ORDER.length - 1) candidates.push(SNAP_ORDER[idx + 1]);
+
   let nearest: SnapState = current;
   let minDist = Infinity;
-  for (const s of SNAP_ORDER) {
+  for (const s of candidates) {
     const dist = Math.abs(SNAP_Y_PCT[s] - projected);
     if (dist < minDist) {
       minDist = dist;
@@ -63,12 +84,13 @@ function nextSnap(
 
 export function ChartSheet({
   country,
+  countryCode,
   snap,
   onSnapChange,
   currentTrackRank = null,
-  canClose = true,
+  hasMiniPlayer = false,
+  scrollSignal = 0,
 }: ChartSheetProps) {
-  const open = snap !== "closed";
   const animationControls = useAnimationControls();
   const dragControls = useDragControls();
   const [isDragging, setIsDragging] = useState(false);
@@ -77,15 +99,13 @@ export function ChartSheet({
     void animationControls.start({ y: SNAP_Y[snap] });
   }, [snap, animationControls]);
 
+  // open is pinned true to keep motion.div mounted for hidden↔visible
+  // animation; Escape collapses to closed instead of unmounting.
   const handleOpenChange = useCallback(
     (next: boolean) => {
-      if (!next && !canClose) {
-        void animationControls.start({ y: SNAP_Y[snap] });
-        return;
-      }
-      onSnapChange(next ? "peek" : "closed");
+      if (!next) onSnapChange("closed");
     },
-    [onSnapChange, canClose, snap, animationControls],
+    [onSnapChange],
   );
 
   const handleDragStart = useCallback(() => setIsDragging(true), []);
@@ -94,17 +114,13 @@ export function ChartSheet({
     (_event: unknown, info: PanInfo) => {
       setIsDragging(false);
       const next = nextSnap(snap, info.offset.y, info.velocity.y);
-      if (next === "closed" && !canClose) {
-        void animationControls.start({ y: SNAP_Y[snap] });
-        return;
-      }
       if (next === snap) {
         void animationControls.start({ y: SNAP_Y[snap] });
         return;
       }
       onSnapChange(next);
     },
-    [snap, onSnapChange, canClose, animationControls],
+    [snap, onSnapChange, animationControls],
   );
 
   const handleToggle = useCallback(() => {
@@ -113,13 +129,18 @@ export function ChartSheet({
 
   const olRef = useRef<HTMLOListElement | null>(null);
   const prevSnapRef = useRef(snap);
+  const prevSignalRef = useRef(scrollSignal);
 
   useEffect(() => {
-    const wasClosed = prevSnapRef.current === "closed";
+    const wasMin =
+      prevSnapRef.current === "closed" || prevSnapRef.current === "hidden";
+    const signalChanged = prevSignalRef.current !== scrollSignal;
     prevSnapRef.current = snap;
-    if (!wasClosed || snap === "closed" || currentTrackRank === null) return;
-    // Defer to next frame so Radix Dialog.Portal has fully mounted its content
-    // and refs inside the portal are populated before we query/scroll.
+    prevSignalRef.current = scrollSignal;
+    if (snap === "closed" || snap === "hidden") return;
+    if (currentTrackRank === null) return;
+    if (!wasMin && !signalChanged) return;
+    // Defer one frame so the portal's content is in the DOM before query.
     const id = requestAnimationFrame(() => {
       const el = olRef.current?.querySelector<HTMLElement>(
         `[data-rank="${currentTrackRank}"]`,
@@ -130,12 +151,16 @@ export function ChartSheet({
       });
     });
     return () => cancelAnimationFrame(id);
-  }, [snap, currentTrackRank]);
+  }, [snap, currentTrackRank, scrollSignal]);
 
   return (
-    <Dialog.Root open={open} onOpenChange={handleOpenChange} modal={false}>
+    <Dialog.Root open onOpenChange={handleOpenChange} modal={false}>
       <Dialog.Portal>
-        <Dialog.Content asChild aria-describedby={undefined}>
+        <Dialog.Content
+          asChild
+          aria-describedby={undefined}
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <motion.div
             data-snap={snap}
             data-testid="chart-sheet"
@@ -149,7 +174,8 @@ export function ChartSheet({
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
-            className="bg-void text-fg-1 border-fg-1/10 shadow-sheet fixed inset-x-0 bottom-0 flex h-[100dvh] flex-col rounded-t-2xl border-t"
+            style={hasMiniPlayer ? SHEET_STYLE_WITH_MINI : SHEET_STYLE_NO_MINI}
+            className="bg-void text-fg-1 border-fg-1/10 shadow-sheet fixed inset-x-0 flex flex-col rounded-t-2xl border-t"
           >
             <div
               onPointerDown={(e) => dragControls.start(e)}
@@ -158,7 +184,7 @@ export function ChartSheet({
               <button
                 type="button"
                 onClick={handleToggle}
-                aria-label={snap === "peek" ? "Expand chart" : "Collapse chart"}
+                aria-label={snap === "full" ? "Collapse chart" : "Expand chart"}
                 className="bg-fg-1/15 rounded-pill mx-auto mt-3 mb-2 block h-1.5 w-12"
               />
               <Dialog.Title className="text-h3 px-6 pb-3 font-semibold">
@@ -166,12 +192,17 @@ export function ChartSheet({
               </Dialog.Title>
             </div>
             <ol
+              key={countryCode}
               ref={olRef}
               data-peek={(snap === "peek" && !isDragging) || undefined}
               className="min-h-0 flex-1 overflow-y-auto px-4 pb-12 transition-[max-height] duration-300 ease-out [-ms-overflow-style:none] [scrollbar-width:none] data-[peek]:max-h-[calc(35dvh-62px)] [&::-webkit-scrollbar]:hidden"
             >
               {country.tracks.map((track) => (
-                <TrackRow key={track.rank} track={track} />
+                <TrackRow
+                  key={track.rank}
+                  track={track}
+                  countryCode={countryCode}
+                />
               ))}
             </ol>
           </motion.div>
