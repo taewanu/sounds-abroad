@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  type PointerEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   motion,
@@ -128,6 +134,18 @@ export function ChartSheet({
   }, [snap, onSnapChange]);
 
   const olRef = useRef<HTMLOListElement | null>(null);
+
+  // Drag starts from anywhere on the sheet, except yield to the list's
+  // native scroll while it's scrolled away from the top.
+  const handlePointerDown = useCallback(
+    (e: PointerEvent) => {
+      const ol = olRef.current;
+      if (ol && ol.contains(e.target as Node) && ol.scrollTop > 0) return;
+      dragControls.start(e);
+    },
+    [dragControls],
+  );
+
   const prevSnapRef = useRef(snap);
   const prevSignalRef = useRef(scrollSignal);
 
@@ -174,13 +192,11 @@ export function ChartSheet({
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
+            onPointerDown={handlePointerDown}
             style={hasMiniPlayer ? SHEET_STYLE_WITH_MINI : SHEET_STYLE_NO_MINI}
             className="bg-void text-fg-1 border-fg-1/10 shadow-sheet fixed inset-x-0 flex flex-col rounded-t-2xl border-t"
           >
-            <div
-              onPointerDown={(e) => dragControls.start(e)}
-              className="shrink-0 touch-none"
-            >
+            <div className="shrink-0 touch-none">
               <button
                 type="button"
                 onClick={handleToggle}
