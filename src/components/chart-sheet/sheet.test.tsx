@@ -6,10 +6,25 @@ import { AudioStoreProvider } from "@/providers/audio-store-provider";
 
 import { ChartSheet, type SnapState } from "./sheet";
 
+const { dragStart } = vi.hoisted(() => ({ dragStart: vi.fn() }));
+
+vi.mock("motion/react", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("motion/react")>();
+  return {
+    ...actual,
+    useDragControls: () => ({ start: dragStart, subscribe: () => () => {} }),
+  };
+});
+
+function setScrollTop(el: Element, value: number) {
+  Object.defineProperty(el, "scrollTop", { value, configurable: true });
+}
+
 const originalScrollIntoView = Element.prototype.scrollIntoView;
 
 afterEach(() => {
   Element.prototype.scrollIntoView = originalScrollIntoView;
+  dragStart.mockClear();
 });
 
 function renderSheet(snap: SnapState) {
@@ -254,5 +269,35 @@ describe("ChartSheet", () => {
     await new Promise<void>((r) => requestAnimationFrame(() => r()));
 
     expect(scrollIntoViewMock).not.toHaveBeenCalled();
+  });
+
+  test("starts the sheet drag on pointer down in the list at the top", () => {
+    renderSheet("peek");
+    const list = screen.getByRole("list");
+    setScrollTop(list, 0);
+
+    fireEvent.pointerDown(list);
+
+    expect(dragStart).toHaveBeenCalledTimes(1);
+  });
+
+  test("yields to list scroll on pointer down when the list is scrolled", () => {
+    renderSheet("peek");
+    const list = screen.getByRole("list");
+    setScrollTop(list, 40);
+
+    fireEvent.pointerDown(list);
+
+    expect(dragStart).not.toHaveBeenCalled();
+  });
+
+  test("starts the sheet drag on pointer down outside the list", () => {
+    renderSheet("peek");
+    const list = screen.getByRole("list");
+    setScrollTop(list, 40);
+
+    fireEvent.pointerDown(screen.getByText(COUNTRY_KR.name));
+
+    expect(dragStart).toHaveBeenCalledTimes(1);
   });
 });
