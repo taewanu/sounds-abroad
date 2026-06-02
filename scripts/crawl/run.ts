@@ -25,12 +25,31 @@ export interface CrawlAllDeps {
   throttle: Throttle;
   uploadCharts: (chartFile: ChartFile) => Promise<string>;
   triggerRevalidate: () => Promise<void>;
+  // Source for carrying forward a country that fails this run. Must resolve
+  // null (never reject) when unavailable, which skips carry-forward.
+  fetchPrevious?: () => Promise<ChartFile | null>;
   now?: () => Date;
 }
 
 export interface CrawlAllResult {
   url: string;
   chartFile: ChartFile;
+}
+
+export interface ValiditySummary {
+  total: number;
+  validCount: number;
+  invalidCodes: string[];
+}
+
+export function summarizeValidity(chartFile: ChartFile): ValiditySummary {
+  const entries = Object.entries(chartFile.countries);
+  const invalidCodes = entries.filter(([, c]) => !c.valid).map(([cc]) => cc);
+  return {
+    total: entries.length,
+    validCount: entries.length - invalidCodes.length,
+    invalidCodes,
+  };
 }
 
 function spotifySearchUrl(name: string, artist: string): string {
@@ -93,6 +112,8 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
     `[crawl] starting all-countries crawl (${countries.length} countries)...`,
   );
 
+  const previous = deps.fetchPrevious ? await deps.fetchPrevious() : null;
+
   const countriesMap: ChartFile["countries"] = {};
   for (const entry of countries) {
     const { cc, country } = await crawlCountry({
@@ -102,6 +123,17 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
       lookupTrack,
       throttle,
     });
+
+    // Carry forward only genuine prior data, never an earlier empty entry.
+    const prior = previous?.countries[cc];
+    if (!country.valid && prior?.valid && prior.tracks.length > 0) {
+      countriesMap[cc] = prior;
+      console.log(
+        `[crawl ${cc}] crawl failed — carried forward last-good (${prior.tracks.length} tracks)`,
+      );
+      continue;
+    }
+
     countriesMap[cc] = country;
     console.log(
       `[crawl ${cc}] ${country.tracks.length} tracks (valid=${country.valid})`,

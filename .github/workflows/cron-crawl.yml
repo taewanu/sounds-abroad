@@ -22,6 +22,7 @@ jobs:
     env:
       SITE_URL: https://sounds-abroad.vercel.app
       BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+      CHARTS_BLOB_URL: ${{ secrets.CHARTS_BLOB_URL }}
       REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
       NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
 

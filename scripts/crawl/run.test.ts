@@ -1,6 +1,10 @@
 import { expect, test, vi } from "vitest";
 
-import { ChartFileSchema } from "../../src/lib/chart-schema";
+import {
+  ChartFileSchema,
+  type ChartFile,
+  type Country,
+} from "../../src/lib/chart-schema";
 import type { CountryEntry } from "../../src/lib/countries";
 
 import { AppleRssError, type AppleRssTrack } from "./apple-rss";
@@ -8,6 +12,7 @@ import { ItunesLookupError, type LookupResult } from "./itunes-lookup";
 import {
   crawlAll,
   crawlCountry,
+  summarizeValidity,
   type CrawlAllDeps,
   type CrawlCountryDeps,
 } from "./run";
@@ -188,6 +193,7 @@ function fakeRssFor(cc: string): AppleRssTrack[] {
 function makeCrawlAllDeps(input: {
   countries: readonly CountryEntry[];
   fetchRss?: (cc: string) => Promise<AppleRssTrack[]>;
+  fetchPrevious?: () => Promise<ChartFile | null>;
 }): CrawlAllDeps {
   return {
     countries: input.countries,
@@ -198,8 +204,56 @@ function makeCrawlAllDeps(input: {
     throttle: async (fn) => fn(),
     uploadCharts: vi.fn(async () => BLOB_URL),
     triggerRevalidate: vi.fn(async () => {}),
+    fetchPrevious: input.fetchPrevious,
     now: () => FROZEN_NOW,
   };
+}
+
+const KR: CountryEntry = {
+  code: "kr",
+  name: "South Korea",
+  region: "Asia",
+  lat: 37.5683,
+  lon: 126.9978,
+  isoNum: 410,
+};
+const NG: CountryEntry = {
+  code: "ng",
+  name: "Nigeria",
+  region: "Africa",
+  lat: 9.0853,
+  lon: 7.5314,
+  isoNum: 566,
+};
+
+function priorCountry(name: string, trackCount: number): Country {
+  return {
+    name,
+    valid: true,
+    tracks: Array.from({ length: trackCount }, (_, i) => ({
+      rank: i + 1,
+      name: `prior song ${i + 1}`,
+      artist: `prior artist ${i + 1}`,
+      previewUrl: `https://prior/preview/${i + 1}.m4a`,
+      artworkUrl: `https://prior/art/${i + 1}/600x600bb.jpg`,
+      appleUrl: `https://music.apple.com/prior/${i + 1}`,
+      spotifySearchUrl: `https://open.spotify.com/search/prior${i + 1}`,
+    })),
+  };
+}
+
+function previousChartFile(countries: ChartFile["countries"]): ChartFile {
+  return { lastUpdated: "2026-05-14T12:00:00.000Z", countries };
+}
+
+function failRssFor(
+  failingCode: string,
+): (cc: string) => Promise<AppleRssTrack[]> {
+  return vi.fn(async (cc: string) => {
+    if (cc === failingCode)
+      throw new AppleRssError(cc, "500 Internal Server Error");
+    return fakeRssFor(cc);
+  });
 }
 
 test("crawlAll assembles a valid ChartFile, uploads once, and revalidates once", async () => {
@@ -277,4 +331,77 @@ test("crawlAll publishes whatever succeeded when one country's RSS fails", async
   expect(result.chartFile.countries[failingCode].tracks).toEqual([]);
   expect(deps.uploadCharts).toHaveBeenCalledTimes(1);
   expect(deps.triggerRevalidate).toHaveBeenCalledTimes(1);
+});
+
+test("crawlAll carries forward the previous entry when a country fails but prior data exists", async () => {
+  const priorNg = priorCountry(NG.name, 3);
+  const fetchPrevious = vi.fn(async () => previousChartFile({ ng: priorNg }));
+  const deps = makeCrawlAllDeps({
+    countries: [KR, NG],
+    fetchRss: failRssFor(NG.code),
+    fetchPrevious,
+  });
+
+  const result = await crawlAll(deps);
+
+  expect(result.chartFile.countries.ng).toEqual(priorNg);
+  expect(result.chartFile.countries.kr.valid).toBe(true);
+});
+
+test("crawlAll keeps a failed country invalid when fetchPrevious returns null", async () => {
+  const deps = makeCrawlAllDeps({
+    countries: [KR, NG],
+    fetchRss: failRssFor(NG.code),
+    fetchPrevious: vi.fn(async () => null),
+  });
+
+  const result = await crawlAll(deps);
+
+  expect(result.chartFile.countries.ng.valid).toBe(false);
+  expect(result.chartFile.countries.ng.tracks).toEqual([]);
+});
+
+test("crawlAll keeps a failed country invalid when the previous payload lacks it", async () => {
+  const fetchPrevious = vi.fn(async () =>
+    previousChartFile({ kr: priorCountry(KR.name, 2) }),
+  );
+  const deps = makeCrawlAllDeps({
+    countries: [KR, NG],
+    fetchRss: failRssFor(NG.code),
+    fetchPrevious,
+  });
+
+  const result = await crawlAll(deps);
+
+  expect(result.chartFile.countries.ng.valid).toBe(false);
+  expect(result.chartFile.countries.ng.tracks).toEqual([]);
+});
+
+test("crawlAll does not carry forward a previous entry that was itself empty", async () => {
+  const emptyPriorNg: Country = { name: NG.name, valid: false, tracks: [] };
+  const fetchPrevious = vi.fn(async () =>
+    previousChartFile({ ng: emptyPriorNg }),
+  );
+  const deps = makeCrawlAllDeps({
+    countries: [KR, NG],
+    fetchRss: failRssFor(NG.code),
+    fetchPrevious,
+  });
+
+  const result = await crawlAll(deps);
+
+  expect(result.chartFile.countries.ng.valid).toBe(false);
+  expect(result.chartFile.countries.ng.tracks).toEqual([]);
+});
+
+test("summarizeValidity reports total, valid count, and the invalid codes", async () => {
+  const chartFile = previousChartFile({
+    kr: priorCountry("South Korea", 2),
+    ng: { name: "Nigeria", valid: false, tracks: [] },
+    us: priorCountry("United States", 1),
+  });
+
+  const summary = summarizeValidity(chartFile);
+
+  expect(summary).toEqual({ total: 3, validCount: 2, invalidCodes: ["ng"] });
 });
