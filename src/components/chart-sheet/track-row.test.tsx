@@ -188,6 +188,34 @@ describe("TrackRow", () => {
     expect(spotify.getAttribute("rel")).toContain("noopener");
   });
 
+  test("clicking Apple Music pauses the preview but keeps the track", () => {
+    const track = makeTrack();
+    const { store } = renderTrackRow(track, {
+      currentTrack: track,
+      isPlaying: true,
+      currentCountryCode: "kr",
+    });
+
+    fireEvent.click(screen.getByRole("link", { name: /Apple Music/i }));
+
+    expect(store.getState().isPlaying).toBe(false);
+    expect(store.getState().currentTrack).toBe(track);
+  });
+
+  test("clicking Spotify pauses the preview but keeps the track", () => {
+    const track = makeTrack();
+    const { store } = renderTrackRow(track, {
+      currentTrack: track,
+      isPlaying: true,
+      currentCountryCode: "kr",
+    });
+
+    fireEvent.click(screen.getByRole("link", { name: /Spotify/i }));
+
+    expect(store.getState().isPlaying).toBe(false);
+    expect(store.getState().currentTrack).toBe(track);
+  });
+
   test("error message renders when lastError matches this track's previewUrl", () => {
     const track = makeTrack();
 

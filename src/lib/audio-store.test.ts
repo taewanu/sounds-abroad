@@ -1,19 +1,41 @@
-import { assert, describe, expect, test, vi } from "vitest";
+import { assert, beforeEach, describe, expect, test, vi } from "vitest";
 
 import type { Track } from "@/lib/chart-schema";
 
 import { type AudioElementLike, createAudioStore } from "./audio-store";
+import {
+  clearNowPlaying,
+  setActionHandlers,
+  setNowPlaying,
+  setPlaybackState,
+} from "./media-session";
+
+vi.mock("./media-session", () => ({
+  setNowPlaying: vi.fn(),
+  clearNowPlaying: vi.fn(),
+  setPlaybackState: vi.fn(),
+  setActionHandlers: vi.fn(),
+}));
 
 type EventType = "ended" | "error" | "play" | "pause";
 
 interface MockAudio extends AudioElementLike {
   _trigger: (event: EventType) => void;
+  _srcWrites: number;
 }
 
 function makeMockAudio(): MockAudio {
   const listeners: Partial<Record<EventType, Array<() => void>>> = {};
-  return {
-    src: "",
+  let src = "";
+  const audio: MockAudio = {
+    get src() {
+      return src;
+    },
+    set src(value: string) {
+      audio._srcWrites++;
+      src = value;
+    },
+    _srcWrites: 0,
     play: vi.fn().mockResolvedValue(undefined),
     pause: vi.fn(),
     addEventListener: vi.fn((type: EventType, listener: () => void) => {
@@ -24,6 +46,7 @@ function makeMockAudio(): MockAudio {
       (listeners[event] ?? []).forEach((l) => l());
     },
   };
+  return audio;
 }
 
 function makeTrack(overrides: Partial<Track> = {}): Track {
@@ -40,6 +63,10 @@ function makeTrack(overrides: Partial<Track> = {}): Track {
 }
 
 describe("createAudioStore", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   test("initial state: no track, not playing, no country", () => {
     const store = createAudioStore(() => makeMockAudio());
 
@@ -139,6 +166,30 @@ describe("createAudioStore", () => {
     expect(audio.pause).toHaveBeenCalledOnce();
     expect(store.getState().currentTrack).toBeNull();
     expect(store.getState().isPlaying).toBe(false);
+  });
+
+  test("pause stops playback but preserves currentTrack and countryCode", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    const track = makeTrack();
+    store.getState().toggle(track, "br");
+
+    store.getState().pause();
+
+    expect(audio.pause).toHaveBeenCalledOnce();
+    expect(store.getState().isPlaying).toBe(false);
+    expect(store.getState().currentTrack).toBe(track);
+    expect(store.getState().currentCountryCode).toBe("br");
+  });
+
+  test("pause does not increment endedSignal so auto-advance stays put", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    store.getState().toggle(makeTrack());
+
+    store.getState().pause();
+
+    expect(store.getState().endedSignal).toBe(0);
   });
 
   test("ended event: isPlaying false, currentTrack preserved", () => {
@@ -275,5 +326,114 @@ describe("createAudioStore", () => {
     store.getState().stop();
 
     expect(factory).toHaveBeenCalledOnce();
+  });
+
+  test("resume in place replays without rewriting src so the preview continues", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    const track = makeTrack();
+    store.getState().toggle(track);
+    store.getState().pause();
+
+    store.getState().toggle(track);
+
+    expect(audio._srcWrites).toBe(1);
+    expect(audio.play).toHaveBeenCalledTimes(2);
+    expect(store.getState().isPlaying).toBe(true);
+  });
+
+  test("toggle on a new track publishes now-playing metadata", () => {
+    const store = createAudioStore(() => makeMockAudio());
+    const track = makeTrack();
+
+    store.getState().toggle(track);
+
+    expect(setNowPlaying).toHaveBeenCalledWith(track);
+  });
+
+  test("resume in place does not republish metadata", () => {
+    const store = createAudioStore(() => makeMockAudio());
+    const track = makeTrack();
+    store.getState().toggle(track);
+    store.getState().pause();
+
+    store.getState().toggle(track);
+
+    expect(setNowPlaying).toHaveBeenCalledOnce();
+  });
+
+  test("stop clears now-playing metadata", () => {
+    const store = createAudioStore(() => makeMockAudio());
+    store.getState().toggle(makeTrack());
+
+    store.getState().stop();
+
+    expect(clearNowPlaying).toHaveBeenCalledOnce();
+  });
+
+  test("play event reports playing to the OS", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    store.getState().toggle(makeTrack());
+
+    audio._trigger("play");
+
+    expect(setPlaybackState).toHaveBeenCalledWith("playing");
+  });
+
+  test("pause event reports paused to the OS", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    store.getState().toggle(makeTrack());
+
+    audio._trigger("pause");
+
+    expect(setPlaybackState).toHaveBeenCalledWith("paused");
+  });
+
+  test("ended event reports none to the OS", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    store.getState().toggle(makeTrack());
+
+    audio._trigger("ended");
+
+    expect(setPlaybackState).toHaveBeenCalledWith("none");
+  });
+
+  test("registers OS transport handlers when the audio element is created", () => {
+    const store = createAudioStore(() => makeMockAudio());
+
+    store.getState().toggle(makeTrack());
+
+    expect(setActionHandlers).toHaveBeenCalledOnce();
+  });
+
+  test("OS play handler resumes the current track in place", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    const track = makeTrack();
+    store.getState().toggle(track);
+    store.getState().pause();
+    const { play } = vi.mocked(setActionHandlers).mock.calls[0][0];
+
+    play();
+
+    expect(store.getState().isPlaying).toBe(true);
+    expect(audio._srcWrites).toBe(1);
+  });
+
+  test("OS pause handler pauses but keeps the current track", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    const track = makeTrack();
+    store.getState().toggle(track);
+    const { pause } = vi.mocked(setActionHandlers).mock.calls[0][0];
+
+    pause();
+
+    expect(audio.pause).toHaveBeenCalledOnce();
+    expect(store.getState().isPlaying).toBe(false);
+    expect(store.getState().currentTrack).toBe(track);
   });
 });
