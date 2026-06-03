@@ -2,7 +2,12 @@ import * as Sentry from "@sentry/nextjs";
 import { createStore } from "zustand/vanilla";
 
 import type { Track } from "@/lib/chart-schema";
-import { clearNowPlaying, setNowPlaying } from "@/lib/media-session";
+import {
+  clearNowPlaying,
+  setActionHandlers,
+  setNowPlaying,
+  setPlaybackState,
+} from "@/lib/media-session";
 
 export interface AudioElementLike {
   src: string;
@@ -50,14 +55,23 @@ export function createAudioStore(
       audio = factory();
       // Layer 1 (S5): sync store with browser-initiated play/pause.
       // Covers background-tab auto-pause, AirPods disconnect, media keys.
-      audio.addEventListener("play", () => set({ isPlaying: true }));
-      audio.addEventListener("pause", () => set({ isPlaying: false }));
-      audio.addEventListener("ended", () =>
+      // Each transition also mirrors to the OS so the now-playing UI tracks
+      // live state (drives the Dynamic Island waveform), browser-driven or not.
+      audio.addEventListener("play", () => {
+        set({ isPlaying: true });
+        setPlaybackState("playing");
+      });
+      audio.addEventListener("pause", () => {
+        set({ isPlaying: false });
+        setPlaybackState("paused");
+      });
+      audio.addEventListener("ended", () => {
         set((state) => ({
           isPlaying: false,
           endedSignal: state.endedSignal + 1,
-        })),
-      );
+        }));
+        setPlaybackState("none");
+      });
       audio.addEventListener("error", () => {
         const previewUrl = get().currentTrack?.previewUrl ?? null;
         set({ isPlaying: false, lastError: { previewUrl } });
@@ -67,6 +81,15 @@ export function createAudioStore(
           message: "preview audio error",
           data: { previewUrl },
         });
+      });
+      // OS transport buttons (lock screen / Dynamic Island) drive the same
+      // store actions as the in-app controls.
+      setActionHandlers({
+        play: () => {
+          const track = get().currentTrack;
+          if (track) get().toggle(track);
+        },
+        pause: () => get().pause(),
       });
       return audio;
     }
@@ -80,28 +103,28 @@ export function createAudioStore(
       toggle: (track, countryCode) => {
         const state = get();
         const a = getAudio();
-        if (
-          state.currentTrack?.previewUrl === track.previewUrl &&
-          state.isPlaying
-        ) {
+        const isCurrent = state.currentTrack?.previewUrl === track.previewUrl;
+        if (isCurrent && state.isPlaying) {
           a.pause();
           set({ isPlaying: false });
+          return;
+        }
+        if (isCurrent) {
+          // Resume in place: reassigning src restarts at 0, so leave it and
+          // just play. Keeps the preview position and the stored countryCode.
+          void a.play();
+          set({ currentTrack: track, isPlaying: true, lastError: null });
           return;
         }
         a.src = track.previewUrl ?? "";
         void a.play();
         setNowPlaying(track);
-        const isNewTrack = state.currentTrack?.previewUrl !== track.previewUrl;
-        if (isNewTrack) {
-          set({
-            currentTrack: track,
-            currentCountryCode: countryCode ?? null,
-            isPlaying: true,
-            lastError: null,
-          });
-        } else {
-          set({ currentTrack: track, isPlaying: true, lastError: null });
-        }
+        set({
+          currentTrack: track,
+          currentCountryCode: countryCode ?? null,
+          isPlaying: true,
+          lastError: null,
+        });
       },
       pause: () => {
         // Pause without clearing currentTrack, used on deeplink handoff so the

@@ -4,7 +4,9 @@ import type { Track } from "@/lib/chart-schema";
 
 import {
   clearNowPlaying,
+  setActionHandlers,
   setNowPlaying,
+  setPlaybackState,
   type MediaSessionDeps,
 } from "./media-session";
 
@@ -30,9 +32,17 @@ class FakeMediaMetadata {
   }
 }
 
+function makeMediaSession(): MediaSession {
+  return {
+    metadata: null,
+    playbackState: "none",
+    setActionHandler: vi.fn(),
+  } as unknown as MediaSession;
+}
+
 function makeDeps(overrides: Partial<MediaSessionDeps> = {}): MediaSessionDeps {
   return {
-    mediaSession: { metadata: null } as MediaSession,
+    mediaSession: makeMediaSession(),
     metadataCtor: FakeMediaMetadata as unknown as typeof MediaMetadata,
     ...overrides,
   };
@@ -50,13 +60,48 @@ test("setNowPlaying sets metadata with title, artist, and artwork", () => {
   expect(meta.artwork?.[0].src).toBe(track.artworkUrl);
 });
 
-test("clearNowPlaying nulls the metadata", () => {
+test("clearNowPlaying nulls the metadata and resets playback state", () => {
   const deps = makeDeps();
   setNowPlaying(makeTrack(), deps);
+  setPlaybackState("playing", deps);
 
   clearNowPlaying(deps);
 
   expect(deps.mediaSession!.metadata).toBeNull();
+  expect(deps.mediaSession!.playbackState).toBe("none");
+});
+
+test("setPlaybackState mirrors the state onto the session", () => {
+  const deps = makeDeps();
+
+  setPlaybackState("playing", deps);
+
+  expect(deps.mediaSession!.playbackState).toBe("playing");
+});
+
+test("setPlaybackState no-ops when mediaSession is unavailable", () => {
+  setPlaybackState("playing", { mediaSession: null });
+});
+
+test("setActionHandlers registers play and pause", () => {
+  const deps = makeDeps();
+  const play = vi.fn();
+  const pause = vi.fn();
+
+  setActionHandlers({ play, pause }, deps);
+
+  expect(deps.mediaSession!.setActionHandler).toHaveBeenCalledWith(
+    "play",
+    play,
+  );
+  expect(deps.mediaSession!.setActionHandler).toHaveBeenCalledWith(
+    "pause",
+    pause,
+  );
+});
+
+test("setActionHandlers no-ops when mediaSession is unavailable", () => {
+  setActionHandlers({ play: vi.fn(), pause: vi.fn() }, { mediaSession: null });
 });
 
 test("setNowPlaying no-ops when mediaSession is unavailable", () => {
