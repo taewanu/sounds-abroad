@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/nextjs";
 import { createStore } from "zustand/vanilla";
 
 import type { Track } from "@/lib/chart-schema";
+import { clearNowPlaying, setNowPlaying } from "@/lib/media-session";
 
 export interface AudioElementLike {
   src: string;
@@ -32,6 +33,7 @@ export interface AudioState {
   lastError: AudioError | null;
   endedSignal: number;
   toggle: (track: Track, countryCode?: string) => void;
+  pause: () => void;
   stop: () => void;
 }
 
@@ -88,6 +90,7 @@ export function createAudioStore(
         }
         a.src = track.previewUrl ?? "";
         void a.play();
+        setNowPlaying(track);
         const isNewTrack = state.currentTrack?.previewUrl !== track.previewUrl;
         if (isNewTrack) {
           set({
@@ -100,9 +103,16 @@ export function createAudioStore(
           set({ currentTrack: track, isPlaying: true, lastError: null });
         }
       },
+      pause: () => {
+        // Pause without clearing currentTrack, used on deeplink handoff so the
+        // mini player stays (resumable) and no `ended` fires (auto-advance halts).
+        getAudio().pause();
+        set({ isPlaying: false });
+      },
       stop: () => {
         const a = getAudio();
         a.pause();
+        clearNowPlaying();
         set({
           currentTrack: null,
           currentCountryCode: null,

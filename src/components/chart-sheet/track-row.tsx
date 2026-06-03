@@ -28,6 +28,7 @@ export function TrackRow({ track, countryCode }: TrackRowProps) {
     (s) => s.lastError?.previewUrl === track.previewUrl,
   );
   const toggle = useAudioStore((s) => s.toggle);
+  const pause = useAudioStore((s) => s.pause);
 
   const hasPreview = track.previewUrl !== null;
   const state = isCurrent ? (isPlaying ? "playing" : "paused") : undefined;
@@ -96,6 +97,7 @@ export function TrackRow({ track, countryCode }: TrackRowProps) {
           href={track.appleUrl}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => pause()}
           aria-label={`Open ${track.name} in Apple Music`}
           className="text-fg-2 hover:bg-orbit hover:text-fg-1 focus-visible:outline-aurora flex h-8 w-8 items-center justify-center rounded-full transition-all duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]"
         >
@@ -105,6 +107,7 @@ export function TrackRow({ track, countryCode }: TrackRowProps) {
           href={track.spotifySearchUrl}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => pause()}
           aria-label={`Search ${track.name} on Spotify`}
           className="text-fg-2 hover:bg-orbit hover:text-fg-1 focus-visible:outline-aurora flex h-8 w-8 items-center justify-center rounded-full transition-all duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]"
         >

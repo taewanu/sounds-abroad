@@ -141,6 +141,30 @@ describe("createAudioStore", () => {
     expect(store.getState().isPlaying).toBe(false);
   });
 
+  test("pause stops playback but preserves currentTrack and countryCode", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    const track = makeTrack();
+    store.getState().toggle(track, "br");
+
+    store.getState().pause();
+
+    expect(audio.pause).toHaveBeenCalledOnce();
+    expect(store.getState().isPlaying).toBe(false);
+    expect(store.getState().currentTrack).toBe(track);
+    expect(store.getState().currentCountryCode).toBe("br");
+  });
+
+  test("pause does not increment endedSignal so auto-advance stays put", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    store.getState().toggle(makeTrack());
+
+    store.getState().pause();
+
+    expect(store.getState().endedSignal).toBe(0);
+  });
+
   test("ended event: isPlaying false, currentTrack preserved", () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
