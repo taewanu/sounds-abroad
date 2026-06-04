@@ -73,9 +73,12 @@ try {
     {
       schedule: { type: "crontab", value: "17 4,11,16,22 * * *" },
       timezone: "UTC",
-      // Observed GHA dispatch delays up to 60min post-:17 (n=2, #26).
-      // 90 = observed ceiling + 30min buffer.
-      checkinMargin: 90,
+      // GHA scheduled-dispatch delay is unbounded; observed p100 ~120min
+      // over ~10 days. 150 = observed max + buffer, kept under the 300min
+      // tightest slot gap so per-slot check-in windows stay disjoint.
+      checkinMargin: 150,
+      // Clocks from the in-progress check-in, not the slot, so dispatch
+      // delay never eats into it. Sized to the ~50min crawl runtime.
       maxRuntime: 90,
     },
   );

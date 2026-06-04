@@ -36,6 +36,7 @@ Make the repository **public** at `github.com/taewanu/sounds-abroad`.
 
 - All future commits and code are public from day one — no private experimentation in this repo.
 - Any leaked secret has a wider blast radius (mitigated by gitignored `.env*` + GitHub Secrets, but still a real risk).
+- GitHub's scheduled-dispatch delay is unbounded (observed p100 ~120min over ~10 days), so timing-based monitor alerting is noisy. Mitigated by a wide `charts-crawl` checkinMargin (150min, kept under the 300min tightest slot gap). The longer-term fix is to alert on the data-quality signal (`charts:degraded`) rather than slot timing.
 
 **Reversal cost**
 
