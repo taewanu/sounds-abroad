@@ -44,3 +44,20 @@ test("cameraForViewport never widens past the base FOV", () => {
     expect(cameraForViewport(aspect).fov).toBeLessThanOrEqual(BASE_FOV);
   }
 });
+
+test("cameraForViewport returns the base for a non-positive or NaN aspect", () => {
+  for (const aspect of [0, -1, NaN]) {
+    expect(cameraForViewport(aspect)).toEqual({
+      fov: BASE_FOV,
+      distance: BASE_DISTANCE,
+    });
+  }
+});
+
+test("cameraForViewport stays finite for a degenerate Infinity aspect", () => {
+  const { fov, distance } = cameraForViewport(Infinity);
+
+  expect(Number.isFinite(fov)).toBe(true);
+  expect(fov).toBeLessThanOrEqual(BASE_FOV);
+  expect(distance).toBe(BASE_DISTANCE);
+});
