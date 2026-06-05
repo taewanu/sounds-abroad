@@ -141,6 +141,16 @@
   .eq[data-paused] span {
     animation-play-state: paused;
   }
+
+  .marquee-track {
+    display: inline-block;
+    white-space: nowrap;
+  }
+
+  .marquee-track[data-marquee] {
+    will-change: transform;
+    animation: marquee-scroll var(--marquee-duration, 6s) linear infinite;
+  }
 }
 
 @keyframes eq {
@@ -164,6 +174,23 @@
   }
 }
 
+/* Hold at the start, scroll to the end, hold, scroll back. The held edges give
+   the eye time to read both ends; the distance is supplied per element. */
+@keyframes marquee-scroll {
+  0%,
+  8% {
+    transform: translateX(0);
+  }
+  46%,
+  54% {
+    transform: translateX(calc(-1 * var(--marquee-distance, 0px)));
+  }
+  92%,
+  100% {
+    transform: translateX(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .eq,
   .eq span {
@@ -171,5 +198,9 @@
   }
   .eq span {
     transform: scaleY(0.7);
+  }
+  .marquee-track[data-marquee] {
+    animation: none;
+    transform: none;
   }
 }
