@@ -142,12 +142,19 @@
     animation-play-state: paused;
   }
 
+  /* Idle: truncate with an ellipsis, matching the rest of the list. When the
+     marquee is active the title fills its viewport and spills out to scroll,
+     clipped by the overflow-hidden wrapper. */
   .marquee-track {
-    display: inline-block;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .marquee-track[data-marquee] {
+    overflow: visible;
+    text-overflow: clip;
     will-change: transform;
     animation: marquee-scroll var(--marquee-duration, 6s) linear infinite;
   }

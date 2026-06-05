@@ -85,8 +85,9 @@ export function TrackRow({ track, countryCode }: TrackRowProps) {
               isCurrent ? "text-sunrise" : "text-fg-1"
             }`}
           >
-            <span ref={titleRef} className="block min-w-0 overflow-hidden">
+            <span className="block min-w-0 overflow-hidden">
               <span
+                ref={titleRef}
                 className="marquee-track"
                 data-marquee={titleScrolling || undefined}
                 style={titleStyle}

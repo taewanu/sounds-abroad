@@ -40,12 +40,17 @@ function sizeElement(el: Element, scrollWidth: number, clientWidth: number) {
 }
 
 function Harness({ enabled }: { enabled: boolean }) {
-  const { ref, active } = useOverflowMarquee<HTMLSpanElement>({
+  const { ref, active, style } = useOverflowMarquee<HTMLSpanElement>({
     enabled,
     text: "title",
   });
   return (
-    <span data-testid="viewport" ref={ref} data-active={active || undefined} />
+    <span
+      data-testid="viewport"
+      ref={ref}
+      data-active={active || undefined}
+      style={style}
+    />
   );
 }
 
@@ -101,5 +106,23 @@ describe("useOverflowMarquee", () => {
     const el = measureWith(220, 150, false);
 
     expect(el.getAttribute("data-active")).toBeNull();
+  });
+
+  test("exposes the overflow distance and a distance-scaled duration when active", () => {
+    stubEnvironment();
+
+    const el = measureWith(400, 150);
+
+    expect(el.style.getPropertyValue("--marquee-distance")).toBe("250px");
+    expect(el.style.getPropertyValue("--marquee-duration")).toBe("11250ms");
+  });
+
+  test("floors the duration so small overflows do not scroll frantically", () => {
+    stubEnvironment();
+
+    const el = measureWith(220, 150);
+
+    expect(el.style.getPropertyValue("--marquee-distance")).toBe("70px");
+    expect(el.style.getPropertyValue("--marquee-duration")).toBe("4000ms");
   });
 });

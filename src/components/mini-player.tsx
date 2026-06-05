@@ -42,8 +42,9 @@ export function MiniPlayer({ onTap }: MiniPlayerProps) {
           />
           <div className="min-w-0 flex-1">
             <p className="text-sunrise text-body flex min-w-0 items-center gap-2 font-medium">
-              <span ref={titleRef} className="block min-w-0 overflow-hidden">
+              <span className="block min-w-0 overflow-hidden">
                 <span
+                  ref={titleRef}
                   className="marquee-track"
                   data-marquee={titleScrolling || undefined}
                   style={titleStyle}
