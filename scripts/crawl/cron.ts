@@ -5,6 +5,7 @@ import { COUNTRIES } from "../../src/lib/countries";
 
 import { AppleRssError, fetchAppleRss } from "./apple-rss";
 import { lookupTrack } from "./itunes-lookup";
+import { withLookupRetry } from "./lookup-retry";
 import { fetchPublishedCharts } from "./published-charts";
 import { withRetry } from "./retry";
 import { triggerRevalidate } from "./revalidate-trigger";
@@ -39,7 +40,7 @@ try {
             sleep,
             shouldRetry: (err) => err instanceof AppleRssError,
           }),
-        lookupTrack,
+        lookupTrack: withLookupRetry(lookupTrack, { sleep }),
         throttle: createThrottle(),
         uploadCharts,
         triggerRevalidate,
