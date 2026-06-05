@@ -1,9 +1,12 @@
 "use client";
 
+import { useState } from "react";
+
 import { AppleMusicIcon } from "@/components/icons/apple-music";
 import { PauseIcon } from "@/components/icons/pause";
 import { PlayIcon } from "@/components/icons/play";
 import { SpotifyIcon } from "@/components/icons/spotify";
+import { useOverflowMarquee } from "@/components/use-overflow-marquee";
 import type { Track } from "@/lib/chart-schema";
 import { useAudioStore } from "@/providers/audio-store-provider";
 
@@ -33,11 +36,24 @@ export function TrackRow({ track, countryCode }: TrackRowProps) {
   const hasPreview = track.previewUrl !== null;
   const state = isCurrent ? (isPlaying ? "playing" : "paused") : undefined;
 
+  // The current track always scrolls; a hovered row scrolls on pointer devices.
+  const [hovered, setHovered] = useState(false);
+  const {
+    ref: titleRef,
+    active: titleScrolling,
+    style: titleStyle,
+  } = useOverflowMarquee<HTMLSpanElement>({
+    enabled: isCurrent || hovered,
+    text: track.name,
+  });
+
   return (
     <li
       data-rank={track.rank}
       data-state={state}
       data-disabled={!hasPreview || undefined}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       className="hover:bg-atmos data-[state]:bg-sunrise/[0.08] data-[state]:hover:bg-sunrise/[0.15] flex items-center gap-[14px] rounded-[14px] px-3 py-2.5 transition-colors duration-200 data-[disabled]:opacity-40 data-[disabled]:hover:bg-transparent"
     >
       <button
@@ -69,7 +85,16 @@ export function TrackRow({ track, countryCode }: TrackRowProps) {
               isCurrent ? "text-sunrise" : "text-fg-1"
             }`}
           >
-            <span className="truncate">{track.name}</span>
+            <span className="block min-w-0 overflow-hidden">
+              <span
+                ref={titleRef}
+                className="marquee-track"
+                data-marquee={titleScrolling || undefined}
+                style={titleStyle}
+              >
+                {track.name}
+              </span>
+            </span>
             {isCurrent && (
               <span
                 className="eq shrink-0"

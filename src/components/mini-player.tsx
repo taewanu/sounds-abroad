@@ -2,6 +2,7 @@
 
 import { PauseIcon } from "@/components/icons/pause";
 import { PlayIcon } from "@/components/icons/play";
+import { useOverflowMarquee } from "@/components/use-overflow-marquee";
 import { useAudioStore } from "@/providers/audio-store-provider";
 
 export interface MiniPlayerProps {
@@ -12,6 +13,16 @@ export function MiniPlayer({ onTap }: MiniPlayerProps) {
   const currentTrack = useAudioStore((s) => s.currentTrack);
   const isPlaying = useAudioStore((s) => s.isPlaying);
   const toggle = useAudioStore((s) => s.toggle);
+
+  // The now-playing title is always the current track, so it always scrolls.
+  const {
+    ref: titleRef,
+    active: titleScrolling,
+    style: titleStyle,
+  } = useOverflowMarquee<HTMLSpanElement>({
+    enabled: currentTrack !== null,
+    text: currentTrack?.name,
+  });
 
   if (currentTrack === null) return null;
 
@@ -31,7 +42,16 @@ export function MiniPlayer({ onTap }: MiniPlayerProps) {
           />
           <div className="min-w-0 flex-1">
             <p className="text-sunrise text-body flex min-w-0 items-center gap-2 font-medium">
-              <span className="truncate">{currentTrack.name}</span>
+              <span className="block min-w-0 overflow-hidden">
+                <span
+                  ref={titleRef}
+                  className="marquee-track"
+                  data-marquee={titleScrolling || undefined}
+                  style={titleStyle}
+                >
+                  {currentTrack.name}
+                </span>
+              </span>
               <span
                 className="eq shrink-0"
                 data-paused={!isPlaying || undefined}
