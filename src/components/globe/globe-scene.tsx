@@ -1,13 +1,15 @@
 "use client";
 
-import { Suspense, use, useCallback, useState } from "react";
+import { Suspense, use, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { OrbitControls } from "@react-three/drei";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
+import { PerspectiveCamera } from "three";
 
 import { COUNTRIES } from "@/lib/countries";
 import { getCountryOutlinesPromise } from "@/lib/topo-loader";
 
+import { cameraForViewport } from "./camera-fit";
 import { CountryFill } from "./country-fill";
 import { CountryOutlinesLayer } from "./country-outlines";
 import { CountryPins } from "./country-pins";
@@ -104,6 +106,23 @@ function SceneContent() {
   );
 }
 
+// Keeps the globe a consistent size across aspect ratios on resize.
+// The FOV math lives in camera-fit.ts.
+function AspectCameraFit() {
+  const width = useThree((s) => s.size.width);
+  const height = useThree((s) => s.size.height);
+  const get = useThree((s) => s.get);
+
+  useEffect(() => {
+    const camera = get().camera;
+    if (!(camera instanceof PerspectiveCamera)) return;
+    camera.fov = cameraForViewport(width / height).fov;
+    camera.updateProjectionMatrix();
+  }, [get, width, height]);
+
+  return null;
+}
+
 export function GlobeScene() {
   return (
     <Canvas
@@ -111,6 +130,7 @@ export function GlobeScene() {
       dpr={[1, 2]}
       gl={{ antialias: true }}
     >
+      <AspectCameraFit />
       <SceneContent />
     </Canvas>
   );
