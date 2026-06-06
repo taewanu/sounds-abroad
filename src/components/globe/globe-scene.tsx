@@ -124,11 +124,18 @@ function AspectCameraFit() {
 }
 
 export function GlobeScene() {
+  // Fade in once the renderer exists, so the globe arrives over the dark
+  // background instead of popping in when its chunk finishes loading.
+  const [ready, setReady] = useState(false);
   return (
     <Canvas
       camera={{ fov: 45, position: [0, 0, 3.5] }}
       dpr={[1, 2]}
       gl={{ antialias: true }}
+      onCreated={() => setReady(true)}
+      className={`transition-opacity duration-700 ease-out ${
+        ready ? "opacity-100" : "opacity-0"
+      }`}
     >
       <AspectCameraFit />
       <SceneContent />
