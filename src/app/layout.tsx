@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 
 import { GlobeScene } from "@/components/globe/globe-scene";
+import { SITE_URL } from "@/lib/site-url";
 
 import "./globals.css";
 
@@ -54,7 +55,7 @@ export const metadata: Metadata = {
   title: "Sounds Abroad — World music discovery",
   description:
     "A 3D globe-based world music discovery web app — explore trending music around the world.",
-  metadataBase: new URL("https://soundsabroad.com"),
+  metadataBase: new URL(SITE_URL),
   openGraph: {
     title: "Sounds Abroad",
     description: "Explore trending music around the world, on a 3D globe.",
