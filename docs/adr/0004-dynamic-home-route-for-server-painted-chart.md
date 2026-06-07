@@ -4,7 +4,7 @@
 
 ## Context
 
-The home route `/` renders a per-country chart sheet (the track list). Until now it was statically prerendered, but the sheet was client-rendered: `ChartScreen` reads the selected country from the URL via `useSearchParams()`, which renders its Suspense subtree as the server `null` fallback, so the chart was absent from the initial HTML. The LCP element was therefore the client-rendered chart, painting only after hydration. Deferring the globe (ADR-adjacent work, #69 / PR #73) roughly halved LCP but could not reach the `LCP <= 2.5s` launch gate, because the LCP element is the chart, not the globe. #74 carries that gate.
+The home route `/` renders a per-country chart sheet (the track list). Until now it was statically prerendered, but the sheet was client-rendered: `ChartScreen` reads the selected country from the URL via `useSearchParams()`, which renders its Suspense subtree as the server `null` fallback, so the chart was absent from the initial HTML. The LCP element was therefore the client-rendered chart, painting only after hydration. Deferring the globe (#69 / PR #73) did not measurably move the chart's LCP in a controlled re-measurement, consistent with the LCP element being the client-rendered chart rather than the globe. #74 carries that gate.
 
 To put the chart in the initial HTML the server must know which country to render. The country comes from `?cc=xx` for direct and shared links, and from a random pick for the bare `/` landing, which is the primary entry and the path Lighthouse measures. Reading `searchParams` is a dynamic API, and a request-time random pick is non-deterministic, so the route cannot be prerendered as a single static file.
 
