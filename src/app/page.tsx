@@ -1,6 +1,7 @@
-import { Suspense } from "react";
+import { connection } from "next/server";
 
 import { fetchCharts } from "@/lib/charts-client";
+import { randomCountryCode } from "@/lib/landing-code";
 
 import { ChartScreen } from "./chart-screen";
 
@@ -10,13 +11,13 @@ export default async function Home() {
     throw new Error("CHARTS_BLOB_URL is not configured");
   }
 
+  await connection();
   const charts = await fetchCharts(url);
+  const defaultCountryCode = randomCountryCode(Object.keys(charts.countries));
 
   return (
     <main className="min-h-dvh">
-      <Suspense fallback={null}>
-        <ChartScreen charts={charts} />
-      </Suspense>
+      <ChartScreen charts={charts} defaultCountryCode={defaultCountryCode} />
     </main>
   );
 }

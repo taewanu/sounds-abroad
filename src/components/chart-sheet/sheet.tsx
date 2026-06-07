@@ -158,7 +158,7 @@ export function ChartSheet({
     if (snap === "closed" || snap === "hidden") return;
     if (currentTrackRank === null) return;
     if (!wasMin && !signalChanged) return;
-    // Defer one frame so the portal's content is in the DOM before query.
+    // Defer one frame so the new snap/country is in the DOM before query.
     const id = requestAnimationFrame(() => {
       const el = olRef.current?.querySelector<HTMLElement>(
         `[data-rank="${currentTrackRank}"]`,
@@ -172,58 +172,61 @@ export function ChartSheet({
   }, [snap, currentTrackRank, scrollSignal]);
 
   return (
+    // Not wrapped in Dialog.Portal: the sheet must be in the server-rendered
+    // HTML so it (not the client-only globe) is the LCP element. Rendering in
+    // place is safe because it is a fixed overlay declared after the globe layer
+    // with no clipping or transformed ancestor (modal={false}, so no focus trap
+    // either). If an ancestor ever gains overflow/transform, restore the portal.
     <Dialog.Root open onOpenChange={handleOpenChange} modal={false}>
-      <Dialog.Portal>
-        <Dialog.Content
-          asChild
-          aria-describedby={undefined}
-          onInteractOutside={(e) => e.preventDefault()}
+      <Dialog.Content
+        asChild
+        aria-describedby={undefined}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
+        <motion.div
+          data-snap={snap}
+          data-testid="chart-sheet"
+          drag="y"
+          dragListener={false}
+          dragControls={dragControls}
+          dragMomentum={false}
+          dragElastic={0.2}
+          initial={{ y: SNAP_Y[snap] }}
+          animate={animationControls}
+          transition={{ type: "spring", damping: 30, stiffness: 300 }}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onPointerDown={handlePointerDown}
+          style={hasMiniPlayer ? SHEET_STYLE_WITH_MINI : SHEET_STYLE_NO_MINI}
+          className="bg-void text-fg-1 border-fg-1/10 shadow-sheet fixed inset-x-0 flex flex-col rounded-t-2xl border-t"
         >
-          <motion.div
-            data-snap={snap}
-            data-testid="chart-sheet"
-            drag="y"
-            dragListener={false}
-            dragControls={dragControls}
-            dragMomentum={false}
-            dragElastic={0.2}
-            initial={{ y: SNAP_Y[snap] }}
-            animate={animationControls}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onPointerDown={handlePointerDown}
-            style={hasMiniPlayer ? SHEET_STYLE_WITH_MINI : SHEET_STYLE_NO_MINI}
-            className="bg-void text-fg-1 border-fg-1/10 shadow-sheet fixed inset-x-0 flex flex-col rounded-t-2xl border-t"
+          <div className="shrink-0 touch-none">
+            <button
+              type="button"
+              onClick={handleToggle}
+              aria-label={snap === "full" ? "Collapse chart" : "Expand chart"}
+              className="bg-fg-1/15 rounded-pill mx-auto mt-3 mb-2 block h-1.5 w-12"
+            />
+            <Dialog.Title className="text-h3 px-6 pb-3 font-semibold">
+              {country.name}
+            </Dialog.Title>
+          </div>
+          <ol
+            key={countryCode}
+            ref={olRef}
+            data-peek={(snap === "peek" && !isDragging) || undefined}
+            className="min-h-0 flex-1 overflow-y-auto px-4 pb-12 transition-[max-height] duration-300 ease-out [-ms-overflow-style:none] [scrollbar-width:none] data-[peek]:max-h-[calc(35dvh-62px)] [&::-webkit-scrollbar]:hidden"
           >
-            <div className="shrink-0 touch-none">
-              <button
-                type="button"
-                onClick={handleToggle}
-                aria-label={snap === "full" ? "Collapse chart" : "Expand chart"}
-                className="bg-fg-1/15 rounded-pill mx-auto mt-3 mb-2 block h-1.5 w-12"
+            {country.tracks.map((track) => (
+              <TrackRow
+                key={track.rank}
+                track={track}
+                countryCode={countryCode}
               />
-              <Dialog.Title className="text-h3 px-6 pb-3 font-semibold">
-                {country.name}
-              </Dialog.Title>
-            </div>
-            <ol
-              key={countryCode}
-              ref={olRef}
-              data-peek={(snap === "peek" && !isDragging) || undefined}
-              className="min-h-0 flex-1 overflow-y-auto px-4 pb-12 transition-[max-height] duration-300 ease-out [-ms-overflow-style:none] [scrollbar-width:none] data-[peek]:max-h-[calc(35dvh-62px)] [&::-webkit-scrollbar]:hidden"
-            >
-              {country.tracks.map((track) => (
-                <TrackRow
-                  key={track.rank}
-                  track={track}
-                  countryCode={countryCode}
-                />
-              ))}
-            </ol>
-          </motion.div>
-        </Dialog.Content>
-      </Dialog.Portal>
+            ))}
+          </ol>
+        </motion.div>
+      </Dialog.Content>
     </Dialog.Root>
   );
 }
