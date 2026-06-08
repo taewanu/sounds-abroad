@@ -124,7 +124,7 @@ export function TrackRow({ track, countryCode }: TrackRowProps) {
           rel="noopener noreferrer"
           onClick={() => pause()}
           aria-label={`Open ${track.name} in Apple Music`}
-          className="text-fg-2 hover:bg-orbit hover:text-fg-1 focus-visible:outline-aurora flex h-8 w-8 items-center justify-center rounded-full transition-all duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]"
+          className="hover:bg-orbit focus-visible:outline-aurora flex h-8 w-8 items-center justify-center rounded-full transition-all duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]"
         >
           <AppleMusicIcon className="h-3.5 w-3.5" />
         </a>
@@ -134,7 +134,7 @@ export function TrackRow({ track, countryCode }: TrackRowProps) {
           rel="noopener noreferrer"
           onClick={() => pause()}
           aria-label={`Search ${track.name} on Spotify`}
-          className="text-fg-2 hover:bg-orbit hover:text-fg-1 focus-visible:outline-aurora flex h-8 w-8 items-center justify-center rounded-full transition-all duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]"
+          className="hover:bg-orbit focus-visible:outline-aurora flex h-8 w-8 items-center justify-center rounded-full transition-all duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]"
         >
           <SpotifyIcon className="h-3.5 w-3.5" />
         </a>
