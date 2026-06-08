@@ -4,7 +4,7 @@
 
 ## Context
 
-The home route `/` renders a per-country chart sheet (the track list). Until now it was statically prerendered, but the sheet was client-rendered: `ChartScreen` reads the selected country from the URL via `useSearchParams()`, which renders its Suspense subtree as the server `null` fallback, so the chart was absent from the initial HTML. The LCP element was therefore the client-rendered chart, painting only after hydration. Deferring the globe (#69 / PR #73) did not measurably move the chart's LCP in a controlled re-measurement, consistent with the LCP element being the client-rendered chart rather than the globe. #74 carries that gate.
+The home route `/` renders a per-country chart sheet (the track list). Until now it was statically prerendered, but the sheet was client-rendered: `ChartScreen` reads the selected country from the URL via `useSearchParams()`, which renders its Suspense subtree as the server `null` fallback, so the chart was absent from the initial HTML. The LCP element was therefore the client-rendered chart, painting only after hydration. Deferring the globe (#69 / PR #73) did not measurably move the chart's LCP in a controlled re-measurement, consistent with the LCP element being the client-rendered chart rather than the globe. So the chart-SSR work moved to #74.
 
 To put the chart in the initial HTML the server must know which country to render. The country comes from `?cc=xx` for direct and shared links, and from a random pick for the bare `/` landing, which is the primary entry and the path Lighthouse measures. Reading `searchParams` is a dynamic API, and a request-time random pick is non-deterministic, so the route cannot be prerendered as a single static file.
 
@@ -27,7 +27,7 @@ Render the home route dynamically and keep the chart reading the country from th
 
 ### Why keep `useSearchParams` (hybrid) over a server prop only
 
-An alternative resolves the country entirely on the server and passes it to `ChartScreen` as its only source, dropping `useSearchParams` from the chart. It is simpler (one country input) and also server-renders the chart, but it was rejected because country switches would regress. Switches write the new code with `window.history.pushState` (no navigation; Next syncs it with `useSearchParams`), so the chart re-renders client-side instantly. If the chart's country came only from a server prop, a switch would instead need a router navigation and an RSC round-trip on the now-dynamic, non-prefetched route before the new chart paints. Keeping `useSearchParams` preserves the instant switch while the forced-dynamic route still server-renders the initial chart, so the hybrid meets the LCP gate without trading away switch latency. The cost is two country inputs in `ChartScreen` (the hook plus the fallback prop).
+An alternative resolves the country entirely on the server and passes it to `ChartScreen` as its only source, dropping `useSearchParams` from the chart. It is simpler (one country input) and also server-renders the chart, but it was rejected because country switches would regress. Switches write the new code with `window.history.pushState` (no navigation; Next syncs it with `useSearchParams`), so the chart re-renders client-side instantly. If the chart's country came only from a server prop, a switch would instead need a router navigation and an RSC round-trip on the now-dynamic, non-prefetched route before the new chart paints. Keeping `useSearchParams` preserves the instant switch while the forced-dynamic route still server-renders the initial chart, so the hybrid server-renders the initial chart without trading away switch latency. The cost is two country inputs in `ChartScreen` (the hook plus the fallback prop).
 
 That `useSearchParams` server-renders on a dynamically rendered route, and only there, is documented in Next.js 16 and confirmed empirically: a `curl` of a `connection()`-forced spike route returned the search-param value in the initial HTML.
 
@@ -43,7 +43,7 @@ That `useSearchParams` server-renders on a dynamically rendered route, and only 
 
 **Positive**
 
-- The chart is in the initial HTML, so LCP can land on a server-painted element (the #74 gate).
+- The chart's content is in the initial HTML and paints from server HTML (~1.5s) instead of after hydration, the goal of #74. This improves FCP and the content-visible check; the original LCP-on-this-element aim was dropped when #69 re-baselined the gate off LCP as an artifact (see below).
 - No URL scheme change; the shipped player deeplink and the planned per-country OG cards keep working on `?cc=`.
 - Deletes `visited-storage` and the dedup logic: less code, one fewer concept.
 
