@@ -7,6 +7,7 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { PerspectiveCamera } from "three";
 
 import { COUNTRIES } from "@/lib/countries";
+import { validateCountryCode } from "@/lib/country-code";
 import { getCountryOutlinesPromise } from "@/lib/topo-loader";
 
 import { cameraForViewport } from "./camera-fit";
@@ -16,14 +17,7 @@ import { CountryPins } from "./country-pins";
 import { StarBackdrop } from "./star-backdrop";
 import { useCameraArc } from "./use-camera-arc";
 
-const ALL_CODES = COUNTRIES.map((c) => c.code);
 const ISO_BY_CODE = new Map(COUNTRIES.map((c) => [c.code, c.isoNum]));
-
-function validateCode(raw: string | null): string | null {
-  if (raw === null) return null;
-  const lower = raw.toLowerCase();
-  return ALL_CODES.includes(lower) ? lower : null;
-}
 
 function CountryLayers({
   hoveredIsoNum,
@@ -47,7 +41,7 @@ function CountryLayers({
 
 function SceneContent() {
   const searchParams = useSearchParams();
-  const selectedCode = validateCode(searchParams.get("cc"));
+  const selectedCode = validateCountryCode(searchParams.get("cc"));
 
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
   const hoveredIsoNum =
