@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, use, useCallback, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { OrbitControls } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
 import { PerspectiveCamera } from "three";
@@ -46,7 +46,6 @@ function CountryLayers({
 }
 
 function SceneContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const selectedCode = validateCode(searchParams.get("cc"));
 
@@ -63,9 +62,9 @@ function SceneContent() {
   const handleSelect = useCallback(
     (code: string) => {
       if (isAnimating) return;
-      router.push(`/?cc=${code}`);
+      window.history.pushState(null, "", `?cc=${code}`);
     },
-    [router, isAnimating],
+    [isAnimating],
   );
 
   return (

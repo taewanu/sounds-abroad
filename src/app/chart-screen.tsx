@@ -1,13 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 import { ChartSheet, type SnapState } from "@/components/chart-sheet/sheet";
 import { MiniPlayer } from "@/components/mini-player";
 import type { ChartFile, Country } from "@/lib/chart-schema";
-import { pickUnvisited } from "@/lib/pick-unvisited";
-import { markVisited, readVisited, resetVisited } from "@/lib/visited-storage";
 import {
   AudioStoreProvider,
   useAudioStore,
@@ -25,42 +23,29 @@ function validateUrlCode(
 
 export interface ChartScreenProps {
   charts: ChartFile;
+  defaultCountryCode: string;
 }
 
-export function ChartScreen({ charts }: ChartScreenProps) {
-  const router = useRouter();
+export function ChartScreen({ charts, defaultCountryCode }: ChartScreenProps) {
   const searchParams = useSearchParams();
-  const validUrlCc = validateUrlCode(searchParams.get("cc"), charts.countries);
+  const rawCc = searchParams.get("cc");
+  const countryCode =
+    validateUrlCode(rawCc, charts.countries) ?? defaultCountryCode;
 
+  // Write the resolved code into the URL when it isn't already there (bare `/`,
+  // an invalid cc, or a non-canonical case). replaceState relabels the URL with
+  // no navigation, so there's no refetch or flicker; Next keeps it in sync with
+  // useSearchParams, so the globe reads the same code.
   useEffect(() => {
-    if (validUrlCc !== null) {
-      return;
-    }
-
-    const visited = readVisited();
-    const result = pickUnvisited({
-      allCodes: Object.keys(charts.countries),
-      visited,
-      rng: Math.random,
-    });
-    if (result.didReset) {
-      resetVisited();
-    }
-
-    markVisited(result.code);
-    router.replace(`/?cc=${result.code}`);
-  }, [validUrlCc, router, charts.countries]);
-
-  const country = validUrlCc && charts.countries[validUrlCc];
-  if (!country) {
-    return null;
-  }
+    if (rawCc === countryCode) return;
+    window.history.replaceState(null, "", `?cc=${countryCode}`);
+  }, [rawCc, countryCode]);
 
   return (
     <AudioStoreProvider>
       <ChartScreenInner
-        country={country}
-        countryCode={validUrlCc}
+        country={charts.countries[countryCode]}
+        countryCode={countryCode}
         charts={charts}
       />
     </AudioStoreProvider>
@@ -76,7 +61,6 @@ function ChartScreenInner({
   countryCode: string;
   charts: ChartFile;
 }) {
-  const router = useRouter();
   const [snap, setSnap] = useState<SnapState>("peek");
   const [scrollSignal, setScrollSignal] = useState(0);
   const hasCurrentTrack = useAudioStore((s) => s.currentTrack !== null);
@@ -145,11 +129,11 @@ function ChartScreenInner({
   const handleMiniTap = useCallback(() => {
     const source = audioStore.getState().currentCountryCode;
     if (source && source !== countryCode) {
-      router.push(`/?cc=${source}`);
+      window.history.pushState(null, "", `?cc=${source}`);
     }
     setSnap((s) => (s === "hidden" || s === "closed" ? "peek" : s));
     setScrollSignal((n) => n + 1);
-  }, [audioStore, countryCode, router]);
+  }, [audioStore, countryCode]);
 
   return (
     <>

@@ -18,7 +18,11 @@ const CountrySchema = z.object({
 
 export const ChartFileSchema = z.object({
   lastUpdated: z.iso.datetime(),
-  countries: z.record(z.string().regex(/^[a-z]{2}$/), CountrySchema),
+  countries: z
+    .record(z.string().regex(/^[a-z]{2}$/), CountrySchema)
+    .refine((c) => Object.keys(c).length > 0, {
+      message: "countries must have at least one entry",
+    }),
 });
 
 export type Track = z.infer<typeof TrackSchema>;

@@ -31,3 +31,12 @@ test("ChartFileSchema accepts null previewUrl (placeholder for lookup-failed tra
 
   expect(() => ChartFileSchema.parse(withNullPreview)).not.toThrow();
 });
+
+test("ChartFileSchema rejects an empty countries record", () => {
+  const empty = {
+    lastUpdated: "2026-05-16T00:00:00.000Z",
+    countries: {},
+  };
+
+  expect(() => ChartFileSchema.parse(empty)).toThrow();
+});
