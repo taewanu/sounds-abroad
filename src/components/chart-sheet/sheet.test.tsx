@@ -33,13 +33,26 @@ function renderSheet(snap: SnapState) {
 
 // Drag the body with a mouse pointer: press, cross the threshold, drag, release.
 // The first move both crosses the threshold and baselines the drag at that
-// point, so a second move supplies the actual travel. (Touch drag relies on
-// non-passive listeners and layout jsdom doesn't model; it is device-verified.)
+// point, so a second move supplies the actual travel.
 function dragBody(target: Element, fromY: number, toY: number) {
   fireEvent.pointerDown(target, { clientY: fromY, pointerType: "mouse" });
   fireEvent.pointerMove(window, { clientY: fromY + (toY > fromY ? 6 : -6) });
   fireEvent.pointerMove(window, { clientY: toY });
   fireEvent.pointerUp(window);
+}
+
+// The touch handlers are attached natively (non-passive), so dispatch raw touch
+// events. jsdom models neither native scroll nor layout, but the hand-off branch
+// (list at scrollTop <= 0 while still pulling down) is plain logic: scrollTop is
+// mocked via setScrollTop and height falls back to window.innerHeight. The real
+// scroll and the gesture feel are device-verified.
+function dispatchTouch(target: Element, type: string, clientY: number) {
+  const event = new Event(type, { bubbles: true, cancelable: true });
+  Object.defineProperty(event, "touches", {
+    value: [{ clientY }],
+    configurable: true,
+  });
+  target.dispatchEvent(event);
 }
 
 describe("ChartSheet", () => {
@@ -305,6 +318,31 @@ describe("ChartSheet", () => {
       pointerType: "mouse",
     });
     fireEvent.pointerUp(window);
+
+    expect(onSnapChange).not.toHaveBeenCalled();
+  });
+
+  test("hands off to a collapse when the full list is dragged down from the top", () => {
+    const { onSnapChange } = renderSheet("full");
+    const list = screen.getByRole("list");
+    setScrollTop(list, 0);
+
+    dispatchTouch(list, "touchstart", 300);
+    dispatchTouch(list, "touchmove", 340);
+    dispatchTouch(list, "touchmove", 700);
+    dispatchTouch(list, "touchend", 700);
+
+    expect(onSnapChange).toHaveBeenCalledWith("peek");
+  });
+
+  test("does not hand off while the full list is still scrolled", () => {
+    const { onSnapChange } = renderSheet("full");
+    const list = screen.getByRole("list");
+    setScrollTop(list, 80);
+
+    dispatchTouch(list, "touchstart", 300);
+    dispatchTouch(list, "touchmove", 340);
+    dispatchTouch(list, "touchend", 340);
 
     expect(onSnapChange).not.toHaveBeenCalled();
   });

@@ -282,6 +282,18 @@ export function ChartSheet({
     didMountRef.current = true;
   }, [snap, hasMiniPlayer, applySnap]);
 
+  // The transform is in px, so it does not track height changes on its own.
+  // Re-place the sheet at its current snap when the viewport resizes (rotation,
+  // desktop resize) so the partial snaps do not drift; no animation, and never
+  // while a drag owns the transform.
+  useEffect(() => {
+    const onResize = () => {
+      if (!draggingRef.current) applySnap(snapRef.current, false);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [applySnap]);
+
   // Touch controller. Attached imperatively so touchmove is non-passive and can
   // preventDefault to interrupt native scroll at the hand-off boundary.
   useEffect(() => {
