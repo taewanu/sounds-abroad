@@ -6,16 +6,6 @@ import { AudioStoreProvider } from "@/providers/audio-store-provider";
 
 import { ChartSheet, type SnapState } from "./sheet";
 
-const { dragStart } = vi.hoisted(() => ({ dragStart: vi.fn() }));
-
-vi.mock("motion/react", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("motion/react")>();
-  return {
-    ...actual,
-    useDragControls: () => ({ start: dragStart, subscribe: () => () => {} }),
-  };
-});
-
 function setScrollTop(el: Element, value: number) {
   Object.defineProperty(el, "scrollTop", { value, configurable: true });
 }
@@ -24,7 +14,6 @@ const originalScrollIntoView = Element.prototype.scrollIntoView;
 
 afterEach(() => {
   Element.prototype.scrollIntoView = originalScrollIntoView;
-  dragStart.mockClear();
 });
 
 function renderSheet(snap: SnapState) {
@@ -40,6 +29,30 @@ function renderSheet(snap: SnapState) {
     </AudioStoreProvider>,
   );
   return { ...utils, onSnapChange };
+}
+
+// Drag the body with a mouse pointer: press, cross the threshold, drag, release.
+// The first move both crosses the threshold and baselines the drag at that
+// point, so a second move supplies the actual travel.
+function dragBody(target: Element, fromY: number, toY: number) {
+  fireEvent.pointerDown(target, { clientY: fromY, pointerType: "mouse" });
+  fireEvent.pointerMove(window, { clientY: fromY + (toY > fromY ? 6 : -6) });
+  fireEvent.pointerMove(window, { clientY: toY });
+  fireEvent.pointerUp(window);
+}
+
+// The touch handlers are attached natively (non-passive), so dispatch raw touch
+// events. jsdom models neither native scroll nor layout, but the hand-off branch
+// (list at scrollTop <= 0 while still pulling down) is plain logic: scrollTop is
+// mocked via setScrollTop and height falls back to window.innerHeight. The real
+// scroll and the gesture feel are device-verified.
+function dispatchTouch(target: Element, type: string, clientY: number) {
+  const event = new Event(type, { bubbles: true, cancelable: true });
+  Object.defineProperty(event, "touches", {
+    value: [{ clientY }],
+    configurable: true,
+  });
+  target.dispatchEvent(event);
 }
 
 describe("ChartSheet", () => {
@@ -271,33 +284,66 @@ describe("ChartSheet", () => {
     expect(scrollIntoViewMock).not.toHaveBeenCalled();
   });
 
-  test("starts the sheet drag on pointer down in the list at the top", () => {
-    renderSheet("peek");
-    const list = screen.getByRole("list");
-    setScrollTop(list, 0);
+  test("expands to full when the body is dragged up from peek", () => {
+    const { onSnapChange } = renderSheet("peek");
 
-    fireEvent.pointerDown(list);
+    dragBody(screen.getByTestId("chart-sheet"), 500, 150);
 
-    expect(dragStart).toHaveBeenCalledTimes(1);
+    expect(onSnapChange).toHaveBeenCalledWith("full");
+  });
+
+  test("collapses toward closed when the body is dragged down from peek", () => {
+    const { onSnapChange } = renderSheet("peek");
+
+    dragBody(screen.getByTestId("chart-sheet"), 500, 850);
+
+    expect(onSnapChange).toHaveBeenCalledWith("closed");
   });
 
   test("yields to list scroll on pointer down when the list is scrolled", () => {
-    renderSheet("peek");
+    const { onSnapChange } = renderSheet("peek");
     const list = screen.getByRole("list");
     setScrollTop(list, 40);
 
-    fireEvent.pointerDown(list);
+    fireEvent.pointerDown(list, { clientY: 500, pointerType: "mouse" });
 
-    expect(dragStart).not.toHaveBeenCalled();
+    expect(onSnapChange).not.toHaveBeenCalled();
   });
 
-  test("starts the sheet drag on pointer down outside the list", () => {
-    renderSheet("peek");
+  test("does not change snap on a tap below the drag threshold", () => {
+    const { onSnapChange } = renderSheet("peek");
+
+    fireEvent.pointerDown(screen.getByTestId("chart-sheet"), {
+      clientY: 500,
+      pointerType: "mouse",
+    });
+    fireEvent.pointerUp(window);
+
+    expect(onSnapChange).not.toHaveBeenCalled();
+  });
+
+  test("hands off to a collapse when the full list is dragged down from the top", () => {
+    const { onSnapChange } = renderSheet("full");
     const list = screen.getByRole("list");
-    setScrollTop(list, 40);
+    setScrollTop(list, 0);
 
-    fireEvent.pointerDown(screen.getByText(COUNTRY_KR.name));
+    dispatchTouch(list, "touchstart", 300);
+    dispatchTouch(list, "touchmove", 340);
+    dispatchTouch(list, "touchmove", 700);
+    dispatchTouch(list, "touchend", 700);
 
-    expect(dragStart).toHaveBeenCalledTimes(1);
+    expect(onSnapChange).toHaveBeenCalledWith("peek");
+  });
+
+  test("does not hand off while the full list is still scrolled", () => {
+    const { onSnapChange } = renderSheet("full");
+    const list = screen.getByRole("list");
+    setScrollTop(list, 80);
+
+    dispatchTouch(list, "touchstart", 300);
+    dispatchTouch(list, "touchmove", 340);
+    dispatchTouch(list, "touchend", 340);
+
+    expect(onSnapChange).not.toHaveBeenCalled();
   });
 });
