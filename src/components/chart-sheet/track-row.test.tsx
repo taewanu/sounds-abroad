@@ -1,21 +1,19 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 
-import {
-  type AudioElementLike,
-  type AudioState,
-  createAudioStore,
-} from "@/lib/audio-store";
+import type { AudioEngine } from "@/lib/audio-engine";
+import { type AudioState, createAudioStore } from "@/lib/audio-store";
 import type { Track } from "@/lib/chart-schema";
 import { AudioStoreContext } from "@/providers/audio-store-provider";
 
 import { TrackRow } from "./track-row";
 
-function makeMockAudio(): AudioElementLike {
+function makeMockAudio(): AudioEngine {
   return {
     src: "",
     play: vi.fn().mockResolvedValue(undefined),
     pause: vi.fn(),
+    setVolume: vi.fn(),
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
   };
