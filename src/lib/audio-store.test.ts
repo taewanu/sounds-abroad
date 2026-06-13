@@ -2,7 +2,8 @@ import { assert, beforeEach, describe, expect, test, vi } from "vitest";
 
 import type { Track } from "@/lib/chart-schema";
 
-import { type AudioElementLike, createAudioStore } from "./audio-store";
+import type { AudioEngine } from "./audio-engine";
+import { createAudioStore } from "./audio-store";
 import {
   clearNowPlaying,
   setActionHandlers,
@@ -19,7 +20,7 @@ vi.mock("./media-session", () => ({
 
 type EventType = "ended" | "error" | "play" | "pause";
 
-interface MockAudio extends AudioElementLike {
+interface MockAudio extends AudioEngine {
   _trigger: (event: EventType) => void;
   _srcWrites: number;
 }
@@ -38,6 +39,7 @@ function makeMockAudio(): MockAudio {
     _srcWrites: 0,
     play: vi.fn().mockResolvedValue(undefined),
     pause: vi.fn(),
+    setVolume: vi.fn(),
     addEventListener: vi.fn((type: EventType, listener: () => void) => {
       (listeners[type] ??= []).push(listener);
     }),
@@ -73,6 +75,40 @@ describe("createAudioStore", () => {
     expect(store.getState().currentTrack).toBeNull();
     expect(store.getState().isPlaying).toBe(false);
     expect(store.getState().currentCountryCode).toBeNull();
+  });
+
+  test("initial volume is full", () => {
+    const store = createAudioStore(() => makeMockAudio());
+
+    expect(store.getState().volume).toBe(1);
+  });
+
+  test("setVolume updates the volume state", () => {
+    const store = createAudioStore(() => makeMockAudio());
+
+    store.getState().setVolume(0.4);
+
+    expect(store.getState().volume).toBe(0.4);
+  });
+
+  test("setVolume drives the audio engine gain", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+
+    store.getState().setVolume(0.4);
+
+    expect(audio.setVolume).toHaveBeenCalledWith(0.4);
+  });
+
+  test("volume holds across a track switch", () => {
+    const store = createAudioStore(() => makeMockAudio());
+    store.getState().setVolume(0.3);
+
+    store
+      .getState()
+      .toggle(makeTrack({ previewUrl: "https://example.com/next.m4a" }));
+
+    expect(store.getState().volume).toBe(0.3);
   });
 
   test("toggle plays a new track", () => {

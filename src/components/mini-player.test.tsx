@@ -1,21 +1,19 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 
-import {
-  type AudioElementLike,
-  type AudioState,
-  createAudioStore,
-} from "@/lib/audio-store";
+import type { AudioEngine } from "@/lib/audio-engine";
+import { type AudioState, createAudioStore } from "@/lib/audio-store";
 import type { Track } from "@/lib/chart-schema";
 import { AudioStoreContext } from "@/providers/audio-store-provider";
 
 import { MiniPlayer } from "./mini-player";
 
-function makeMockAudio(): AudioElementLike {
+function makeMockAudio(): AudioEngine {
   return {
     src: "",
     play: vi.fn().mockResolvedValue(undefined),
     pause: vi.fn(),
+    setVolume: vi.fn(),
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
   };
@@ -116,5 +114,11 @@ describe("MiniPlayer", () => {
     expect(
       screen.getByRole("button", { name: /pause preview of Hot Track/i }),
     ).toBeDefined();
+  });
+
+  test("renders the volume control", () => {
+    renderMiniPlayer({ onTap: vi.fn() }, { currentTrack: makeTrack() });
+
+    expect(screen.getByRole("button", { name: /volume/i })).toBeDefined();
   });
 });

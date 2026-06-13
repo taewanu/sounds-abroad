@@ -1,6 +1,11 @@
 import * as Sentry from "@sentry/nextjs";
 import { createStore } from "zustand/vanilla";
 
+import {
+  type AudioEngine,
+  type AudioEngineFactory,
+  createBrowserAudioEngine,
+} from "@/lib/audio-engine";
 import type { Track } from "@/lib/chart-schema";
 import {
   clearNowPlaying,
@@ -8,24 +13,6 @@ import {
   setNowPlaying,
   setPlaybackState,
 } from "@/lib/media-session";
-
-export interface AudioElementLike {
-  src: string;
-  play(): Promise<void>;
-  pause(): void;
-  addEventListener(
-    type: "ended" | "error" | "play" | "pause",
-    listener: () => void,
-  ): void;
-  removeEventListener(
-    type: "ended" | "error" | "play" | "pause",
-    listener: () => void,
-  ): void;
-}
-
-export type AudioElementFactory = () => AudioElementLike;
-
-const defaultAudioFactory: AudioElementFactory = () => new Audio();
 
 export interface AudioError {
   previewUrl: string | null;
@@ -35,9 +22,11 @@ export interface AudioState {
   currentTrack: Track | null;
   currentCountryCode: string | null;
   isPlaying: boolean;
+  volume: number;
   lastError: AudioError | null;
   endedSignal: number;
   toggle: (track: Track, countryCode?: string) => void;
+  setVolume: (value: number) => void;
   pause: () => void;
   stop: () => void;
 }
@@ -45,34 +34,34 @@ export interface AudioState {
 export type AudioStoreApi = ReturnType<typeof createAudioStore>;
 
 export function createAudioStore(
-  factory: AudioElementFactory = defaultAudioFactory,
+  factory: AudioEngineFactory = createBrowserAudioEngine,
 ) {
-  let audio: AudioElementLike | null = null;
+  let engine: AudioEngine | null = null;
 
   return createStore<AudioState>()((set, get) => {
-    function getAudio(): AudioElementLike {
-      if (audio) return audio;
-      audio = factory();
-      // Layer 1 (S5): sync store with browser-initiated play/pause.
+    function getEngine(): AudioEngine {
+      if (engine) return engine;
+      engine = factory();
+      // Layer 1: sync store with browser-initiated play/pause.
       // Covers background-tab auto-pause, AirPods disconnect, media keys.
       // Each transition also mirrors to the OS so the now-playing UI tracks
       // live state (drives the Dynamic Island waveform), browser-driven or not.
-      audio.addEventListener("play", () => {
+      engine.addEventListener("play", () => {
         set({ isPlaying: true });
         setPlaybackState("playing");
       });
-      audio.addEventListener("pause", () => {
+      engine.addEventListener("pause", () => {
         set({ isPlaying: false });
         setPlaybackState("paused");
       });
-      audio.addEventListener("ended", () => {
+      engine.addEventListener("ended", () => {
         set((state) => ({
           isPlaying: false,
           endedSignal: state.endedSignal + 1,
         }));
         setPlaybackState("none");
       });
-      audio.addEventListener("error", () => {
+      engine.addEventListener("error", () => {
         const previewUrl = get().currentTrack?.previewUrl ?? null;
         set({ isPlaying: false, lastError: { previewUrl } });
         Sentry.addBreadcrumb({
@@ -91,18 +80,19 @@ export function createAudioStore(
         },
         pause: () => get().pause(),
       });
-      return audio;
+      return engine;
     }
 
     return {
       currentTrack: null,
       currentCountryCode: null,
       isPlaying: false,
+      volume: 1,
       lastError: null,
       endedSignal: 0,
       toggle: (track, countryCode) => {
         const state = get();
-        const a = getAudio();
+        const a = getEngine();
         const isCurrent = state.currentTrack?.previewUrl === track.previewUrl;
         if (isCurrent && state.isPlaying) {
           a.pause();
@@ -126,14 +116,18 @@ export function createAudioStore(
           lastError: null,
         });
       },
+      setVolume: (value) => {
+        getEngine().setVolume(value);
+        set({ volume: value });
+      },
       pause: () => {
         // Pause without clearing currentTrack, used on deeplink handoff so the
         // mini player stays (resumable) and no `ended` fires (auto-advance halts).
-        getAudio().pause();
+        getEngine().pause();
         set({ isPlaying: false });
       },
       stop: () => {
-        const a = getAudio();
+        const a = getEngine();
         a.pause();
         clearNowPlaying();
         set({

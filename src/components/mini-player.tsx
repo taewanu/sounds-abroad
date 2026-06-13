@@ -3,6 +3,7 @@
 import { PauseIcon } from "@/components/icons/pause";
 import { PlayIcon } from "@/components/icons/play";
 import { useOverflowMarquee } from "@/components/use-overflow-marquee";
+import { VolumeControl } from "@/components/volume-control";
 import { useAudioStore } from "@/providers/audio-store-provider";
 
 export interface MiniPlayerProps {
@@ -67,6 +68,7 @@ export function MiniPlayer({ onTap }: MiniPlayerProps) {
             </p>
           </div>
         </button>
+        <VolumeControl />
         <button
           type="button"
           onClick={() => toggle(currentTrack)}
