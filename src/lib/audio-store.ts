@@ -42,7 +42,7 @@ export function createAudioStore(
     function getEngine(): AudioEngine {
       if (engine) return engine;
       engine = factory();
-      // Layer 1 (S5): sync store with browser-initiated play/pause.
+      // Layer 1: sync store with browser-initiated play/pause.
       // Covers background-tab auto-pause, AirPods disconnect, media keys.
       // Each transition also mirrors to the OS so the now-playing UI tracks
       // live state (drives the Dynamic Island waveform), browser-driven or not.
