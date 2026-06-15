@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const CommentarySchema = z.object({
+export const CommentarySchema = z.object({
   lead: z.string().min(1),
   detail: z.string().min(1).optional(),
   tag: z.string().min(1).optional(),

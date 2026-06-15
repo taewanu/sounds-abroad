@@ -1,4 +1,9 @@
 import type { ChartFile, Country, Track } from "../../src/lib/chart-schema";
+import {
+  DEFAULT_LANG,
+  commentaryForTrack,
+  type CommentaryStore,
+} from "../../src/lib/commentary-store";
 import type { CountryEntry } from "../../src/lib/countries";
 
 import { AppleRssError, type AppleRssTrack } from "./apple-rss";
@@ -28,6 +33,13 @@ export interface CrawlAllDeps {
   // Source for carrying forward a country that fails this run. Must resolve
   // null (never reject) when unavailable, which skips carry-forward.
   fetchPrevious?: () => Promise<ChartFile | null>;
+  // Out-of-band commentary baked into the served charts. Like fetchPrevious,
+  // must resolve null (never reject) when unavailable, which skips the bake and
+  // leaves charts untouched. The crawl only ever reads this store (ADR-0007).
+  fetchCommentary?: () => Promise<CommentaryStore | null>;
+  // Language whose commentary is baked in (English-first; the store key carries
+  // the language so others slot in later).
+  lang?: string;
   now?: () => Date;
 }
 
@@ -97,6 +109,28 @@ export async function crawlCountry(
   return { cc, country: { name, valid: true, tracks } };
 }
 
+/**
+ * Back-fills each track's commentary from the session-owned store. The store is
+ * authoritative: a track with no entry is set to null, clearing any stale blurb
+ * a carried-forward country brought with it. Never writes the store; pure data.
+ */
+export function bakeCommentary(
+  countries: ChartFile["countries"],
+  store: CommentaryStore,
+  lang: string,
+): void {
+  for (const country of Object.values(countries)) {
+    for (const track of country.tracks) {
+      track.commentary = commentaryForTrack(
+        store,
+        lang,
+        track.artist,
+        track.name,
+      );
+    }
+  }
+}
+
 export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
   const {
     countries,
@@ -138,6 +172,11 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
     console.log(
       `[crawl ${cc}] ${country.tracks.length} tracks (valid=${country.valid})`,
     );
+  }
+
+  const commentary = deps.fetchCommentary ? await deps.fetchCommentary() : null;
+  if (commentary) {
+    bakeCommentary(countriesMap, commentary, deps.lang ?? DEFAULT_LANG);
   }
 
   const chartFile: ChartFile = {

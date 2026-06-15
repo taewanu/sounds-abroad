@@ -2,6 +2,7 @@ import "./sentry-init";
 import * as Sentry from "@sentry/node";
 
 import { COUNTRIES } from "../../src/lib/countries";
+import { fetchCommentaryStore } from "../commentary/fetch-commentary";
 
 import { AppleRssError, fetchAppleRss } from "./apple-rss";
 import { lookupTrack } from "./itunes-lookup";
@@ -23,6 +24,10 @@ const sleep = (ms: number): Promise<void> =>
 // Public URL of the last published payload, read back for carry-forward.
 // Absent locally → carry-forward skipped.
 const previousUrl = process.env.CHARTS_BLOB_URL;
+
+// Session-owned commentary store, baked into the served charts when present.
+// The crawl only reads it (ADR-0007). Absent → no commentary this run.
+const commentaryUrl = process.env.COMMENTARY_BLOB_URL;
 
 // Short-lived process: must flush before exit so the monitor check-in + the
 // charts:published message actually reach Sentry. withMonitor returning is not
@@ -46,6 +51,9 @@ try {
         triggerRevalidate,
         fetchPrevious: previousUrl
           ? () => fetchPublishedCharts(previousUrl)
+          : undefined,
+        fetchCommentary: commentaryUrl
+          ? () => fetchCommentaryStore(commentaryUrl)
           : undefined,
       });
 

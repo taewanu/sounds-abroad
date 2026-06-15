@@ -17,6 +17,8 @@
     "test:ci": "vitest --watch=false --reporter=default --reporter=github-actions",
     "crawl": "tsx --env-file=.env.local scripts/crawl/main.ts",
     "crawl:cron": "tsx scripts/crawl/cron.ts",
+    "commentary:todo": "tsx --env-file=.env.local scripts/commentary/todo.ts",
+    "commentary:publish": "tsx --env-file=.env.local scripts/commentary/publish.ts",
     "prepare": "husky"
   },
   "dependencies": {

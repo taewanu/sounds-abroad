@@ -5,6 +5,10 @@ import {
   type ChartFile,
   type Country,
 } from "../../src/lib/chart-schema";
+import {
+  commentaryKey,
+  type CommentaryStore,
+} from "../../src/lib/commentary-store";
 import type { CountryEntry } from "../../src/lib/countries";
 
 import { AppleRssError, type AppleRssTrack } from "./apple-rss";
@@ -194,6 +198,7 @@ function makeCrawlAllDeps(input: {
   countries: readonly CountryEntry[];
   fetchRss?: (cc: string) => Promise<AppleRssTrack[]>;
   fetchPrevious?: () => Promise<ChartFile | null>;
+  fetchCommentary?: () => Promise<CommentaryStore | null>;
 }): CrawlAllDeps {
   return {
     countries: input.countries,
@@ -205,7 +210,16 @@ function makeCrawlAllDeps(input: {
     uploadCharts: vi.fn(async () => BLOB_URL),
     triggerRevalidate: vi.fn(async () => {}),
     fetchPrevious: input.fetchPrevious,
+    fetchCommentary: input.fetchCommentary,
     now: () => FROZEN_NOW,
+  };
+}
+
+function commentaryEntry(lead: string) {
+  return {
+    lead,
+    sources: ["https://example.com/a"],
+    generatedAt: "2026-05-15T00:00:00.000Z",
   };
 }
 
@@ -404,4 +418,69 @@ test("summarizeValidity reports total, valid count, and the invalid codes", asyn
   const summary = summarizeValidity(chartFile);
 
   expect(summary).toEqual({ total: 3, validCount: 2, invalidCodes: ["ng"] });
+});
+
+test("crawlAll bakes a matching blurb and sets null on tracks without one", async () => {
+  const krEntry = commentaryEntry("KR blurb.");
+  const store: CommentaryStore = {
+    [commentaryKey("en", "kr artist", "kr song")]: krEntry,
+  };
+  const deps = makeCrawlAllDeps({
+    countries: [KR, NG],
+    fetchCommentary: vi.fn(async () => store),
+  });
+
+  const result = await crawlAll(deps);
+
+  expect(result.chartFile.countries.kr.tracks[0].commentary).toEqual(krEntry);
+  expect(result.chartFile.countries.ng.tracks[0].commentary).toBeNull();
+});
+
+test("crawlAll leaves commentary unset when no commentary source is wired", async () => {
+  const deps = makeCrawlAllDeps({ countries: [KR] });
+
+  const result = await crawlAll(deps);
+
+  expect(result.chartFile.countries.kr.tracks[0].commentary).toBeUndefined();
+});
+
+test("crawlAll skips the bake and still publishes when commentary yields null", async () => {
+  const deps = makeCrawlAllDeps({
+    countries: [KR],
+    fetchCommentary: vi.fn(async () => null),
+  });
+
+  const result = await crawlAll(deps);
+
+  expect(result.chartFile.countries.kr.tracks[0].commentary).toBeUndefined();
+  expect(deps.uploadCharts).toHaveBeenCalledTimes(1);
+});
+
+test("crawlAll clears a stale blurb carried forward from a failed country", async () => {
+  const stalePriorNg: Country = {
+    name: NG.name,
+    valid: true,
+    tracks: [
+      {
+        rank: 1,
+        name: "ng song",
+        artist: "ng artist",
+        previewUrl: null,
+        artworkUrl: "https://prior/art/1/600x600bb.jpg",
+        appleUrl: "https://music.apple.com/prior/1",
+        spotifySearchUrl: "https://open.spotify.com/search/prior1",
+        commentary: commentaryEntry("stale blurb."),
+      },
+    ],
+  };
+  const deps = makeCrawlAllDeps({
+    countries: [KR, NG],
+    fetchRss: failRssFor(NG.code),
+    fetchPrevious: vi.fn(async () => previousChartFile({ ng: stalePriorNg })),
+    fetchCommentary: vi.fn(async () => ({})),
+  });
+
+  const result = await crawlAll(deps);
+
+  expect(result.chartFile.countries.ng.tracks[0].commentary).toBeNull();
 });
