@@ -88,6 +88,36 @@ test("ChartFileSchema rejects commentary missing the required lead", () => {
   expect(() => ChartFileSchema.parse(withBadCommentary)).toThrow();
 });
 
+test("ChartFileSchema rejects commentary with an empty sources array", () => {
+  const withEmptySources = {
+    lastUpdated: "2026-05-16T00:00:00.000Z",
+    countries: {
+      kr: {
+        name: "South Korea",
+        valid: true,
+        tracks: [
+          {
+            rank: 1,
+            name: "Test",
+            artist: "Test Artist",
+            previewUrl: null,
+            artworkUrl: "https://art/600x600bb.jpg",
+            appleUrl: "https://music.apple.com/kr/1",
+            spotifySearchUrl: "https://open.spotify.com/search/Test",
+            commentary: {
+              lead: "Has a lead but no sources.",
+              sources: [],
+              generatedAt: "2026-05-16T00:00:00.000Z",
+            },
+          },
+        ],
+      },
+    },
+  };
+
+  expect(() => ChartFileSchema.parse(withEmptySources)).toThrow();
+});
+
 test("ChartFileSchema rejects an empty countries record", () => {
   const empty = {
     lastUpdated: "2026-05-16T00:00:00.000Z",
