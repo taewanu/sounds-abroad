@@ -55,12 +55,17 @@ test("findLyricRisks flags a repeated line", () => {
 
 test("lintCommentary scans lead, detail, and tag", () => {
   const entry = {
-    lead: 'It opens on "na na na la la oh oh my my my" before the verse.',
+    lead: "A clean, lyric-free lead sentence.",
+    detail: 'The hook repeats "na na na la la oh oh my my my" throughout.',
+    tag: "na na na oh\nla la my my\noh oh na na",
     sources: ["https://example.com/a"],
     generatedAt: "2026-05-16T00:00:00.000Z",
   };
 
-  expect(lintCommentary(entry).length).toBeGreaterThan(0);
+  const risks = lintCommentary(entry);
+
+  expect(risks.some((r) => r.rule === "quoted-span")).toBe(true);
+  expect(risks.some((r) => r.rule === "verse-lines")).toBe(true);
 });
 
 test("lintCommentary passes clean prose commentary", () => {
