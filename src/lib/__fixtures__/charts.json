@@ -12,7 +12,17 @@
           "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioFixture/v1/kr-01.m4a",
           "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Fixture/kr-01.jpg/600x600bb.jpg",
           "appleUrl": "https://music.apple.com/kr/album/example-album/1700000001?i=1700000002",
-          "spotifySearchUrl": "https://open.spotify.com/search/%EC%86%8C%EB%AC%B8%EC%9D%98%20%EB%82%99%EC%9B%90%20%EC%95%85%EB%AE%A4"
+          "spotifySearchUrl": "https://open.spotify.com/search/%EC%86%8C%EB%AC%B8%EC%9D%98%20%EB%82%99%EC%9B%90%20%EC%95%85%EB%AE%A4",
+          "commentary": {
+            "lead": "A new entry climbing fast this week.",
+            "detail": "Short context about the track's rise.",
+            "tag": "new entry",
+            "sources": [
+              "https://example.com/source-a",
+              "https://example.com/source-b"
+            ],
+            "generatedAt": "2026-04-25T03:00:00Z"
+          }
         },
         {
           "rank": 2,
@@ -45,7 +55,12 @@
           "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioFixture/v1/us-01.m4a",
           "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Fixture/us-01.jpg/600x600bb.jpg",
           "appleUrl": "https://music.apple.com/us/album/example-album/1700000101?i=1700000102",
-          "spotifySearchUrl": "https://open.spotify.com/search/Espresso%20Sabrina%20Carpenter"
+          "spotifySearchUrl": "https://open.spotify.com/search/Espresso%20Sabrina%20Carpenter",
+          "commentary": {
+            "lead": "A long-running chart favorite.",
+            "sources": ["https://example.com/source-c"],
+            "generatedAt": "2026-04-25T03:00:00Z"
+          }
         },
         {
           "rank": 2,
