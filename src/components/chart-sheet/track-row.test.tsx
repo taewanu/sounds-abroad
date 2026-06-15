@@ -3,7 +3,7 @@ import { describe, expect, test, vi } from "vitest";
 
 import type { AudioEngine } from "@/lib/audio-engine";
 import { type AudioState, createAudioStore } from "@/lib/audio-store";
-import type { Track } from "@/lib/chart-schema";
+import type { Commentary, Track } from "@/lib/chart-schema";
 import { AudioStoreContext } from "@/providers/audio-store-provider";
 
 import { TrackRow } from "./track-row";
@@ -232,5 +232,86 @@ describe("TrackRow", () => {
     });
 
     expect(screen.queryByText(/Preview unavailable/)).toBeNull();
+  });
+});
+
+describe("TrackRow commentary card", () => {
+  const COMMENTARY = {
+    lead: "A new entry climbing fast this week.",
+    detail: "Brief context on why the track is rising.",
+    tag: "new entry",
+    sources: [
+      "https://www.billboard.com/charts",
+      "https://pitchfork.com/reviews",
+    ],
+    generatedAt: "2026-04-25T03:00:00Z",
+  } satisfies Commentary;
+
+  test("renders no affordance when commentary is absent", () => {
+    const track = makeTrack();
+
+    const { container } = renderTrackRow(track);
+
+    expect(container.querySelector("[aria-expanded]")).toBeNull();
+    expect(screen.queryByRole("button", { expanded: false })).toBeNull();
+  });
+
+  test("collapsed: shows tag + lead, panel starts inert", () => {
+    const track = makeTrack({ commentary: COMMENTARY });
+
+    renderTrackRow(track);
+
+    const toggle = screen.getByRole("button", { expanded: false });
+    expect(toggle.textContent).toContain(COMMENTARY.lead);
+    expect(screen.getByText(COMMENTARY.tag)).toBeDefined();
+    const panel = document.getElementById(
+      toggle.getAttribute("aria-controls")!,
+    );
+    expect(panel?.hasAttribute("inert")).toBe(true);
+  });
+
+  test("tapping the teaser expands: aria-expanded flips and the panel un-inerts", () => {
+    const track = makeTrack({ commentary: COMMENTARY });
+
+    renderTrackRow(track);
+    const toggle = screen.getByRole("button", { expanded: false });
+    fireEvent.click(toggle);
+
+    expect(screen.getByRole("button", { expanded: true })).toBeDefined();
+    const panel = document.getElementById(
+      toggle.getAttribute("aria-controls")!,
+    );
+    expect(panel?.hasAttribute("inert")).toBe(false);
+  });
+
+  test("expanded: shows detail and sources as bare hostnames", () => {
+    const track = makeTrack({ commentary: COMMENTARY });
+
+    renderTrackRow(track);
+    fireEvent.click(screen.getByRole("button", { expanded: false }));
+
+    expect(screen.getByText(COMMENTARY.detail)).toBeDefined();
+    const source = screen.getByRole("link", { name: "billboard.com" });
+    expect(source.getAttribute("href")).toBe(COMMENTARY.sources[0]);
+    expect(source.getAttribute("target")).toBe("_blank");
+    expect(source.getAttribute("rel")).toContain("noopener");
+  });
+
+  test("minimal commentary (no tag or detail) still renders the teaser and sources", () => {
+    const track = makeTrack({
+      commentary: {
+        lead: "A long-running chart favorite.",
+        sources: ["https://npr.org/music"],
+        generatedAt: "2026-04-25T03:00:00Z",
+      },
+    });
+
+    renderTrackRow(track);
+    const toggle = screen.getByRole("button", { expanded: false });
+    expect(toggle.textContent).toContain("A long-running chart favorite.");
+
+    fireEvent.click(toggle);
+
+    expect(screen.getByRole("link", { name: "npr.org" })).toBeDefined();
   });
 });
