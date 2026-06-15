@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+const CommentarySchema = z.object({
+  lead: z.string().min(1),
+  detail: z.string().min(1).optional(),
+  tag: z.string().min(1).optional(),
+  sources: z.array(z.url()).min(1),
+  generatedAt: z.iso.datetime(),
+});
+
 const TrackSchema = z.object({
   rank: z.number().int().min(1).max(25),
   name: z.string().min(1),
@@ -8,6 +16,7 @@ const TrackSchema = z.object({
   artworkUrl: z.url(),
   appleUrl: z.url(),
   spotifySearchUrl: z.url(),
+  commentary: CommentarySchema.nullable().optional(),
 });
 
 const CountrySchema = z.object({
@@ -25,6 +34,7 @@ export const ChartFileSchema = z.object({
     }),
 });
 
+export type Commentary = z.infer<typeof CommentarySchema>;
 export type Track = z.infer<typeof TrackSchema>;
 export type Country = z.infer<typeof CountrySchema>;
 export type ChartFile = z.infer<typeof ChartFileSchema>;
