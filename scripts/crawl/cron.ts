@@ -87,8 +87,10 @@ try {
       // tightest slot gap so per-slot check-in windows stay disjoint.
       checkinMargin: 150,
       // Clocks from the in-progress check-in, not the slot, so dispatch
-      // delay never eats into it. Sized to the ~50min crawl runtime.
-      maxRuntime: 90,
+      // delay never eats into it. Sized to the throttled crawl runtime
+      // (~26 requests/country at the 3s gap, ~80min at current coverage),
+      // kept under the 300min tightest slot gap with checkinMargin.
+      maxRuntime: 120,
     },
   );
 } finally {
