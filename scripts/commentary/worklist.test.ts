@@ -33,6 +33,7 @@ function storeWith(...keys: string[]): CommentaryStore {
   for (const key of keys) {
     store[key] = {
       lead: "Already written.",
+      tag: "new entry",
       sources: ["https://example.com/a"],
       generatedAt: "2026-05-16T00:00:00.000Z",
     };

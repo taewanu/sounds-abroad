@@ -167,11 +167,9 @@ export function TrackRow({ track, countryCode }: TrackRowProps) {
             aria-controls={panelId}
             className="focus-visible:outline-aurora flex w-full items-center gap-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2"
           >
-            {commentary.tag ? (
-              <span className="bg-fg-1/5 text-fg-3 text-micro rounded-pill shrink-0 px-2 py-0.5">
-                {commentary.tag}
-              </span>
-            ) : null}
+            <span className="bg-fg-1/5 text-fg-3 text-micro rounded-pill shrink-0 px-2 py-0.5">
+              {commentary.tag}
+            </span>
             <span className="text-fg-2 text-small line-clamp-2 min-w-0 flex-1">
               {commentary.lead}
             </span>
@@ -194,7 +192,7 @@ export function TrackRow({ track, countryCode }: TrackRowProps) {
               ) : null}
               <div className="text-fg-3 text-micro flex flex-wrap items-center gap-y-1">
                 {commentary.sources.map((url, i) => (
-                  <Fragment key={url}>
+                  <Fragment key={`${url}-${i}`}>
                     {i > 0 ? (
                       <span aria-hidden className="text-fg-4 mx-2">
                         ·

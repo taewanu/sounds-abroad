@@ -58,6 +58,7 @@
           "spotifySearchUrl": "https://open.spotify.com/search/Espresso%20Sabrina%20Carpenter",
           "commentary": {
             "lead": "A long-running chart favorite.",
+            "tag": "mainstay",
             "sources": ["https://example.com/source-c"],
             "generatedAt": "2026-04-25T03:00:00Z"
           }

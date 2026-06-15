@@ -10,6 +10,7 @@ function validStore() {
   return {
     [commentaryKey("en", "Artist", "Song")]: {
       lead: "A blurb about the song.",
+      tag: "new entry",
       sources: ["https://example.com/a"],
       generatedAt: "2026-05-16T00:00:00.000Z",
     },

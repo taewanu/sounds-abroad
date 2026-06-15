@@ -297,10 +297,11 @@ describe("TrackRow commentary card", () => {
     expect(source.getAttribute("rel")).toContain("noopener");
   });
 
-  test("minimal commentary (no tag or detail) still renders the teaser and sources", () => {
+  test("minimal commentary (no detail) still renders the teaser and sources", () => {
     const track = makeTrack({
       commentary: {
         lead: "A long-running chart favorite.",
+        tag: "mainstay",
         sources: ["https://npr.org/music"],
         generatedAt: "2026-04-25T03:00:00Z",
       },

@@ -8,7 +8,7 @@ A short, grounded note about a charting track: what the song is about and why it
 
 - `lead` (required): a one-line conclusion, the first thing a reader sees.
 - `detail` (optional): a sentence or two of support, shown when the card expands.
-- `tag` (set one on every blurb): a short keyword. Default to the worklist reason (new entry, rank jump, top debut); a more specific keyword like "viral" is fine when it fits.
+- `tag` (required): a short keyword; default to the worklist reason (new entry, rank jump, top debut), or a more specific one like "viral" when it fits.
 - `sources` (required): the URLs the claims rest on.
 - `generatedAt` (required): ISO timestamp of when the blurb was written.
 

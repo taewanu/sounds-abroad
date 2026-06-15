@@ -76,6 +76,7 @@ test("ChartFileSchema rejects commentary missing the required lead", () => {
             spotifySearchUrl: "https://open.spotify.com/search/Test",
             commentary: {
               detail: "Has detail but no lead.",
+              tag: "new entry",
               sources: ["https://example.com/a"],
               generatedAt: "2026-05-16T00:00:00.000Z",
             },
@@ -106,6 +107,7 @@ test("ChartFileSchema rejects commentary with an empty sources array", () => {
             spotifySearchUrl: "https://open.spotify.com/search/Test",
             commentary: {
               lead: "Has a lead but no sources.",
+              tag: "new entry",
               sources: [],
               generatedAt: "2026-05-16T00:00:00.000Z",
             },
@@ -116,6 +118,36 @@ test("ChartFileSchema rejects commentary with an empty sources array", () => {
   };
 
   expect(() => ChartFileSchema.parse(withEmptySources)).toThrow();
+});
+
+test("ChartFileSchema rejects commentary missing the required tag", () => {
+  const withNoTag = {
+    lastUpdated: "2026-05-16T00:00:00.000Z",
+    countries: {
+      kr: {
+        name: "South Korea",
+        valid: true,
+        tracks: [
+          {
+            rank: 1,
+            name: "Test",
+            artist: "Test Artist",
+            previewUrl: null,
+            artworkUrl: "https://art/600x600bb.jpg",
+            appleUrl: "https://music.apple.com/kr/1",
+            spotifySearchUrl: "https://open.spotify.com/search/Test",
+            commentary: {
+              lead: "Has a lead but no tag.",
+              sources: ["https://example.com/a"],
+              generatedAt: "2026-05-16T00:00:00.000Z",
+            },
+          },
+        ],
+      },
+    },
+  };
+
+  expect(() => ChartFileSchema.parse(withNoTag)).toThrow();
 });
 
 test("ChartFileSchema rejects an empty countries record", () => {
