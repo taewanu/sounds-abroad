@@ -3,7 +3,7 @@ import { z } from "zod";
 export const CommentarySchema = z.object({
   lead: z.string().min(1),
   detail: z.string().min(1).optional(),
-  tag: z.string().min(1).optional(),
+  tag: z.string().min(1),
   sources: z.array(z.url()).min(1),
   generatedAt: z.iso.datetime(),
 });

@@ -218,6 +218,7 @@ function makeCrawlAllDeps(input: {
 function commentaryEntry(lead: string) {
   return {
     lead,
+    tag: "new entry",
     sources: ["https://example.com/a"],
     generatedAt: "2026-05-15T00:00:00.000Z",
   };
