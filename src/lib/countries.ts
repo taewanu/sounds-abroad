@@ -10,7 +10,7 @@ export interface CountryEntry {
 }
 
 export const COUNTRIES: readonly CountryEntry[] = [
-  // Americas (8)
+  // Americas (12)
   {
     code: "us",
     name: "United States",
@@ -75,8 +75,40 @@ export const COUNTRIES: readonly CountryEntry[] = [
     lon: -77.052,
     isoNum: 604,
   },
+  {
+    code: "pa",
+    name: "Panama",
+    region: "Americas",
+    lat: 8.9824,
+    lon: -79.5199,
+    isoNum: 591,
+  },
+  {
+    code: "ec",
+    name: "Ecuador",
+    region: "Americas",
+    lat: -0.1807,
+    lon: -78.4678,
+    isoNum: 218,
+  },
+  {
+    code: "py",
+    name: "Paraguay",
+    region: "Americas",
+    lat: -25.2637,
+    lon: -57.5759,
+    isoNum: 600,
+  },
+  {
+    code: "uy",
+    name: "Uruguay",
+    region: "Americas",
+    lat: -34.9011,
+    lon: -56.1645,
+    isoNum: 858,
+  },
 
-  // Europe (14)
+  // Europe (20)
   {
     code: "gb",
     name: "United Kingdom",
@@ -189,8 +221,56 @@ export const COUNTRIES: readonly CountryEntry[] = [
     lon: 32.8624,
     isoNum: 792,
   },
+  {
+    code: "at",
+    name: "Austria",
+    region: "Europe",
+    lat: 48.2082,
+    lon: 16.3738,
+    isoNum: 40,
+  },
+  {
+    code: "be",
+    name: "Belgium",
+    region: "Europe",
+    lat: 50.8503,
+    lon: 4.3517,
+    isoNum: 56,
+  },
+  {
+    code: "ba",
+    name: "Bosnia and Herzegovina",
+    region: "Europe",
+    lat: 43.8563,
+    lon: 18.4131,
+    isoNum: 70,
+  },
+  {
+    code: "hr",
+    name: "Croatia",
+    region: "Europe",
+    lat: 45.815,
+    lon: 15.9819,
+    isoNum: 191,
+  },
+  {
+    code: "cz",
+    name: "Czechia",
+    region: "Europe",
+    lat: 50.0755,
+    lon: 14.4378,
+    isoNum: 203,
+  },
+  {
+    code: "ch",
+    name: "Switzerland",
+    region: "Europe",
+    lat: 46.948,
+    lon: 7.4474,
+    isoNum: 756,
+  },
 
-  // Asia (14)
+  // Asia (18)
   {
     code: "jp",
     name: "Japan",
@@ -303,6 +383,38 @@ export const COUNTRIES: readonly CountryEntry[] = [
     lon: 34.7681,
     isoNum: 376,
   },
+  {
+    code: "iq",
+    name: "Iraq",
+    region: "Asia",
+    lat: 33.3152,
+    lon: 44.3661,
+    isoNum: 368,
+  },
+  {
+    code: "jo",
+    name: "Jordan",
+    region: "Asia",
+    lat: 31.9539,
+    lon: 35.9106,
+    isoNum: 400,
+  },
+  {
+    code: "qa",
+    name: "Qatar",
+    region: "Asia",
+    lat: 25.2854,
+    lon: 51.531,
+    isoNum: 634,
+  },
+  {
+    code: "uz",
+    name: "Uzbekistan",
+    region: "Asia",
+    lat: 41.2995,
+    lon: 69.2401,
+    isoNum: 860,
+  },
 
   // Oceania (2)
   {
@@ -322,7 +434,7 @@ export const COUNTRIES: readonly CountryEntry[] = [
     isoNum: 554,
   },
 
-  // Africa (2)
+  // Africa (11)
   {
     code: "za",
     name: "South Africa",
@@ -338,5 +450,77 @@ export const COUNTRIES: readonly CountryEntry[] = [
     lat: 9.0853,
     lon: 7.5314,
     isoNum: 566,
+  },
+  {
+    code: "dz",
+    name: "Algeria",
+    region: "Africa",
+    lat: 36.7538,
+    lon: 3.0588,
+    isoNum: 12,
+  },
+  {
+    code: "cv",
+    name: "Cabo Verde",
+    region: "Africa",
+    lat: 14.9315,
+    lon: -23.5125,
+    isoNum: 132,
+  },
+  {
+    code: "cd",
+    name: "DR Congo",
+    region: "Africa",
+    lat: -4.4419,
+    lon: 15.2663,
+    isoNum: 180,
+  },
+  {
+    code: "ci",
+    name: "Côte d'Ivoire",
+    region: "Africa",
+    lat: 6.8276,
+    lon: -5.2893,
+    isoNum: 384,
+  },
+  {
+    code: "eg",
+    name: "Egypt",
+    region: "Africa",
+    lat: 30.0444,
+    lon: 31.2357,
+    isoNum: 818,
+  },
+  {
+    code: "gh",
+    name: "Ghana",
+    region: "Africa",
+    lat: 5.6037,
+    lon: -0.187,
+    isoNum: 288,
+  },
+  {
+    code: "ma",
+    name: "Morocco",
+    region: "Africa",
+    lat: 34.0209,
+    lon: -6.8416,
+    isoNum: 504,
+  },
+  {
+    code: "sn",
+    name: "Senegal",
+    region: "Africa",
+    lat: 14.7167,
+    lon: -17.4677,
+    isoNum: 686,
+  },
+  {
+    code: "tn",
+    name: "Tunisia",
+    region: "Africa",
+    lat: 36.8065,
+    lon: 10.1815,
+    isoNum: 788,
   },
 ];

@@ -10,7 +10,7 @@ const realTopology = JSON.parse(
   readFileSync(join(process.cwd(), "public/data/countries-50m.json"), "utf-8"),
 );
 
-test("buildCountryOutlines splits 40-set countries from others by isoNum", () => {
+test("buildCountryOutlines splits chart-set countries from others by isoNum", () => {
   const outlines = buildCountryOutlines(realTopology);
 
   expect(outlines.byIso.has(410)).toBe(true);
@@ -30,7 +30,7 @@ test("buildCountryOutlines emits line-segment pairs (each segment = 6 floats)", 
   expect(outlines.tier2Positions.length % 6).toBe(0);
 });
 
-test("buildCountryOutlines includes a non-empty geometry for every 40-set country", () => {
+test("buildCountryOutlines includes a non-empty geometry for every chart-set country", () => {
   const outlines = buildCountryOutlines(realTopology);
 
   for (const country of COUNTRIES) {
@@ -46,7 +46,7 @@ test("buildCountryOutlines includes a non-empty geometry for every 40-set countr
   }
 });
 
-test("buildCountryOutlines exposes lat/lon rings for every 40-set country", () => {
+test("buildCountryOutlines exposes lat/lon rings for every chart-set country", () => {
   const outlines = buildCountryOutlines(realTopology);
 
   for (const country of COUNTRIES) {

@@ -13,7 +13,7 @@ export interface CountryOutlines {
   byIsoRings: Map<number, CountryRings>;
 }
 
-const SET_40_ISO_NUMS = new Set(COUNTRIES.map((c) => c.isoNum));
+const CHART_COUNTRY_ISO_NUMS = new Set(COUNTRIES.map((c) => c.isoNum));
 
 export function buildCountryOutlines(
   topology: Topology<{ countries: GeometryCollection }>,
@@ -27,7 +27,7 @@ export function buildCountryOutlines(
 
   for (const f of collection.features) {
     const id = parseFeatureId(f.id);
-    const inSet = !Number.isNaN(id) && SET_40_ISO_NUMS.has(id);
+    const inSet = !Number.isNaN(id) && CHART_COUNTRY_ISO_NUMS.has(id);
     const rings = polygonToLatLonRings(f.geometry);
 
     const segmentTarget = inSet ? tier2Buffers : tier1Buffers;
