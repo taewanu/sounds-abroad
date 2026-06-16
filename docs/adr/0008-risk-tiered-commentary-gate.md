@@ -6,7 +6,7 @@ Supersedes the trust model of [ADR-0007](0007-out-of-band-human-curated-commenta
 
 ## Context
 
-ADR-0007 made the human read-through the load-bearing guard for commentary: a person reads every blurb before publish, and the deterministic checks (schema, no-lyric lint) are a backstop. v1.2.0 then moved the goal toward automation. Slice C (#101) made the `tag` field schema-required, motivated by treating commentary as an automated pipeline where per-blurb human review cannot be relied on. The two premises diverge: "human review is load-bearing" against "the pipeline cannot lean on per-entry human review."
+ADR-0007 made the human read-through the load-bearing guard for commentary: a person reads every blurb before publish, and the deterministic checks (schema, no-lyric lint) are a backstop. v1.2.0 then moved the goal toward automation: the `tag` field was made schema-required, motivated by treating commentary as an automated pipeline where per-blurb human review cannot be relied on. The two premises diverge: "human review is load-bearing" against "the pipeline cannot lean on per-entry human review."
 
 Inspecting the guards in code sharpens the conflict. They defend two different risk axes, and the axes are not equally covered:
 
