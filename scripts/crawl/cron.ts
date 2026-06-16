@@ -28,6 +28,13 @@ const previousUrl = process.env.CHARTS_BLOB_URL;
 // Session-owned commentary store, baked into the served charts when present.
 // The crawl only reads it (ADR-0007). Absent → no commentary this run.
 const commentaryUrl = process.env.COMMENTARY_BLOB_URL;
+if (!commentaryUrl) {
+  // Optional by design, so absence must not abort; warn so a missing wire
+  // surfaces in the run output instead of silently skipping all commentary.
+  console.warn(
+    "[crawl] COMMENTARY_BLOB_URL not set: commentary will not be baked this run.",
+  );
+}
 
 // Short-lived process: must flush before exit so the monitor check-in + the
 // charts:published message actually reach Sentry. withMonitor returning is not
