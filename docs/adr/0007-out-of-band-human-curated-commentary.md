@@ -1,6 +1,6 @@
 # ADR-0007: Out-of-band human-curated commentary
 
-**Status:** Accepted (2026-06-15)
+**Status:** Accepted (2026-06-15). Trust model partially superseded by [ADR-0008](0008-risk-tiered-commentary-gate.md) (2026-06-16): the primary guard moves from a uniform human read-through to a risk-tiered code gate. The rest of this record (out-of-band generation, the Blob sidecar, the crawl contract, the significance trigger, the no-lyric lint) stands.
 
 ## Context
 
