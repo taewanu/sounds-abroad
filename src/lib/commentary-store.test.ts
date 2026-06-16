@@ -42,6 +42,7 @@ test("commentaryForTrack returns the stored blurb on a key match", () => {
   const entry = {
     lead: "A blurb.",
     tag: "new entry",
+    claim: "why-charting" as const,
     sources: ["https://example.com/a"],
     generatedAt: "2026-05-16T00:00:00.000Z",
   };

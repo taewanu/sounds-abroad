@@ -240,6 +240,7 @@ describe("TrackRow commentary card", () => {
     lead: "A new entry climbing fast this week.",
     detail: "Brief context on why the track is rising.",
     tag: "new entry",
+    claim: "why-charting",
     sources: [
       "https://www.billboard.com/charts",
       "https://pitchfork.com/reviews",
@@ -302,6 +303,7 @@ describe("TrackRow commentary card", () => {
       commentary: {
         lead: "A long-running chart favorite.",
         tag: "mainstay",
+        claim: "what-it-is",
         sources: ["https://npr.org/music"],
         generatedAt: "2026-04-25T03:00:00Z",
       },

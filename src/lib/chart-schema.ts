@@ -1,9 +1,17 @@
 import { z } from "zod";
 
+/**
+ * Which kind of claim a blurb makes, set at authoring time. `what-it-is` is a
+ * stable note about the song itself; `why-charting` is a time-sensitive note
+ * about its current chart movement, which carries a higher risk of going stale.
+ */
+export const ClaimSchema = z.enum(["what-it-is", "why-charting"]);
+
 export const CommentarySchema = z.object({
   lead: z.string().min(1),
   detail: z.string().min(1).optional(),
   tag: z.string().min(1),
+  claim: ClaimSchema,
   sources: z.array(z.url()).min(1),
   generatedAt: z.iso.datetime(),
 });
@@ -34,6 +42,7 @@ export const ChartFileSchema = z.object({
     }),
 });
 
+export type Claim = z.infer<typeof ClaimSchema>;
 export type Commentary = z.infer<typeof CommentarySchema>;
 export type Track = z.infer<typeof TrackSchema>;
 export type Country = z.infer<typeof CountrySchema>;

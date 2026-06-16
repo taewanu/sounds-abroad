@@ -58,6 +58,7 @@ test("lintCommentary scans lead, detail, and tag", () => {
     lead: "A clean, lyric-free lead sentence.",
     detail: 'The hook repeats "na na na la la oh oh my my my" throughout.',
     tag: "na na na oh\nla la my my\noh oh na na",
+    claim: "what-it-is" as const,
     sources: ["https://example.com/a"],
     generatedAt: "2026-05-16T00:00:00.000Z",
   };
@@ -74,6 +75,7 @@ test("lintCommentary passes clean prose commentary", () => {
     detail:
       "The duo's first charting entry; momentum built over three weeks of streaming growth.",
     tag: "new entry",
+    claim: "why-charting" as const,
     sources: ["https://example.com/a", "https://example.com/b"],
     generatedAt: "2026-05-16T00:00:00.000Z",
   };

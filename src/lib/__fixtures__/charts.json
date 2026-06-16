@@ -17,6 +17,7 @@
             "lead": "A new entry climbing fast this week.",
             "detail": "Short context about the track's rise.",
             "tag": "new entry",
+            "claim": "why-charting",
             "sources": [
               "https://example.com/source-a",
               "https://example.com/source-b"
@@ -59,6 +60,7 @@
           "commentary": {
             "lead": "A long-running chart favorite.",
             "tag": "mainstay",
+            "claim": "what-it-is",
             "sources": ["https://example.com/source-c"],
             "generatedAt": "2026-04-25T03:00:00Z"
           }
