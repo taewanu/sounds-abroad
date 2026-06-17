@@ -11,7 +11,7 @@ function validEntry() {
     lead: "A clean blurb about the song.",
     tag: "new entry",
     claim: "why-charting",
-    sources: ["https://example.com/a"],
+    sources: ["https://www.billboard.com/a", "https://pitchfork.com/b"],
     generatedAt: "2026-05-16T00:00:00.000Z",
   };
 }
@@ -49,5 +49,38 @@ test("blocks an entry that trips the no-lyric lint", () => {
   expect(result.ok).toBe(false);
   if (!result.ok) {
     expect(result.errors.some((e) => e.startsWith("no-lyric"))).toBe(true);
+  }
+});
+
+test("blocks an entry sourced from a denylisted domain", () => {
+  const store = {
+    [KEY]: {
+      ...validEntry(),
+      sources: ["https://www.billboard.com/a", "https://www.azlyrics.com/b"],
+    },
+  };
+
+  const result = prepublishCheck(store);
+
+  expect(result.ok).toBe(false);
+  if (!result.ok) {
+    expect(result.errors.some((e) => e.startsWith("source-authority"))).toBe(
+      true,
+    );
+  }
+});
+
+test("blocks an entry with too few sources", () => {
+  const store = {
+    [KEY]: { ...validEntry(), sources: ["https://www.billboard.com/a"] },
+  };
+
+  const result = prepublishCheck(store);
+
+  expect(result.ok).toBe(false);
+  if (!result.ok) {
+    expect(result.errors.some((e) => e.startsWith("source-authority"))).toBe(
+      true,
+    );
   }
 });
