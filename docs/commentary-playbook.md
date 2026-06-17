@@ -9,6 +9,7 @@ A short, grounded note about a charting track: what the song is about and why it
 - `lead` (required): a one-line conclusion, the first thing a reader sees.
 - `detail` (optional): a sentence or two of support, shown when the card expands.
 - `tag` (required): a short keyword; default to the worklist reason (new entry, rank jump, top debut), or a more specific one like "viral" when it fits.
+- `claim` (required): which kind of claim the blurb makes, `what-it-is` or `why-charting`. See "Classifying the claim" below.
 - `sources` (required): the URLs the claims rest on.
 - `generatedAt` (required): ISO timestamp of when the blurb was written.
 
@@ -22,6 +23,15 @@ It is never the song's lyrics. Commentary describes a song; it does not reproduc
 4. **Read every blurb** before publishing: no reproduced lyrics, claims match the sources, no overstatement. This read-through is the real guard; the lint is only a backstop.
 5. **Publish.** Run `pnpm commentary:publish <file>`. It hard-blocks on the schema and the no-lyric lint, backs up the live store, then uploads. A blocked publish uploads nothing.
 6. **Spot-check** the card on the site.
+
+## Classifying the claim
+
+Set `claim` to the blurb's risk tier, judged by its `lead`. The two tiers differ in how fast they go stale:
+
+- `what-it-is`: a stable note about the song itself. What it is about, its genre or mood, the artist, how it was made. These claims hold whether the track is at rank 1 or rank 50, so they age slowly. Example lead: "A long-running chart favorite."
+- `why-charting`: a time-sensitive note about the track's current chart movement. Why it entered, jumped, or went viral this week. These claims rest on a moment and go stale when the moment passes, so they carry higher risk. Example lead: "A new entry climbing fast this week."
+
+Classify by what the lead asserts, not by the worklist reason. If a blurb makes both kinds of claim, take the higher-risk tier: a lead that explains why a song is moving is `why-charting` even when it also says what the song is about. When the "why it is charting" claim does not clear the two-source bar, fall back to a `what-it-is` blurb rather than guessing.
 
 ## Source-authority policy
 

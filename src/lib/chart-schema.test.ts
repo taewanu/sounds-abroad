@@ -77,6 +77,7 @@ test("ChartFileSchema rejects commentary missing the required lead", () => {
             commentary: {
               detail: "Has detail but no lead.",
               tag: "new entry",
+              claim: "why-charting",
               sources: ["https://example.com/a"],
               generatedAt: "2026-05-16T00:00:00.000Z",
             },
@@ -108,6 +109,7 @@ test("ChartFileSchema rejects commentary with an empty sources array", () => {
             commentary: {
               lead: "Has a lead but no sources.",
               tag: "new entry",
+              claim: "why-charting",
               sources: [],
               generatedAt: "2026-05-16T00:00:00.000Z",
             },
@@ -138,6 +140,7 @@ test("ChartFileSchema rejects commentary missing the required tag", () => {
             spotifySearchUrl: "https://open.spotify.com/search/Test",
             commentary: {
               lead: "Has a lead but no tag.",
+              claim: "why-charting",
               sources: ["https://example.com/a"],
               generatedAt: "2026-05-16T00:00:00.000Z",
             },
@@ -148,6 +151,117 @@ test("ChartFileSchema rejects commentary missing the required tag", () => {
   };
 
   expect(() => ChartFileSchema.parse(withNoTag)).toThrow();
+});
+
+test("ChartFileSchema rejects commentary missing the required claim", () => {
+  const withNoClaim = {
+    lastUpdated: "2026-05-16T00:00:00.000Z",
+    countries: {
+      kr: {
+        name: "South Korea",
+        valid: true,
+        tracks: [
+          {
+            rank: 1,
+            name: "Test",
+            artist: "Test Artist",
+            previewUrl: null,
+            artworkUrl: "https://art/600x600bb.jpg",
+            appleUrl: "https://music.apple.com/kr/1",
+            spotifySearchUrl: "https://open.spotify.com/search/Test",
+            commentary: {
+              lead: "Has a lead but no claim.",
+              tag: "new entry",
+              sources: ["https://example.com/a"],
+              generatedAt: "2026-05-16T00:00:00.000Z",
+            },
+          },
+        ],
+      },
+    },
+  };
+
+  expect(() => ChartFileSchema.parse(withNoClaim)).toThrow();
+});
+
+test("ChartFileSchema rejects a claim outside the allowed set", () => {
+  const withUnknownClaim = {
+    lastUpdated: "2026-05-16T00:00:00.000Z",
+    countries: {
+      kr: {
+        name: "South Korea",
+        valid: true,
+        tracks: [
+          {
+            rank: 1,
+            name: "Test",
+            artist: "Test Artist",
+            previewUrl: null,
+            artworkUrl: "https://art/600x600bb.jpg",
+            appleUrl: "https://music.apple.com/kr/1",
+            spotifySearchUrl: "https://open.spotify.com/search/Test",
+            commentary: {
+              lead: "Has a lead and a bogus claim.",
+              tag: "new entry",
+              claim: "rank-jump",
+              sources: ["https://example.com/a"],
+              generatedAt: "2026-05-16T00:00:00.000Z",
+            },
+          },
+        ],
+      },
+    },
+  };
+
+  expect(() => ChartFileSchema.parse(withUnknownClaim)).toThrow();
+});
+
+test("ChartFileSchema accepts both allowed claim values", () => {
+  const withBothClaims = {
+    lastUpdated: "2026-05-16T00:00:00.000Z",
+    countries: {
+      kr: {
+        name: "South Korea",
+        valid: true,
+        tracks: [
+          {
+            rank: 1,
+            name: "What It Is",
+            artist: "Test Artist",
+            previewUrl: null,
+            artworkUrl: "https://art/600x600bb.jpg",
+            appleUrl: "https://music.apple.com/kr/1",
+            spotifySearchUrl: "https://open.spotify.com/search/WhatItIs",
+            commentary: {
+              lead: "A stable note about the song itself.",
+              tag: "mainstay",
+              claim: "what-it-is",
+              sources: ["https://example.com/a"],
+              generatedAt: "2026-05-16T00:00:00.000Z",
+            },
+          },
+          {
+            rank: 2,
+            name: "Why Charting",
+            artist: "Test Artist",
+            previewUrl: null,
+            artworkUrl: "https://art/600x600bb.jpg",
+            appleUrl: "https://music.apple.com/kr/2",
+            spotifySearchUrl: "https://open.spotify.com/search/WhyCharting",
+            commentary: {
+              lead: "A time-sensitive note about the climb.",
+              tag: "new entry",
+              claim: "why-charting",
+              sources: ["https://example.com/b"],
+              generatedAt: "2026-05-16T00:00:00.000Z",
+            },
+          },
+        ],
+      },
+    },
+  };
+
+  expect(() => ChartFileSchema.parse(withBothClaims)).not.toThrow();
 });
 
 test("ChartFileSchema rejects an empty countries record", () => {
