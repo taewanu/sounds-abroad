@@ -6,7 +6,7 @@ import {
   type CommentaryStore,
 } from "../../src/lib/commentary-store";
 
-import { computeWorklist } from "./worklist";
+import { chartConfidence, computeWorklist } from "./worklist";
 
 function track(rank: number, artist: string, name: string): Track {
   return {
@@ -178,4 +178,94 @@ test("sorts the worklist by best rank ascending", () => {
   const items = computeWorklist({ current, previous: null, commentary: {} });
 
   expect(items.map((i) => i.name)).toEqual(["First", "Second", "Third"]);
+});
+
+test("chartConfidence flags a lone-storefront placement as low", () => {
+  const level = chartConfidence([{ cc: "jp" }]);
+
+  expect(level).toBe("low");
+});
+
+test("chartConfidence still flags a same-region pair as low (adjacency alone is thin)", () => {
+  const level = chartConfidence([{ cc: "jp" }, { cc: "kr" }]);
+
+  expect(level).toBe("low");
+});
+
+test("chartConfidence trusts a placement reaching across two regions", () => {
+  const level = chartConfidence([{ cc: "jp" }, { cc: "us" }]);
+
+  expect(level).toBe("ok");
+});
+
+test("chartConfidence trusts a broad same-region footprint of three countries", () => {
+  const level = chartConfidence([{ cc: "jp" }, { cc: "kr" }, { cc: "tw" }]);
+
+  expect(level).toBe("ok");
+});
+
+test("flags a thin-market top placement with no breadth as low confidence", () => {
+  const current = chart({
+    jp: country("Japan", [track(1, "Artist A", "Deep Cut")]),
+  });
+
+  const items = computeWorklist({ current, previous: null, commentary: {} });
+
+  expect(items.map((i) => i.name)).toEqual(["Deep Cut"]);
+  expect(items[0].confidence).toBe("low");
+});
+
+test("flags a placement in two same-region storefronts as low confidence", () => {
+  const current = chart({
+    jp: country("Japan", [track(1, "Artist A", "Regional Quirk")]),
+    kr: country("South Korea", [track(2, "Artist A", "Regional Quirk")]),
+  });
+
+  const items = computeWorklist({ current, previous: null, commentary: {} });
+
+  expect(items.map((i) => i.name)).toEqual(["Regional Quirk"]);
+  expect(items[0].confidence).toBe("low");
+});
+
+test("trusts a genuine broad mover charting across countries", () => {
+  const current = chart({
+    us: country("United States", [track(3, "Artist A", "Hit")]),
+    de: country("Germany", [track(5, "Artist A", "Hit")]),
+    kr: country("South Korea", [track(7, "Artist A", "Hit")]),
+  });
+
+  const items = computeWorklist({ current, previous: null, commentary: {} });
+
+  expect(items.map((i) => i.name)).toEqual(["Hit"]);
+  expect(items[0].confidence).toBe("ok");
+});
+
+test("down-ranks low-confidence items below confident ones by default", () => {
+  const current = chart({
+    jp: country("Japan", [track(1, "Artist A", "Thin #1")]),
+    us: country("United States", [track(8, "Artist B", "Broad Mover")]),
+    kr: country("South Korea", [track(9, "Artist B", "Broad Mover")]),
+  });
+
+  const items = computeWorklist({ current, previous: null, commentary: {} });
+
+  expect(items.map((i) => i.name)).toEqual(["Broad Mover", "Thin #1"]);
+  expect(items.map((i) => i.confidence)).toEqual(["ok", "low"]);
+});
+
+test("suppresses low-confidence items entirely when asked", () => {
+  const current = chart({
+    jp: country("Japan", [track(1, "Artist A", "Thin #1")]),
+    us: country("United States", [track(8, "Artist B", "Broad Mover")]),
+    kr: country("South Korea", [track(9, "Artist B", "Broad Mover")]),
+  });
+
+  const items = computeWorklist({
+    current,
+    previous: null,
+    commentary: {},
+    options: { suppressLowConfidence: true },
+  });
+
+  expect(items.map((i) => i.name)).toEqual(["Broad Mover"]);
 });

@@ -28,7 +28,18 @@ const commentary = commentaryUrl
   ? ((await fetchCommentaryStore(commentaryUrl)) ?? {})
   : {};
 
-const worklist = computeWorklist({ current, previous, commentary });
+// Drop thin-market low-confidence positions instead of just down-ranking them,
+// so a focused pass writes only solid stories. See --json for the full list.
+const suppressLowConfidence = process.argv.includes(
+  "--suppress-low-confidence",
+);
+
+const worklist = computeWorklist({
+  current,
+  previous,
+  commentary,
+  options: { suppressLowConfidence },
+});
 
 if (process.argv.includes("--json")) {
   console.log(JSON.stringify(worklist, null, 2));
@@ -36,7 +47,8 @@ if (process.argv.includes("--json")) {
   console.log(`${worklist.length} track(s) to write:\n`);
   for (const item of worklist) {
     const where = item.countries.map((c) => `${c.cc}#${c.rank}`).join(", ");
-    console.log(`  [${item.reason}] ${item.name} by ${item.artist}`);
+    const flag = item.confidence === "low" ? " [low-confidence]" : "";
+    console.log(`  [${item.reason}]${flag} ${item.name} by ${item.artist}`);
     console.log(`      key: ${item.key}`);
     console.log(`      best rank ${item.bestRank} · ${where}\n`);
   }

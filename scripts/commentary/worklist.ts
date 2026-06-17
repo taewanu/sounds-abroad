@@ -4,6 +4,7 @@ import {
   commentaryKey,
   type CommentaryStore,
 } from "../../src/lib/commentary-store";
+import { COUNTRIES, type Region } from "../../src/lib/countries";
 
 /**
  * The worklist for a refinement pass: which charting tracks still need a blurb.
@@ -20,6 +21,7 @@ export interface WorklistItem {
   name: string;
   bestRank: number;
   reason: WorklistReason;
+  confidence: ConfidenceLevel;
   countries: { cc: string; rank: number }[];
 }
 
@@ -29,6 +31,12 @@ export interface WorklistOptions {
   jumpBy?: number;
   /** Entering this rank or better counts as significant. */
   topDebutMax?: number;
+  /**
+   * Drop low-confidence positions entirely instead of down-ranking them. Default
+   * false: they stay on the list but sort after every confident item, so a pass
+   * spends effort on solid stories first and reaches thin-market noise last.
+   */
+  suppressLowConfidence?: boolean;
 }
 
 const DEFAULT_JUMP_BY = 10;
@@ -65,6 +73,51 @@ function aggregateByKey(
     }
   }
   return byKey;
+}
+
+/**
+ * Whether a track's chart footprint is solid enough to be worth writing about,
+ * orthogonal to how far it moved. The artifact this guards against: an album
+ * deep cut sitting near the top of one or two small storefronts and nowhere
+ * else, with no broad reach. Such a position is most likely a thin-market quirk,
+ * not a real story.
+ *
+ * Confidence is "ok" only on genuine breadth, since we hold no artist-home-market
+ * data and, by default, no day-over-day volatility. Two signals stand in for it:
+ *   1. cross-region reach: charting in 2+ distinct regions (a hit spilling past
+ *      its home region), or
+ *   2. a broad same-region footprint: 3+ distinct countries even within one
+ *      region (sustained regional reach, not a one-off storefront).
+ * Anything thinner is "low": a lone storefront, or two storefronts that share a
+ * region (adjacent markets alone don't separate a real regional hit from a
+ * thin-market quirk). Adjacency is necessary but not sufficient; breadth is.
+ */
+export type ConfidenceLevel = "low" | "ok";
+
+const BROAD_FOOTPRINT_MIN = 3;
+
+const REGION_BY_CC = new Map<string, Region>(
+  COUNTRIES.map((c) => [c.code, c.region]),
+);
+
+export function chartConfidence(
+  countries: readonly { cc: string }[],
+): ConfidenceLevel {
+  const distinctCountries = new Set(countries.map((c) => c.cc));
+  const distinctRegions = new Set<Region>();
+  for (const cc of distinctCountries) {
+    const region = REGION_BY_CC.get(cc);
+    if (region) distinctRegions.add(region);
+  }
+
+  // Spilled past one region: a hit, not a single-market quirk.
+  if (distinctRegions.size > 1) return "ok";
+
+  // Broad reach within a single region still reads as a real story.
+  if (distinctCountries.size >= BROAD_FOOTPRINT_MIN) return "ok";
+
+  // A lone storefront, or a same-region pair: too thin to trust.
+  return "low";
 }
 
 function bestRankByKey(
@@ -112,6 +165,7 @@ export function computeWorklist(input: {
   const lang = input.options?.lang ?? DEFAULT_LANG;
   const jumpBy = input.options?.jumpBy ?? DEFAULT_JUMP_BY;
   const topDebutMax = input.options?.topDebutMax ?? DEFAULT_TOP_DEBUT_MAX;
+  const suppressLowConfidence = input.options?.suppressLowConfidence ?? false;
 
   const current = aggregateByKey(input.current, lang);
   const previousBest = bestRankByKey(input.previous, lang);
@@ -128,17 +182,26 @@ export function computeWorklist(input: {
       topDebutMax,
     );
     if (!reason) continue;
+    const confidence = chartConfidence(agg.countries);
+    if (confidence === "low" && suppressLowConfidence) continue;
     items.push({
       key,
       artist: agg.artist,
       name: agg.name,
       bestRank: agg.bestRank,
       reason,
+      confidence,
       countries: [...agg.countries].sort((a, b) => a.rank - b.rank),
     });
   }
 
+  // Confident items first so a pass spends effort on them before any retained
+  // low-confidence ones; within a tier, by best rank then key for stability.
+  const confidenceWeight = (c: ConfidenceLevel) => (c === "low" ? 1 : 0);
   return items.sort(
-    (a, b) => a.bestRank - b.bestRank || a.key.localeCompare(b.key),
+    (a, b) =>
+      confidenceWeight(a.confidence) - confidenceWeight(b.confidence) ||
+      a.bestRank - b.bestRank ||
+      a.key.localeCompare(b.key),
   );
 }
