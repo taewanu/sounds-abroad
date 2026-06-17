@@ -10,6 +10,7 @@ function validEntry() {
   return {
     lead: "A clean blurb about the song.",
     tag: "new entry",
+    claim: "why-charting",
     sources: ["https://www.billboard.com/a", "https://pitchfork.com/b"],
     generatedAt: "2026-05-16T00:00:00.000Z",
   };

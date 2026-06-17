@@ -6,6 +6,7 @@ function entry(sources: string[]) {
   return {
     lead: "A grounded note about the song.",
     tag: "new entry",
+    claim: "why-charting" as const,
     sources,
     generatedAt: "2026-05-16T00:00:00.000Z",
   };
