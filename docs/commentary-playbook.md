@@ -53,3 +53,15 @@ Card copy follows the house writing principles, tuned for a fast read:
 ## The no-lyric guard
 
 Publishing runs a deterministic lint that flags lyric-shaped content: long double-quoted runs, several short enjambed lines, and repeated lines. It is tuned to flag rather than miss, so it can flag a legitimate long quote or a list. When that happens, reword the copy or confirm it carries no lyrics and adjust. The lint cannot prove the absence of lyrics, which is why the read-through in step 4 is the load-bearing check.
+
+## The grounding check
+
+The automated accuracy guard, added by [ADR-0008](adr/0008-risk-tiered-commentary-gate.md) and made the sole gate by [ADR-0009](adr/0009-fully-automated-commentary-gate.md): an LLM confirms that a blurb's cited sources actually state its claims, in place of a human's claim-to-source read. Both tiers run it; a blurb that fails is dropped (no card), never queued for a person.
+
+**Threshold: the source must STATE the claim.** A claim is grounded only when a source explicitly states it. Being merely consistent with a source, or not contradicted by one, is not enough. The judge prompt encodes this threshold and asks for a three-way answer, `grounded`, `ungrounded`, or `uncertain`, so "I cannot tell" is a first-class verdict rather than a coin flip between pass and fail.
+
+**Fail-closed.** Only a confident `grounded` lets a blurb through. `ungrounded`, `uncertain`, a malformed answer, and a judge error all resolve to not-grounded, which drops the card. A missed ungrounded claim auto-publishes a wrong public claim; a dropped card costs only coverage. The check errs toward the cheaper mistake.
+
+**Scope.** It grounds the lead and optional detail against the cited sources, counting a claim as grounded when any one source states it. The `tag` is not grounded. On a partial fetch failure the judge reads whichever sources loaded: a claim whose only support was unreachable simply reads as ungrounded and drops. Only when every source is unreachable is the card dropped without judging.
+
+**Backend.** The judge runs through the local Claude Code binary (`claude -p` with structured output), the only sanctioned way to spend the Claude subscription programmatically: the raw API rejects subscription OAuth and the consumer terms forbid reusing that token elsewhere. Each call carries a fixed harness cost billed against subscription quota, not dollars, so the check fits the current low-volume passes. A high-volume drafting pass would swap the backend for a metered API key, which touches only the injected client, not the verdict logic.

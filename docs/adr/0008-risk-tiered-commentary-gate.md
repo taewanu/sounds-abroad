@@ -4,6 +4,8 @@
 
 Supersedes the trust model of [ADR-0007](0007-out-of-band-human-curated-commentary.md). The rest of ADR-0007 (out-of-band generation, the Blob sidecar, the crawl read-and-bake contract, the significance trigger, the no-lyric lint) stands unchanged.
 
+> **Human disposition superseded by [ADR-0009](0009-fully-automated-commentary-gate.md).** The "risky tier always requires human review" and "human spot-checks the safe tier" decisions below are replaced: ADR-0009 removes the human from the publish path entirely, routing every fail-closed case to a dropped card instead of a person. The code-primary, risk-tiered structure of this ADR stands and becomes the whole gate.
+
 ## Context
 
 ADR-0007 made the human read-through the load-bearing guard for commentary: a person reads every blurb before publish, and the deterministic checks (schema, no-lyric lint) are a backstop. v1.2.0 then moved the goal toward automation: the `tag` field was made schema-required, motivated by treating commentary as an automated pipeline where per-blurb human review cannot be relied on. The two premises diverge: "human review is load-bearing" against "the pipeline cannot lean on per-entry human review."
