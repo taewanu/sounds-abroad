@@ -65,7 +65,8 @@ export async function fetchSourceText(
  * turn; `--json-schema` forces the verdict into `.structured_output`.
  *
  * Fail-closed: any non-zero exit, timeout, non-JSON output, error envelope, or
- * missing structured output yields a status the seam routes to human review.
+ * missing structured output yields a status the seam treats as not-grounded,
+ * which drops the card (ADR-0009).
  */
 export function createClaudeJudge(timeoutMs = 60_000): GroundingClient {
   return async (prompt) => {
@@ -106,29 +107,31 @@ export function createClaudeJudge(timeoutMs = 60_000): GroundingClient {
 
 /**
  * Reduce the fetched source bodies to either the text the judge should read, or
- * a not-grounded verdict that skips the judge entirely. Fail-closed on any
- * unreachable source: a claim cited to a source we could not read is never
- * grounded on the sources that happened to load, since the unread one may be
- * the only one that states it. Any fetch failure routes the blurb to a human.
+ * a not-grounded verdict that skips the judge entirely. Lenient on a partial
+ * fetch failure: judge against the sources that loaded, since the STATES
+ * threshold drops any claim those live sources do not support, so a claim whose
+ * only support was an unreachable source is dropped anyway. Only when every
+ * source is unreachable is there nothing to judge, which drops the card
+ * (ADR-0009: fail-closed means no card).
  */
 export function combineSourceTexts(
   texts: Array<string | null>,
 ): { ok: true; sourceText: string } | { ok: false; verdict: GroundingVerdict } {
-  const missing = texts.filter((t) => t === null).length;
+  const loaded = texts.filter((t) => t !== null);
 
-  if (missing > 0) {
+  if (loaded.length === 0) {
     return {
       ok: false,
       verdict: {
         grounded: false,
-        reason: `${missing} of ${texts.length} cited source(s) failed to fetch — cannot verify grounding.`,
+        reason: `All ${texts.length} cited source(s) failed to fetch; dropping the card.`,
       },
     };
   }
 
   return {
     ok: true,
-    sourceText: texts.join("\n\n"),
+    sourceText: loaded.join("\n\n"),
   };
 }
 
@@ -139,20 +142,14 @@ export interface GroundEntryDeps {
 
 /**
  * Ground one blurb end to end: fetch its cited sources, then ask the judge
- * whether they STATE its claims. Only the safe `what-it-is` tier is grounded;
- * the risky `why-charting` tier is reviewed by a human regardless (ADR-0008),
- * so it never reaches the judge.
+ * whether they STATE its claims. Tier-agnostic (ADR-0009): both tiers are
+ * grounded the same way, and a not-grounded verdict drops the card rather than
+ * routing to a person.
  */
 export async function groundEntry(
   entry: Commentary,
   deps: GroundEntryDeps,
 ): Promise<GroundingVerdict> {
-  if (entry.claim !== "what-it-is") {
-    return {
-      grounded: false,
-      reason: "why-charting tier is reviewed by a human, not auto-grounded.",
-    };
-  }
   const texts = await Promise.all(
     entry.sources.map((url) => deps.fetchSourceText(url)),
   );
