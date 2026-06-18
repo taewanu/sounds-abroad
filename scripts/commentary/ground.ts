@@ -144,21 +144,36 @@ export interface GroundEntryDeps {
  * Ground one blurb end to end: fetch its cited sources, then ask the judge
  * whether they STATE its claims. Tier-agnostic (ADR-0009): both tiers are
  * grounded the same way, and a not-grounded verdict drops the card rather than
- * routing to a person.
+ * routing to a person. This function is the fail-closed boundary: a throw from
+ * either dependency drops only this card, never aborting the publish pass. A
+ * thrown fetch is treated as an unreachable source, the same as a null.
  */
 export async function groundEntry(
   entry: Commentary,
   deps: GroundEntryDeps,
 ): Promise<GroundingVerdict> {
   const texts = await Promise.all(
-    entry.sources.map((url) => deps.fetchSourceText(url)),
+    entry.sources.map(async (url) => {
+      try {
+        return await deps.fetchSourceText(url);
+      } catch {
+        return null;
+      }
+    }),
   );
   const combined = combineSourceTexts(texts);
   if (!combined.ok) return combined.verdict;
-  return gradeGrounding(
-    entry.lead,
-    entry.detail,
-    combined.sourceText,
-    deps.judge,
-  );
+  try {
+    return await gradeGrounding(
+      entry.lead,
+      entry.detail,
+      combined.sourceText,
+      deps.judge,
+    );
+  } catch {
+    return {
+      grounded: false,
+      reason: "Grounding judge failed; dropping the card.",
+    };
+  }
 }

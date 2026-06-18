@@ -76,6 +76,20 @@ test("gradeGrounding fails safe on an unrecognized status", async () => {
   expect(verdict.grounded).toBe(false);
 });
 
+test("gradeGrounding fails safe on a grounded judgment with no reason", async () => {
+  const judge = judgeReturning({ status: "grounded" });
+
+  const verdict = await gradeGrounding(
+    "Debuted at #2.",
+    undefined,
+    "src",
+    judge,
+  );
+
+  expect(verdict.grounded).toBe(false);
+  expect(verdict.reason.length).toBeGreaterThan(0);
+});
+
 test("gradeGrounding yields a readable reason when the model omits one", async () => {
   const judge = judgeReturning({ status: "banana" });
 

@@ -81,8 +81,13 @@ export async function gradeGrounding(
  * malformed value leaves the blurb not-grounded, which drops the card.
  */
 function interpretJudgment(raw: RawGroundingJudgment): GroundingVerdict {
-  const reason = raw.reason?.trim()
-    ? raw.reason
-    : `No usable judgment (status: ${raw.status || "missing"}).`;
-  return { grounded: raw.status === "grounded", reason };
+  const status = raw.status?.trim();
+  const reason = raw.reason?.trim();
+  if (status === "grounded" && reason) {
+    return { grounded: true, reason };
+  }
+  return {
+    grounded: false,
+    reason: reason || `No usable judgment (status: ${status || "missing"}).`,
+  };
 }
