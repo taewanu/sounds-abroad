@@ -106,28 +106,29 @@ export function createClaudeJudge(timeoutMs = 60_000): GroundingClient {
 
 /**
  * Reduce the fetched source bodies to either the text the judge should read, or
- * a not-grounded verdict that skips the judge entirely. This is the fail-closed
- * seam between fetching and judging: a claim is grounded only if a source
- * explicitly STATES it, so missing sources must never quietly become a pass.
+ * a not-grounded verdict that skips the judge entirely. Fail-closed on any
+ * unreachable source: a claim cited to a source we could not read is never
+ * grounded on the sources that happened to load, since the unread one may be
+ * the only one that states it. Any fetch failure routes the blurb to a human.
  */
 export function combineSourceTexts(
   texts: Array<string | null>,
 ): { ok: true; sourceText: string } | { ok: false; verdict: GroundingVerdict } {
-  const loaded = texts.filter((t) => t !== null);
+  const missing = texts.filter((t) => t === null).length;
 
-  if (loaded.length === 0) {
+  if (missing > 0) {
     return {
       ok: false,
       verdict: {
         grounded: false,
-        reason: `All ${texts.length} cited source(s) failed to fetch — cannot verify grounding.`,
+        reason: `${missing} of ${texts.length} cited source(s) failed to fetch — cannot verify grounding.`,
       },
     };
   }
 
   return {
     ok: true,
-    sourceText: loaded.join("\n\n"),
+    sourceText: texts.join("\n\n"),
   };
 }
 
