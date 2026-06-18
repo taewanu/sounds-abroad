@@ -138,15 +138,21 @@ export interface GroundEntryDeps {
 }
 
 /**
- * Ground one blurb end to end: fetch its cited sources, decide whether they can
- * fairly support a judgment, then ask the judge whether they STATE its claims.
- * Whether a given entry should be grounded at all (safe tier vs risky tier) is
- * the routing classifier's call, not this function's.
+ * Ground one blurb end to end: fetch its cited sources, then ask the judge
+ * whether they STATE its claims. Only the safe `what-it-is` tier is grounded;
+ * the risky `why-charting` tier is reviewed by a human regardless (ADR-0008),
+ * so it never reaches the judge.
  */
 export async function groundEntry(
   entry: Commentary,
   deps: GroundEntryDeps,
 ): Promise<GroundingVerdict> {
+  if (entry.claim !== "what-it-is") {
+    return {
+      grounded: false,
+      reason: "why-charting tier is reviewed by a human, not auto-grounded.",
+    };
+  }
   const texts = await Promise.all(
     entry.sources.map((url) => deps.fetchSourceText(url)),
   );
