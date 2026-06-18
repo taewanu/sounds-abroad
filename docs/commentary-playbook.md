@@ -1,6 +1,6 @@
 # Commentary refinement playbook
 
-How to write and publish the per-track context blurbs ("commentary") shown on the chart card. Commentary is curated out of band in human-reviewed passes, never by the crawl (see [ADR-0007](adr/0007-out-of-band-human-curated-commentary.md)). This is the runbook a pass follows.
+How to write and publish the per-track context blurbs ("commentary") shown on the chart card. Commentary is curated out of band in human-authored passes, never by the crawl (see [ADR-0007](adr/0007-out-of-band-human-curated-commentary.md)); a person writes the blurbs, but the automated gate, not a reviewer, decides what publishes (ADR-0009). This is the runbook a pass follows.
 
 ## What commentary is
 
@@ -20,8 +20,8 @@ It is never the song's lyrics. Commentary describes a song; it does not reproduc
 1. **Get the worklist.** Run `pnpm commentary:todo`. It lists significant movers that have no blurb yet, deduped across countries, so a track is written once and reused everywhere it charts. The list is pre-filtered; work straight down it.
 2. **Research each track** under the source policy below. Establish what the song is and why it is moving. If two credible sources do not support a "why it is charting" claim, keep the blurb to what the song is, or skip the track.
 3. **Write the entry** in the style below, into a candidate file keyed by the worklist key (`pnpm commentary:todo --json` emits the keys).
-4. **Read every blurb** before publishing: no reproduced lyrics, claims match the sources, no overstatement. This read-through is the real guard; the lint is only a backstop.
-5. **Publish.** Run `pnpm commentary:publish <file>`. It hard-blocks on the schema and the no-lyric lint, backs up the live store, then uploads. A blocked publish uploads nothing.
+4. **Sanity-check the blurbs** as you draft: no reproduced lyrics, claims match the sources, no overstatement. The publish gate is the load-bearing guard now (ADR-0009); this read only catches drafting slips early.
+5. **Publish.** Run `pnpm commentary:publish <file>`. It hard-blocks the whole file only on a schema error, then routes each blurb through the gate (no-lyric, source-authority, tier-consistency, grounding): a blurb that clears every check publishes, any failure drops that one card. It backs up the live store, then uploads the survivors. If no blurb clears, it uploads nothing.
 6. **Spot-check** the card on the site.
 
 ## Classifying the claim
@@ -52,7 +52,7 @@ Card copy follows the house writing principles, tuned for a fast read:
 
 ## The no-lyric guard
 
-Publishing runs a deterministic lint that flags lyric-shaped content: long double-quoted runs, several short enjambed lines, and repeated lines. It is tuned to flag rather than miss, so it can flag a legitimate long quote or a list. When that happens, reword the copy or confirm it carries no lyrics and adjust. The lint cannot prove the absence of lyrics, which is why the read-through in step 4 is the load-bearing check.
+Publishing runs a deterministic lint that flags lyric-shaped content: long double-quoted runs, several short enjambed lines, and repeated lines. It is tuned to flag rather than miss, so it can flag a legitimate long quote or a list. When that happens, reword the copy or confirm it carries no lyrics and adjust. The lint cannot prove the absence of lyrics, only flag shapes that look like them; a flagged blurb drops at the gate (ADR-0009), so reword until it clears rather than expecting a reviewer to wave it through.
 
 ## The grounding check
 
