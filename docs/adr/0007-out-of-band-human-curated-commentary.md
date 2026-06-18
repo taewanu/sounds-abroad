@@ -15,11 +15,13 @@ Options weighed for where commentary is generated:
 
 ## Decision
 
+> **Trust model superseded by [ADR-0008](0008-risk-tiered-commentary-gate.md).** The "human-reviewed every entry" claims in this section describe the original uniform gate. Under ADR-0008 the safe `what-it-is` tier auto-publishes once the deterministic checks and an LLM grounding check pass; human review is kept for the risky `why-charting` tier and as spot-check sampling of the safe tier. Everything else here (out-of-band generation, the store, the significance trigger, the no-lyric lint) stands.
+
 Commentary is generated out-of-band and human-reviewed, never by the crawl. The crawl reads a commentary store and bakes each entry into the served chart data, leaving tracks without an entry as `null` (no card) and never aborting on a miss, the same carry-forward contract it already uses for failed fetches.
 
 - **Store:** a Vercel Blob sidecar, `commentary/v1/commentary.json`, keyed by `lang:normalized(artist|name)`. It is owned by the publish step; the crawl reads it but never writes it, a clean producer split from `charts.json` (which the crawl overwrites every run).
 - **Selection:** a deterministic significance trigger (new entry, large rank jump, re-entry) from current versus carried-forward ranks decides which tracks warrant commentary. Effort goes only to tracks with a story; an entry, once written, persists and is reused after the track stabilizes.
-- **No-lyric guard:** a deterministic lint hard-blocks publish on any entry resembling reproduced lyric text; the editor's read-through is the second layer. The guard runs at publish, not in the crawl.
+- **No-lyric guard:** a deterministic lint hard-blocks publish on any entry resembling reproduced lyric text; the editor's read-through is the second layer. The guard runs at publish, not in the crawl. (Under [ADR-0008](0008-risk-tiered-commentary-gate.md) the lint joins the primary code gate; the read-through second layer narrows to risky-tier review plus safe-tier sampling.)
 - **Cadence:** commentary is filled in by re-running the publish flow, not on a schedule. A brand-new track shows no card until the next pass.
 
 ### Why out-of-band over in-crawl
@@ -34,7 +36,7 @@ The data plane is already Vercel Blob: the crawl writes `charts.json` there and 
 
 **Positive**
 
-- Every published blurb is human-reviewed, the strongest guard against lyric leakage and inaccurate claims.
+- Every published blurb is human-reviewed, the strongest guard against lyric leakage and inaccurate claims. ([ADR-0008](0008-risk-tiered-commentary-gate.md) supersedes this: only the risky tier gets a full read-through, while the safe tier relies on the code checks plus sampling.)
 - The crawl stays a pure, LLM-free data feed with no new per-run cost or rate-limit surface.
 - The significance trigger bounds effort to tracks that have a story.
 
