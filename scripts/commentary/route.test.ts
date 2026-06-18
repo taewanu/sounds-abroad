@@ -46,6 +46,18 @@ describe("routeStore", () => {
     ]);
   });
 
+  test("a grounding drop always carries a reason, even when the verdict's is empty", async () => {
+    const store = { [KEY]: entry() };
+
+    const result = await routeStore(store, {
+      ground: () => Promise.resolve({ grounded: false, reason: "" }),
+    });
+
+    expect(result.dropped).toEqual([
+      { key: KEY, reasons: ["grounding: Grounding failed."] },
+    ]);
+  });
+
   test("drops on a deterministic failure without spending a grounding call", async () => {
     const ground = vi.fn(grounds);
     const store = {

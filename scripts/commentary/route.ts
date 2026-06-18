@@ -60,7 +60,10 @@ export async function routeStore(
     if (detFailures.length === 0) {
       const verdict = await deps.ground(entry);
       grounded = verdict.grounded;
-      if (!grounded) groundingReason = verdict.reason;
+      // A grounding failure must always carry a reason for the drop log, even
+      // if the verdict's own reason came back empty.
+      if (!grounded)
+        groundingReason = verdict.reason.trim() || "Grounding failed.";
     }
 
     // The classifier is the single arbiter; routing only assembles its inputs

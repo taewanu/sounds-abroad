@@ -52,7 +52,7 @@ Card copy follows the house writing principles, tuned for a fast read:
 
 ## The no-lyric guard
 
-Publishing runs a deterministic lint that flags lyric-shaped content: long double-quoted runs, several short enjambed lines, and repeated lines. It is tuned to flag rather than miss, so it can flag a legitimate long quote or a list. When that happens, reword the copy or confirm it carries no lyrics and adjust. The lint cannot prove the absence of lyrics, which is why the read-through in step 4 is the load-bearing check.
+Publishing runs a deterministic lint that flags lyric-shaped content: long double-quoted runs, several short enjambed lines, and repeated lines. It is tuned to flag rather than miss, so it can flag a legitimate long quote or a list. When that happens, reword the copy or confirm it carries no lyrics and adjust. The lint cannot prove the absence of lyrics, only flag shapes that look like them; a flagged blurb drops at the gate (ADR-0009), so reword until it clears rather than expecting a reviewer to wave it through.
 
 ## The grounding check
 
