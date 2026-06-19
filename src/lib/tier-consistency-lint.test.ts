@@ -38,19 +38,16 @@ test("findTierSignals leaves a stable descriptive note alone", () => {
   expect(findTierSignals(text)).toEqual([]);
 });
 
-test("findTierSignals leaves a descriptive 'named after' alone", () => {
-  const text = "A ballad named after the singer's hometown.";
+test("findTierSignals leaves a stable 'following' as album sequence alone", () => {
+  const text = "Their first full-length in two years, following 2024's album.";
 
   expect(findTierSignals(text)).toEqual([]);
 });
 
-test("findTierSignals flags a causal 'after'", () => {
-  const text = "It took off after the World Cup broadcast.";
+test("findTierSignals leaves a bare 'after' in stable prose alone", () => {
+  const text = "A ballad named after the singer's hometown.";
 
-  expect(findTierSignals(text)).toContainEqual({
-    rule: "causal-language",
-    marker: "after",
-  });
+  expect(findTierSignals(text)).toEqual([]);
 });
 
 test("findTierSignals leaves a descriptive 'debut album' alone", () => {
