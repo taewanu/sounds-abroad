@@ -37,29 +37,38 @@ export interface DraftInput {
 }
 
 /**
- * The drafting instructions. It states the claim-tier choice, the source policy
- * the gate will enforce (authoritative outlets, two or more, that explicitly
- * STATE the claims so grounding passes), and the no-lyric rule, so the model
- * drafts toward what the gate accepts rather than against it.
+ * The drafting instructions, shaped by the gate the draft must pass. Its core
+ * rule separates signal from claim: the chart positions we feed in are why we
+ * PICKED the track, not something to assert, since they are our own ranking data
+ * and no outlet reports them, so grounding can never verify them. The lead and
+ * detail must instead claim a stable, press-backed fact about the song; the
+ * timely hook lives in the tag, which grounding does not check. The model is
+ * pointed at specific articles it has read, the authority allowlist, and the
+ * no-lyric rule, so it drafts toward what the gate accepts rather than against it.
  */
 export function buildDraftPrompt(input: DraftInput): string {
   return [
-    "You write a short, factual blurb about why a song is on a music chart, for a discovery app.",
-    "Research the track with web search before writing. Never cite lyrics sites, fan wikis, or gossip/SEO farms.",
-    `At least one source MUST come from this trusted-outlet list: ${[...AUTHORITY_ALLOWLIST].join(", ")}. Use a Wikipedia article only to find the primary sources it cites, never as a cited source itself.`,
+    "You write a short, factual blurb about a song for a music-discovery app, then cite where each fact is stated.",
+    "Research the track with web search and open the pages before writing.",
+    "",
+    "What to claim:",
+    "- Default to a stable, well-documented fact about the SONG ITSELF: its release, album, collaborators, genre, or a milestone a major outlet reported (e.g. a first #1 on a named chart).",
+    "- Give a time-sensitive reason it is rising only when a source explicitly states that cause; otherwise stay with the stable fact.",
+    "- The chart positions below are OUR OWN ranking data and only tell you why we picked the track. No outlet publishes them, so never assert them as fact in the lead or detail; they cannot be verified. Treat them as context only.",
     "",
     "Write:",
-    "- lead: one sentence, the single most interesting true thing about the song or its chart run.",
-    "- detail: an optional second sentence with context. Omit it rather than pad.",
-    '- tag: a 2-4 word hook naming why it matters now (e.g. "new top-5 debut").',
-    '- claim: "what-it-is" for a stable fact about the song, or "why-charting" for a time-sensitive reason it is moving. Only choose why-charting when a source states the cause.',
-    "- sources: two or more URLs to authoritative pages that EXPLICITLY STATE every claim you make. A claim a source only implies does not count; a later check drops any claim its sources do not state.",
+    "- lead: one sentence, the single most interesting verifiable fact about the song.",
+    "- detail: an optional second sentence of context. Omit it rather than pad.",
+    '- tag: a 2-4 word hook for why it matters now (e.g. "new top-5 debut"). This is a hook, not a verified claim, and may reflect the chart movement.',
+    '- claim: "what-it-is" for a stable fact about the song, or "why-charting" for a stated, time-sensitive reason it is moving.',
+    "- sources: two or more URLs to specific articles or reviews you opened that EXPLICITLY STATE every claim in your lead and detail. Never cite an artist hub, a tag or category page, a search page, or a homepage; they state nothing. A claim a source only implies does not count; a later check drops any claim its sources do not state.",
+    "",
+    `At least one source must be from this trusted-outlet list: ${[...AUTHORITY_ALLOWLIST].join(", ")}. Use Wikipedia only to find the primary sources it cites, never as a cited source. Never cite lyrics sites, fan wikis, or gossip/SEO farms.`,
     "",
     "Never reproduce song lyrics. Describe the song; do not quote its words.",
     "",
     `TRACK: "${input.name}" by ${input.artist}`,
-    `SIGNIFICANCE: ${input.significance}`,
-    `CHARTING: ${input.chartedIn.join(", ")}`,
+    `WHY WE PICKED IT (our data, context only): ${input.significance}, charting at ${input.chartedIn.join(", ")}`,
   ].join("\n");
 }
 

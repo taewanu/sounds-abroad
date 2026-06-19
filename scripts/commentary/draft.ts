@@ -44,12 +44,16 @@ const RAW_DRAFT_SCHEMA = JSON.stringify({
 
 /**
  * A DraftClient backed by the local Claude Code binary. Unlike the grounding
- * judge, the drafter KEEPS web search and fetch on (`--tools WebSearch,WebFetch`)
- * — it must research the track before writing — while `--setting-sources ""`
- * still strips project settings to a clean turn. `--json-schema` forces the
- * draft into `.structured_output`. `claude -p` is the only sanctioned way to
- * spend the Max subscription programmatically (the raw API rejects subscription
- * OAuth), behind this seam so an SDK key can replace it in one place later.
+ * judge, the drafter must research before writing, so it keeps the web tools:
+ * `--tools` makes only WebSearch and WebFetch available, and `--allowedTools`
+ * permits them — both are needed, since in non-interactive mode an available
+ * but un-permitted tool is auto-denied and the model drafts blind. The narrow
+ * surface (no Bash/Edit) keeps it scoped rather than `--dangerously-skip-
+ * permissions`. `--setting-sources ""` still strips project settings to a clean
+ * turn; `--json-schema` forces the draft into `.structured_output`. `claude -p`
+ * is the only sanctioned way to spend the Max subscription programmatically (the
+ * raw API rejects subscription OAuth), behind this seam so an SDK key can
+ * replace it in one place later.
  *
  * Throws on any non-zero exit, timeout, non-JSON output, or error envelope, so
  * the caller fails closed to no card rather than drafting against nothing.
@@ -66,6 +70,8 @@ export function createClaudeDrafter(timeoutMs = 180_000): DraftClient {
         "--json-schema",
         RAW_DRAFT_SCHEMA,
         "--tools",
+        "WebSearch,WebFetch",
+        "--allowedTools",
         "WebSearch,WebFetch",
         "--setting-sources",
         "",

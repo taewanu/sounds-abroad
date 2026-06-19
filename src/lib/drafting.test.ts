@@ -1,8 +1,23 @@
 import { expect, test } from "vitest";
 
-import { interpretDraft, type RawDraft } from "./drafting";
+import { buildDraftPrompt, interpretDraft, type RawDraft } from "./drafting";
 
 const TS = "2026-06-18T00:00:00.000Z";
+
+test("buildDraftPrompt carries the track facts and frames chart data as context", () => {
+  const prompt = buildDraftPrompt({
+    artist: "aespa",
+    name: "LEMONADE",
+    significance: "a new chart entry, peaking at #1",
+    chartedIn: ["tw#1", "kr#2"],
+  });
+
+  expect(prompt).toContain('"LEMONADE" by aespa');
+  expect(prompt).toContain("tw#1, kr#2");
+  // The positions are our own data; the prompt must mark them as context, not a
+  // claim, or the model restates them and grounding drops the card.
+  expect(prompt).toContain("context only");
+});
 
 function rawDraft(overrides: Partial<RawDraft> = {}): RawDraft {
   return {
