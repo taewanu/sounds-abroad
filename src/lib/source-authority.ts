@@ -4,13 +4,18 @@ import type { Commentary } from "./chart-schema";
  * Deterministic guard that every claim rests on authoritative sources, part of
  * the code-primary publish gate (ADR-0008). It is tier-independent: it judges
  * where a blurb's sources come from and how many there are, never what the
- * blurb claims. The playbook's source-authority policy is codified here so a
- * denylisted source or a thin source set hard-blocks publish in code, not by a
- * reviewer remembering the policy.
+ * blurb claims. The playbook's source-authority policy is codified here so an
+ * under-sourced blurb hard-blocks publish in code, not by a reviewer
+ * remembering the policy. Three rules apply: a denylist of known-bad domains,
+ * a minimum source count, and (model b, ADR-0008/0009) a requirement that at
+ * least one source sits on a curated authority allowlist. A denylist alone
+ * cannot vouch for credibility, only block known offenders; the allowlist is
+ * what an automated drafting pass needs, since a model picking sources has none
+ * of a human author's judgment about which outlets are trustworthy.
  */
 
 export interface SourceViolation {
-  rule: "denied-source" | "too-few-sources";
+  rule: "denied-source" | "too-few-sources" | "no-authoritative-source";
   source: string;
 }
 
@@ -35,6 +40,41 @@ const DENIED_DOMAINS = new Set([
   // Gossip / SEO content farms.
   "tmz.com",
   "popsugar.com",
+]);
+
+// Curated authority allowlist: outlets credible enough that one of them, cited,
+// vouches for a blurb (model b, ADR-0008/0009 "one top-tier source can stand in
+// for corroboration"). A blurb needs at least one source from this set; its
+// other sources need only avoid the denylist. Starts with global music
+// journalism, the major chart bodies, and a few strong regional outlets so
+// non-English tracks are not starved. It grows from the source pass/fail log
+// (ADR-0009) as the drafting pass shows which credible outlets it reaches for.
+export const AUTHORITY_ALLOWLIST = new Set([
+  // Global music journalism.
+  "billboard.com",
+  "pitchfork.com",
+  "rollingstone.com",
+  "nme.com",
+  "stereogum.com",
+  "consequence.net",
+  "spin.com",
+  "thefader.com",
+  "complex.com",
+  "xxlmag.com",
+  "vulture.com",
+  "variety.com",
+  // General press with established music desks.
+  "theguardian.com",
+  "npr.org",
+  "bbc.com",
+  "bbc.co.uk",
+  // Industry trades and chart bodies.
+  "musicbusinessworldwide.com",
+  "officialcharts.com",
+  "pollstar.com",
+  // Regional outlets, so non-English tracks can clear the bar.
+  "soompi.com",
+  "remezcla.com",
 ]);
 
 /**
@@ -62,6 +102,15 @@ function isDenied(domain: string): boolean {
   return false;
 }
 
+function isAllowed(domain: string): boolean {
+  if (AUTHORITY_ALLOWLIST.has(domain)) return true;
+  // A subdomain of an allowlisted outlet counts too (music.theguardian.com).
+  for (const allowed of AUTHORITY_ALLOWLIST) {
+    if (domain.endsWith(`.${allowed}`)) return true;
+  }
+  return false;
+}
+
 /** Every source-authority violation across a commentary entry's sources. */
 export function findSourceViolations(entry: Commentary): SourceViolation[] {
   const violations: SourceViolation[] = [];
@@ -77,6 +126,17 @@ export function findSourceViolations(entry: Commentary): SourceViolation[] {
     violations.push({
       rule: "too-few-sources",
       source: `${entry.sources.length} of ${MIN_SOURCES} required`,
+    });
+  }
+
+  const hasAuthority = entry.sources.some((source) => {
+    const domain = registrableDomain(source);
+    return domain !== null && isAllowed(domain);
+  });
+  if (!hasAuthority) {
+    violations.push({
+      rule: "no-authoritative-source",
+      source: `none of ${entry.sources.length} source(s) is on the authority allowlist`,
     });
   }
 

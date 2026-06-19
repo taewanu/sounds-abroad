@@ -9,11 +9,11 @@ import type { Commentary } from "./chart-schema";
  * can be routed to human review rather than auto-published under the wrong tier.
  *
  * It only ever flags `what-it-is`; the same language is allowed (and expected)
- * in `why-charting`. Like the no-lyric lint, the vocabulary is tuned to flag
- * rather than miss: a false flag costs a reviewer a glance, a mislabelled blurb
- * that slips through lets a risky time-sensitive claim auto-publish as if it
- * were stable. This is a FLAG-FOR-REVIEW signal, not a publish-blocking gate;
- * the routing that consumes it is the gate classifier, a later slice.
+ * in `why-charting`. The gate classifier drops a flagged blurb rather than
+ * routing it to a person (ADR-0009), so the vocabulary is tuned for PRECISION:
+ * a false flag no longer costs a reviewer a glance, it discards a good card.
+ * Grounding, not this lint, is the correctness gate; this only keeps a
+ * time-sensitive claim from auto-publishing under the stable tier.
  */
 
 export interface TierConsistencyViolation {
@@ -30,7 +30,6 @@ const CAUSAL_MARKERS = [
   "because",
   "due to",
   "thanks to",
-  "following",
   "sparked",
   "drove",
   "driven by",
@@ -70,13 +69,16 @@ const TEMPORAL_MARKERS = [
 
 /**
  * To extend either list: add a phrase a why-charting blurb would use and a
- * stable what-it-is note would not. Prefer over-inclusion; a false flag is
- * cheap, a missed mislabel is not. Keep entries lowercase; matching is
- * case-insensitive and on word boundaries, so a marker never fires on a
- * substring inside another word ("surge" will not match "resurgence"). A word
- * that reads both ways (like "debut", stable in "debut album" but charting in
- * "debuted at #2") belongs as a charting-context PHRASE, not a bare word, or as
- * a context-sensitive check like `after` below.
+ * stable what-it-is note would not. Prefer PRECISION over reach: a flagged
+ * what-it-is blurb is dropped, not reviewed (ADR-0009), so a marker that fires
+ * on benign stable prose costs a good card. This is why bare "after" and
+ * "following" are absent — they read as plain sequence in stable notes ("their
+ * album after X", "following their debut") far more often than as a charting
+ * cause. Keep entries lowercase; matching is case-insensitive and on word
+ * boundaries, so a marker never fires on a substring inside another word
+ * ("surge" will not match "resurgence"). A word that reads both ways (like
+ * "debut", stable in "debut album" but charting in "debuted at #2") belongs as
+ * a charting-context PHRASE, not a bare word.
  */
 
 function escapeForRegExp(literal: string): string {
@@ -99,30 +101,12 @@ function findMarkers(
     .map((marker) => ({ rule, marker }));
 }
 
-/**
- * "after" asserts a cause in charting prose ("it surged after the final") but
- * is just as often a plain descriptive idiom ("named after a city", "after
- * all"). A bare-word match over-flags, so strip the known idioms first and only
- * count an "after" that survives. This is the one context-sensitive marker: the
- * surrounding words, not the word alone, decide whether it is a why-charting cue.
- */
-const AFTER_IDIOMS =
-  /\b(?:named|modell?ed|patterned|fashioned|look(?:ing|ed)?|sought)\s+after\b|\bafter\s+(?:all|hours|school)\b|\bafter[-\s]?part(?:y|ies)\b/gi;
-
-function hasCausalAfter(text: string): boolean {
-  return /\bafter\b/i.test(text.replace(AFTER_IDIOMS, " "));
-}
-
 /** Every tier-consistency signal in a single block of text. */
 export function findTierSignals(text: string): TierConsistencyViolation[] {
-  const violations = [
+  return [
     ...findMarkers(text, CAUSAL_MARKERS, "causal-language"),
     ...findMarkers(text, TEMPORAL_MARKERS, "temporal-language"),
   ];
-  if (hasCausalAfter(text)) {
-    violations.push({ rule: "causal-language", marker: "after" });
-  }
-  return violations;
 }
 
 /**
