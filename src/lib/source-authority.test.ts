@@ -63,6 +63,41 @@ test("findSourceViolations allows Genius alongside the lyrics-site denials", () 
   expect(violations.some((v) => v.rule === "denied-source")).toBe(false);
 });
 
+test("findSourceViolations flags an entry with no allowlisted source", () => {
+  const sources = [
+    "https://some-music-blog.example/post",
+    "https://another-site.example/story",
+  ];
+
+  const violations = findSourceViolations(entry(sources));
+
+  expect(violations.some((v) => v.rule === "no-authoritative-source")).toBe(
+    true,
+  );
+});
+
+test("findSourceViolations accepts a non-allowlisted source alongside one allowlisted", () => {
+  const sources = [
+    "https://www.billboard.com/music/a",
+    "https://some-music-blog.example/post",
+  ];
+
+  expect(findSourceViolations(entry(sources))).toEqual([]);
+});
+
+test("findSourceViolations counts an allowlisted subdomain as authoritative", () => {
+  const sources = [
+    "https://music.theguardian.com/article",
+    "https://some-music-blog.example/post",
+  ];
+
+  expect(
+    findSourceViolations(entry(sources)).some(
+      (v) => v.rule === "no-authoritative-source",
+    ),
+  ).toBe(false);
+});
+
 test("findSourceViolations flags a single source as too few", () => {
   const sources = ["https://www.billboard.com/music/a"];
 
