@@ -2,7 +2,10 @@ import { expect, test } from "vitest";
 
 import { commentaryKey } from "../../src/lib/commentary-store";
 
-import { fetchCommentaryStore } from "./fetch-commentary";
+import {
+  fetchCommentaryStore,
+  fetchCommentaryStoreRaw,
+} from "./fetch-commentary";
 
 const URL = "https://blob/commentary/v1/commentary.json";
 
@@ -75,4 +78,23 @@ test("returns null when fetch rejects", async () => {
   const result = await fetchCommentaryStore(URL, failingFetch);
 
   expect(result).toBeNull();
+});
+
+test("fetchCommentaryStoreRaw keeps an entry the strict schema would reject", async () => {
+  // The strict read returns null for this same body (see "schema mismatch");
+  // the raw read preserves it so one stale entry cannot void the whole store.
+  const body = JSON.stringify({ "en:a|b": { lead: "" } });
+
+  const store = await fetchCommentaryStoreRaw(URL, fakeFetch({ body }));
+
+  expect(Object.keys(store)).toEqual(["en:a|b"]);
+});
+
+test("fetchCommentaryStoreRaw throws on a failed read rather than returning empty", async () => {
+  await expect(
+    fetchCommentaryStoreRaw(
+      URL,
+      fakeFetch({ ok: false, status: 500, body: "" }),
+    ),
+  ).rejects.toThrow();
 });

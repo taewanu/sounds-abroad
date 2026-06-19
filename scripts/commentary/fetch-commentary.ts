@@ -22,3 +22,24 @@ export async function fetchCommentaryStore(
     return null;
   }
 }
+
+/**
+ * Read the store as raw JSON for a writer that merges new entries in, preserving
+ * every existing entry verbatim. Two differences from the strict read make it
+ * safe to overwrite from: it does NOT validate, so one entry that fails the
+ * since-tightened schema cannot void the whole store; and it THROWS on a failed
+ * read instead of degrading to null, so a merge-then-overwrite aborts rather
+ * than wiping the live cards when a read transiently fails. The cast is the
+ * boundary lie this accepts: a merge only spreads and re-keys, so an unvalidated
+ * value passes through untouched.
+ */
+export async function fetchCommentaryStoreRaw(
+  url: string,
+  fetchImpl: typeof fetch = globalThis.fetch,
+): Promise<CommentaryStore> {
+  const res = await fetchImpl(url);
+  if (!res.ok) {
+    throw new Error(`Commentary store read failed (${res.status}) at ${url}.`);
+  }
+  return (await res.json()) as CommentaryStore;
+}

@@ -3,7 +3,7 @@ import type { CommentaryStore } from "../../src/lib/commentary-store";
 import { fetchPublishedCharts } from "../crawl/published-charts";
 
 import { createClaudeDrafter, draftEntry } from "./draft";
-import { fetchCommentaryStore } from "./fetch-commentary";
+import { fetchCommentaryStoreRaw } from "./fetch-commentary";
 import { createClaudeJudge, fetchSourceText, groundEntry } from "./ground";
 import { routeStore } from "./route";
 import { backupCommentary, uploadCommentary } from "./upload-commentary";
@@ -48,9 +48,13 @@ if (!current) {
 const prevUrl = process.env.CHARTS_PREV_BLOB_URL;
 const previous = prevUrl ? await fetchPublishedCharts(prevUrl) : null;
 
+// Read the live store raw, never schema-validated: one entry that fails the
+// since-tightened schema must not void the whole store, and a failed read must
+// abort (fetchCommentaryStoreRaw throws) rather than leave an empty base that
+// the additive merge would overwrite the live cards with.
 const commentaryUrl = process.env.COMMENTARY_BLOB_URL;
 const existing: CommentaryStore = commentaryUrl
-  ? ((await fetchCommentaryStore(commentaryUrl)) ?? {})
+  ? await fetchCommentaryStoreRaw(commentaryUrl)
   : {};
 
 // Suppress thin-market low-confidence positions: don't spend a drafter call on
@@ -94,6 +98,13 @@ for (const item of selected) {
     continue;
   }
   candidates[item.key] = draft;
+  // Echo the full blurb the drafter produced so a run shows every field a drop
+  // is judged against (tag and detail trip lints too) and the sources the
+  // allowlist grows from.
+  console.log(`    [${draft.claim}] tag: ${draft.tag}`);
+  console.log(`    lead: ${draft.lead}`);
+  if (draft.detail) console.log(`    detail: ${draft.detail}`);
+  console.log(`    sources: ${draft.sources.join(", ")}`);
 }
 
 const draftedCount = Object.keys(candidates).length;
@@ -127,6 +138,15 @@ if (survivors === 0) {
 // The worklist excludes keys that already have a blurb, so the merge is purely
 // additive: new survivors join the live store, the existing cards are untouched.
 const merged: CommentaryStore = { ...existing, ...published };
+
+// Defense in depth before a destructive overwrite: an additive merge can only
+// grow the store, so a smaller result means the existing read was wrong. Abort
+// rather than publish a store that drops live cards.
+if (Object.keys(merged).length < Object.keys(existing).length) {
+  throw new Error(
+    "Merge would shrink the store; aborting before overwrite to protect the live cards.",
+  );
+}
 
 // Snapshot the live store before overwriting, so a bad batch can be undone.
 // Absent only if commentary has never been published.
