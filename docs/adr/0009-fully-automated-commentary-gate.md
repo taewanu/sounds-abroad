@@ -50,3 +50,7 @@ Learned reputation (a source's trust rising as it is seen to state facts that ho
 
 - ADR-0007's architecture and ADR-0008's code-primary tiering are untouched; only the human disposition changes.
 - A confidence score and a learned reputation remain available as future work when labels or a verifiable oracle arrive.
+
+## Amendment (2026-06-19): tiered authority allowlist
+
+The curated authority list is realized and split by what a source can vouch for: journalism with editorial accountability vouches a blurb for either claim tier, while chart and certification bodies corroborate a position or metric only and never satisfy the authority rule alone. This closes a gap in the flat seed list shipped with the gate's first cut, where a chart body could vouch a `why-charting` cause it cannot support. Codified as `AUTHORITY_ALLOWLIST` and `CHART_BODY_DOMAINS` in `src/lib/source-authority.ts`, regionally broadened so non-English tracks clear the bar.
