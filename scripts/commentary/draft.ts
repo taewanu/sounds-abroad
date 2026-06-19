@@ -128,7 +128,11 @@ export async function draftEntry(
 ): Promise<Commentary | null> {
   try {
     return await draftBlurb(toDraftInput(item), generatedAt, drafter);
-  } catch {
+  } catch (error) {
+    // Fail closed to null, but name why: a thrown draft is a drafter failure
+    // (subprocess down, timeout) the batch log should surface, not silently drop.
+    const reason = error instanceof Error ? error.message : String(error);
+    console.warn(`drafting "${item.name}" by ${item.artist} failed: ${reason}`);
     return null;
   }
 }

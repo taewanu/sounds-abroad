@@ -98,3 +98,9 @@ test("fetchCommentaryStoreRaw throws on a failed read rather than returning empt
     ),
   ).rejects.toThrow();
 });
+
+test("fetchCommentaryStoreRaw throws on a non-object payload rather than merging it", async () => {
+  await expect(
+    fetchCommentaryStoreRaw(URL, fakeFetch({ body: JSON.stringify([]) })),
+  ).rejects.toThrow();
+});

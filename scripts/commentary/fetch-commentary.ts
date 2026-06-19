@@ -29,9 +29,10 @@ export async function fetchCommentaryStore(
  * safe to overwrite from: it does NOT validate, so one entry that fails the
  * since-tightened schema cannot void the whole store; and it THROWS on a failed
  * read instead of degrading to null, so a merge-then-overwrite aborts rather
- * than wiping the live cards when a read transiently fails. The cast is the
- * boundary lie this accepts: a merge only spreads and re-keys, so an unvalidated
- * value passes through untouched.
+ * than wiping the live cards when a read transiently fails. Per-entry VALUES go
+ * unvalidated (a merge only spreads and re-keys them), but the top-level shape
+ * is checked: a non-object payload (null, an array) would otherwise spread into
+ * an empty or malformed merge and persist a broken store.
  */
 export async function fetchCommentaryStoreRaw(
   url: string,
@@ -41,5 +42,9 @@ export async function fetchCommentaryStoreRaw(
   if (!res.ok) {
     throw new Error(`Commentary store read failed (${res.status}) at ${url}.`);
   }
-  return (await res.json()) as CommentaryStore;
+  const json: unknown = await res.json();
+  if (json === null || typeof json !== "object" || Array.isArray(json)) {
+    throw new Error(`Commentary store is not a JSON object at ${url}.`);
+  }
+  return json as CommentaryStore;
 }
