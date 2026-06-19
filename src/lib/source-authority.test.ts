@@ -98,6 +98,31 @@ test("findSourceViolations counts an allowlisted subdomain as authoritative", ()
   ).toBe(false);
 });
 
+test("findSourceViolations fails a chart-body-only entry with the chart-body rule", () => {
+  const sources = [
+    "https://www.officialcharts.com/charts/singles-chart",
+    "https://some-music-blog.example/post",
+  ];
+
+  const violations = findSourceViolations(entry(sources));
+
+  expect(
+    violations.some((v) => v.rule === "chart-body-not-authoritative"),
+  ).toBe(true);
+  expect(violations.some((v) => v.rule === "no-authoritative-source")).toBe(
+    false,
+  );
+});
+
+test("findSourceViolations accepts a chart body alongside a journalism source", () => {
+  const sources = [
+    "https://www.billboard.com/music/a",
+    "https://www.officialcharts.com/charts/singles-chart",
+  ];
+
+  expect(findSourceViolations(entry(sources))).toEqual([]);
+});
+
 test("findSourceViolations flags a single source as too few", () => {
   const sources = ["https://www.billboard.com/music/a"];
 
