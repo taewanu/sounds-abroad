@@ -6,6 +6,7 @@ import {
   type GateChecks,
 } from "../../src/lib/gate-classifier";
 import type { GroundingVerdict } from "../../src/lib/grounding";
+import { lintCommentary } from "../../src/lib/no-lyric-lint";
 
 /**
  * Per-entry routing: the publish-side half of the gate (ADR-0009). It runs each
@@ -31,10 +32,23 @@ export interface RouteResult {
   dropped: DropRecord[];
 }
 
-/** Names the deterministic checks an entry failed, for the drop log. */
-function failedDeterministic(checks: Omit<GateChecks, "grounding">): string[] {
+/**
+ * Names the deterministic checks an entry failed, for the drop log. The
+ * no-lyric failure also carries its sub-rule and excerpt so a batch's drops
+ * self-classify: a quoted-span on a long title reads as a false positive, a
+ * verse-shaped run as a real catch.
+ */
+function failedDeterministic(
+  entry: Commentary,
+  checks: Omit<GateChecks, "grounding">,
+): string[] {
   const failed: string[] = [];
-  if (!checks.noLyric) failed.push("no-lyric");
+  if (!checks.noLyric) {
+    const detail = lintCommentary(entry)
+      .map((risk) => `${risk.rule} ${risk.excerpt}`)
+      .join("; ");
+    failed.push(detail ? `no-lyric: ${detail}` : "no-lyric");
+  }
   if (!checks.sourceAuthority) failed.push("source-authority");
   if (!checks.tierConsistency) failed.push("tier-consistency");
   return failed;
@@ -49,7 +63,7 @@ export async function routeStore(
 
   for (const [key, entry] of Object.entries(store)) {
     const det = deterministicChecks(entry);
-    const detFailures = failedDeterministic(det);
+    const detFailures = failedDeterministic(entry, det);
 
     // Grounding is a network call and a model turn; the gate ANDs every check,
     // so an entry already failing a deterministic check is doomed. Skip the
