@@ -75,6 +75,20 @@ describe("routeStore", () => {
     expect(ground).not.toHaveBeenCalled();
   });
 
+  test("a no-lyric drop names the failing sub-rule and quotes the excerpt", async () => {
+    const quoted = '"na na na la la oh oh my my my"';
+    const store = {
+      [KEY]: entry({ lead: `The hook repeats ${quoted} throughout.` }),
+    };
+
+    const result = await routeStore(store, { ground: grounds });
+
+    expect(result.published).toEqual({});
+    expect(result.dropped).toEqual([
+      { key: KEY, reasons: [`no-lyric: quoted-span ${quoted}`] },
+    ]);
+  });
+
   test("routes each entry independently: a dropped card never blocks a clean one", async () => {
     const store = {
       [KEY]: entry(),
