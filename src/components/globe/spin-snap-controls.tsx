@@ -203,13 +203,28 @@ export function SpinSnapControls({
       s.mode = "fling";
     };
 
+    // An interrupted touch (system gesture, multi-touch) fires pointercancel,
+    // not pointerup. Without this the drag never ends and the globe freezes.
+    // Snap to the nearest country so it still never rests on open ocean.
+    const onCancel = (e: PointerEvent) => {
+      if (!g.dragging) return;
+      g.dragging = false;
+      el.releasePointerCapture?.(e.pointerId);
+      const s = sim.current;
+      settleTo(
+        pickSnapCountry(s.el, s.az, cfg.current.visited, cfg.current.fair),
+      );
+    };
+
     el.addEventListener("pointerdown", onDown);
     el.addEventListener("pointermove", onMove);
     el.addEventListener("pointerup", onUp);
+    el.addEventListener("pointercancel", onCancel);
     return () => {
       el.removeEventListener("pointerdown", onDown);
       el.removeEventListener("pointermove", onMove);
       el.removeEventListener("pointerup", onUp);
+      el.removeEventListener("pointercancel", onCancel);
     };
   }, [gl, camera]);
 
