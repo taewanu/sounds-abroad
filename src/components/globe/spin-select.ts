@@ -105,15 +105,16 @@ const SNAP_POOL = 10; // candidate countries near the rest point for a fair snap
 
 // Fling target. Fairness off: the literal nearest country to the rest direction.
 // Fairness on: a deck-weighted draw from the nearest pool, so a small country
-// wedged between big neighbours still gets its turn. The one random draw lives
-// here at the boundary, keeping nearestPool and weightedDraw pure.
+// wedged between big neighbours still gets its turn. Randomness enters here via
+// `rng` (defaults to Math.random), injected so the fair path stays testable too.
 export function pickSnapCountry(
   el: number,
   az: number,
   visited: ReadonlySet<string>,
   fair: boolean,
+  rng: () => number = Math.random,
 ): string {
   const pool = nearestPool(el, az, SNAP_POOL);
   if (!fair) return pool[0];
-  return weightedDraw(pool, visited, Math.random());
+  return weightedDraw(pool, visited, rng());
 }

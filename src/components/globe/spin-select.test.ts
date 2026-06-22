@@ -136,6 +136,17 @@ test("pickSnapCountry returns a country from the nearest pool when fairness is o
   expect(nearestPool(el, az, 10)).toContain(result);
 });
 
+test("pickSnapCountry fair draw is deterministic under an injected rng", () => {
+  const target = COUNTRIES[0];
+  const el = target.lat * DEG;
+  const az = target.lon * DEG;
+  const pool = nearestPool(el, az, 10);
+
+  // No visits → uniform weights, so r maps linearly across the pool.
+  expect(pickSnapCountry(el, az, new Set(), true, () => 0)).toBe(pool[0]);
+  expect(pickSnapCountry(el, az, new Set(), true, () => 0.95)).toBe(pool[9]);
+});
+
 test("every country appears in some nearest pool over the reachable sphere", () => {
   const POOL_SIZE = 10; // mirrors the snap pool size in spin-select.ts
   const EL_LIMIT = 75 * DEG; // the spin elevation clamp
