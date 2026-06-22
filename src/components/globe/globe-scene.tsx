@@ -13,6 +13,7 @@ import { cameraForViewport } from "./camera-fit";
 import { CountryFill } from "./country-fill";
 import { CountryOutlinesLayer } from "./country-outlines";
 import { CountryPins } from "./country-pins";
+import { addVisited } from "./spin-select";
 import { SpinSnapControls } from "./spin-snap-controls";
 import { StarBackdrop } from "./star-backdrop";
 
@@ -73,12 +74,7 @@ function SceneContent() {
   // doesn't flood history) and record the country as visited.
   const handleSettle = useCallback((code: string) => {
     window.history.replaceState(null, "", `?cc=${code}`);
-    setVisited((prev) => {
-      if (prev.has(code)) return prev;
-      const next = new Set(prev);
-      next.add(code);
-      return next;
-    });
+    setVisited((prev) => addVisited(prev, code));
   }, []);
 
   return (

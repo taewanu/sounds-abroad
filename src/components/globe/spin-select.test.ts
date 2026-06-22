@@ -5,6 +5,7 @@ import { COUNTRIES, type CountryEntry } from "@/lib/countries";
 import { latLonToVec3 } from "@/lib/lat-lon-to-vec3";
 
 import {
+  addVisited,
   nearestPool,
   pickNearestToPoint,
   pickSnapCountry,
@@ -165,4 +166,16 @@ test("every country appears in some nearest pool over the reachable sphere", () 
     (c) => c.code,
   );
   expect(unreachable).toEqual([]);
+});
+
+test("addVisited records a newly settled country in the visited set", () => {
+  const result = addVisited(new Set(["us"]), "kr");
+
+  expect([...result].sort()).toEqual(["kr", "us"]);
+});
+
+test("addVisited returns the same set when the country is already visited", () => {
+  const visited = new Set(["us"]);
+
+  expect(addVisited(visited, "us")).toBe(visited);
 });
