@@ -2,7 +2,6 @@
 
 import { Suspense, use, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { OrbitControls } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
 import { PerspectiveCamera } from "three";
 
@@ -14,10 +13,23 @@ import { cameraForViewport } from "./camera-fit";
 import { CountryFill } from "./country-fill";
 import { CountryOutlinesLayer } from "./country-outlines";
 import { CountryPins } from "./country-pins";
+import { addVisited } from "./spin-select";
+import { SpinSnapControls } from "./spin-snap-controls";
 import { StarBackdrop } from "./star-backdrop";
-import { useCameraArc } from "./use-camera-arc";
 
 const ISO_BY_CODE = new Map(COUNTRIES.map((c) => [c.code, c.isoNum]));
+
+// Locked feel values from the gesture spike (ADR-0011). Named, not tunable.
+const SPIN_SENSITIVITY = 1.4;
+const SPIN_FRICTION = 2.5;
+const SPIN_BOUNCE = 0.6;
+const SPIN_HORIZONTAL_LOCK = false;
+const SPIN_FAIR = true;
+const FALLBACK_CODE = "us";
+
+// Pins no longer handle selection; the canvas-level tap does. A stable no-op
+// keeps CountryPins' required onSelect from getting a new ref each render.
+const NO_OP = () => {};
 
 function CountryLayers({
   hoveredIsoNum,
@@ -51,15 +63,19 @@ function SceneContent() {
   const selectedIsoNum =
     selectedCode !== null ? (ISO_BY_CODE.get(selectedCode) ?? null) : null;
 
-  const { isAnimating } = useCameraArc({ targetCode: selectedCode });
-
-  const handleSelect = useCallback(
-    (code: string) => {
-      if (isAnimating) return;
-      window.history.pushState(null, "", `?cc=${code}`);
-    },
-    [isAnimating],
+  // Per-session anti-repeat memory for the fairness-weighted fling; resets on
+  // reload. Seeded once with whatever the globe first centered on.
+  const [initialCode] = useState(() => selectedCode ?? FALLBACK_CODE);
+  const [visited, setVisited] = useState<ReadonlySet<string>>(
+    () => new Set([initialCode]),
   );
+
+  // A landing is a selection: write ?cc= (replaceState, so rapid flinging
+  // doesn't flood history) and record the country as visited.
+  const handleSettle = useCallback((code: string) => {
+    window.history.replaceState(null, "", `?cc=${code}`);
+    setVisited((prev) => addVisited(prev, code));
+  }, []);
 
   return (
     <>
@@ -83,17 +99,18 @@ function SceneContent() {
       <CountryPins
         selectedCode={selectedCode}
         hoveredCode={hoveredCode}
-        onSelect={handleSelect}
+        onSelect={NO_OP}
         onHoverChange={setHoveredCode}
       />
-      <OrbitControls
-        autoRotate={selectedCode === null}
-        autoRotateSpeed={0.4}
-        enableZoom={false}
-        enablePan={false}
-        enableRotate={!isAnimating}
-        enableDamping
-        makeDefault
+      <SpinSnapControls
+        initialCode={initialCode}
+        sensitivity={SPIN_SENSITIVITY}
+        friction={SPIN_FRICTION}
+        bounce={SPIN_BOUNCE}
+        horizontalLock={SPIN_HORIZONTAL_LOCK}
+        fair={SPIN_FAIR}
+        visited={visited}
+        onSettle={handleSettle}
       />
     </>
   );
@@ -126,6 +143,7 @@ export function GlobeScene() {
       dpr={[1, 2]}
       gl={{ antialias: true }}
       onCreated={() => setReady(true)}
+      style={{ touchAction: "none" }}
       className={`transition-opacity duration-700 ease-out ${
         ready ? "opacity-100" : "opacity-0"
       }`}

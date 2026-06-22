@@ -101,6 +101,19 @@ export function weightedDraw(
   return pool[pool.length - 1];
 }
 
+// The visited set with `code` added. Returns the input set unchanged when the
+// code is already present, so settling on the same country does not force a
+// re-render through a functional setState.
+export function addVisited(
+  visited: ReadonlySet<string>,
+  code: string,
+): ReadonlySet<string> {
+  if (visited.has(code)) return visited;
+  const next = new Set(visited);
+  next.add(code);
+  return next;
+}
+
 const SNAP_POOL = 10; // candidate countries near the rest point for a fair snap
 
 // Fling target. Fairness off: the literal nearest country to the rest direction.
