@@ -14,7 +14,7 @@ export interface CameraFit {
 
 /**
  * FOV for a viewport aspect (width / height); distance is held constant so the
- * camera-arc and OrbitControls are unaffected. A PerspectiveCamera fits its FOV
+ * spin controls orbit at a fixed radius. A PerspectiveCamera fits its FOV
  * vertically, so wide/short viewports narrow it to fill TARGET_FILL of the height;
  * tall viewports clamp to the base FOV so the portrait globe never shrinks.
  */
