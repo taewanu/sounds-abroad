@@ -11,6 +11,7 @@ import {
   pickSnapCountry,
   projectFrontCountries,
 } from "./spin-select";
+import { isTap } from "./tap-detect";
 
 const DEG = Math.PI / 180;
 const RADIUS = 3.5;
@@ -162,12 +163,15 @@ export function SpinSnapControls({
     const el = gl.domElement;
 
     // Gesture tracking held on one mutable object (not reassigned render-scope
-    // locals): pointer position, release velocity, drag distance, drag state.
+    // locals): press-down point, last pointer position, release velocity, drag
+    // state. The down point anchors tap-vs-spin: we compare it to the release
+    // point, so a jitter that returns near the start stays a tap.
     const g = {
+      downX: 0,
+      downY: 0,
       lastX: 0,
       lastY: 0,
       lastT: 0,
-      moved: 0,
       vx: 0,
       vy: 0,
       dragging: false,
@@ -179,10 +183,11 @@ export function SpinSnapControls({
       s.vAz = 0;
       s.vEl = 0;
       g.dragging = true;
+      g.downX = e.clientX;
+      g.downY = e.clientY;
       g.lastX = e.clientX;
       g.lastY = e.clientY;
       g.lastT = e.timeStamp;
-      g.moved = 0;
       g.vx = 0;
       g.vy = 0;
       el.setPointerCapture?.(e.pointerId);
@@ -202,7 +207,6 @@ export function SpinSnapControls({
       }
       g.vx = dx / dt;
       g.vy = dy / dt;
-      g.moved += Math.hypot(dx, dy);
       g.lastX = e.clientX;
       g.lastY = e.clientY;
       g.lastT = e.timeStamp;
@@ -214,7 +218,13 @@ export function SpinSnapControls({
       el.releasePointerCapture?.(e.pointerId);
       const s = sim.current;
 
-      if (g.moved < TAP_MAX_PX) {
+      if (
+        isTap(
+          { x: g.downX, y: g.downY },
+          { x: e.clientX, y: e.clientY },
+          TAP_MAX_PX,
+        )
+      ) {
         const rect = el.getBoundingClientRect();
         const candidates = projectFrontCountries(
           camera,
