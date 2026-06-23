@@ -6,11 +6,22 @@ import { useSearchParams } from "next/navigation";
 import { COUNTRIES } from "@/lib/countries";
 import { countryByCode, validateCountryCode } from "@/lib/country-code";
 
-// Alphabetical so the grid is predictable to scan and tab through; the globe's
-// own COUNTRIES order is region-grouped for the gesture, not for reading.
-const SORTED_COUNTRIES = COUNTRIES.toSorted((a, b) =>
-  a.name.localeCompare(b.name),
-);
+// Group the grid by continent, west-to-east so it mirrors the globe's eastward
+// spin; alphabetical within each region.
+const REGION_ORDER = [
+  "Americas",
+  "Europe",
+  "Africa",
+  "Asia",
+  "Oceania",
+] as const;
+
+const COUNTRIES_BY_REGION = REGION_ORDER.map((region) => ({
+  region,
+  countries: COUNTRIES.filter((c) => c.region === region).toSorted((a, b) =>
+    a.name.localeCompare(b.name),
+  ),
+}));
 
 // ISO 3166-1 alpha-2 → regional-indicator flag emoji. Decorative only (the
 // country name carries the meaning); degrades to the letter pair on platforms
@@ -122,23 +133,45 @@ export function CountrySelector() {
               ✕
             </button>
           </div>
-          <ul className="flex flex-wrap content-start gap-1.5 overflow-y-auto p-2.5">
-            {SORTED_COUNTRIES.map((c) => (
-              <li key={c.code}>
-                <button
-                  type="button"
-                  onClick={() => handleSelect(c.code, c.name)}
-                  aria-current={c.code === currentCode ? "true" : undefined}
-                  className="border-fg-1/15 bg-dusk text-fg-2 hover:text-fg-1 hover:border-fg-3 focus-visible:outline-aurora aria-[current=true]:border-aurora aria-[current=true]:bg-aurora/10 aria-[current=true]:text-fg-1 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-1"
+          <div className="overflow-y-auto p-2.5">
+            {COUNTRIES_BY_REGION.map(({ region, countries }) => (
+              <div
+                key={region}
+                role="group"
+                aria-label={region}
+                className="mt-3 first:mt-0"
+              >
+                <p
+                  aria-hidden="true"
+                  className="text-aurora px-1 pb-1.5 text-[10px] font-medium tracking-wider uppercase"
                 >
-                  <span aria-hidden="true" className="text-sm leading-none">
-                    {flagEmoji(c.code)}
-                  </span>
-                  <span className="whitespace-nowrap">{c.name}</span>
-                </button>
-              </li>
+                  {region}
+                </p>
+                <ul className="flex flex-wrap content-start gap-1.5">
+                  {countries.map((c) => (
+                    <li key={c.code}>
+                      <button
+                        type="button"
+                        onClick={() => handleSelect(c.code, c.name)}
+                        aria-current={
+                          c.code === currentCode ? "true" : undefined
+                        }
+                        className="border-fg-1/15 bg-dusk text-fg-2 hover:text-fg-1 hover:border-fg-3 focus-visible:outline-aurora aria-[current=true]:border-aurora aria-[current=true]:bg-aurora/10 aria-[current=true]:text-fg-1 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-1"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="text-sm leading-none"
+                        >
+                          {flagEmoji(c.code)}
+                        </span>
+                        <span className="whitespace-nowrap">{c.name}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
-          </ul>
+          </div>
         </nav>
       </div>
 

@@ -49,6 +49,19 @@ describe("CountrySelector", () => {
     expect(within(nav).getByRole("button", { name: "Japan" })).toBeDefined();
   });
 
+  test("groups the countries into labeled continent regions", () => {
+    render(<CountrySelector />);
+    openList();
+
+    const americas = screen.getByRole("group", { name: "Americas" });
+    expect(
+      within(americas).getByRole("button", { name: "Brazil" }),
+    ).toBeDefined();
+    for (const region of ["Americas", "Europe", "Africa", "Asia", "Oceania"]) {
+      expect(screen.getByRole("group", { name: region })).toBeDefined();
+    }
+  });
+
   test("selecting a country writes ?cc= via replaceState and announces it", () => {
     render(<CountrySelector />);
     openList();
