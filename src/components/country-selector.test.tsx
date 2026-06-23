@@ -78,4 +78,26 @@ describe("CountrySelector", () => {
     expect(screen.queryByRole("navigation", { name: "Countries" })).toBeNull();
     expect(document.activeElement).toBe(toggle);
   });
+
+  test("the close button closes the list and returns focus to the toggle", () => {
+    render(<CountrySelector />);
+    const toggle = screen.getByRole("button", { name: /choose a country/i });
+    fireEvent.click(toggle);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /close country list/i }),
+    );
+
+    expect(screen.queryByRole("navigation", { name: "Countries" })).toBeNull();
+    expect(document.activeElement).toBe(toggle);
+  });
+
+  test("tapping the scrim closes the list", () => {
+    render(<CountrySelector />);
+    openList();
+
+    fireEvent.click(screen.getByTestId("country-scrim"));
+
+    expect(screen.queryByRole("navigation", { name: "Countries" })).toBeNull();
+  });
 });
