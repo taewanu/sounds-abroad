@@ -6,6 +6,7 @@ import {
   type CommentaryStore,
 } from "../../src/lib/commentary-store";
 
+import type { DropsStore } from "./drops";
 import { chartConfidence, computeWorklist } from "./worklist";
 
 function track(rank: number, artist: string, name: string): Track {
@@ -65,6 +66,73 @@ test("excludes a track that already has commentary (cache hit)", () => {
   const commentary = storeWith(commentaryKey("en", "Artist A", "Song A"));
 
   const items = computeWorklist({ current, previous: null, commentary });
+
+  expect(items).toEqual([]);
+});
+
+test("excludes a track that has spent its drop attempts (tombstoned)", () => {
+  const current = chart({
+    us: country("United States", [track(1, "Artist A", "Song A")]),
+  });
+  const drops: DropsStore = {
+    [commentaryKey("en", "Artist A", "Song A")]: {
+      attempts: 2,
+      reasons: ["tier-consistency"],
+      lastTriedAt: "2026-06-23T00:00:00.000Z",
+    },
+  };
+
+  const items = computeWorklist({
+    current,
+    previous: null,
+    commentary: {},
+    drops,
+  });
+
+  expect(items).toEqual([]);
+});
+
+test("still includes a track dropped fewer times than the budget", () => {
+  const current = chart({
+    us: country("United States", [track(1, "Artist A", "Song A")]),
+  });
+  const drops: DropsStore = {
+    [commentaryKey("en", "Artist A", "Song A")]: {
+      attempts: 1,
+      reasons: ["grounding: thin"],
+      lastTriedAt: "2026-06-23T00:00:00.000Z",
+    },
+  };
+
+  const items = computeWorklist({
+    current,
+    previous: null,
+    commentary: {},
+    drops,
+  });
+
+  expect(items).toHaveLength(1);
+});
+
+test("honors a custom maxAttempts budget", () => {
+  const current = chart({
+    us: country("United States", [track(1, "Artist A", "Song A")]),
+  });
+  const drops: DropsStore = {
+    [commentaryKey("en", "Artist A", "Song A")]: {
+      attempts: 1,
+      reasons: ["no-lyric"],
+      lastTriedAt: "2026-06-23T00:00:00.000Z",
+    },
+  };
+
+  const items = computeWorklist({
+    current,
+    previous: null,
+    commentary: {},
+    drops,
+    options: { maxAttempts: 1 },
+  });
 
   expect(items).toEqual([]);
 });
