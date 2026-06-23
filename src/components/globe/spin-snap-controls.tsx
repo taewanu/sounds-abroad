@@ -32,6 +32,11 @@ const shortestAngle = (delta: number) =>
 
 interface SpinSnapControlsProps {
   initialCode: string;
+  // The externally-selected country (?cc=); the globe settles to it when it
+  // changes, so the a11y list and shared links drive the globe like a gesture.
+  targetCode: string | null;
+  // OS "reduce motion": replaces the snap spring with an instant cut.
+  reducedMotion: boolean;
   sensitivity: number;
   friction: number;
   horizontalLock: boolean;
@@ -47,6 +52,8 @@ interface SpinSnapControlsProps {
 // open ocean.
 export function SpinSnapControls({
   initialCode,
+  targetCode,
+  reducedMotion,
   sensitivity,
   friction,
   horizontalLock,
@@ -65,6 +72,7 @@ export function SpinSnapControls({
     bounce,
     fair,
     visited,
+    reducedMotion,
   });
   const onSettleRef = useRef(onSettle);
 
@@ -78,6 +86,7 @@ export function SpinSnapControls({
       bounce,
       fair,
       visited,
+      reducedMotion,
     };
     onSettleRef.current = onSettle;
   });
@@ -108,6 +117,10 @@ export function SpinSnapControls({
     camera.lookAt(0, 0, 0);
   };
 
+  // Aim the camera at a country. Records the landing and notifies once via
+  // onSettle no matter how we got here (fling, tap, or an external ?cc=
+  // change), then either cuts instantly (reduced motion) or hands off to the
+  // snap spring in useFrame.
   const settleTo = (code: string | null) => {
     const s = sim.current;
     const country = code ? COUNTRY_BY_CODE.get(code) : null;
@@ -117,12 +130,33 @@ export function SpinSnapControls({
     }
     s.settleAz = country.lon * DEG;
     s.settleEl = country.lat * DEG;
-    s.mode = "settle";
     if (s.settledCode !== country.code) {
       s.settledCode = country.code;
       onSettleRef.current(country.code);
     }
+
+    if (cfg.current.reducedMotion) {
+      // Instant cut: jump straight to the spring's end state so the next
+      // applyCamera draws the target country with no in-between frames.
+      s.az = s.settleAz;
+      s.el = s.settleEl;
+      s.vAz = 0;
+      s.vEl = 0;
+      s.mode = "idle";
+    } else {
+      s.mode = "settle";
+    }
   };
+
+  // Follow external selection: when ?cc= changes (the a11y country list, a
+  // shared link) and we aren't already there, settle to it like a gesture
+  // would. A gesture's own settle writes ?cc=, so targetCode === settledCode by
+  // the time this runs — it no-ops, no feedback loop.
+  useEffect(() => {
+    if (targetCode && targetCode !== sim.current.settledCode) {
+      settleTo(targetCode);
+    }
+  }, [targetCode]);
 
   useEffect(() => {
     const el = gl.domElement;

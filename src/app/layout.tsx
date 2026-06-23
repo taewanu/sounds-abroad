@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 
+import { CountrySelector } from "@/components/country-selector";
 import { GlobeMount } from "@/components/globe/globe-mount";
 import { SITE_URL } from "@/lib/site-url";
 
@@ -82,6 +84,9 @@ export default function RootLayout({
         <div className="fixed inset-0">
           <GlobeMount />
         </div>
+        <Suspense fallback={null}>
+          <CountrySelector />
+        </Suspense>
         {children}
       </body>
     </html>

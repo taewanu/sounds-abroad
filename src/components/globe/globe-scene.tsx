@@ -9,6 +9,8 @@ import { COUNTRIES } from "@/lib/countries";
 import { validateCountryCode } from "@/lib/country-code";
 import { getCountryOutlinesPromise } from "@/lib/topo-loader";
 
+import { usePrefersReducedMotion } from "../use-prefers-reduced-motion";
+
 import { cameraForViewport } from "./camera-fit";
 import { CountryFill } from "./country-fill";
 import { CountryOutlinesLayer } from "./country-outlines";
@@ -54,6 +56,7 @@ function CountryLayers({
 function SceneContent() {
   const searchParams = useSearchParams();
   const selectedCode = validateCountryCode(searchParams.get("cc"));
+  const reducedMotion = usePrefersReducedMotion();
 
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
   const hoveredIsoNum =
@@ -104,6 +107,8 @@ function SceneContent() {
       />
       <SpinSnapControls
         initialCode={initialCode}
+        targetCode={selectedCode}
+        reducedMotion={reducedMotion}
         sensitivity={SPIN_SENSITIVITY}
         friction={SPIN_FRICTION}
         bounce={SPIN_BOUNCE}
