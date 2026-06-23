@@ -6,23 +6,14 @@ import {
   useEffect,
   useRef,
   useState,
-  useSyncExternalStore,
 } from "react";
+
+import { usePrefersReducedMotion } from "./use-prefers-reduced-motion";
 
 // Scroll pacing: duration scales with the overflow distance so the title moves
 // at a roughly constant speed no matter how far it has to travel.
 const MS_PER_PX = 45;
 const MIN_DURATION_MS = 4000;
-
-function subscribeReducedMotion(onChange: () => void) {
-  const query = window.matchMedia("(prefers-reduced-motion: reduce)");
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-}
-
-function getReducedMotion() {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
 
 export interface UseOverflowMarqueeOptions {
   // Restrict scrolling to the moments the spec allows (current track, hover).
@@ -45,11 +36,7 @@ export function useOverflowMarquee<T extends HTMLElement = HTMLSpanElement>({
 }: UseOverflowMarqueeOptions): OverflowMarquee<T> {
   const ref = useRef<T>(null);
   const [distance, setDistance] = useState(0);
-  const reducedMotion = useSyncExternalStore(
-    subscribeReducedMotion,
-    getReducedMotion,
-    () => false,
-  );
+  const reducedMotion = usePrefersReducedMotion();
 
   useEffect(() => {
     const el = ref.current;
