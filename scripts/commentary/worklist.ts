@@ -6,6 +6,8 @@ import {
 } from "../../src/lib/commentary-store";
 import { COUNTRIES, type Region } from "../../src/lib/countries";
 
+import { DEFAULT_MAX_ATTEMPTS, type DropsStore } from "./drops";
+
 /**
  * The worklist for a refinement pass: which charting tracks still need a blurb.
  * A track qualifies only if its movement is significant AND no blurb exists yet,
@@ -37,6 +39,12 @@ export interface WorklistOptions {
    * spends effort on solid stories first and reaches thin-market noise last.
    */
   suppressLowConfidence?: boolean;
+  /**
+   * Re-attempts a gate-dropped track gets before it falls off the list. Defaults
+   * to DEFAULT_MAX_ATTEMPTS so a track that keeps dropping stops re-spending a
+   * drafter call every batch.
+   */
+  maxAttempts?: number;
 }
 
 const DEFAULT_JUMP_BY = 10;
@@ -160,12 +168,16 @@ export function computeWorklist(input: {
   current: ChartFile;
   previous: ChartFile | null;
   commentary: CommentaryStore;
+  /** Per-key record of prior gate drops; tracks at the attempt budget are skipped. */
+  drops?: DropsStore;
   options?: WorklistOptions;
 }): WorklistItem[] {
   const lang = input.options?.lang ?? DEFAULT_LANG;
   const jumpBy = input.options?.jumpBy ?? DEFAULT_JUMP_BY;
   const topDebutMax = input.options?.topDebutMax ?? DEFAULT_TOP_DEBUT_MAX;
   const suppressLowConfidence = input.options?.suppressLowConfidence ?? false;
+  const maxAttempts = input.options?.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
+  const drops = input.drops ?? {};
 
   const current = aggregateByKey(input.current, lang);
   const previousBest = bestRankByKey(input.previous, lang);
@@ -174,6 +186,7 @@ export function computeWorklist(input: {
   const items: WorklistItem[] = [];
   for (const [key, agg] of current) {
     if (key in input.commentary) continue; // cache hit: never regenerate
+    if ((drops[key]?.attempts ?? 0) >= maxAttempts) continue; // tombstoned: retries spent
     const reason = classify(
       agg.bestRank,
       previousBest.get(key),

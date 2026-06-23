@@ -3,6 +3,8 @@ import type { CommentaryStore } from "../../src/lib/commentary-store";
 import { fetchPublishedCharts } from "../crawl/published-charts";
 
 import { createClaudeDrafter, draftEntry } from "./draft";
+import { dropsUrlFrom, recordAttempts } from "./drops";
+import { fetchDrops, uploadDrops } from "./drops-blob";
 import { fetchCommentaryStoreRaw } from "./fetch-commentary";
 import { createClaudeJudge, fetchSourceText, groundEntry } from "./ground";
 import { routeStore } from "./route";
@@ -57,12 +59,19 @@ const existing: CommentaryStore = commentaryUrl
   ? await fetchCommentaryStoreRaw(commentaryUrl)
   : {};
 
+// The drop ledger lives beside the commentary store. Read it so the worklist
+// skips tracks that have already spent their retries on the gate (#139); without
+// a published store there is no ledger yet, so start empty.
+const dropsUrl = commentaryUrl ? dropsUrlFrom(commentaryUrl) : undefined;
+const priorDrops = dropsUrl ? await fetchDrops(dropsUrl) : {};
+
 // Suppress thin-market low-confidence positions: don't spend a drafter call on
 // noise the worklist would rank last anyway (#117).
 const worklist = computeWorklist({
   current,
   previous,
   commentary: existing,
+  drops: priorDrops,
   options: { suppressLowConfidence: true },
 });
 
@@ -126,6 +135,19 @@ const { published, dropped } = await routeStore(candidates, { ground });
 for (const { key, reasons } of dropped) {
   console.warn(`Dropped "${key}": ${reasons.join("; ")}`);
 }
+
+// Update the drop ledger before any early exit: this batch's drops must persist
+// even when nothing published, so the next batch stops re-drafting these keys.
+const nextDrops = recordAttempts(
+  priorDrops,
+  dropped,
+  Object.keys(published),
+  generatedAt,
+);
+const dropsLedgerUrl = await uploadDrops(nextDrops);
+console.log(
+  `Drop ledger now ${Object.keys(nextDrops).length} key(s) -> ${dropsLedgerUrl}`,
+);
 
 const survivors = Object.keys(published).length;
 if (survivors === 0) {
