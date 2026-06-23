@@ -4,11 +4,12 @@ import { fetchPublishedCharts } from "../crawl/published-charts";
 
 import { createClaudeDrafter, draftEntry } from "./draft";
 import { dropsUrlFrom, recordAttempts } from "./drops";
-import { fetchDrops, uploadDrops } from "./drops-blob";
 import { fetchCommentaryStoreRaw } from "./fetch-commentary";
+import { fetchDrops } from "./fetch-drops";
 import { createClaudeJudge, fetchSourceText, groundEntry } from "./ground";
 import { routeStore } from "./route";
 import { backupCommentary, uploadCommentary } from "./upload-commentary";
+import { uploadDrops } from "./upload-drops";
 import { computeWorklist, type WorklistItem } from "./worklist";
 
 // Auto-drafts blurbs for the worklist, then routes each through the publish gate
