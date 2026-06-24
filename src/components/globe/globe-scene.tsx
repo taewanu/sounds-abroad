@@ -150,7 +150,15 @@ export function GlobeScene() {
       dpr={[1, 2]}
       gl={{ antialias: true }}
       onCreated={() => setReady(true)}
-      style={{ touchAction: "none" }}
+      // touchAction stops scroll/zoom hijacking the drag; the user-select and
+      // touch-callout resets stop a long press from raising iOS Safari's text
+      // selection / callout over the canvas mid-gesture.
+      style={{
+        touchAction: "none",
+        userSelect: "none",
+        WebkitUserSelect: "none",
+        WebkitTouchCallout: "none",
+      }}
       className={`transition-opacity duration-700 ease-out ${
         ready ? "opacity-100" : "opacity-0"
       }`}
