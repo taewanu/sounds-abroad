@@ -8,6 +8,7 @@ import { PerspectiveCamera } from "three";
 import { COUNTRIES } from "@/lib/countries";
 import { validateCountryCode } from "@/lib/country-code";
 import { getCountryOutlinesPromise } from "@/lib/topo-loader";
+import { uiModeStore, useUiMode } from "@/lib/ui-mode-store";
 
 import { usePrefersReducedMotion } from "../use-prefers-reduced-motion";
 
@@ -58,6 +59,7 @@ function SceneContent() {
   const searchParams = useSearchParams();
   const selectedCode = validateCountryCode(searchParams.get("cc"));
   const reducedMotion = usePrefersReducedMotion();
+  const readMode = useUiMode((s) => s.readMode);
 
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
   const hoveredIsoNum =
@@ -74,12 +76,14 @@ function SceneContent() {
     () => new Set([initialCode]),
   );
 
-  // A landing is a selection: buzz (where supported), write ?cc= (replaceState,
-  // so rapid flinging doesn't flood history), and record the country as visited.
+  // A landing is a selection: buzz where supported, write ?cc= (replaceState,
+  // so rapid flinging doesn't flood history), record the country as visited,
+  // and signal the chart tree so a dismissed sheet resurfaces the result.
   const handleSettle = useCallback((code: string) => {
     triggerLandingHaptic();
     window.history.replaceState(null, "", `?cc=${code}`);
     setVisited((prev) => addVisited(prev, code));
+    uiModeStore.getState().signalSettle();
   }, []);
 
   return (
@@ -117,6 +121,7 @@ function SceneContent() {
         horizontalLock={SPIN_HORIZONTAL_LOCK}
         fair={SPIN_FAIR}
         visited={visited}
+        readMode={readMode}
         onSettle={handleSettle}
       />
     </>
