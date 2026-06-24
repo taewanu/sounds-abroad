@@ -45,6 +45,7 @@ interface SpinSnapControlsProps {
   bounce: number;
   fair: boolean;
   visited: ReadonlySet<string>;
+  readMode: boolean;
   onSettle: (code: string) => void;
 }
 
@@ -62,6 +63,7 @@ export function SpinSnapControls({
   bounce,
   fair,
   visited,
+  readMode,
   onSettle,
 }: SpinSnapControlsProps) {
   const camera = useThree((s) => s.camera);
@@ -75,6 +77,7 @@ export function SpinSnapControls({
     fair,
     visited,
     reducedMotion,
+    readMode,
   });
   const onSettleRef = useRef(onSettle);
 
@@ -89,6 +92,7 @@ export function SpinSnapControls({
       fair,
       visited,
       reducedMotion,
+      readMode,
     };
     onSettleRef.current = onSettle;
   });
@@ -179,6 +183,8 @@ export function SpinSnapControls({
     };
 
     const onDown = (e: PointerEvent) => {
+      // Read mode covers the globe; ignore presses so reading never grabs it.
+      if (cfg.current.readMode) return;
       const s = sim.current;
       s.mode = "drag";
       s.vAz = 0;
@@ -277,6 +283,24 @@ export function SpinSnapControls({
 
   useFrame((_, dt) => {
     const s = sim.current;
+
+    // Read mode (sheet at full) hides the globe. Suspend the sim so a leftover
+    // fling can't drift and settle a new country under the reader. Park an
+    // in-flight fling outright (drop its momentum so it doesn't resume on
+    // collapse), but leave a settle in progress alone: a settle is an
+    // intentional landing (a gesture, or an external ?cc= pick from the a11y
+    // selector), so let it resume and land when the sheet collapses. A fling
+    // can't reach settle while reading, so mode === "settle" here is always a
+    // real selection, never stray momentum.
+    if (cfg.current.readMode) {
+      if (s.mode === "fling") {
+        s.vAz = 0;
+        s.vEl = 0;
+        s.mode = "idle";
+      }
+      return;
+    }
+
     if (s.mode === "fling") {
       s.az += s.vAz * dt;
       s.el = clamp(s.el + s.vEl * dt, -EL_LIMIT, EL_LIMIT);
