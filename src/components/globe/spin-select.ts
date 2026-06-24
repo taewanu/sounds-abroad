@@ -42,11 +42,14 @@ export function projectFrontCountries(
   return result;
 }
 
-// Tap target: the front-facing country whose pin is nearest the tap point.
+// Tap target: the front-facing country whose pin is nearest the tap point, or
+// null when even the nearest pin is farther than `maxPx` (a tap on open ocean
+// selects nothing). `bestDist` is a squared pixel distance.
 export function pickNearestToPoint(
   candidates: readonly ScreenCountry[],
   px: number,
   py: number,
+  maxPx: number,
 ): string | null {
   let best: string | null = null;
   let bestDist = Infinity;
@@ -57,7 +60,9 @@ export function pickNearestToPoint(
       best = c.country.code;
     }
   }
-  return best;
+  // Near enough → that country; beyond the radius → nothing. Comparison stays
+  // in squared space (bestDist is squared) to skip a sqrt.
+  return bestDist <= maxPx ** 2 ? best : null;
 }
 
 // Country codes ranked by how closely they face the rest direction (el, az in

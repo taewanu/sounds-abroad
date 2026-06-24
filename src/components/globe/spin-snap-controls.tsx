@@ -11,6 +11,7 @@ import {
   pickSnapCountry,
   projectFrontCountries,
 } from "./spin-select";
+import { isTap } from "./tap-detect";
 
 const DEG = Math.PI / 180;
 const RADIUS = 3.5;
@@ -18,7 +19,8 @@ const DRAG_RAD_PER_PX = 0.005; // base drag gain, scaled by the sensitivity slid
 const EL_LIMIT = 75 * DEG; // stop short of the poles so the view never flips
 const SETTLE_VEL = 0.6; // rad/s under which a fling hands off to the snap spring
 const SNAP_OMEGA = 10; // snap spring frequency: higher settles faster
-const TAP_MAX_PX = 8;
+const TAP_MAX_PX = 8; // press-to-release drift under which a gesture is a tap
+const TAP_HIT_PX = 44; // a tap beyond this from every country pin selects nothing
 
 const COUNTRY_BY_CODE = new Map(COUNTRIES.map((c) => [c.code, c]));
 
@@ -162,12 +164,15 @@ export function SpinSnapControls({
     const el = gl.domElement;
 
     // Gesture tracking held on one mutable object (not reassigned render-scope
-    // locals): pointer position, release velocity, drag distance, drag state.
+    // locals): press-down point, last pointer position, release velocity, drag
+    // state. The down point anchors tap-vs-spin: we compare it to the release
+    // point, so a jitter that returns near the start stays a tap.
     const g = {
+      downX: 0,
+      downY: 0,
       lastX: 0,
       lastY: 0,
       lastT: 0,
-      moved: 0,
       vx: 0,
       vy: 0,
       dragging: false,
@@ -179,10 +184,11 @@ export function SpinSnapControls({
       s.vAz = 0;
       s.vEl = 0;
       g.dragging = true;
+      g.downX = e.clientX;
+      g.downY = e.clientY;
       g.lastX = e.clientX;
       g.lastY = e.clientY;
       g.lastT = e.timeStamp;
-      g.moved = 0;
       g.vx = 0;
       g.vy = 0;
       el.setPointerCapture?.(e.pointerId);
@@ -202,7 +208,6 @@ export function SpinSnapControls({
       }
       g.vx = dx / dt;
       g.vy = dy / dt;
-      g.moved += Math.hypot(dx, dy);
       g.lastX = e.clientX;
       g.lastY = e.clientY;
       g.lastT = e.timeStamp;
@@ -214,20 +219,28 @@ export function SpinSnapControls({
       el.releasePointerCapture?.(e.pointerId);
       const s = sim.current;
 
-      if (g.moved < TAP_MAX_PX) {
+      if (
+        isTap(
+          { x: g.downX, y: g.downY },
+          { x: e.clientX, y: e.clientY },
+          TAP_MAX_PX,
+        )
+      ) {
         const rect = el.getBoundingClientRect();
         const candidates = projectFrontCountries(
           camera,
           rect.width,
           rect.height,
         );
-        settleTo(
-          pickNearestToPoint(
-            candidates,
-            e.clientX - rect.left,
-            e.clientY - rect.top,
-          ),
+        const hit = pickNearestToPoint(
+          candidates,
+          e.clientX - rect.left,
+          e.clientY - rect.top,
+          TAP_HIT_PX,
         );
+        // A tap that lands on no country re-centres the current one, so a
+        // mis-aim on open ocean does nothing rather than jumping away.
+        settleTo(hit ?? s.settledCode);
         return;
       }
 

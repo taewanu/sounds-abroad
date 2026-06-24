@@ -15,6 +15,7 @@ import { cameraForViewport } from "./camera-fit";
 import { CountryFill } from "./country-fill";
 import { CountryOutlinesLayer } from "./country-outlines";
 import { CountryPins } from "./country-pins";
+import { triggerLandingHaptic } from "./landing-haptic";
 import { addVisited } from "./spin-select";
 import { SpinSnapControls } from "./spin-snap-controls";
 import { StarBackdrop } from "./star-backdrop";
@@ -73,9 +74,10 @@ function SceneContent() {
     () => new Set([initialCode]),
   );
 
-  // A landing is a selection: write ?cc= (replaceState, so rapid flinging
-  // doesn't flood history) and record the country as visited.
+  // A landing is a selection: buzz (where supported), write ?cc= (replaceState,
+  // so rapid flinging doesn't flood history), and record the country as visited.
   const handleSettle = useCallback((code: string) => {
+    triggerLandingHaptic();
     window.history.replaceState(null, "", `?cc=${code}`);
     setVisited((prev) => addVisited(prev, code));
   }, []);
@@ -148,7 +150,15 @@ export function GlobeScene() {
       dpr={[1, 2]}
       gl={{ antialias: true }}
       onCreated={() => setReady(true)}
-      style={{ touchAction: "none" }}
+      // touchAction stops scroll/zoom hijacking the drag; the user-select and
+      // touch-callout resets stop a long press from raising iOS Safari's text
+      // selection / callout over the canvas mid-gesture.
+      style={{
+        touchAction: "none",
+        userSelect: "none",
+        WebkitUserSelect: "none",
+        WebkitTouchCallout: "none",
+      }}
       className={`transition-opacity duration-700 ease-out ${
         ready ? "opacity-100" : "opacity-0"
       }`}

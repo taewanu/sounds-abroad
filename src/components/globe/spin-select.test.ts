@@ -75,11 +75,18 @@ test("pickNearestToPoint returns the candidate closest to the tap point", () => 
     screenAt(far, 500, 100),
   ];
 
-  expect(pickNearestToPoint(candidates, 290, 310)).toBe(mid.code);
+  expect(pickNearestToPoint(candidates, 290, 310, 44)).toBe(mid.code);
+});
+
+test("pickNearestToPoint returns null when the nearest pin is beyond maxPx", () => {
+  const [only] = COUNTRIES;
+  const candidates = [screenAt(only, 100, 100)];
+
+  expect(pickNearestToPoint(candidates, 200, 100, 44)).toBeNull();
 });
 
 test("pickNearestToPoint returns null when no candidates are given", () => {
-  expect(pickNearestToPoint([], 0, 0)).toBeNull();
+  expect(pickNearestToPoint([], 0, 0, 44)).toBeNull();
 });
 
 test("nearestPool ranks the country under the rest direction first", () => {
