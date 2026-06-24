@@ -28,6 +28,7 @@ const engine = vi.hoisted(() => {
     src: "",
     play: vi.fn().mockResolvedValue(undefined),
     pause: vi.fn(),
+    unlock: vi.fn().mockResolvedValue(undefined),
     setVolume: vi.fn(),
     addEventListener: (type: string, listener: () => void) => {
       (listeners[type] ??= []).push(listener);
@@ -36,6 +37,7 @@ const engine = vi.hoisted(() => {
     reset() {
       this.src = "";
       this.play.mockClear();
+      this.unlock.mockClear();
       for (const key of Object.keys(listeners)) delete listeners[key];
     },
   };
@@ -101,6 +103,15 @@ describe("ChartScreen", () => {
 
     expect(screen.getByText(COUNTRY_US.tracks[0].name)).toBeDefined();
     expect(replaceState).toHaveBeenCalledWith(null, "", `?cc=${CODE_US}`);
+  });
+
+  test("arms audio on the first user pointerdown", () => {
+    mockSearchParams.value = new URLSearchParams(`cc=${CODE_US}`);
+    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
+
+    fireEvent.pointerDown(document.body);
+
+    expect(engine.unlock).toHaveBeenCalledOnce();
   });
 
   test("does not autoplay on the initial load", () => {

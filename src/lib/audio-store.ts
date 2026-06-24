@@ -33,6 +33,7 @@ export interface AudioState {
   setVolume: (value: number) => void;
   pause: () => void;
   stop: () => void;
+  unlock: () => void;
 }
 
 export type AudioStoreApi = ReturnType<typeof createAudioStore>;
@@ -153,6 +154,12 @@ export function createAudioStore(
           userPaused: false,
           lastError: null,
         });
+      },
+      unlock: () => {
+        // Arm audio from the first user gesture so a later gesture-detached play
+        // (a fling settling after pointerup) is audible. Creating the engine here
+        // builds the AudioContext inside that gesture, where resume can take.
+        void getEngine().unlock();
       },
     };
   });

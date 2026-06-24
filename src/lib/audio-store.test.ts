@@ -39,6 +39,7 @@ function makeMockAudio(): MockAudio {
     _srcWrites: 0,
     play: vi.fn().mockResolvedValue(undefined),
     pause: vi.fn(),
+    unlock: vi.fn().mockResolvedValue(undefined),
     setVolume: vi.fn(),
     addEventListener: vi.fn((type: EventType, listener: () => void) => {
       (listeners[type] ??= []).push(listener);
@@ -292,6 +293,15 @@ describe("createAudioStore", () => {
     audio._trigger("ended");
 
     expect(store.getState().userPaused).toBe(false);
+  });
+
+  test("unlock arms the engine so a later detached play is audible", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+
+    store.getState().unlock();
+
+    expect(audio.unlock).toHaveBeenCalledOnce();
   });
 
   test("ended event: isPlaying false, currentTrack preserved", () => {
