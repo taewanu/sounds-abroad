@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import {
@@ -10,6 +10,7 @@ import {
   COUNTRY_US,
 } from "@/lib/__fixtures__";
 import { pickAutoplayTrack } from "@/lib/autoplay";
+import { uiModeStore } from "@/lib/ui-mode-store";
 
 const mockSearchParams = vi.hoisted(() => ({
   value: new URLSearchParams(),
@@ -170,5 +171,76 @@ describe("ChartScreen", () => {
     rerender(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
 
     expect(engine.play).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("ChartScreen globe coupling", () => {
+  beforeEach(() => {
+    mockSearchParams.value = new URLSearchParams(`cc=${CODE_US}`);
+    uiModeStore.setState({ readMode: false, settleSignal: 0 });
+    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  test("publishes read mode to the globe at full and clears it back at peek", () => {
+    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
+
+    expect(uiModeStore.getState().readMode).toBe(false);
+
+    fireEvent.click(screen.getByRole("button", { name: "Expand chart" }));
+    expect(uiModeStore.getState().readMode).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: "Collapse chart" }));
+    expect(uiModeStore.getState().readMode).toBe(false);
+  });
+
+  test("a settle raises a dismissed sheet back to peek", () => {
+    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
+    const sheet = screen.getByTestId("chart-sheet");
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(sheet.dataset.snap).toBe("closed");
+
+    act(() => {
+      uiModeStore.getState().signalSettle();
+    });
+    expect(sheet.dataset.snap).toBe("peek");
+  });
+
+  test("a settle leaves an open sheet where it is", () => {
+    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
+    const sheet = screen.getByTestId("chart-sheet");
+
+    expect(sheet.dataset.snap).toBe("peek");
+    act(() => {
+      uiModeStore.getState().signalSettle();
+    });
+    expect(sheet.dataset.snap).toBe("peek");
+  });
+
+  test("releases read mode when the chart unmounts", () => {
+    const { unmount } = render(
+      <ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Expand chart" }));
+    expect(uiModeStore.getState().readMode).toBe(true);
+
+    unmount();
+    expect(uiModeStore.getState().readMode).toBe(false);
+  });
+
+  test("a settle never starts audio on its own", () => {
+    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
+
+    act(() => {
+      uiModeStore.getState().signalSettle();
+    });
+
+    // The mini player only mounts once a track plays; its absence after a settle
+    // shows the landing selected a country without starting audio.
+    expect(screen.queryByRole("button", { name: "Reopen chart" })).toBeNull();
   });
 });

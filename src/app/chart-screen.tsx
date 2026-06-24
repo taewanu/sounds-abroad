@@ -7,6 +7,7 @@ import { ChartSheet, type SnapState } from "@/components/chart-sheet/sheet";
 import { MiniPlayer } from "@/components/mini-player";
 import { pickAutoplayTrack } from "@/lib/autoplay";
 import type { ChartFile, Country } from "@/lib/chart-schema";
+import { uiModeStore, useUiMode } from "@/lib/ui-mode-store";
 import {
   AudioStoreProvider,
   useAudioStore,
@@ -64,6 +65,7 @@ function ChartScreenInner({
 }) {
   const [snap, setSnap] = useState<SnapState>("peek");
   const [scrollSignal, setScrollSignal] = useState(0);
+  const settleSignal = useUiMode((s) => s.settleSignal);
   const hasCurrentTrack = useAudioStore((s) => s.currentTrack !== null);
   const currentTrackRank = useAudioStore((s) => s.currentTrack?.rank ?? null);
   const endedSignal = useAudioStore((s) => s.endedSignal);
@@ -148,6 +150,28 @@ function ChartScreenInner({
     window.addEventListener("pointerdown", handler, { once: true });
     return () => window.removeEventListener("pointerdown", handler);
   }, [snap]);
+
+  // full = read mode: tell the globe to suspend its spin so a leftover fling
+  // can't settle a new country while the chart covers it.
+  useEffect(() => {
+    uiModeStore.getState().setReadMode(snap === "full");
+  }, [snap]);
+
+  // Release read mode if the chart unmounts (e.g. a route change) while at full,
+  // so the globe in the layout isn't left suspended with no sheet over it.
+  useEffect(() => {
+    return () => uiModeStore.getState().setReadMode(false);
+  }, []);
+
+  // A globe landing resurfaces the result: raise a dismissed sheet to peek.
+  // Ref-gated so only an actual settle (a bumped signal) triggers it, never a
+  // dep-only re-run, and so the mount value never force-raises.
+  const prevSettleRef = useRef(settleSignal);
+  useEffect(() => {
+    if (settleSignal === prevSettleRef.current) return;
+    prevSettleRef.current = settleSignal;
+    setSnap((s) => (s === "hidden" || s === "closed" ? "peek" : s));
+  }, [settleSignal]);
 
   const handleMiniTap = useCallback(() => {
     const source = audioStore.getState().currentCountryCode;
