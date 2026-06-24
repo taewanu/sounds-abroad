@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 
 import { ChartSheet, type SnapState } from "@/components/chart-sheet/sheet";
 import { MiniPlayer } from "@/components/mini-player";
+import { pickAutoplayTrack } from "@/lib/autoplay";
 import type { ChartFile, Country } from "@/lib/chart-schema";
 import {
   AudioStoreProvider,
@@ -116,6 +117,26 @@ function ChartScreenInner({
       }
     }
   }, [endedSignal, audioStore, charts.countries]);
+
+  // Autoplay the landed country's top track, but only into silence. Keyed on the
+  // resolved countryCode, so it fires once per selection (globe fling/tap or the
+  // a11y list — all write ?cc=). isPlaying is read imperatively, never a dep, so
+  // a track ending can't bounce the effect into replaying the same country. The
+  // ref-guard, seeded to the mounted code, skips the initial / shared-link load
+  // and survives StrictMode's double-invoke (a boolean didMount flag would not).
+  const prevAutoplayCcRef = useRef(countryCode);
+  useEffect(() => {
+    if (countryCode === prevAutoplayCcRef.current) return;
+    prevAutoplayCcRef.current = countryCode;
+    const { isPlaying, toggle } = audioStore.getState();
+    if (isPlaying) {
+      return;
+    }
+    const track = pickAutoplayTrack(country);
+    if (track) {
+      toggle(track, countryCode);
+    }
+  }, [countryCode, country, audioStore]);
 
   // Hidden sheet has no on-screen affordance; the next pointerdown anywhere
   // restores it.
