@@ -183,6 +183,19 @@ describe("createAudioStore", () => {
     expect(store.getState().isPlaying).toBe(true);
   });
 
+  test("resume with a new countryCode adopts it (selection resuming the same preview)", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    const track = makeTrack();
+    store.getState().toggle(track, "br");
+    store.getState().pause();
+
+    store.getState().toggle(track, "kr"); // resume with a new countryCode
+
+    expect(store.getState().currentCountryCode).toBe("kr");
+    expect(store.getState().isPlaying).toBe(true);
+  });
+
   test("stop clears currentCountryCode", () => {
     const store = createAudioStore(() => makeMockAudio());
     store.getState().toggle(makeTrack(), "br");

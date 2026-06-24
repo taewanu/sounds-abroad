@@ -107,10 +107,13 @@ export function createAudioStore(
         }
         if (isCurrent) {
           // Resume in place: reassigning src restarts at 0, so leave it and
-          // just play. Keeps the preview position and the stored countryCode.
+          // just play, keeping the preview position. Adopt a country code when
+          // one is passed (a selection resuming the same preview), else keep the
+          // stored one (a bare mini-player / track-row resume passes none).
           void a.play();
           set({
             currentTrack: track,
+            currentCountryCode: countryCode ?? state.currentCountryCode,
             isPlaying: true,
             userPaused: false,
             lastError: null,
