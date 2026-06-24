@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import {
@@ -134,6 +134,26 @@ describe("ChartScreen", () => {
 
     mockSearchParams.value = new URLSearchParams(`cc=${CODE_BR}`);
     rerender(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
+
+    mockSearchParams.value = new URLSearchParams(`cc=${CODE_KR}`);
+    rerender(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
+
+    expect(engine.play).toHaveBeenCalledTimes(1);
+  });
+
+  test("does not autoplay over a deliberately paused track", () => {
+    const top = pickAutoplayTrack(COUNTRY_BR);
+    if (!top) throw new Error("fixture BR has no playable top track");
+    mockSearchParams.value = new URLSearchParams(`cc=${CODE_US}`);
+    const { rerender } = render(
+      <ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />,
+    );
+
+    mockSearchParams.value = new URLSearchParams(`cc=${CODE_BR}`);
+    rerender(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
+    fireEvent.click(
+      screen.getByRole("button", { name: `Pause preview of ${top.name}` }),
+    );
 
     mockSearchParams.value = new URLSearchParams(`cc=${CODE_KR}`);
     rerender(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);

@@ -118,18 +118,20 @@ function ChartScreenInner({
     }
   }, [endedSignal, audioStore, charts.countries]);
 
-  // Autoplay the landed country's top track, but only into silence. Keyed on the
-  // resolved countryCode, so it fires once per selection (globe fling/tap or the
-  // a11y list — all write ?cc=). isPlaying is read imperatively, never a dep, so
-  // a track ending can't bounce the effect into replaying the same country. The
-  // ref-guard, seeded to the mounted code, skips the initial / shared-link load
-  // and survives StrictMode's double-invoke (a boolean didMount flag would not).
+  // Autoplay the landed country's top track, but only into un-chosen silence:
+  // idle or a track that ended on its own, never over a deliberate pause. Keyed
+  // on the resolved countryCode, so it fires once per selection (globe fling/tap
+  // or the a11y list — all write ?cc=). Playback state is read imperatively,
+  // never a dep, so a track ending can't bounce the effect into replaying the
+  // same country. The ref-guard, seeded to the mounted code, skips the initial /
+  // shared-link load and survives StrictMode's double-invoke (a boolean didMount
+  // flag would not).
   const prevAutoplayCcRef = useRef(countryCode);
   useEffect(() => {
     if (countryCode === prevAutoplayCcRef.current) return;
     prevAutoplayCcRef.current = countryCode;
-    const { isPlaying, toggle } = audioStore.getState();
-    if (isPlaying) {
+    const { isPlaying, userPaused, toggle } = audioStore.getState();
+    if (isPlaying || userPaused) {
       return;
     }
     const track = pickAutoplayTrack(country);
