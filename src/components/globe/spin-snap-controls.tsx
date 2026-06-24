@@ -19,7 +19,8 @@ const DRAG_RAD_PER_PX = 0.005; // base drag gain, scaled by the sensitivity slid
 const EL_LIMIT = 75 * DEG; // stop short of the poles so the view never flips
 const SETTLE_VEL = 0.6; // rad/s under which a fling hands off to the snap spring
 const SNAP_OMEGA = 10; // snap spring frequency: higher settles faster
-const TAP_MAX_PX = 8;
+const TAP_MAX_PX = 8; // press-to-release drift under which a gesture is a tap
+const TAP_HIT_PX = 44; // a tap beyond this from every country pin selects nothing
 
 const COUNTRY_BY_CODE = new Map(COUNTRIES.map((c) => [c.code, c]));
 
@@ -231,13 +232,15 @@ export function SpinSnapControls({
           rect.width,
           rect.height,
         );
-        settleTo(
-          pickNearestToPoint(
-            candidates,
-            e.clientX - rect.left,
-            e.clientY - rect.top,
-          ),
+        const hit = pickNearestToPoint(
+          candidates,
+          e.clientX - rect.left,
+          e.clientY - rect.top,
+          TAP_HIT_PX,
         );
+        // A tap that lands on no country re-centres the current one, so a
+        // mis-aim on open ocean does nothing rather than jumping away.
+        settleTo(hit ?? s.settledCode);
         return;
       }
 
