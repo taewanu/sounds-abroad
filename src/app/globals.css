@@ -90,6 +90,10 @@
   --dur-base: 240ms;
   --dur-slow: 400ms;
   --dur-globe: 900ms;
+
+  /* How far the country badge slides up as it recedes under the rising sheet.
+     Zeroed under reduced motion so the recede is a plain fade, no sweep. */
+  --badge-recede-rise: -64px;
 }
 
 /* How far the rising chart sheet covers the top-left country badge: 0 = clear,
@@ -259,5 +263,9 @@
   .marquee-track[data-marquee] {
     animation: none;
     transform: none;
+  }
+  /* Recede the badge by fading only: drop the upward slide. */
+  :root {
+    --badge-recede-rise: 0px;
   }
 }
