@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
 
 import { COUNTRIES } from "@/lib/countries";
-import { countryByCode, validateCountryCode } from "@/lib/country-code";
+import { countryByCode } from "@/lib/country-code";
+import { uiModeStore, useUiMode } from "@/lib/ui-mode-store";
 
 // Group the grid by continent, west-to-east so it mirrors the globe's eastward
 // spin; alphabetical within each region.
@@ -35,12 +35,14 @@ function flagEmoji(code: string): string {
 }
 
 // A keyboard- and screen-reader-first way to pick a country, equal to the globe
-// gesture: a labeled landmark of named country buttons that write ?cc=. The
-// globe follows ?cc=, so selecting here drives the globe too. The grid stays
-// open after a pick so you can keep hopping between countries.
+// gesture: a labeled landmark of named country buttons. A pick drives the globe
+// through the ui-mode store; the grid stays open so you can keep hopping.
 export function CountrySelector() {
-  const searchParams = useSearchParams();
-  const currentCode = validateCountryCode(searchParams.get("cc"));
+  // The selected country comes from the store, not useSearchParams: this badge
+  // is a layout backdrop, where that hook is frozen to its first value and
+  // never sees a client-side ?cc= change. The chart publishes the resolved
+  // country to the store; the globe and this badge read it from there.
+  const currentCode = useUiMode((s) => s.selectedCountry);
   const current = currentCode ? countryByCode(currentCode) : null;
 
   const [open, setOpen] = useState(false);
@@ -54,8 +56,10 @@ export function CountrySelector() {
   };
 
   const handleSelect = (code: string, name: string) => {
-    // Same channel the gesture uses: replaceState keeps rapid hops out of
-    // history. Stay open so the grid is still there to keep exploring.
+    // Same channels the gesture uses: the store reaches the layout globe (whose
+    // useSearchParams can't see this), replaceState keeps the shareable URL in
+    // step without flooding history. Stay open so the grid is still there.
+    uiModeStore.getState().setSelectedCountry(code);
     window.history.replaceState(null, "", `?cc=${code}`);
     setAnnouncement(`Now showing ${name}`);
   };

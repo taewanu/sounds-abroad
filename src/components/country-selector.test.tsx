@@ -1,13 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-const mockSearchParams = vi.hoisted(() => ({
-  value: new URLSearchParams(),
-}));
-
-vi.mock("next/navigation", () => ({
-  useSearchParams: () => mockSearchParams.value,
-}));
+import { uiModeStore } from "@/lib/ui-mode-store";
 
 import { CountrySelector } from "./country-selector";
 
@@ -18,13 +12,14 @@ describe("CountrySelector", () => {
   let replaceState: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    mockSearchParams.value = new URLSearchParams("cc=br");
+    uiModeStore.setState({ selectedCountry: "br" });
     replaceState = vi
       .spyOn(window.history, "replaceState")
       .mockImplementation(() => {});
   });
 
   afterEach(() => {
+    uiModeStore.setState({ selectedCountry: null });
     replaceState.mockRestore();
   });
 
@@ -62,12 +57,13 @@ describe("CountrySelector", () => {
     }
   });
 
-  test("selecting a country writes ?cc= via replaceState and announces it", () => {
+  test("selecting a country drives the globe via the store, mirrors ?cc=, and announces it", () => {
     render(<CountrySelector />);
     openList();
 
     fireEvent.click(screen.getByRole("button", { name: "France" }));
 
+    expect(uiModeStore.getState().selectedCountry).toBe("fr");
     expect(replaceState).toHaveBeenCalledWith(null, "", "?cc=fr");
     expect(screen.getByRole("status").textContent).toContain("France");
   });

@@ -8,6 +8,12 @@ import { createStore } from "zustand/vanilla";
 // client-only UI state with no request scope — and the globe lives outside the
 // audio provider anyway.
 export interface UiModeState {
+  // The resolved country the globe centers on. The URL ?cc= is the shareable
+  // mirror, but a layout component's useSearchParams is frozen to its first
+  // value (it never re-renders on a client-side replaceState), so the globe
+  // can't read the URL back. The chart, a page child, resolves cc (?cc= or the
+  // default) and publishes it here; the globe reads it across the layout seam.
+  selectedCountry: string | null;
   // The sheet is at full, covering the globe: the controller suspends its spin
   // so a leftover fling can't settle a new country out from under the reader.
   readMode: boolean;
@@ -15,13 +21,16 @@ export interface UiModeState {
   // raise a dismissed sheet, so re-landing on the same country still raises
   // (a plain ?cc= diff would miss that).
   settleSignal: number;
+  setSelectedCountry: (code: string | null) => void;
   setReadMode: (readMode: boolean) => void;
   signalSettle: () => void;
 }
 
 export const uiModeStore = createStore<UiModeState>()((set) => ({
+  selectedCountry: null,
   readMode: false,
   settleSignal: 0,
+  setSelectedCountry: (selectedCountry) => set({ selectedCountry }),
   setReadMode: (readMode) => set({ readMode }),
   signalSettle: () =>
     set((state) => ({ settleSignal: state.settleSignal + 1 })),
