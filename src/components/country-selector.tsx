@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { COUNTRIES } from "@/lib/countries";
 import { countryByCode } from "@/lib/country-code";
-import { uiModeStore, useUiMode } from "@/lib/ui-mode-store";
+import { globeChartStore, useGlobeChart } from "@/lib/globe-chart-store";
 
 // Group the grid by continent, west-to-east so it mirrors the globe's eastward
 // spin; alphabetical within each region.
@@ -36,19 +36,29 @@ function flagEmoji(code: string): string {
 
 // A keyboard- and screen-reader-first way to pick a country, equal to the globe
 // gesture: a labeled landmark of named country buttons. A pick drives the globe
-// through the ui-mode store; the grid stays open so you can keep hopping.
+// through the globe-chart store; the grid stays open so you can keep hopping.
 export function CountrySelector() {
   // The selected country comes from the store, not useSearchParams: this badge
   // is a layout backdrop, where that hook is frozen to its first value and
   // never sees a client-side ?cc= change. The chart publishes the resolved
   // country to the store; the globe and this badge read it from there.
-  const currentCode = useUiMode((s) => s.selectedCountry);
+  const currentCode = useGlobeChart((s) => s.selectedCountry);
   const current = currentCode ? countryByCode(currentCode) : null;
+
+  // At sheet full the chart's grip and title sit where this badge floats, so
+  // recede it, the same rule that suspends the globe spin. The seam is the
+  // store, not the sheet tree, so the selector stays decoupled from the sheet.
+  const readMode = useGlobeChart((s) => s.readMode);
 
   const [open, setOpen] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const toggleRef = useRef<HTMLButtonElement>(null);
   const navId = useId();
+
+  // Read mode makes the wrapper inert, so the list must never render open behind
+  // it. Derive that here rather than correcting `open` in an effect: the list is
+  // open only when the user opened it AND the badge isn't receded.
+  const listOpen = open && !readMode;
 
   const close = (returnFocus: boolean) => {
     setOpen(false);
@@ -59,27 +69,27 @@ export function CountrySelector() {
     // Same channels the gesture uses: the store reaches the layout globe (whose
     // useSearchParams can't see this), replaceState keeps the shareable URL in
     // step without flooding history. Stay open so the grid is still there.
-    uiModeStore.getState().setSelectedCountry(code);
+    globeChartStore.getState().setSelectedCountry(code);
     window.history.replaceState(null, "", `?cc=${code}`);
     setAnnouncement(`Now showing ${name}`);
   };
 
-  // Escape closes and returns focus to the toggle — the one focus move a
+  // Escape closes and returns focus to the toggle, the one focus move a
   // disclosure needs. (No focus trap; tab order alone walks in and out.)
   useEffect(() => {
-    if (!open) return;
+    if (!listOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") close(true);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open]);
+  }, [listOpen]);
 
   return (
     <>
       {/* Scrim: dims the globe, is the big easy tap-to-dismiss target, and
           intercepts the pointer so a dismiss tap never spins the globe. */}
-      {open ? (
+      {listOpen ? (
         <div
           data-testid="country-scrim"
           aria-hidden="true"
@@ -88,12 +98,27 @@ export function CountrySelector() {
         />
       ) : null}
 
-      <div className="fixed top-[max(env(safe-area-inset-top),16px)] left-4 z-40">
+      <div
+        // The badge slides up and fades as the sheet rises over it, bound to
+        // --sheet-cover so it tracks the drag at any speed and settles in step
+        // (the sheet owns that var's easing). inert + pointer-events follow the
+        // settled read mode, pulling the receded badge out of focus and taps.
+        inert={readMode}
+        data-testid="country-toggle-region"
+        style={{
+          transform:
+            "translateY(calc(var(--sheet-cover, 0) * var(--badge-recede-rise, -64px)))",
+          opacity: "calc(1 - var(--sheet-cover, 0))",
+        }}
+        className={`fixed top-[max(env(safe-area-inset-top),16px)] left-4 z-40 ${
+          readMode ? "pointer-events-none" : ""
+        }`}
+      >
         <button
           ref={toggleRef}
           type="button"
           onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
+          aria-expanded={listOpen}
           aria-controls={navId}
           aria-label={
             current
@@ -111,7 +136,7 @@ export function CountrySelector() {
           <span
             aria-hidden="true"
             className={`text-fg-3 transition-transform duration-200 ${
-              open ? "rotate-180" : ""
+              listOpen ? "rotate-180" : ""
             }`}
           >
             ▾
@@ -121,7 +146,7 @@ export function CountrySelector() {
         <nav
           id={navId}
           aria-label="Countries"
-          hidden={!open}
+          hidden={!listOpen}
           className="bg-night/95 border-fg-1/10 absolute top-[calc(100%+8px)] left-0 flex max-h-[58vh] w-[min(86vw,360px)] flex-col overflow-hidden rounded-2xl border shadow-lg backdrop-blur-lg"
         >
           <div className="border-fg-1/10 flex flex-none items-center justify-between border-b px-3 py-2">

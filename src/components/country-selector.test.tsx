@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-import { uiModeStore } from "@/lib/ui-mode-store";
+import { globeChartStore } from "@/lib/globe-chart-store";
 
 import { CountrySelector } from "./country-selector";
 
@@ -12,14 +12,14 @@ describe("CountrySelector", () => {
   let replaceState: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    uiModeStore.setState({ selectedCountry: "br" });
+    globeChartStore.setState({ selectedCountry: "br", readMode: false });
     replaceState = vi
       .spyOn(window.history, "replaceState")
       .mockImplementation(() => {});
   });
 
   afterEach(() => {
-    uiModeStore.setState({ selectedCountry: null });
+    globeChartStore.setState({ selectedCountry: null, readMode: false });
     replaceState.mockRestore();
   });
 
@@ -63,7 +63,7 @@ describe("CountrySelector", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "France" }));
 
-    expect(uiModeStore.getState().selectedCountry).toBe("fr");
+    expect(globeChartStore.getState().selectedCountry).toBe("fr");
     expect(replaceState).toHaveBeenCalledWith(null, "", "?cc=fr");
     expect(screen.getByRole("status").textContent).toContain("France");
   });
@@ -108,5 +108,25 @@ describe("CountrySelector", () => {
     fireEvent.click(screen.getByTestId("country-scrim"));
 
     expect(screen.queryByRole("navigation", { name: "Countries" })).toBeNull();
+  });
+
+  test("in read mode the badge is inert and non-interactive, off the sheet's grip", () => {
+    globeChartStore.setState({ readMode: true });
+
+    render(<CountrySelector />);
+
+    const region = screen.getByTestId("country-toggle-region");
+    expect(region.getAttribute("inert")).not.toBeNull();
+    expect(region.className).toContain("pointer-events-none");
+  });
+
+  test("leaving read mode restores the badge to interactive", () => {
+    globeChartStore.setState({ readMode: false });
+
+    render(<CountrySelector />);
+
+    const region = screen.getByTestId("country-toggle-region");
+    expect(region.getAttribute("inert")).toBeNull();
+    expect(region.className).not.toContain("pointer-events-none");
   });
 });

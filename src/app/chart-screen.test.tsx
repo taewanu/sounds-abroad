@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { CHARTS, CODE_BR, CODE_US, COUNTRY_US } from "@/lib/__fixtures__";
-import { uiModeStore } from "@/lib/ui-mode-store";
+import { globeChartStore } from "@/lib/globe-chart-store";
 
 const mockSearchParams = vi.hoisted(() => ({
   value: new URLSearchParams(),
@@ -66,7 +66,7 @@ describe("ChartScreen", () => {
 describe("ChartScreen globe coupling", () => {
   beforeEach(() => {
     mockSearchParams.value = new URLSearchParams(`cc=${CODE_US}`);
-    uiModeStore.setState({
+    globeChartStore.setState({
       readMode: false,
       settleSignal: 0,
       selectedCountry: null,
@@ -83,7 +83,7 @@ describe("ChartScreen globe coupling", () => {
 
     render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
 
-    expect(uiModeStore.getState().selectedCountry).toBe(CODE_US);
+    expect(globeChartStore.getState().selectedCountry).toBe(CODE_US);
   });
 
   test("publishes the default country to the globe when ?cc= is absent", () => {
@@ -91,19 +91,19 @@ describe("ChartScreen globe coupling", () => {
 
     render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
 
-    expect(uiModeStore.getState().selectedCountry).toBe(CODE_BR);
+    expect(globeChartStore.getState().selectedCountry).toBe(CODE_BR);
   });
 
   test("publishes read mode to the globe at full and clears it back at peek", () => {
     render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
 
-    expect(uiModeStore.getState().readMode).toBe(false);
+    expect(globeChartStore.getState().readMode).toBe(false);
 
     fireEvent.click(screen.getByRole("button", { name: "Expand chart" }));
-    expect(uiModeStore.getState().readMode).toBe(true);
+    expect(globeChartStore.getState().readMode).toBe(true);
 
     fireEvent.click(screen.getByRole("button", { name: "Collapse chart" }));
-    expect(uiModeStore.getState().readMode).toBe(false);
+    expect(globeChartStore.getState().readMode).toBe(false);
   });
 
   test("a settle raises a dismissed sheet back to peek", () => {
@@ -114,7 +114,7 @@ describe("ChartScreen globe coupling", () => {
     expect(sheet.dataset.snap).toBe("closed");
 
     act(() => {
-      uiModeStore.getState().signalSettle();
+      globeChartStore.getState().signalSettle();
     });
     expect(sheet.dataset.snap).toBe("peek");
   });
@@ -125,7 +125,7 @@ describe("ChartScreen globe coupling", () => {
 
     expect(sheet.dataset.snap).toBe("peek");
     act(() => {
-      uiModeStore.getState().signalSettle();
+      globeChartStore.getState().signalSettle();
     });
     expect(sheet.dataset.snap).toBe("peek");
   });
@@ -135,17 +135,17 @@ describe("ChartScreen globe coupling", () => {
       <ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />,
     );
     fireEvent.click(screen.getByRole("button", { name: "Expand chart" }));
-    expect(uiModeStore.getState().readMode).toBe(true);
+    expect(globeChartStore.getState().readMode).toBe(true);
 
     unmount();
-    expect(uiModeStore.getState().readMode).toBe(false);
+    expect(globeChartStore.getState().readMode).toBe(false);
   });
 
   test("a settle never starts audio on its own", () => {
     render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
 
     act(() => {
-      uiModeStore.getState().signalSettle();
+      globeChartStore.getState().signalSettle();
     });
 
     // The mini player only mounts once a track plays; its absence after a settle

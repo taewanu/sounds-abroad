@@ -5,8 +5,8 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { PerspectiveCamera } from "three";
 
 import { COUNTRIES } from "@/lib/countries";
+import { globeChartStore, useGlobeChart } from "@/lib/globe-chart-store";
 import { getCountryOutlinesPromise } from "@/lib/topo-loader";
-import { uiModeStore, useUiMode } from "@/lib/ui-mode-store";
 
 import { usePrefersReducedMotion } from "../use-prefers-reduced-motion";
 
@@ -57,9 +57,9 @@ function SceneContent() {
   // Not useSearchParams: the globe is a layout backdrop, where that hook is
   // frozen to its first value and never sees a client-side ?cc= change. The
   // chart (a page child) resolves cc and publishes it here.
-  const selectedCode = useUiMode((s) => s.selectedCountry);
+  const selectedCode = useGlobeChart((s) => s.selectedCountry);
   const reducedMotion = usePrefersReducedMotion();
-  const readMode = useUiMode((s) => s.readMode);
+  const readMode = useGlobeChart((s) => s.readMode);
 
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
   const hoveredIsoNum =
@@ -81,10 +81,10 @@ function SceneContent() {
   // and signal the chart tree so a dismissed sheet resurfaces the result.
   const handleSettle = useCallback((code: string) => {
     triggerLandingHaptic();
-    uiModeStore.getState().setSelectedCountry(code);
+    globeChartStore.getState().setSelectedCountry(code);
     window.history.replaceState(null, "", `?cc=${code}`);
     setVisited((prev) => addVisited(prev, code));
-    uiModeStore.getState().signalSettle();
+    globeChartStore.getState().signalSettle();
   }, []);
 
   return (

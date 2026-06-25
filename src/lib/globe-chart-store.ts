@@ -7,7 +7,7 @@ import { createStore } from "zustand/vanilla";
 // in ?cc=. A module singleton, not a provider store, because this is app-global
 // client-only UI state with no request scope — and the globe lives outside the
 // audio provider anyway.
-export interface UiModeState {
+export interface GlobeChartState {
   // The resolved country the globe centers on. The URL ?cc= is the shareable
   // mirror, but a layout component's useSearchParams is frozen to its first
   // value (it never re-renders on a client-side replaceState), so the globe
@@ -26,7 +26,7 @@ export interface UiModeState {
   signalSettle: () => void;
 }
 
-export const uiModeStore = createStore<UiModeState>()((set) => ({
+export const globeChartStore = createStore<GlobeChartState>()((set) => ({
   selectedCountry: null,
   readMode: false,
   settleSignal: 0,
@@ -36,6 +36,6 @@ export const uiModeStore = createStore<UiModeState>()((set) => ({
     set((state) => ({ settleSignal: state.settleSignal + 1 })),
 }));
 
-export function useUiMode<T>(selector: (state: UiModeState) => T): T {
-  return useStore(uiModeStore, selector);
+export function useGlobeChart<T>(selector: (state: GlobeChartState) => T): T {
+  return useStore(globeChartStore, selector);
 }
