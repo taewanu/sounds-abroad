@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-import { uiModeStore } from "@/lib/ui-mode-store";
+import { globeChartStore } from "@/lib/globe-chart-store";
 
 import { CountrySelector } from "./country-selector";
 
@@ -12,14 +12,14 @@ describe("CountrySelector", () => {
   let replaceState: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    uiModeStore.setState({ selectedCountry: "br" });
+    globeChartStore.setState({ selectedCountry: "br" });
     replaceState = vi
       .spyOn(window.history, "replaceState")
       .mockImplementation(() => {});
   });
 
   afterEach(() => {
-    uiModeStore.setState({ selectedCountry: null });
+    globeChartStore.setState({ selectedCountry: null });
     replaceState.mockRestore();
   });
 
@@ -63,7 +63,7 @@ describe("CountrySelector", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "France" }));
 
-    expect(uiModeStore.getState().selectedCountry).toBe("fr");
+    expect(globeChartStore.getState().selectedCountry).toBe("fr");
     expect(replaceState).toHaveBeenCalledWith(null, "", "?cc=fr");
     expect(screen.getByRole("status").textContent).toContain("France");
   });

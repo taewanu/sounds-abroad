@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { COUNTRIES } from "@/lib/countries";
 import { countryByCode } from "@/lib/country-code";
-import { uiModeStore, useUiMode } from "@/lib/ui-mode-store";
+import { globeChartStore, useGlobeChart } from "@/lib/globe-chart-store";
 
 // Group the grid by continent, west-to-east so it mirrors the globe's eastward
 // spin; alphabetical within each region.
@@ -36,13 +36,13 @@ function flagEmoji(code: string): string {
 
 // A keyboard- and screen-reader-first way to pick a country, equal to the globe
 // gesture: a labeled landmark of named country buttons. A pick drives the globe
-// through the ui-mode store; the grid stays open so you can keep hopping.
+// through the globe-chart store; the grid stays open so you can keep hopping.
 export function CountrySelector() {
   // The selected country comes from the store, not useSearchParams: this badge
   // is a layout backdrop, where that hook is frozen to its first value and
   // never sees a client-side ?cc= change. The chart publishes the resolved
   // country to the store; the globe and this badge read it from there.
-  const currentCode = useUiMode((s) => s.selectedCountry);
+  const currentCode = useGlobeChart((s) => s.selectedCountry);
   const current = currentCode ? countryByCode(currentCode) : null;
 
   const [open, setOpen] = useState(false);
@@ -59,7 +59,7 @@ export function CountrySelector() {
     // Same channels the gesture uses: the store reaches the layout globe (whose
     // useSearchParams can't see this), replaceState keeps the shareable URL in
     // step without flooding history. Stay open so the grid is still there.
-    uiModeStore.getState().setSelectedCountry(code);
+    globeChartStore.getState().setSelectedCountry(code);
     window.history.replaceState(null, "", `?cc=${code}`);
     setAnnouncement(`Now showing ${name}`);
   };
