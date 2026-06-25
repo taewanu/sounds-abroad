@@ -66,12 +66,32 @@ describe("ChartScreen", () => {
 describe("ChartScreen globe coupling", () => {
   beforeEach(() => {
     mockSearchParams.value = new URLSearchParams(`cc=${CODE_US}`);
-    uiModeStore.setState({ readMode: false, settleSignal: 0 });
+    uiModeStore.setState({
+      readMode: false,
+      settleSignal: 0,
+      selectedCountry: null,
+    });
     vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  test("publishes the resolved ?cc= country to the globe", () => {
+    mockSearchParams.value = new URLSearchParams(`cc=${CODE_US}`);
+
+    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
+
+    expect(uiModeStore.getState().selectedCountry).toBe(CODE_US);
+  });
+
+  test("publishes the default country to the globe when ?cc= is absent", () => {
+    mockSearchParams.value = new URLSearchParams();
+
+    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
+
+    expect(uiModeStore.getState().selectedCountry).toBe(CODE_BR);
   });
 
   test("publishes read mode to the globe at full and clears it back at peek", () => {

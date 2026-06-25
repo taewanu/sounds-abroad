@@ -1,12 +1,10 @@
 "use client";
 
 import { Suspense, use, useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { Canvas, useThree } from "@react-three/fiber";
 import { PerspectiveCamera } from "three";
 
 import { COUNTRIES } from "@/lib/countries";
-import { validateCountryCode } from "@/lib/country-code";
 import { getCountryOutlinesPromise } from "@/lib/topo-loader";
 import { uiModeStore, useUiMode } from "@/lib/ui-mode-store";
 
@@ -56,8 +54,10 @@ function CountryLayers({
 }
 
 function SceneContent() {
-  const searchParams = useSearchParams();
-  const selectedCode = validateCountryCode(searchParams.get("cc"));
+  // Not useSearchParams: the globe is a layout backdrop, where that hook is
+  // frozen to its first value and never sees a client-side ?cc= change. The
+  // chart (a page child) resolves cc and publishes it here.
+  const selectedCode = useUiMode((s) => s.selectedCountry);
   const reducedMotion = usePrefersReducedMotion();
   const readMode = useUiMode((s) => s.readMode);
 
@@ -81,6 +81,7 @@ function SceneContent() {
   // and signal the chart tree so a dismissed sheet resurfaces the result.
   const handleSettle = useCallback((code: string) => {
     triggerLandingHaptic();
+    uiModeStore.getState().setSelectedCountry(code);
     window.history.replaceState(null, "", `?cc=${code}`);
     setVisited((prev) => addVisited(prev, code));
     uiModeStore.getState().signalSettle();

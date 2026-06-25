@@ -35,12 +35,18 @@ export function ChartScreen({ charts, defaultCountryCode }: ChartScreenProps) {
 
   // Write the resolved code into the URL when it isn't already there (bare `/`,
   // an invalid cc, or a non-canonical case). replaceState relabels the URL with
-  // no navigation, so there's no refetch or flicker; Next keeps it in sync with
-  // useSearchParams, so the globe reads the same code.
+  // no navigation, so there's no refetch or flicker.
   useEffect(() => {
     if (rawCc === countryCode) return;
     window.history.replaceState(null, "", `?cc=${countryCode}`);
   }, [rawCc, countryCode]);
+
+  // Publish the resolved country to the globe. The globe is a layout backdrop,
+  // so its own useSearchParams never sees a client-side ?cc= change; this page
+  // child does, and forwards it across the ui-mode seam.
+  useEffect(() => {
+    uiModeStore.getState().setSelectedCountry(countryCode);
+  }, [countryCode]);
 
   return (
     <AudioStoreProvider>
