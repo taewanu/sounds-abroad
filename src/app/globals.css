@@ -252,6 +252,35 @@
   }
 }
 
+/* Onboarding tour: the scrim fades in, the callout rises into place. */
+@keyframes tour-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes tour-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tour-fade {
+  animation: tour-fade var(--dur-base) var(--ease-out);
+}
+
+.tour-rise {
+  animation: tour-rise var(--dur-base) var(--ease-out);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .eq,
   .eq span {
@@ -267,5 +296,9 @@
   /* Recede the badge by fading only: drop the upward slide. */
   :root {
     --badge-recede-rise: 0px;
+  }
+  .tour-fade,
+  .tour-rise {
+    animation: none;
   }
 }
