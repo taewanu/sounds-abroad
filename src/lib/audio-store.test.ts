@@ -39,6 +39,7 @@ function makeMockAudio(): MockAudio {
     _srcWrites: 0,
     play: vi.fn().mockResolvedValue(undefined),
     pause: vi.fn(),
+    unlock: vi.fn().mockResolvedValue(undefined),
     setVolume: vi.fn(),
     addEventListener: vi.fn((type: EventType, listener: () => void) => {
       (listeners[type] ??= []).push(listener);
@@ -183,6 +184,19 @@ describe("createAudioStore", () => {
     expect(store.getState().isPlaying).toBe(true);
   });
 
+  test("resume with a new countryCode adopts it (selection resuming the same preview)", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    const track = makeTrack();
+    store.getState().toggle(track, "br");
+    store.getState().pause();
+
+    store.getState().toggle(track, "kr"); // resume with a new countryCode
+
+    expect(store.getState().currentCountryCode).toBe("kr");
+    expect(store.getState().isPlaying).toBe(true);
+  });
+
   test("stop clears currentCountryCode", () => {
     const store = createAudioStore(() => makeMockAudio());
     store.getState().toggle(makeTrack(), "br");
@@ -226,6 +240,68 @@ describe("createAudioStore", () => {
     store.getState().pause();
 
     expect(store.getState().endedSignal).toBe(0);
+  });
+
+  test("initial state is not user-paused", () => {
+    const store = createAudioStore(() => makeMockAudio());
+
+    expect(store.getState().userPaused).toBe(false);
+  });
+
+  test("pause marks chosen silence via userPaused", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    store.getState().toggle(makeTrack());
+
+    store.getState().pause();
+
+    expect(store.getState().userPaused).toBe(true);
+  });
+
+  test("toggling a playing track off marks userPaused", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    const track = makeTrack();
+    store.getState().toggle(track);
+
+    store.getState().toggle(track);
+
+    expect(store.getState().isPlaying).toBe(false);
+    expect(store.getState().userPaused).toBe(true);
+  });
+
+  test("playing a new track clears a prior userPaused", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    store
+      .getState()
+      .toggle(makeTrack({ previewUrl: "https://example.com/1.m4a" }));
+    store.getState().pause();
+
+    store
+      .getState()
+      .toggle(makeTrack({ previewUrl: "https://example.com/2.m4a" }));
+
+    expect(store.getState().userPaused).toBe(false);
+  });
+
+  test("a track ending on its own is not a user pause", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    store.getState().toggle(makeTrack());
+
+    audio._trigger("ended");
+
+    expect(store.getState().userPaused).toBe(false);
+  });
+
+  test("unlock arms the engine so a later detached play is audible", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+
+    store.getState().unlock();
+
+    expect(audio.unlock).toHaveBeenCalledOnce();
   });
 
   test("ended event: isPlaying false, currentTrack preserved", () => {

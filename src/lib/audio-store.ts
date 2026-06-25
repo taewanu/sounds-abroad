@@ -22,6 +22,10 @@ export interface AudioState {
   currentTrack: Track | null;
   currentCountryCode: string | null;
   isPlaying: boolean;
+  // True only after a deliberate user pause (chosen silence). Distinguishes
+  // pause from idle/ended so autoplay-on-selection can respect a pause but
+  // still fill the silence a country leaves when nothing was paused.
+  userPaused: boolean;
   volume: number;
   lastError: AudioError | null;
   endedSignal: number;
@@ -29,6 +33,7 @@ export interface AudioState {
   setVolume: (value: number) => void;
   pause: () => void;
   stop: () => void;
+  unlock: () => void;
 }
 
 export type AudioStoreApi = ReturnType<typeof createAudioStore>;
@@ -57,6 +62,7 @@ export function createAudioStore(
       engine.addEventListener("ended", () => {
         set((state) => ({
           isPlaying: false,
+          userPaused: false,
           endedSignal: state.endedSignal + 1,
         }));
         setPlaybackState("none");
@@ -87,6 +93,7 @@ export function createAudioStore(
       currentTrack: null,
       currentCountryCode: null,
       isPlaying: false,
+      userPaused: false,
       volume: 1,
       lastError: null,
       endedSignal: 0,
@@ -96,14 +103,22 @@ export function createAudioStore(
         const isCurrent = state.currentTrack?.previewUrl === track.previewUrl;
         if (isCurrent && state.isPlaying) {
           a.pause();
-          set({ isPlaying: false });
+          set({ isPlaying: false, userPaused: true });
           return;
         }
         if (isCurrent) {
           // Resume in place: reassigning src restarts at 0, so leave it and
-          // just play. Keeps the preview position and the stored countryCode.
+          // just play, keeping the preview position. Adopt a country code when
+          // one is passed (a selection resuming the same preview), else keep the
+          // stored one (a bare mini-player / track-row resume passes none).
           void a.play();
-          set({ currentTrack: track, isPlaying: true, lastError: null });
+          set({
+            currentTrack: track,
+            currentCountryCode: countryCode ?? state.currentCountryCode,
+            isPlaying: true,
+            userPaused: false,
+            lastError: null,
+          });
           return;
         }
         a.src = track.previewUrl ?? "";
@@ -113,6 +128,7 @@ export function createAudioStore(
           currentTrack: track,
           currentCountryCode: countryCode ?? null,
           isPlaying: true,
+          userPaused: false,
           lastError: null,
         });
       },
@@ -121,10 +137,11 @@ export function createAudioStore(
         set({ volume: value });
       },
       pause: () => {
-        // Pause without clearing currentTrack, used on deeplink handoff so the
-        // mini player stays (resumable) and no `ended` fires (auto-advance halts).
+        // Pause without clearing currentTrack: the mini player stays (resumable)
+        // and no `ended` fires (auto-advance halts). userPaused marks it chosen
+        // silence so a later selection won't autoplay over it.
         getEngine().pause();
-        set({ isPlaying: false });
+        set({ isPlaying: false, userPaused: true });
       },
       stop: () => {
         const a = getEngine();
@@ -134,8 +151,15 @@ export function createAudioStore(
           currentTrack: null,
           currentCountryCode: null,
           isPlaying: false,
+          userPaused: false,
           lastError: null,
         });
+      },
+      unlock: () => {
+        // Arm audio from the first user gesture so a later gesture-detached play
+        // (a fling settling after pointerup) is audible. Creating the engine here
+        // builds the AudioContext inside that gesture, where resume can take.
+        void getEngine().unlock();
       },
     };
   });

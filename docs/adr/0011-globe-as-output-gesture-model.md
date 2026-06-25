@@ -84,3 +84,22 @@ A landing fires `navigator.vibrate` as progressive enhancement. It is a non-load
 - The visited set is per-session and in-memory; a reload is a deliberate fresh start. Cross-session persistence is a v2.x option, not a gap.
 - The minimal accessibility list is intentionally unstyled-by-default; the polished ruler that supersedes it is a separate v2.x slice.
 - `replaceState` removes browser-level undo; this is a deliberate trade, with an explicit affordance as the replacement if needed.
+
+## Addendum: autoplay on selection when idle (v2.0.x)
+
+**Status:** Accepted (2026-06-24). Revises "Audio does not auto-play" in the Selection wiring section above.
+
+A selection now plays the landed country's top track, but only into silence the user did not choose. This reverses the original decoupling of selection from playback. The reversal is recorded here rather than edited inline so the original decision and its reasoning stay legible.
+
+**Why reverse it.** The globe-as-output model lands you on a country; leaving it silent stops one step short of the payoff. Playing the top track makes a selection immediately _heard_, which closes the loop the model is named for. The gain is largest on the accessibility path: a screen-reader or keyboard user gets the music without tabbing into the chart.
+
+**What bounds it.**
+
+- **Fire only into un-chosen silence:** idle (nothing has played) or a track that ended on its own. A track that is playing is never interrupted, which also subsumes the original "mini player keeps playing the prior country" handoff. A deliberate pause is _chosen_ silence and is respected too, never overridden, so a user can browse the globe quietly. This needs a `userPaused` flag on the audio store, since pause and a natural end are otherwise indistinguishable (both leave a track loaded but not playing); the gate is `isPlaying || userPaused`.
+- **Skip the initial page load and shared-link load.** No user gesture precedes them, so the browser would block the play anyway, and sound on cold load is jarring. A per-mount guard suppresses the first resolved selection.
+- **Track is the country's rank-1 with a non-null preview** (nulls skipped), matching the existing within-country auto-advance.
+- **Uniform across every selection path** (fling, tap, accessibility list), since all three resolve to the same `?cc=` write that the effect keys on. The globe gains no audio coupling.
+
+**Trade accepted.** The original valued selection and playback staying decoupled, the "radio-dial hop-and-hear" feel where flinging never disturbs the current track. That is given up for the heard-payoff, with the gate preserving the parts that mattered: an in-progress track is still never cut off, and a deliberate pause still wins.
+
+**Mobile audio must be armed.** Playback runs through a Web Audio `AudioContext`, which starts suspended and resumes only inside a user gesture. A fling's `play()` fires at settle, ~1-2s after pointerup and detached from the gesture, so without help the context stays asleep: the element advances while the graph outputs silence, and the UI shows a track playing with no sound. Device-testing confirmed exactly this on the first fling, on both iOS and Android. The fix arms the context on the first user `pointerdown` anywhere (a fling's own pointerdown counts), so by the time it settles the context is running and the `play()` is audible. WCAG 1.4.2 (Audio Control) stays satisfied: pause is available via the mini player, Space, OS transport, and volume.

@@ -8,6 +8,7 @@ export interface AudioEngine {
   src: string;
   play(): Promise<void>;
   pause(): void;
+  unlock(): Promise<void>;
   setVolume(value: number): void;
   addEventListener(type: AudioEventType, listener: () => void): void;
   removeEventListener(type: AudioEventType, listener: () => void): void;
@@ -49,6 +50,13 @@ export function createBrowserAudioEngine(): AudioEngine {
       await element.play();
     },
     pause: () => element.pause(),
+    unlock: async () => {
+      // Resume the context inside a user gesture (a fling's pointerdown) so a
+      // later, gesture-detached play (the fling settling ~1-2s after pointerup)
+      // outputs sound instead of advancing the element into a suspended,
+      // silent context. Idempotent: a no-op once the context is running.
+      if (context.state === "suspended") await context.resume();
+    },
     setVolume: (value) => {
       gain.gain.value = value;
     },
