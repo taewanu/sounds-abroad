@@ -110,24 +110,23 @@ describe("CountrySelector", () => {
     expect(screen.queryByRole("navigation", { name: "Countries" })).toBeNull();
   });
 
-  test("recedes the badge in read mode, clear of the sheet's grip and title", () => {
+  test("in read mode the badge is inert and non-interactive, off the sheet's grip", () => {
     globeChartStore.setState({ readMode: true });
 
     render(<CountrySelector />);
 
     const region = screen.getByTestId("country-toggle-region");
     expect(region.getAttribute("inert")).not.toBeNull();
-    expect(region.className).toContain("opacity-0");
     expect(region.className).toContain("pointer-events-none");
   });
 
-  test("restores the badge when read mode ends", () => {
+  test("leaving read mode restores the badge to interactive", () => {
     globeChartStore.setState({ readMode: false });
 
     render(<CountrySelector />);
 
     const region = screen.getByTestId("country-toggle-region");
     expect(region.getAttribute("inert")).toBeNull();
-    expect(region.className).toContain("opacity-100");
+    expect(region.className).not.toContain("pointer-events-none");
   });
 });

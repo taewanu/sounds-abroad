@@ -92,6 +92,16 @@
   --dur-globe: 900ms;
 }
 
+/* How far the rising chart sheet covers the top-left country badge: 0 = clear,
+   1 = fully over it. The sheet writes this onto :root each drag frame and the
+   badge reads it to recede in lockstep. Registered so it interpolates, letting
+   the badge animate in step when the sheet settles instead of jumping. */
+@property --sheet-cover {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
 @layer base {
   html,
   body {

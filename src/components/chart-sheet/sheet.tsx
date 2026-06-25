@@ -51,6 +51,19 @@ const DRAG_THRESHOLD_PX = 4;
 // target, so a fast flick carries past the nearest stop.
 const VELOCITY_PROJECTION_MS = 120;
 const SETTLE_TRANSITION = "transform 0.34s cubic-bezier(0.22, 1, 0.36, 1)";
+// The sheet is bottom-anchored at full height, so its top edge sits at its
+// translateY in px (0 at full). The badge is fixed near the screen top (see
+// country-selector.tsx: ~16px inset, ~48px tall), so the recede is keyed to that
+// edge in absolute px, not a fraction of sheet height. As the edge rises into the
+// badge the cover ramps 0→1: it starts a lead ahead of contact and finishes just
+// above the badge's bottom, so the badge is gone before the grip reaches it. Tune
+// with the LEAD/DONE offsets; mirror BADGE_BOTTOM_PX if the badge is restyled.
+const BADGE_BOTTOM_PX = 64; // 16px top inset + ~48px tall
+const RECEDE_LEAD_PX = 76; // begin fading this far before the edge meets the badge
+const RECEDE_DONE_PX = 16; // finish fading this far above the badge's bottom
+const COVER_START_PX = BADGE_BOTTOM_PX + RECEDE_LEAD_PX; // edge here → fade starts
+const COVER_END_PX = BADGE_BOTTOM_PX - RECEDE_DONE_PX; // edge here → badge gone
+const COVER_TRANSITION = "--sheet-cover 0.34s cubic-bezier(0.22, 1, 0.36, 1)";
 
 // Mirror MiniPlayer's rendered height: pt-3 (12px) + h-12 artwork (48px)
 // + pb-[max(env(safe-area-inset-bottom), 12px)]. Tracks the iOS safe-area
@@ -152,12 +165,21 @@ export function ChartSheet({
     curYRef.current = px;
     const el = sheetRef.current;
     if (el) el.style.transform = `translateY(${px}px)`;
+    const cover = Math.min(
+      1,
+      Math.max(0, (COVER_START_PX - px) / (COVER_START_PX - COVER_END_PX)),
+    );
+    document.documentElement.style.setProperty("--sheet-cover", String(cover));
   }, []);
 
   const applySnap = useCallback(
     (s: SnapState, animate: boolean) => {
       const el = sheetRef.current;
       if (el) el.style.transition = animate ? SETTLE_TRANSITION : "none";
+      // Drive the badge's recede with the same easing, so it settles in step.
+      document.documentElement.style.transition = animate
+        ? COVER_TRANSITION
+        : "none";
       setY(snapPx(s));
     },
     [setY, snapPx],
@@ -208,6 +230,8 @@ export function ChartSheet({
       const el = sheetRef.current;
       const currentY = readCurrentY();
       if (el) el.style.transition = "none";
+      // Drop the badge's settle easing too, so it tracks the finger 1:1.
+      document.documentElement.style.transition = "none";
       heightRef.current = el?.offsetHeight || window.innerHeight;
       baseYRef.current = pointerY;
       baseTransRef.current = currentY;
@@ -281,6 +305,17 @@ export function ChartSheet({
     applySnap(snap, didMountRef.current);
     didMountRef.current = true;
   }, [snap, hasMiniPlayer, applySnap]);
+
+  // The badge reads --sheet-cover off :root and outlives this sheet (it's a
+  // layout backdrop). Clear it on unmount so a route change at full doesn't
+  // strand the badge hidden behind a sheet that's no longer there.
+  useEffect(() => {
+    return () => {
+      const root = document.documentElement;
+      root.style.removeProperty("transition");
+      root.style.setProperty("--sheet-cover", "0");
+    };
+  }, []);
 
   // The transform is in px, so it does not track height changes on its own.
   // Re-place the sheet at its current snap when the viewport resizes (rotation,

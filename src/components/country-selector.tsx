@@ -55,6 +55,11 @@ export function CountrySelector() {
   const toggleRef = useRef<HTMLButtonElement>(null);
   const navId = useId();
 
+  // Read mode makes the wrapper inert, so the list must never render open behind
+  // it. Derive that here rather than correcting `open` in an effect: the list is
+  // open only when the user opened it AND the badge isn't receded.
+  const listOpen = open && !readMode;
+
   const close = (returnFocus: boolean) => {
     setOpen(false);
     if (returnFocus) toggleRef.current?.focus();
@@ -72,19 +77,19 @@ export function CountrySelector() {
   // Escape closes and returns focus to the toggle, the one focus move a
   // disclosure needs. (No focus trap; tab order alone walks in and out.)
   useEffect(() => {
-    if (!open) return;
+    if (!listOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") close(true);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open]);
+  }, [listOpen]);
 
   return (
     <>
       {/* Scrim: dims the globe, is the big easy tap-to-dismiss target, and
           intercepts the pointer so a dismiss tap never spins the globe. */}
-      {open ? (
+      {listOpen ? (
         <div
           data-testid="country-scrim"
           aria-hidden="true"
@@ -94,19 +99,25 @@ export function CountrySelector() {
       ) : null}
 
       <div
-        // inert pulls the receded badge out of focus and the a11y tree; the
-        // fade is CSS so motion-reduce collapses it to an instant cut.
+        // The badge slides up and fades as the sheet rises over it, bound to
+        // --sheet-cover so it tracks the drag at any speed and settles in step
+        // (the sheet owns that var's easing). inert + pointer-events follow the
+        // settled read mode, pulling the receded badge out of focus and taps.
         inert={readMode}
         data-testid="country-toggle-region"
-        className={`fixed top-[max(env(safe-area-inset-top),16px)] left-4 z-40 transition-opacity duration-300 ease-out motion-reduce:transition-none ${
-          readMode ? "pointer-events-none opacity-0" : "opacity-100"
+        style={{
+          transform: "translateY(calc(var(--sheet-cover, 0) * -64px))",
+          opacity: "calc(1 - var(--sheet-cover, 0))",
+        }}
+        className={`fixed top-[max(env(safe-area-inset-top),16px)] left-4 z-40 ${
+          readMode ? "pointer-events-none" : ""
         }`}
       >
         <button
           ref={toggleRef}
           type="button"
           onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
+          aria-expanded={listOpen}
           aria-controls={navId}
           aria-label={
             current
@@ -124,7 +135,7 @@ export function CountrySelector() {
           <span
             aria-hidden="true"
             className={`text-fg-3 transition-transform duration-200 ${
-              open ? "rotate-180" : ""
+              listOpen ? "rotate-180" : ""
             }`}
           >
             ▾
@@ -134,7 +145,7 @@ export function CountrySelector() {
         <nav
           id={navId}
           aria-label="Countries"
-          hidden={!open}
+          hidden={!listOpen}
           className="bg-night/95 border-fg-1/10 absolute top-[calc(100%+8px)] left-0 flex max-h-[58vh] w-[min(86vw,360px)] flex-col overflow-hidden rounded-2xl border shadow-lg backdrop-blur-lg"
         >
           <div className="border-fg-1/10 flex flex-none items-center justify-between border-b px-3 py-2">
