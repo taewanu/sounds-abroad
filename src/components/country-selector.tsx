@@ -45,6 +45,11 @@ export function CountrySelector() {
   const currentCode = useGlobeChart((s) => s.selectedCountry);
   const current = currentCode ? countryByCode(currentCode) : null;
 
+  // At sheet full the chart's grip and title sit where this badge floats, so
+  // recede it, the same rule that suspends the globe spin. The seam is the
+  // store, not the sheet tree, so the selector stays decoupled from the sheet.
+  const readMode = useGlobeChart((s) => s.readMode);
+
   const [open, setOpen] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -64,7 +69,7 @@ export function CountrySelector() {
     setAnnouncement(`Now showing ${name}`);
   };
 
-  // Escape closes and returns focus to the toggle — the one focus move a
+  // Escape closes and returns focus to the toggle, the one focus move a
   // disclosure needs. (No focus trap; tab order alone walks in and out.)
   useEffect(() => {
     if (!open) return;
@@ -88,7 +93,15 @@ export function CountrySelector() {
         />
       ) : null}
 
-      <div className="fixed top-[max(env(safe-area-inset-top),16px)] left-4 z-40">
+      <div
+        // inert pulls the receded badge out of focus and the a11y tree; the
+        // fade is CSS so motion-reduce collapses it to an instant cut.
+        inert={readMode}
+        data-testid="country-toggle-region"
+        className={`fixed top-[max(env(safe-area-inset-top),16px)] left-4 z-40 transition-opacity duration-300 ease-out motion-reduce:transition-none ${
+          readMode ? "pointer-events-none opacity-0" : "opacity-100"
+        }`}
+      >
         <button
           ref={toggleRef}
           type="button"

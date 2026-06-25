@@ -12,14 +12,14 @@ describe("CountrySelector", () => {
   let replaceState: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    globeChartStore.setState({ selectedCountry: "br" });
+    globeChartStore.setState({ selectedCountry: "br", readMode: false });
     replaceState = vi
       .spyOn(window.history, "replaceState")
       .mockImplementation(() => {});
   });
 
   afterEach(() => {
-    globeChartStore.setState({ selectedCountry: null });
+    globeChartStore.setState({ selectedCountry: null, readMode: false });
     replaceState.mockRestore();
   });
 
@@ -108,5 +108,26 @@ describe("CountrySelector", () => {
     fireEvent.click(screen.getByTestId("country-scrim"));
 
     expect(screen.queryByRole("navigation", { name: "Countries" })).toBeNull();
+  });
+
+  test("recedes the badge in read mode, clear of the sheet's grip and title", () => {
+    globeChartStore.setState({ readMode: true });
+
+    render(<CountrySelector />);
+
+    const region = screen.getByTestId("country-toggle-region");
+    expect(region.getAttribute("inert")).not.toBeNull();
+    expect(region.className).toContain("opacity-0");
+    expect(region.className).toContain("pointer-events-none");
+  });
+
+  test("restores the badge when read mode ends", () => {
+    globeChartStore.setState({ readMode: false });
+
+    render(<CountrySelector />);
+
+    const region = screen.getByTestId("country-toggle-region");
+    expect(region.getAttribute("inert")).toBeNull();
+    expect(region.className).toContain("opacity-100");
   });
 });
