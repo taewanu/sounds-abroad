@@ -17,8 +17,8 @@ const DEG = Math.PI / 180;
 const RADIUS = 3.5;
 const DRAG_RAD_PER_PX = 0.005; // base drag gain, scaled by the sensitivity slider
 const EL_LIMIT = 75 * DEG; // stop short of the poles so the view never flips
-const SETTLE_VEL = 0.6; // rad/s under which a fling hands off to the snap spring
-const SNAP_OMEGA = 10; // snap spring frequency: higher settles faster
+const SETTLE_VEL = 2; // rad/s under which a fling hands off to the snap spring
+const SNAP_OMEGA = 17; // snap spring frequency: higher settles faster
 const TAP_MAX_PX = 8; // press-to-release drift under which a gesture is a tap
 const TAP_HIT_PX = 44; // a tap beyond this from every country pin selects nothing
 
