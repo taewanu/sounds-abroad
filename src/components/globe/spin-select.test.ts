@@ -6,10 +6,10 @@ import { latLonToVec3 } from "@/lib/lat-lon-to-vec3";
 
 import {
   addVisited,
-  nearestPool,
   pickNearestToPoint,
   pickSnapCountry,
   projectFrontCountries,
+  rankNearest,
   weightedDraw,
 } from "./spin-select";
 
@@ -89,17 +89,17 @@ test("pickNearestToPoint returns null when no candidates are given", () => {
   expect(pickNearestToPoint([], 0, 0, 44)).toBeNull();
 });
 
-test("nearestPool ranks the country under the rest direction first", () => {
+test("rankNearest ranks the country under the rest direction first", () => {
   const target = COUNTRIES[0];
 
-  const pool = nearestPool(target.lat * DEG, target.lon * DEG, 10);
+  const pool = rankNearest(target.lat * DEG, target.lon * DEG, 10);
 
-  expect(pool[0]).toBe(target.code);
+  expect(pool[0].code).toBe(target.code);
 });
 
-test("nearestPool caps the pool at n", () => {
-  expect(nearestPool(0, 0, 10)).toHaveLength(10);
-  expect(nearestPool(0, 0, 5)).toHaveLength(5);
+test("rankNearest caps the pool at n", () => {
+  expect(rankNearest(0, 0, 10)).toHaveLength(10);
+  expect(rankNearest(0, 0, 5)).toHaveLength(5);
 });
 
 test("weightedDraw overwhelmingly prefers an unvisited country in the pool", () => {
@@ -141,18 +141,33 @@ test("pickSnapCountry returns a country from the nearest pool when fairness is o
 
   const result = pickSnapCountry(el, az, new Set(), true);
 
-  expect(nearestPool(el, az, 10)).toContain(result);
+  expect(rankNearest(el, az, 10).map((e) => e.code)).toContain(result);
 });
 
 test("pickSnapCountry fair draw is deterministic under an injected rng", () => {
-  const target = COUNTRIES[0];
+  // A dense region (the European cluster) keeps the whole pool inside the
+  // fairness radius, so the injected draw maps linearly across all of it.
+  const target = COUNTRIES.find((c) => c.code === "de")!;
   const el = target.lat * DEG;
   const az = target.lon * DEG;
-  const pool = nearestPool(el, az, 10);
+  const pool = rankNearest(el, az, 10).map((e) => e.code);
 
   // No visits → uniform weights, so r maps linearly across the pool.
   expect(pickSnapCountry(el, az, new Set(), true, () => 0)).toBe(pool[0]);
   expect(pickSnapCountry(el, az, new Set(), true, () => 0.95)).toBe(pool[9]);
+});
+
+test("over open water the fair snap holds the nearest country, never a far shore", () => {
+  // A mid-ocean rest point: every country is well beyond the fairness radius,
+  // so the pool straddles both coasts. The draw must collapse to the single
+  // nearest rather than randomly lurching across to the far shore.
+  const el = 10 * DEG;
+  const az = -150 * DEG;
+  const nearest = rankNearest(el, az, 10)[0].code;
+
+  for (let r = 0; r < 1; r += 0.1) {
+    expect(pickSnapCountry(el, az, new Set(), true, () => r)).toBe(nearest);
+  }
 });
 
 test("every country appears in some nearest pool over the reachable sphere", () => {
@@ -163,8 +178,8 @@ test("every country appears in some nearest pool over the reachable sphere", () 
 
   for (let el = -EL_LIMIT; el <= EL_LIMIT; el += STEP) {
     for (let az = -Math.PI; az < Math.PI; az += STEP) {
-      for (const code of nearestPool(el, az, POOL_SIZE)) {
-        reached.add(code);
+      for (const entry of rankNearest(el, az, POOL_SIZE)) {
+        reached.add(entry.code);
       }
     }
   }

@@ -65,10 +65,18 @@ export function pickNearestToPoint(
   return bestDist <= maxPx ** 2 ? best : null;
 }
 
-// Country codes ranked by how closely they face the rest direction (el, az in
-// radians), nearest first, capped at `n`. This is the fling's candidate pool:
-// geography narrows the choice to a neighbourhood before fairness picks within it.
-export function nearestPool(el: number, az: number, n: number): string[] {
+export interface PoolEntry {
+  code: string;
+  // Angular distance (radians) from the rest direction; 0 means dead centre.
+  angle: number;
+}
+
+// Countries ranked by how closely they face the rest direction (el, az in
+// radians), nearest first, capped at `n`, each tagged with its angular
+// distance. This is the fling's candidate pool: geography narrows the choice
+// to a neighbourhood, and the distance lets fairness pick only within a genuine
+// cluster instead of across open water.
+export function rankNearest(el: number, az: number, n: number): PoolEntry[] {
   const cx = Math.cos(el) * Math.sin(az);
   const cy = Math.sin(el);
   const cz = Math.cos(el) * Math.cos(az);
@@ -79,11 +87,11 @@ export function nearestPool(el: number, az: number, n: number): string[] {
       Math.cos(lat) * Math.sin(lon) * cx +
       Math.sin(lat) * cy +
       Math.cos(lat) * Math.cos(lon) * cz;
-    return { code: c.code, dot };
+    // dot is cos(angle) for unit vectors; clamp guards acos against fp drift.
+    return { code: c.code, angle: Math.acos(Math.min(1, Math.max(-1, dot))) };
   })
-    .sort((a, b) => b.dot - a.dot)
-    .slice(0, n)
-    .map((entry) => entry.code);
+    .sort((a, b) => a.angle - b.angle)
+    .slice(0, n);
 }
 
 const VISITED_WEIGHT = 0.08; // how strongly an already-seen country is avoided
@@ -120,6 +128,11 @@ export function addVisited(
 }
 
 const SNAP_POOL = 10; // candidate countries near the rest point for a fair snap
+// Past this angle (radians) from the rest direction a country is across open
+// water, not a near neighbour. Beyond it fairness has no genuine cluster to
+// randomise over, so the snap takes the single nearest and never lurches across
+// an ocean to the far shore.
+const SNAP_NEAR = 18 * DEG;
 
 // Fling target. Fairness off: the literal nearest country to the rest direction.
 // Fairness on: a deck-weighted draw from the nearest pool, so a small country
@@ -132,7 +145,18 @@ export function pickSnapCountry(
   fair: boolean,
   rng: () => number = Math.random,
 ): string {
-  const pool = nearestPool(el, az, SNAP_POOL);
-  if (!fair) return pool[0];
-  return weightedDraw(pool, visited, rng());
+  const ranked = rankNearest(el, az, SNAP_POOL);
+  if (!fair) return ranked[0].code;
+
+  // Fairness only randomises within a genuine neighbourhood. Over open water
+  // nothing sits within SNAP_NEAR, so the pool would straddle both shores;
+  // there we take the single nearest for a predictable in-place landing rather
+  // than a random lurch to the far coast.
+  const near = ranked.filter((e) => e.angle <= SNAP_NEAR);
+  if (near.length === 0) return ranked[0].code;
+  return weightedDraw(
+    near.map((e) => e.code),
+    visited,
+    rng(),
+  );
 }
