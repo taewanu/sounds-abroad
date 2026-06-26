@@ -24,7 +24,7 @@ const ISO_BY_CODE = new Map(COUNTRIES.map((c) => [c.code, c.isoNum]));
 // Locked feel values from the gesture spike (ADR-0011). Named, not tunable.
 const SPIN_SENSITIVITY = 1.4;
 const SPIN_FRICTION = 2.5;
-const SPIN_BOUNCE = 0.6;
+const SPIN_BOUNCE = 0.45;
 const SPIN_HORIZONTAL_LOCK = false;
 const SPIN_FAIR = true;
 const FALLBACK_CODE = "us";
