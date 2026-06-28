@@ -53,7 +53,7 @@ The `?cc=` contract means any control that writes it is a complete, equal select
 
 ### Feel values
 
-The model's tuned constants — sensitivity 1.4, friction 2.5, bounce 0.6, 2D spin, fairness on — ship as **named constants**, not a user setting and not a retained dev panel. The spike's sliders were a tool for finding the values, not a product feature. Re-tuning, if ever needed, reruns the preserved spike branch.
+The model's tuned constants — sensitivity 1.4, friction 2.5, bounce 0.45, a quick settle (a fling hands off to the snap spring at 2 rad/s, spring frequency 17), 2D spin, fairness on — ship as **named constants**, not a user setting and not a retained dev panel. The spike's sliders were a tool for finding the values, not a product feature. Re-tuning, if ever needed, reruns the preserved spike branch.
 
 ### Scope
 
