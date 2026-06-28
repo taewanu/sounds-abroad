@@ -97,4 +97,30 @@ describe("useTourAnchor", () => {
 
     expect(getByTestId("probe").textContent).toBe("10,20,300,40");
   });
+
+  test("re-measures on a pointer move (the sheet dragged under the finger)", () => {
+    box = { top: 200, left: 20, width: 100, height: 40 };
+    stubBoundingRect();
+    const { getByTestId } = render(<Harness selector={TARGET} />);
+
+    box = { top: 90, left: 20, width: 100, height: 40 };
+    act(() => {
+      window.dispatchEvent(new Event("pointermove"));
+    });
+
+    expect(getByTestId("probe").textContent).toBe("90,20,100,40");
+  });
+
+  test("re-measures when a transition ends (the sheet settled)", () => {
+    box = { top: 90, left: 20, width: 100, height: 40 };
+    stubBoundingRect();
+    const { getByTestId } = render(<Harness selector={TARGET} />);
+
+    box = { top: 0, left: 20, width: 100, height: 40 };
+    act(() => {
+      window.dispatchEvent(new Event("transitionend"));
+    });
+
+    expect(getByTestId("probe").textContent).toBe("0,20,100,40");
+  });
 });

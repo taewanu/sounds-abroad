@@ -2,6 +2,7 @@ import { act, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import type { SnapState } from "@/components/chart-sheet/sheet";
+import { globeChartStore } from "@/lib/globe-chart-store";
 import { tourBridge } from "@/lib/tour-bridge";
 
 import { TourHost, type TourHostProps } from "./tour-host";
@@ -166,5 +167,61 @@ describe("TourHost", () => {
 
     expect(queryByTestId("tour-overlay")).toBeNull();
     expect(localStorage.getItem(KEY)).toBe("1");
+  });
+
+  test("withholds the track spotlight until the sheet finishes rising", () => {
+    stubMatchMedia(false);
+    const sheet = document.createElement("div");
+    sheet.setAttribute("data-testid", "chart-sheet");
+    sheet.innerHTML = '<ol><li data-rank="1">track</li></ol>';
+    document.body.appendChild(sheet);
+
+    const { getByTestId, getByRole, queryByTestId, rerenderWith } =
+      renderHost();
+    makeGlobeReady();
+    act(() => {
+      rerenderWith({ selectedCode: "jp" });
+    });
+    fireEvent.click(getByRole("button", { name: "Next" }));
+    act(() => {
+      rerenderWith({ selectedCode: "jp", snap: "full" });
+    });
+
+    expect(getByTestId("tour-overlay").getAttribute("data-beat")).toBe("audio");
+    expect(queryByTestId("tour-tap-hint")).toBeNull();
+
+    act(() => {
+      const settle = new Event("transitionend", { bubbles: true });
+      Object.defineProperty(settle, "propertyName", { value: "transform" });
+      sheet.dispatchEvent(settle);
+    });
+
+    expect(queryByTestId("tour-tap-hint")).toBeTruthy();
+
+    document.body.removeChild(sheet);
+  });
+
+  test("hides the flick hand on a globe grab, then re-arms it on a no-op settle", () => {
+    stubMatchMedia(false);
+    const { getByTestId, queryByRole, queryByTestId } = renderHost();
+    makeGlobeReady();
+
+    expect(getByTestId("tour-flick-hint")).toBeTruthy();
+
+    act(() => {
+      fireEvent.pointerDown(document.body);
+    });
+
+    expect(queryByTestId("tour-flick-hint")).toBeNull();
+    expect(getByTestId("tour-overlay").getAttribute("data-beat")).toBe(
+      "gesture",
+    );
+    expect(queryByRole("button", { name: "Next" })).toBeNull();
+
+    act(() => {
+      globeChartStore.getState().signalSettle();
+    });
+
+    expect(queryByTestId("tour-flick-hint")).toBeTruthy();
   });
 });

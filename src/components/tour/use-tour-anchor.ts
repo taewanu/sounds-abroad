@@ -53,15 +53,21 @@ export function useTourAnchor(
       capture: true,
       passive: true,
     });
-    // The sheet slides between snaps via a transform transition, which fires no
-    // scroll/resize. Re-measure when it settles so a target inside the sheet (the
-    // first track row) lands at its final position, not the transition's start.
+    // A transform move fires no scroll/resize, so the two ways the sheet travels
+    // both need their own trigger: a finger drag writes the transform on every
+    // pointermove, and a release settles it via a transform transition. Track
+    // both so the spotlight follows the sheet live and lands with it.
+    window.addEventListener("pointermove", measure, {
+      capture: true,
+      passive: true,
+    });
     window.addEventListener("transitionend", measure, true);
 
     return () => {
       observer.disconnect();
       window.removeEventListener("resize", measure);
       window.removeEventListener("scroll", measure, { capture: true });
+      window.removeEventListener("pointermove", measure, { capture: true });
       window.removeEventListener("transitionend", measure, true);
     };
   }, [selector, watch]);
