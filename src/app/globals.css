@@ -252,6 +252,409 @@
   }
 }
 
+/* Onboarding tour: the scrim fades in, the callout rises into place. */
+@keyframes tour-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes tour-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tour-fade {
+  animation: tour-fade var(--dur-base) var(--ease-out);
+}
+
+.tour-rise {
+  animation: tour-rise var(--dur-base) var(--ease-out);
+}
+
+/* The flick hint: a ghost hand presses onto the globe and flings it: a windup,
+   a fast whip that overshoots and settles, then lifts and loops. A motion-blur
+   trail rides behind on its own layer (x only, no tilt) so it stays horizontal.
+   The two layers stack centred on the globe via the stage. */
+.tour-swipe-stage {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  /* Sweep scales with the viewport so it stays proportional to the globe (which
+     fills the screen) instead of looking tiny on a tablet. */
+  --swipe-travel: clamp(82px, 26vw, 150px);
+  --swipe-dur: 1.9s;
+}
+
+.tour-swipe-stage > .tour-swipe,
+.tour-swipe-stage > .tour-swipe-trail {
+  position: absolute;
+  inset: 0;
+}
+
+/* The hand: windup → whip → overshoot → settle, leaning into the fling. Offsets
+   are multiples of --swipe-travel so the whole gesture scales with the viewport. */
+@keyframes tour-swipe {
+  0% {
+    transform: translateX(calc(-1 * var(--swipe-travel))) rotate(0deg)
+      scale(0.55);
+    opacity: 0;
+  }
+  9% {
+    transform: translateX(calc(-1 * var(--swipe-travel))) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  18% {
+    transform: translateX(calc(-1.2 * var(--swipe-travel))) rotate(11deg)
+      scale(1);
+    opacity: 1;
+  }
+  24% {
+    transform: translateX(calc(-1.2 * var(--swipe-travel))) rotate(11deg)
+      scale(1);
+    opacity: 1;
+  }
+  46% {
+    transform: translateX(calc(1.2 * var(--swipe-travel))) rotate(-23deg)
+      scale(1);
+    opacity: 1;
+  }
+  53% {
+    transform: translateX(var(--swipe-travel)) rotate(-14deg) scale(1);
+    opacity: 1;
+  }
+  62% {
+    transform: translateX(var(--swipe-travel)) rotate(-14deg) scale(0.6);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(var(--swipe-travel)) rotate(-14deg) scale(0.6);
+    opacity: 0;
+  }
+}
+
+/* The trail layer tracks the hand's x only (no tilt) so it trails horizontally
+   behind the motion instead of drooping with the leaning hand. */
+@keyframes tour-swipe-x {
+  0% {
+    transform: translateX(calc(-1 * var(--swipe-travel)));
+  }
+  9% {
+    transform: translateX(calc(-1 * var(--swipe-travel)));
+  }
+  18% {
+    transform: translateX(calc(-1.2 * var(--swipe-travel)));
+  }
+  24% {
+    transform: translateX(calc(-1.2 * var(--swipe-travel)));
+  }
+  46% {
+    transform: translateX(calc(1.2 * var(--swipe-travel)));
+  }
+  53% {
+    transform: translateX(var(--swipe-travel));
+  }
+  100% {
+    transform: translateX(var(--swipe-travel));
+  }
+}
+
+/* The contact ring expands once during the press, gone before the flick. */
+@keyframes tour-swipe-ripple {
+  0%,
+  6% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3);
+  }
+  11% {
+    opacity: 0.7;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  26% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.8);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.8);
+  }
+}
+
+/* The trail body + lines fade in only during the fast whip, then clear. */
+@keyframes tour-swipe-streak {
+  0%,
+  24% {
+    opacity: 0;
+    transform: translateY(-50%) scaleX(0);
+  }
+  38% {
+    opacity: 0.85;
+    transform: translateY(-50%) scaleX(1);
+  }
+  46% {
+    opacity: 0.5;
+    transform: translateY(-50%) scaleX(1);
+  }
+  52%,
+  100% {
+    opacity: 0;
+    transform: translateY(-50%) scaleX(1);
+  }
+}
+
+@keyframes tour-swipe-line {
+  0%,
+  24% {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  38% {
+    opacity: 0.9;
+    transform: scaleX(1);
+  }
+  46% {
+    opacity: 0.5;
+    transform: scaleX(1);
+  }
+  52%,
+  100% {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+}
+
+.tour-swipe {
+  color: var(--color-aurora);
+  animation: tour-swipe var(--swipe-dur) var(--ease-out) infinite;
+}
+
+.tour-swipe-hand {
+  width: 100%;
+  height: 100%;
+  /* Lucide's pointer hand is a touch wide; slim it horizontally so it reads as
+     a finger, not a mitten. */
+  transform: scaleX(0.85);
+  filter: drop-shadow(0 0 8px rgba(107, 229, 197, 0.55));
+}
+
+/* A touch-down ring expands once from the index fingertip (near the icon's
+   top-left) during the press, fading before the hand flicks away. */
+.tour-swipe::after {
+  content: "";
+  position: absolute;
+  top: 14%;
+  left: 35%;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-pill);
+  border: 2px solid rgba(107, 229, 197, 0.8);
+  transform: translate(-50%, -50%) scale(0.3);
+  animation: tour-swipe-ripple var(--swipe-dur) var(--ease-out) infinite;
+}
+
+.tour-swipe-trail {
+  pointer-events: none;
+  animation: tour-swipe-x var(--swipe-dur) var(--ease-out) infinite;
+}
+
+/* Motion-blur smear: the soft body of the trail behind the hand. Width scales
+   with the sweep; the gradient fades far to the left for a rounded, not pointed,
+   tail. */
+.tour-swipe-smear {
+  position: absolute;
+  right: 46%;
+  top: 50%;
+  width: calc(var(--swipe-travel) * 0.95);
+  height: 44px;
+  border-radius: 50%;
+  transform-origin: right center;
+  transform: translateY(-50%) scaleX(0);
+  background: radial-gradient(
+    ellipse 66% 50% at 82% 50%,
+    rgba(107, 229, 197, 0.66),
+    transparent 90%
+  );
+  filter: blur(8px);
+  animation: tour-swipe-streak var(--swipe-dur) var(--ease-out) infinite;
+}
+
+/* Two faint, blurred speed lines over the smear: direction without sharp tips. */
+.tour-swipe-streak-lines {
+  position: absolute;
+  right: 46%;
+  top: 50%;
+}
+
+.tour-swipe-line {
+  position: absolute;
+  right: 0;
+  transform-origin: right center;
+  transform: translateY(-50%);
+}
+
+.tour-swipe-line i {
+  display: block;
+  height: 3px;
+  border-radius: var(--radius-pill);
+  transform-origin: right center;
+  transform: scaleX(0);
+  filter: blur(2px);
+  animation: tour-swipe-line var(--swipe-dur) var(--ease-out) infinite;
+}
+
+/* Beat 2 pull-up hint: the hand presses the handle and drags upward, then lifts
+   and loops: "pull the sheet up". */
+@keyframes tour-pull {
+  0% {
+    transform: translateY(6px) scale(0.6);
+    opacity: 0;
+  }
+  12% {
+    transform: translateY(6px) scale(1);
+    opacity: 1;
+  }
+  20% {
+    transform: translateY(6px) scale(0.92);
+    opacity: 1;
+  }
+  58% {
+    transform: translateY(-64px) scale(1);
+    opacity: 1;
+  }
+  70% {
+    transform: translateY(-64px) scale(0.62);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(-64px) scale(0.62);
+    opacity: 0;
+  }
+}
+
+@keyframes tour-pull-ripple {
+  0%,
+  8% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3);
+  }
+  16% {
+    opacity: 0.7;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  32% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.8);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.8);
+  }
+}
+
+.tour-pull {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  color: var(--color-aurora);
+  animation: tour-pull 2s var(--ease-out) infinite;
+}
+
+.tour-pull::after {
+  content: "";
+  position: absolute;
+  top: 14%;
+  left: 35%;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-pill);
+  border: 2px solid rgba(107, 229, 197, 0.8);
+  transform: translate(-50%, -50%) scale(0.3);
+  animation: tour-pull-ripple 2s var(--ease-out) infinite;
+}
+
+/* Beat 3 tap hint: the hand presses a track in place, a ring expands from the
+   fingertip, then it releases and loops: "tap a track". */
+@keyframes tour-tap {
+  0% {
+    transform: scale(0.55);
+    opacity: 0;
+  }
+  14% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  28% {
+    transform: translateY(4px) scale(0.88);
+    opacity: 1;
+  }
+  42% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  72% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  86% {
+    transform: scale(0.55);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.55);
+    opacity: 0;
+  }
+}
+
+@keyframes tour-tap-ripple {
+  0%,
+  20% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3);
+  }
+  30% {
+    opacity: 0.7;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  48% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.9);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.9);
+  }
+}
+
+.tour-tap {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  color: var(--color-aurora);
+  animation: tour-tap 1.8s var(--ease-out) infinite;
+}
+
+.tour-tap::after {
+  content: "";
+  position: absolute;
+  top: 14%;
+  left: 35%;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-pill);
+  border: 2px solid rgba(107, 229, 197, 0.8);
+  transform: translate(-50%, -50%) scale(0.3);
+  animation: tour-tap-ripple 1.8s var(--ease-out) infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .eq,
   .eq span {
@@ -267,5 +670,25 @@
   /* Recede the badge by fading only: drop the upward slide. */
   :root {
     --badge-recede-rise: 0px;
+  }
+  .tour-fade,
+  .tour-rise,
+  .tour-swipe,
+  .tour-swipe::after,
+  .tour-swipe-trail,
+  .tour-swipe-smear,
+  .tour-swipe-line i,
+  .tour-pull,
+  .tour-pull::after,
+  .tour-tap,
+  .tour-tap::after {
+    animation: none;
+  }
+  /* The touch-ripple rings read as motion; frozen they leave a stray dot at the
+     fingertip. Hide them so reduced motion shows clean static finger icons. */
+  .tour-swipe::after,
+  .tour-pull::after,
+  .tour-tap::after {
+    display: none;
   }
 }

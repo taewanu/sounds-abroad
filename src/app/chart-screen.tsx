@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 
 import { ChartSheet, type SnapState } from "@/components/chart-sheet/sheet";
 import { MiniPlayer } from "@/components/mini-player";
+import { TourHost } from "@/components/tour/tour-host";
 import type { ChartFile, Country } from "@/lib/chart-schema";
 import { globeChartStore, useGlobeChart } from "@/lib/globe-chart-store";
 import {
@@ -71,6 +72,10 @@ function ChartScreenInner({
   const [snap, setSnap] = useState<SnapState>("peek");
   const [scrollSignal, setScrollSignal] = useState(0);
   const settleSignal = useGlobeChart((s) => s.settleSignal);
+  // The gesture-driven selection (the tour's beat-1 signal). Not the countryCode
+  // prop: that resolves from useSearchParams, which a replaceState-only globe
+  // landing never re-triggers, so it wouldn't move on a fling.
+  const selectedCountry = useGlobeChart((s) => s.selectedCountry);
   const hasCurrentTrack = useAudioStore((s) => s.currentTrack !== null);
   const currentTrackRank = useAudioStore((s) => s.currentTrack?.rank ?? null);
   const endedSignal = useAudioStore((s) => s.endedSignal);
@@ -177,6 +182,14 @@ function ChartScreenInner({
         scrollSignal={scrollSignal}
       />
       <MiniPlayer onTap={handleMiniTap} />
+      <TourHost
+        snap={snap}
+        hasCurrentTrack={hasCurrentTrack}
+        // Fall back to the resolved route code until the globe publishes its
+        // first selection: a null baseline would make the tour read the store
+        // populating itself as the user's first flick.
+        selectedCode={selectedCountry ?? countryCode}
+      />
     </>
   );
 }

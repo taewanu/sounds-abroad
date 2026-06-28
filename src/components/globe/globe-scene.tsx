@@ -7,6 +7,7 @@ import { PerspectiveCamera } from "three";
 import { COUNTRIES } from "@/lib/countries";
 import { globeChartStore, useGlobeChart } from "@/lib/globe-chart-store";
 import { getCountryOutlinesPromise } from "@/lib/topo-loader";
+import { tourBridge } from "@/lib/tour-bridge";
 
 import { usePrefersReducedMotion } from "../use-prefers-reduced-motion";
 
@@ -155,7 +156,14 @@ export function GlobeScene() {
       camera={{ fov: 45, position: [0, 0, 3.5] }}
       dpr={[1, 2]}
       gl={{ antialias: true }}
-      onCreated={() => setReady(true)}
+      onCreated={() => {
+        setReady(true);
+        // The globe is live once the renderer exists. The tour's own "Watch"
+        // hold keeps the demo from moving until the fade plays, so readiness
+        // need not gate on the opacity transitionend (which an enter transition
+        // can skip if the start frame never paints).
+        tourBridge.getState().setGlobeReady(true);
+      }}
       // touchAction stops scroll/zoom hijacking the drag; the user-select and
       // touch-callout resets stop a long press from raising iOS Safari's text
       // selection / callout over the canvas mid-gesture.
