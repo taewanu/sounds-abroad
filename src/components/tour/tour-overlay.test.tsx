@@ -34,7 +34,7 @@ describe("TourOverlay", () => {
     });
 
     expect(getByText(/flick the globe/i)).toBeTruthy();
-    expect(getByText(/pick a country from the list/i)).toBeTruthy();
+    expect(getByText(/pick one from the list/i)).toBeTruthy();
     expect(getByTestId("tour-flick-hint")).toBeTruthy();
     // Next is withheld until the user has flicked, so they aren't rushed past it.
     expect(queryByRole("button", { name: "Next" })).toBeNull();

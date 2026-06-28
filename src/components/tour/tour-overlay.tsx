@@ -13,12 +13,12 @@ export interface TourOverlayProps {
   beat: VisibleBeat;
   gesturePhase: GesturePhase;
   // Screen box to spotlight, or null for a full-screen beat (the gesture beat
-  // has no cutout — the whole globe is the target) or before the box is read.
+  // has no cutout: the whole globe is the target) or before the box is read.
   spotlight: DOMRect | null;
   // Corner radius of the spotlit element, so the glow frame matches it. Defaults
   // to 0 (square) when unset.
   spotlightRadius?: number;
-  // Drop the gesture demo hand once the user has grabbed the globe — they're
+  // Drop the gesture demo hand once the user has grabbed the globe; they're
   // already flicking, so the "do this" cue is in the way. The callout copy and
   // Next stay driven by the actual selection, not by this.
   hideFlickHint?: boolean;
@@ -30,9 +30,9 @@ export interface TourOverlayProps {
   onSkip: () => void;
 }
 
-// Working copy. Final wording is a polish pass (design-skill + step-back-as-user
-// gate); the intent per beat is fixed, the phrasing is not. The gesture line
-// names the non-gesture path so a keyboard/SR user is never told to only fling.
+// Per beat: a verb-first eyebrow (the gesture) over a body that states the
+// payoff. The gesture body also names the non-gesture path so a keyboard or SR
+// user is never told to only fling.
 function calloutCopy(
   beat: VisibleBeat,
   phase: GesturePhase,
@@ -42,7 +42,7 @@ function calloutCopy(
       return phase === "try"
         ? {
             eyebrow: "Flick the globe",
-            body: "Drag to spin the globe and travel, or pick a country from the list.",
+            body: "Spin to a new country, or pick one from the list.",
           }
         : {
             eyebrow: "Nice, you've got it",
@@ -50,19 +50,19 @@ function calloutCopy(
           };
     case "sheet":
       return {
-        eyebrow: "The full chart",
-        body: "Pull the panel up to see every track.",
+        eyebrow: "Pull up the chart",
+        body: "See every track, not just the top few.",
       };
     case "audio":
       return {
-        eyebrow: "Preview",
-        body: "Tap a track to hear it; playback follows you as you explore.",
+        eyebrow: "Tap a track",
+        body: "Hear a preview; it follows you as you explore.",
       };
   }
 }
 
-// A ghost hand that presses onto the globe and flings it — windup, whip,
-// overshoot, settle — trailing a motion blur, then lifts and repeats: the literal
+// A ghost hand that presses onto the globe and flings it (windup, whip,
+// overshoot, settle), trailing a motion blur, then lifts and repeats: the literal
 // "drag to spin" gesture. Pure CSS so the loop is self-driving; the hand and the
 // (decoupled, horizontal) trail stack centred on the globe so the hint tracks it
 // across phone sizes.
@@ -107,7 +107,7 @@ function FlickHint() {
   );
 }
 
-// Beat 2 shows the same hand pressing the sheet handle and dragging upward — the
+// Beat 2 shows the same hand pressing the sheet handle and dragging upward: the
 // "pull up" gesture, so this beat demonstrates the motion instead of only naming
 // it. Anchored to the spotlight's top-centre (the handle) so it tracks the sheet.
 function SheetPullHint({ spotlight }: { spotlight: DOMRect }) {
@@ -125,7 +125,7 @@ function SheetPullHint({ spotlight }: { spotlight: DOMRect }) {
   );
 }
 
-// Beat 3 shows the hand pressing a track row — the "tap to preview" gesture, in
+// Beat 3 shows the hand pressing a track row: the "tap to preview" gesture, in
 // place over the row it points at, so this beat demonstrates the tap too.
 function TapHint({ spotlight }: { spotlight: DOMRect }) {
   return (

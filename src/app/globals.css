@@ -281,7 +281,7 @@
   animation: tour-rise var(--dur-base) var(--ease-out);
 }
 
-/* The flick hint: a ghost hand presses onto the globe and flings it — a windup,
+/* The flick hint: a ghost hand presses onto the globe and flings it: a windup,
    a fast whip that overshoots and settles, then lifts and loops. A motion-blur
    trail rides behind on its own layer (x only, no tilt) so it stays horizontal.
    The two layers stack centred on the globe via the stage. */
@@ -342,7 +342,7 @@
   }
 }
 
-/* The trail layer tracks the hand's x only — no tilt — so it trails horizontally
+/* The trail layer tracks the hand's x only (no tilt) so it trails horizontally
    behind the motion instead of drooping with the leaning hand. */
 @keyframes tour-swipe-x {
   0% {
@@ -487,7 +487,7 @@
   animation: tour-swipe-streak var(--swipe-dur) var(--ease-out) infinite;
 }
 
-/* Two faint, blurred speed lines over the smear — direction without sharp tips. */
+/* Two faint, blurred speed lines over the smear: direction without sharp tips. */
 .tour-swipe-streak-lines {
   position: absolute;
   right: 46%;
@@ -512,7 +512,7 @@
 }
 
 /* Beat 2 pull-up hint: the hand presses the handle and drags upward, then lifts
-   and loops — "pull the sheet up". */
+   and loops: "pull the sheet up". */
 @keyframes tour-pull {
   0% {
     transform: translateY(6px) scale(0.6);
@@ -582,7 +582,7 @@
 }
 
 /* Beat 3 tap hint: the hand presses a track in place, a ring expands from the
-   fingertip, then it releases and loops — "tap a track". */
+   fingertip, then it releases and loops: "tap a track". */
 @keyframes tour-tap {
   0% {
     transform: scale(0.55);
@@ -683,5 +683,12 @@
   .tour-tap,
   .tour-tap::after {
     animation: none;
+  }
+  /* The touch-ripple rings read as motion; frozen they leave a stray dot at the
+     fingertip. Hide them so reduced motion shows clean static finger icons. */
+  .tour-swipe::after,
+  .tour-pull::after,
+  .tour-tap::after {
+    display: none;
   }
 }

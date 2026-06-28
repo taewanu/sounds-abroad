@@ -148,7 +148,7 @@ function TourRunner({
   }, [selectedCode, state.beat, state.gesturePhase]);
 
   // Beat 2 advances when the user pulls the sheet to full; beat 3 when a track
-  // starts. Both observe, never drive — show, don't tell.
+  // starts. Both observe, never drive. Show, don't tell.
   useEffect(() => {
     if (state.beat === "sheet" && snap === "full") {
       dispatch({ type: "SHEET_OPENED" });
