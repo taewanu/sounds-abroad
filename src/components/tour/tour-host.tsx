@@ -4,7 +4,7 @@ import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useStore } from "zustand";
 
 import type { SnapState } from "@/components/chart-sheet/sheet";
-import { usePrefersReducedMotion } from "@/components/use-prefers-reduced-motion";
+import { useGlobeChart } from "@/lib/globe-chart-store";
 import { tourBridge } from "@/lib/tour-bridge";
 
 import { TourOverlay } from "./tour-overlay";
@@ -22,15 +22,12 @@ export interface TourHostProps {
 }
 
 // Gate only. Runs once the user is known to be first-run and the globe is live,
-// then hands off to the runner, which owns the step machine. Splitting keeps the
-// runner's lazy reducer init from seeing a stale reduced-motion value: the runner
-// mounts only after globeReady, by when matchMedia has settled.
+// then hands off to the runner, which owns the step machine.
 export function TourHost({
   snap,
   hasCurrentTrack,
   selectedCode,
 }: TourHostProps) {
-  const reducedMotion = usePrefersReducedMotion();
   const { seen, markSeen } = useSeenTour();
   const globeReady = useStore(tourBridge, (s) => s.globeReady);
   const [dismissed, setDismissed] = useState(false);
@@ -47,7 +44,6 @@ export function TourHost({
   if (!active) return null;
   return (
     <TourRunner
-      reducedMotion={reducedMotion}
       snap={snap}
       hasCurrentTrack={hasCurrentTrack}
       selectedCode={selectedCode}
@@ -57,53 +53,85 @@ export function TourHost({
 }
 
 interface TourRunnerProps extends TourHostProps {
-  reducedMotion: boolean;
   onDone: () => void;
 }
 
 function TourRunner({
-  reducedMotion,
   snap,
   hasCurrentTrack,
   selectedCode,
   onDone,
 }: TourRunnerProps) {
-  const [state, dispatch] = useReducer(
-    tourReducer,
-    reducedMotion,
-    initialTourState,
-  );
-  const ghostFlingActive = useStore(tourBridge, (s) => s.ghostFlingActive);
+  const [state, dispatch] = useReducer(tourReducer, initialTourState());
 
-  // Kick the scripted demo once on mount. Under reduced motion the machine
-  // already opens in "try" with nothing to watch, so we skip the fling.
-  const kickedRef = useRef(false);
+  // Beat 1: hide the demo hand the instant the user grabs the globe (a flick is
+  // starting), not when it settles seconds later. The hand is a "do this" cue;
+  // once they're doing it, it's in the way. A grab that settles back without
+  // travelling brings the hand back (the settle reset below), so a stray tap
+  // doesn't strand them with no hint and no Next.
+  const [engaged, setEngaged] = useState(false);
   useEffect(() => {
-    if (kickedRef.current) return;
-    kickedRef.current = true;
-    if (!reducedMotion) tourBridge.getState().requestGhostFling();
-  }, [reducedMotion]);
+    if (state.beat !== "gesture" || state.gesturePhase !== "try") return;
+    const onDown = (e: PointerEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('[data-testid="tour-callout"]')) return;
+      setEngaged(true);
+    };
+    window.addEventListener("pointerdown", onDown, {
+      capture: true,
+      passive: true,
+    });
+    return () =>
+      window.removeEventListener("pointerdown", onDown, { capture: true });
+  }, [state.beat, state.gesturePhase]);
 
-  // Hand control from the scripted demo to the user when the ghost fling
-  // settles (ghostFlingActive goes true → false). Ref-gated on the previous
-  // value, like prevEndedRef in chart-screen.tsx, so only the real transition
-  // fires it, not a dependency-only re-run.
-  const prevGhostActiveRef = useRef(ghostFlingActive);
+  // A settle ends the spin: if it changed the country the gesture beat advances
+  // (the hand is already gone); if not, re-arm the hand. Ref-gated so the mount
+  // value and dep-only re-runs don't reset it.
+  const settleSignal = useGlobeChart((s) => s.settleSignal);
+  const prevSettleRef = useRef(settleSignal);
   useEffect(() => {
-    const justSettled = prevGhostActiveRef.current && !ghostFlingActive;
-    prevGhostActiveRef.current = ghostFlingActive;
-    if (!justSettled) return;
-    // The demo fling settling hands over to the user only during the gesture
-    // beat's "watch" phase. A settle in any later beat, or once we're already in
-    // "try" (the user's own fling landing), is noise — ignore it.
-    if (state.beat === "gesture" && state.gesturePhase === "watch") {
-      dispatch({ type: "GHOST_DONE" });
-    }
-  }, [ghostFlingActive, state.beat, state.gesturePhase]);
+    if (settleSignal === prevSettleRef.current) return;
+    prevSettleRef.current = settleSignal;
+    setEngaged(false);
+  }, [settleSignal]);
 
-  // A real selection advances beat 1, but only after control is handed over.
-  // On the first render in "try" we snapshot the baseline so the demo fling's
-  // own landing isn't mistaken for the user's selection.
+  // Beat 3: hold the track glow until the sheet finishes rising. The sheet
+  // slides to full via a transform transition; anchoring the spotlight to a row
+  // mid-slide drags the glow up with it. Gate on the sheet's transform
+  // transitionend (with a timeout fallback if it never fires) so the glow only
+  // appears once the row is at rest.
+  // Starts false and only ever flips true (below); the tour is linear, so audio
+  // is entered exactly once and never needs resetting back to false.
+  const [sheetSettled, setSheetSettled] = useState(false);
+  useEffect(() => {
+    if (state.beat !== "audio") return;
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      setSheetSettled(true);
+    };
+    const onEnd = (e: TransitionEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        e.propertyName === "transform" &&
+        target?.getAttribute("data-testid") === "chart-sheet"
+      ) {
+        finish();
+      }
+    };
+    window.addEventListener("transitionend", onEnd, true);
+    const fallback = window.setTimeout(finish, 420);
+    return () => {
+      window.removeEventListener("transitionend", onEnd, true);
+      window.clearTimeout(fallback);
+    };
+  }, [state.beat]);
+
+  // The user's first selection (a flick, or a pick from the a11y list) reveals
+  // Next rather than advancing. On the first render we snapshot the baseline so
+  // the country the globe loaded on isn't mistaken for that selection.
   const prevCodeRef = useRef(selectedCode);
   const tryArmedRef = useRef(false);
   useEffect(() => {
@@ -148,22 +176,30 @@ function TourRunner({
   }, [state.beat, onDone]);
 
   const beat = state.beat;
-  const targetId =
+  // Beat 2 frames the whole sheet; beat 3 frames the first track row (the thing
+  // to tap), selected by its rank attribute so it needs no id of its own.
+  const targetSelector =
     beat === "sheet"
-      ? "chart-sheet"
-      : beat === "audio" && hasCurrentTrack
-        ? "mini-player"
+      ? '[data-testid="chart-sheet"]'
+      : beat === "audio"
+        ? '[data-testid="chart-sheet"] li[data-rank="1"]'
         : null;
   // `snap` as the watch value: the sheet slides between snaps via transform,
   // which moves the spotlight target without resizing it.
-  const spotlight = useTourAnchor(targetId, snap);
+  const anchor = useTourAnchor(targetSelector, snap);
+
+  // The audio beat withholds its spotlight until the sheet has settled (above);
+  // every other beat shows it as soon as it's measured.
+  const spotlightReady = beat !== "audio" || sheetSettled;
 
   if (beat === "done") return null;
   return (
     <TourOverlay
       beat={beat}
       gesturePhase={state.gesturePhase}
-      spotlight={spotlight}
+      spotlight={spotlightReady ? (anchor?.rect ?? null) : null}
+      spotlightRadius={anchor?.radius ?? 0}
+      hideFlickHint={engaged}
       passThrough={beat === "gesture"}
       isLastBeat={beat === "audio"}
       onNext={() => dispatch({ type: "NEXT" })}

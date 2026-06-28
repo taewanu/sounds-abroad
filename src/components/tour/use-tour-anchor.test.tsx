@@ -19,22 +19,24 @@ function stubBoundingRect() {
   );
 }
 
+const TARGET = '[data-testid="anchor-target"]';
+
 function Harness({
-  testId,
+  selector,
   watch,
   withTarget = true,
 }: {
-  testId: string | null;
+  selector: string | null;
   watch?: unknown;
   withTarget?: boolean;
 }) {
-  const rect = useTourAnchor(testId, watch);
+  const anchor = useTourAnchor(selector, watch);
   return (
     <>
       {withTarget && <div data-testid="anchor-target" />}
       <output data-testid="probe">
-        {rect
-          ? `${rect.top},${rect.left},${rect.width},${rect.height}`
+        {anchor
+          ? `${anchor.rect.top},${anchor.rect.left},${anchor.rect.width},${anchor.rect.height}`
           : "null"}
       </output>
     </>
@@ -47,15 +49,15 @@ afterEach(() => {
 });
 
 describe("useTourAnchor", () => {
-  test("is null when no testId is given", () => {
-    const { getByTestId } = render(<Harness testId={null} />);
+  test("is null when no selector is given", () => {
+    const { getByTestId } = render(<Harness selector={null} />);
 
     expect(getByTestId("probe").textContent).toBe("null");
   });
 
-  test("is null when no element matches the testId", () => {
+  test("is null when no element matches the selector", () => {
     const { getByTestId } = render(
-      <Harness testId="anchor-target" withTarget={false} />,
+      <Harness selector={TARGET} withTarget={false} />,
     );
 
     expect(getByTestId("probe").textContent).toBe("null");
@@ -65,7 +67,7 @@ describe("useTourAnchor", () => {
     box = { top: 10, left: 20, width: 100, height: 40 };
     stubBoundingRect();
 
-    const { getByTestId } = render(<Harness testId="anchor-target" />);
+    const { getByTestId } = render(<Harness selector={TARGET} />);
 
     expect(getByTestId("probe").textContent).toBe("10,20,100,40");
   });
@@ -74,11 +76,11 @@ describe("useTourAnchor", () => {
     box = { top: 10, left: 20, width: 100, height: 40 };
     stubBoundingRect();
     const { getByTestId, rerender } = render(
-      <Harness testId="anchor-target" watch={1} />,
+      <Harness selector={TARGET} watch={1} />,
     );
 
     box = { top: 200, left: 20, width: 100, height: 40 };
-    rerender(<Harness testId="anchor-target" watch={2} />);
+    rerender(<Harness selector={TARGET} watch={2} />);
 
     expect(getByTestId("probe").textContent).toBe("200,20,100,40");
   });
@@ -86,7 +88,7 @@ describe("useTourAnchor", () => {
   test("re-measures on a window resize", () => {
     box = { top: 10, left: 20, width: 100, height: 40 };
     stubBoundingRect();
-    const { getByTestId } = render(<Harness testId="anchor-target" />);
+    const { getByTestId } = render(<Harness selector={TARGET} />);
 
     box = { top: 10, left: 20, width: 300, height: 40 };
     act(() => {

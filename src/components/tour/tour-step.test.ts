@@ -2,48 +2,37 @@ import { describe, expect, test } from "vitest";
 
 import { initialTourState, tourReducer, type TourState } from "./tour-step";
 
-const gestureWatch: TourState = { beat: "gesture", gesturePhase: "watch" };
 const gestureTry: TourState = { beat: "gesture", gesturePhase: "try" };
-const onSheet: TourState = { beat: "sheet", gesturePhase: "try" };
-const onAudio: TourState = { beat: "audio", gesturePhase: "try" };
+const gestureReady: TourState = { beat: "gesture", gesturePhase: "ready" };
+const onSheet: TourState = { beat: "sheet", gesturePhase: "ready" };
+const onAudio: TourState = { beat: "audio", gesturePhase: "ready" };
 
 describe("initialTourState", () => {
-  test("opens on the gesture beat watching the demo when motion is allowed", () => {
-    const state = initialTourState(false);
-
-    expect(state).toEqual({ beat: "gesture", gesturePhase: "watch" });
-  });
-
-  test("skips the watch phase under reduced motion", () => {
-    const state = initialTourState(true);
-
-    expect(state.gesturePhase).toBe("try");
+  test("opens on the gesture beat inviting the user to try", () => {
+    expect(initialTourState()).toEqual({
+      beat: "gesture",
+      gesturePhase: "try",
+    });
   });
 });
 
 describe("tourReducer gesture beat", () => {
-  test("the demo settling hands the user control", () => {
-    const next = tourReducer(gestureWatch, { type: "GHOST_DONE" });
-
-    expect(next).toEqual({ beat: "gesture", gesturePhase: "try" });
-  });
-
-  test("a selection during the try phase advances to the sheet beat", () => {
+  test("the first selection reveals Next without advancing the beat", () => {
     const next = tourReducer(gestureTry, { type: "USER_SELECTED" });
 
-    expect(next.beat).toBe("sheet");
+    expect(next).toEqual({ beat: "gesture", gesturePhase: "ready" });
   });
 
-  test("Next advances the gesture beat to the sheet", () => {
-    const next = tourReducer(gestureWatch, { type: "NEXT" });
+  test("Next advances the gesture beat to the sheet once the user is ready", () => {
+    const next = tourReducer(gestureReady, { type: "NEXT" });
 
     expect(next.beat).toBe("sheet");
   });
 
   test("an unrelated event leaves the gesture beat unchanged", () => {
-    const next = tourReducer(gestureWatch, { type: "SHEET_OPENED" });
+    const next = tourReducer(gestureTry, { type: "SHEET_OPENED" });
 
-    expect(next).toEqual(gestureWatch);
+    expect(next).toEqual(gestureTry);
   });
 });
 
@@ -75,13 +64,13 @@ describe("tourReducer later beats", () => {
 
 describe("tourReducer exit", () => {
   test("Skip ends the tour from any beat", () => {
-    expect(tourReducer(gestureWatch, { type: "SKIP" }).beat).toBe("done");
+    expect(tourReducer(gestureTry, { type: "SKIP" }).beat).toBe("done");
     expect(tourReducer(onSheet, { type: "SKIP" }).beat).toBe("done");
     expect(tourReducer(onAudio, { type: "SKIP" }).beat).toBe("done");
   });
 
   test("done is terminal", () => {
-    const done: TourState = { beat: "done", gesturePhase: "try" };
+    const done: TourState = { beat: "done", gesturePhase: "ready" };
 
     const next = tourReducer(done, { type: "NEXT" });
 

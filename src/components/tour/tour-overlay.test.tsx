@@ -6,7 +6,7 @@ import { TourOverlay, type TourOverlayProps } from "./tour-overlay";
 function renderOverlay(overrides: Partial<TourOverlayProps> = {}) {
   const props: TourOverlayProps = {
     beat: "gesture",
-    gesturePhase: "watch",
+    gesturePhase: "ready",
     spotlight: null,
     passThrough: true,
     isLastBeat: false,
@@ -28,11 +28,25 @@ const rect = (over: Partial<DOMRect> = {}): DOMRect =>
   }) as DOMRect;
 
 describe("TourOverlay", () => {
-  test("invites the user to act on the gesture beat's try phase", () => {
-    const { getByText } = renderOverlay({ gesturePhase: "try" });
+  test("invites the user to flick and shows the hint on the try phase", () => {
+    const { getByText, getByTestId, queryByRole } = renderOverlay({
+      gesturePhase: "try",
+    });
 
-    expect(getByText(/now you try/i)).toBeTruthy();
+    expect(getByText(/flick the globe/i)).toBeTruthy();
     expect(getByText(/pick a country from the list/i)).toBeTruthy();
+    expect(getByTestId("tour-flick-hint")).toBeTruthy();
+    // Next is withheld until the user has flicked, so they aren't rushed past it.
+    expect(queryByRole("button", { name: "Next" })).toBeNull();
+  });
+
+  test("reveals Next and drops the hint once the user has flicked", () => {
+    const { getByRole, queryByTestId } = renderOverlay({
+      gesturePhase: "ready",
+    });
+
+    expect(getByRole("button", { name: "Next" })).toBeTruthy();
+    expect(queryByTestId("tour-flick-hint")).toBeNull();
   });
 
   test("labels the primary button Done on the last beat", () => {

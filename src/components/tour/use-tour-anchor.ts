@@ -2,30 +2,42 @@
 
 import { useEffect, useState } from "react";
 
-// The spotlight needs the live screen box of the beat's target. Re-measure on
-// every way the box can move: the element resizing (ResizeObserver), the
-// viewport resizing, the page or a scroll container scrolling, and an explicit
-// `watch` change. The sheet slides between snaps via transform, which moves the
-// box without changing its size or firing scroll, so the host passes the snap
-// (or any positional signal) as `watch` to force a fresh read.
+// The screen box of the beat's target, plus its corner radius so the spotlight
+// glow matches whatever it frames (a 32px sheet, a 14px track row).
+export interface TourAnchor {
+  rect: DOMRect;
+  radius: number;
+}
+
+// The spotlight needs the live box of the beat's target. Re-measure on every way
+// it can move: the element resizing (ResizeObserver), the viewport resizing, the
+// page or a scroll container scrolling, and an explicit `watch` change. The sheet
+// slides between snaps via transform, which moves the box without changing its
+// size or firing scroll, so the host passes the snap (or any positional signal)
+// as `watch` to force a fresh read. `selector` is any CSS selector, letting a
+// beat target a nested element (e.g. the first track row) without its own id.
 export function useTourAnchor(
-  testId: string | null,
+  selector: string | null,
   watch?: unknown,
-): DOMRect | null {
-  const [rect, setRect] = useState<DOMRect | null>(null);
+): TourAnchor | null {
+  const [anchor, setAnchor] = useState<TourAnchor | null>(null);
 
   useEffect(() => {
     const find = () =>
-      testId
-        ? document.querySelector<HTMLElement>(`[data-testid="${testId}"]`)
-        : null;
+      selector ? document.querySelector<HTMLElement>(selector) : null;
 
     // The single write path; reused as the observer/listener callback. Routing
     // every update (including the "no target" reset to null) through here keeps
     // setState out of the effect's synchronous body.
     const measure = () => {
-      const next = find()?.getBoundingClientRect() ?? null;
-      setRect((prev) => (sameRect(prev, next) ? prev : next));
+      const el = find();
+      const next: TourAnchor | null = el
+        ? {
+            rect: el.getBoundingClientRect(),
+            radius: parseFloat(getComputedStyle(el).borderTopLeftRadius) || 0,
+          }
+        : null;
+      setAnchor((prev) => (sameAnchor(prev, next) ? prev : next));
     };
     measure();
 
@@ -41,21 +53,30 @@ export function useTourAnchor(
       capture: true,
       passive: true,
     });
+    // The sheet slides between snaps via a transform transition, which fires no
+    // scroll/resize. Re-measure when it settles so a target inside the sheet (the
+    // first track row) lands at its final position, not the transition's start.
+    window.addEventListener("transitionend", measure, true);
 
     return () => {
       observer.disconnect();
       window.removeEventListener("resize", measure);
       window.removeEventListener("scroll", measure, { capture: true });
+      window.removeEventListener("transitionend", measure, true);
     };
-  }, [testId, watch]);
+  }, [selector, watch]);
 
-  return rect;
+  return anchor;
 }
 
 // getBoundingClientRect returns a fresh object each call; bail on no-op updates
 // so high-frequency scroll/resize events don't churn renders.
-function sameRect(a: DOMRect | null, b: DOMRect | null): boolean {
+function sameAnchor(a: TourAnchor | null, b: TourAnchor | null): boolean {
   if (a === null || b === null) return a === b;
+  return a.radius === b.radius && sameRect(a.rect, b.rect);
+}
+
+function sameRect(a: DOMRect, b: DOMRect): boolean {
   return (
     a.top === b.top &&
     a.left === b.left &&

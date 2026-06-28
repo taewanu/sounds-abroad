@@ -43,7 +43,6 @@ afterEach(() => {
   vi.restoreAllMocks();
   localStorage.clear();
   act(() => {
-    tourBridge.getState().resolveGhostFling();
     tourBridge.getState().setGlobeReady(false);
   });
 });
@@ -67,40 +66,46 @@ describe("TourHost", () => {
     expect(queryByTestId("tour-overlay")).toBeNull();
   });
 
-  test("opens on the gesture beat and kicks the demo fling once ready", () => {
+  test("opens on the gesture beat inviting a flick, with no Next yet", () => {
     stubMatchMedia(false);
 
-    const { getByTestId, getByText } = renderHost();
+    const { getByTestId, getByText, queryByRole } = renderHost();
     makeGlobeReady();
 
     expect(getByTestId("tour-overlay").getAttribute("data-beat")).toBe(
       "gesture",
     );
-    expect(getByText("Watch")).toBeTruthy();
-    expect(tourBridge.getState().ghostFlingActive).toBe(true);
+    expect(getByText(/flick the globe/i)).toBeTruthy();
+    expect(getByTestId("tour-flick-hint")).toBeTruthy();
+    expect(queryByRole("button", { name: "Next" })).toBeNull();
   });
 
-  test("skips the demo fling under reduced motion and opens already inviting action", () => {
-    stubMatchMedia(true);
-
-    const { getByText } = renderHost();
-    makeGlobeReady();
-
-    expect(getByText("Now you try")).toBeTruthy();
-    expect(tourBridge.getState().ghostFlingActive).toBe(false);
-  });
-
-  test("hands control to the user when the demo fling settles", () => {
+  test("the user's first selection reveals Next without leaving the gesture beat", () => {
     stubMatchMedia(false);
-    const { getByText, queryByText } = renderHost();
+    const { getByTestId, getByRole, rerenderWith } = renderHost();
     makeGlobeReady();
 
-    expect(queryByText("Now you try")).toBeNull();
     act(() => {
-      tourBridge.getState().resolveGhostFling();
+      rerenderWith({ selectedCode: "jp" });
     });
 
-    expect(getByText("Now you try")).toBeTruthy();
+    expect(getByTestId("tour-overlay").getAttribute("data-beat")).toBe(
+      "gesture",
+    );
+    expect(getByRole("button", { name: "Next" })).toBeTruthy();
+  });
+
+  test("Next advances to the sheet beat once the user has flicked", () => {
+    stubMatchMedia(false);
+    const { getByTestId, getByRole, rerenderWith } = renderHost();
+    makeGlobeReady();
+
+    act(() => {
+      rerenderWith({ selectedCode: "jp" });
+    });
+    fireEvent.click(getByRole("button", { name: "Next" }));
+
+    expect(getByTestId("tour-overlay").getAttribute("data-beat")).toBe("sheet");
   });
 
   test("Skip ends the tour and records it as seen", () => {
@@ -129,12 +134,15 @@ describe("TourHost", () => {
 
   test("advances to the audio beat when the sheet is pulled to full", () => {
     stubMatchMedia(false);
-    const { getByRole, getByTestId, rerenderWith } = renderHost();
+    const { getByTestId, getByRole, rerenderWith } = renderHost();
     makeGlobeReady();
 
+    act(() => {
+      rerenderWith({ selectedCode: "jp" });
+    });
     fireEvent.click(getByRole("button", { name: "Next" }));
     act(() => {
-      rerenderWith({ snap: "full" });
+      rerenderWith({ selectedCode: "jp", snap: "full" });
     });
 
     expect(getByTestId("tour-overlay").getAttribute("data-beat")).toBe("audio");
@@ -145,12 +153,15 @@ describe("TourHost", () => {
     const { getByRole, queryByTestId, rerenderWith } = renderHost();
     makeGlobeReady();
 
+    act(() => {
+      rerenderWith({ selectedCode: "jp" });
+    });
     fireEvent.click(getByRole("button", { name: "Next" }));
     act(() => {
-      rerenderWith({ snap: "full" });
+      rerenderWith({ selectedCode: "jp", snap: "full" });
     });
     act(() => {
-      rerenderWith({ snap: "full", hasCurrentTrack: true });
+      rerenderWith({ selectedCode: "jp", snap: "full", hasCurrentTrack: true });
     });
 
     expect(queryByTestId("tour-overlay")).toBeNull();
