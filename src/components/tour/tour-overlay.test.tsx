@@ -23,6 +23,7 @@ const rect = (over: Partial<DOMRect> = {}): DOMRect =>
     left: 40,
     right: 240,
     bottom: 180,
+    width: 200,
     height: 80,
     ...over,
   }) as DOMRect;

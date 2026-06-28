@@ -34,6 +34,12 @@ describe("tourReducer gesture beat", () => {
 
     expect(next).toEqual(gestureTry);
   });
+
+  test("Next does nothing until the user has flicked", () => {
+    const next = tourReducer(gestureTry, { type: "NEXT" });
+
+    expect(next).toEqual(gestureTry);
+  });
 });
 
 describe("tourReducer later beats", () => {

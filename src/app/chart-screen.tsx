@@ -185,7 +185,10 @@ function ChartScreenInner({
       <TourHost
         snap={snap}
         hasCurrentTrack={hasCurrentTrack}
-        selectedCode={selectedCountry}
+        // Fall back to the resolved route code until the globe publishes its
+        // first selection: a null baseline would make the tour read the store
+        // populating itself as the user's first flick.
+        selectedCode={selectedCountry ?? countryCode}
       />
     </>
   );

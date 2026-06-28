@@ -74,7 +74,14 @@ function TourRunner({
     if (state.beat !== "gesture" || state.gesturePhase !== "try") return;
     const onDown = (e: PointerEvent) => {
       const target = e.target as HTMLElement | null;
-      if (target?.closest('[data-testid="tour-callout"]')) return;
+      // Engage on a globe grab, not on the other interactive surfaces in view:
+      // a tap on the callout or the peek sheet isn't the user starting a flick.
+      if (
+        target?.closest(
+          '[data-testid="tour-callout"], [data-testid="chart-sheet"]',
+        )
+      )
+        return;
       setEngaged(true);
     };
     window.addEventListener("pointerdown", onDown, {

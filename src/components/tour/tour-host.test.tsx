@@ -224,4 +224,24 @@ describe("TourHost", () => {
 
     expect(queryByTestId("tour-flick-hint")).toBeTruthy();
   });
+
+  test("a tap on the chart sheet does not hide the flick hand", () => {
+    stubMatchMedia(false);
+    const sheet = document.createElement("div");
+    sheet.setAttribute("data-testid", "chart-sheet");
+    document.body.appendChild(sheet);
+
+    const { getByTestId, queryByTestId } = renderHost();
+    makeGlobeReady();
+
+    expect(getByTestId("tour-flick-hint")).toBeTruthy();
+
+    act(() => {
+      fireEvent.pointerDown(sheet);
+    });
+
+    expect(queryByTestId("tour-flick-hint")).toBeTruthy();
+
+    document.body.removeChild(sheet);
+  });
 });

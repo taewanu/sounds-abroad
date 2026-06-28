@@ -40,7 +40,10 @@ export function tourReducer(state: TourState, event: TourEvent): TourState {
       // user isn't rushed past the gesture they just learned. Next then advances.
       if (event.type === "USER_SELECTED")
         return { ...state, gesturePhase: "ready" };
-      if (event.type === "NEXT") return { ...state, beat: "sheet" };
+      // Next only advances once the user has flicked. The UI already withholds
+      // the button until then; the guard keeps the machine honest on its own.
+      if (event.type === "NEXT" && state.gesturePhase === "ready")
+        return { ...state, beat: "sheet" };
       return state;
     case "sheet":
       return event.type === "SHEET_OPENED" || event.type === "NEXT"
