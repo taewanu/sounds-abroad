@@ -10,8 +10,9 @@ import { withLookupRetry } from "./lookup-retry";
 import { fetchPublishedCharts } from "./published-charts";
 import { withRetry } from "./retry";
 import { triggerRevalidate } from "./revalidate-trigger";
-import { crawlAll, summarizeValidity } from "./run";
-import { createThrottle } from "./throttle";
+import { crawlAll, summarizeValidity, type SpotifyResolution } from "./run";
+import { createSpotifyResolver } from "./spotify-resolve";
+import { createSpotifyThrottle, createThrottle } from "./throttle";
 import { uploadCharts } from "./upload-blob";
 
 if (!process.env.BLOB_READ_WRITE_TOKEN) {
@@ -24,6 +25,26 @@ const sleep = (ms: number): Promise<void> =>
 // Public URL of the last published payload, read back for carry-forward.
 // Absent locally → carry-forward skipped.
 const previousUrl = process.env.CHARTS_BLOB_URL;
+
+// App-only Spotify credentials for resolving exact track deeplinks (ADR-0012).
+// Both absent → Spotify links fall back to the search URL (no regression).
+const spotifyClientId = process.env.SPOTIFY_CLIENT_ID;
+const spotifyClientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+const spotify: SpotifyResolution | undefined =
+  spotifyClientId && spotifyClientSecret
+    ? {
+        resolve: createSpotifyResolver({
+          clientId: spotifyClientId,
+          clientSecret: spotifyClientSecret,
+        }),
+        throttle: createSpotifyThrottle(),
+      }
+    : undefined;
+if (!spotify) {
+  console.warn(
+    "[crawl] SPOTIFY_CLIENT_ID/SECRET not set: Spotify links fall back to search URLs.",
+  );
+}
 
 // Session-owned commentary store, baked into the served charts when present.
 // The crawl only reads it (ADR-0007). Absent → no commentary this run.
@@ -54,6 +75,7 @@ try {
           }),
         lookupTrack: withLookupRetry(lookupTrack, { sleep }),
         throttle: createThrottle(),
+        spotify,
         uploadCharts,
         triggerRevalidate,
         fetchPrevious: previousUrl

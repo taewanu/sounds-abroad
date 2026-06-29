@@ -27,7 +27,7 @@ function makeTrack(overrides: Partial<Track> = {}): Track {
     previewUrl: "https://example.com/preview.m4a",
     artworkUrl: "https://example.com/artwork.jpg",
     appleUrl: "https://music.apple.com/track/1",
-    spotifySearchUrl: "https://open.spotify.com/search/Test%20Track",
+    spotifyUrl: "https://open.spotify.com/search/Test%20Track",
     ...overrides,
   };
 }
@@ -175,13 +175,13 @@ describe("TrackRow", () => {
 
   test("Spotify anchor: href, opens in new tab, noopener", () => {
     const track = makeTrack({
-      spotifySearchUrl: "https://open.spotify.com/search/foo",
+      spotifyUrl: "https://open.spotify.com/search/foo",
     });
 
     renderTrackRow(track);
 
     const spotify = screen.getByRole("link", { name: /Spotify/i });
-    expect(spotify.getAttribute("href")).toBe(track.spotifySearchUrl);
+    expect(spotify.getAttribute("href")).toBe(track.spotifyUrl);
     expect(spotify.getAttribute("target")).toBe("_blank");
     expect(spotify.getAttribute("rel")).toContain("noopener");
   });

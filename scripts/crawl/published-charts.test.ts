@@ -21,7 +21,7 @@ function validChartFile(): ChartFile {
             previewUrl: "https://preview/1.m4a",
             artworkUrl: "https://art/1/600x600bb.jpg",
             appleUrl: "https://music.apple.com/kr/1",
-            spotifySearchUrl: "https://open.spotify.com/search/song",
+            spotifyUrl: "https://open.spotify.com/search/song",
           },
         ],
       },

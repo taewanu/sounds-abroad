@@ -17,7 +17,7 @@ function track(rank: number, artist: string, name: string): Track {
     previewUrl: null,
     artworkUrl: "https://art/x/600x600bb.jpg",
     appleUrl: "https://music.apple.com/x/1",
-    spotifySearchUrl: "https://open.spotify.com/search/x",
+    spotifyUrl: "https://open.spotify.com/search/x",
   };
 }
 

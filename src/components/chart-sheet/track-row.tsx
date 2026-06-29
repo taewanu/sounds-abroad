@@ -176,11 +176,11 @@ export function TrackRow({ track, countryCode, isHintTarget }: TrackRowProps) {
             <AppleMusicIcon className="h-3.5 w-3.5" />
           </a>
           <a
-            href={track.spotifySearchUrl}
+            href={track.spotifyUrl}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => pause()}
-            aria-label={`Search ${track.name} on Spotify`}
+            aria-label={`Open ${track.name} on Spotify`}
             className="hover:bg-orbit focus-visible:outline-aurora flex h-8 w-8 items-center justify-center rounded-full transition-all duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]"
           >
             <SpotifyIcon className="h-3.5 w-3.5" />

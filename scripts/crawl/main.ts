@@ -2,9 +2,22 @@ import { COUNTRIES } from "../../src/lib/countries";
 
 import { fetchAppleRss } from "./apple-rss";
 import { lookupTrack } from "./itunes-lookup";
-import { crawlAll, crawlCountry } from "./run";
-import { createThrottle } from "./throttle";
+import { crawlAll, crawlCountry, type SpotifyResolution } from "./run";
+import { createSpotifyResolver } from "./spotify-resolve";
+import { createSpotifyThrottle, createThrottle } from "./throttle";
 import { uploadCharts } from "./upload-blob";
+
+// Spotify resolution for local debug: enabled only when both credentials are in
+// .env.local; otherwise links fall back to the search URL, same as production.
+function spotifyFromEnv(): SpotifyResolution | undefined {
+  const clientId = process.env.SPOTIFY_CLIENT_ID;
+  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+  if (!clientId || !clientSecret) return undefined;
+  return {
+    resolve: createSpotifyResolver({ clientId, clientSecret }),
+    throttle: createSpotifyThrottle(),
+  };
+}
 
 async function main(): Promise<void> {
   const cc = process.argv[2];
@@ -31,6 +44,7 @@ async function runSingleCountry(cc: string): Promise<void> {
     fetchRss: fetchAppleRss,
     lookupTrack,
     throttle,
+    spotify: spotifyFromEnv(),
   });
   console.log(
     `[crawl ${cc}] ${country.tracks.length} tracks (valid=${country.valid})`,
@@ -51,6 +65,7 @@ async function runAllCountries(): Promise<void> {
     fetchRss: fetchAppleRss,
     lookupTrack,
     throttle,
+    spotify: spotifyFromEnv(),
     uploadCharts,
     // Local debug entry never hits production revalidate — cron.ts injects the real one.
     triggerRevalidate: async () => {

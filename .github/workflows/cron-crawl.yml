@@ -19,14 +19,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
 
-    env:
-      SITE_URL: https://sounds-abroad.vercel.app
-      BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
-      CHARTS_BLOB_URL: ${{ secrets.CHARTS_BLOB_URL }}
-      COMMENTARY_BLOB_URL: ${{ secrets.COMMENTARY_BLOB_URL }}
-      REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
-      NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -37,5 +29,17 @@ jobs:
       - name: Install dependencies
         run: mise exec -- pnpm install --frozen-lockfile
 
+      # Secrets are scoped to this step, not the job: only the crawl consumes
+      # them, and install can run dependency lifecycle scripts that would
+      # otherwise see them.
       - name: Crawl, publish, and revalidate
         run: mise exec -- pnpm crawl:cron
+        env:
+          SITE_URL: https://sounds-abroad.vercel.app
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          CHARTS_BLOB_URL: ${{ secrets.CHARTS_BLOB_URL }}
+          COMMENTARY_BLOB_URL: ${{ secrets.COMMENTARY_BLOB_URL }}
+          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
+          NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
