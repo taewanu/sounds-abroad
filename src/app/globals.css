@@ -655,10 +655,64 @@
   animation: tour-tap-ripple 1.8s var(--ease-out) infinite;
 }
 
+/* One-time commentary discovery hint: an aurora ring draws the eye while the
+   chevron wrapper bobs down to say "open". Fires once, then the JS clears the
+   attribute and the chevron returns to rest. Animate the wrapper, not the SVG,
+   so the transform is hardware-accelerated. */
+@keyframes commentary-hint-ring {
+  from {
+    box-shadow: 0 0 0 0 rgba(107, 229, 197, 0.7);
+  }
+  to {
+    box-shadow: 0 0 0 18px rgba(107, 229, 197, 0);
+  }
+}
+/* One transform timeline: the chevron grows (the signal), then the first bob
+   begins while the grow is still easing back, so the swell flows into three
+   "open me" bobs as one gesture. scale and translateY share transform, so they
+   must blend within a single keyframe rather than run as two animations. */
+@keyframes commentary-hint-pop {
+  0% {
+    transform: translateY(0px) scale(1);
+  }
+  14% {
+    transform: translateY(0px) scale(1.32);
+  }
+  26% {
+    transform: translateY(4px) scale(1.046);
+  }
+  41% {
+    transform: translateY(0px) scale(1);
+  }
+  56% {
+    transform: translateY(4px) scale(1);
+  }
+  70% {
+    transform: translateY(0px) scale(1);
+  }
+  85% {
+    transform: translateY(4px) scale(1);
+  }
+  100% {
+    transform: translateY(0px) scale(1);
+  }
+}
+[data-commentary-hint] {
+  border-radius: var(--radius-pill);
+  animation:
+    commentary-hint-ring 850ms var(--ease-out),
+    commentary-hint-pop 1150ms var(--ease-out);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .eq,
   .eq span {
     animation: none;
+  }
+  /* Hint degrades to a static sunrise ring: the cue stays, the motion drops. */
+  [data-commentary-hint] {
+    animation: none;
+    box-shadow: 0 0 0 2px rgba(255, 107, 71, 0.45);
   }
   .eq span {
     transform: scaleY(0.7);
