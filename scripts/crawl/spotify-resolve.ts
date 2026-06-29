@@ -234,8 +234,29 @@ export function createSpotifyResolver(
     return token;
   }
 
-  return async (name, artist) => {
+  async function resolveOnce(name: string, artist: string): Promise<string> {
     const active = await ensureToken();
     return resolveSpotifyUrl(name, artist, active, { fetch: options.fetch });
+  }
+
+  return async (name, artist) => {
+    try {
+      return await resolveOnce(name, artist);
+    } catch (err) {
+      // Skew-based refresh covers expiry, not a server-side invalidation
+      // (rotation/revocation) of a token still valid by our clock. Without this,
+      // one early 401 would fall every remaining track back to the search URL.
+      // Drop the cached token and retry once; a second auth failure propagates.
+      if (
+        !(err instanceof SpotifyResolveError) ||
+        err.kind !== "auth" ||
+        token === null
+      ) {
+        throw err;
+      }
+      token = null;
+      expiresAt = 0;
+      return resolveOnce(name, artist);
+    }
   };
 }

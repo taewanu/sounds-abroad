@@ -196,6 +196,57 @@ test("createSpotifyResolver fetches the token once and reuses it across calls", 
   expect(tokenCalls).toBe(1);
 });
 
+test("createSpotifyResolver re-fetches the token and retries once on a cached-token 401", async () => {
+  let tokenCalls = 0;
+  let searchCalls = 0;
+  const routingFetch: typeof fetch = (async (url: string) => {
+    if (url === "https://accounts.spotify.com/api/token") {
+      tokenCalls += 1;
+      return new Response(JSON.stringify(TOKEN_BODY), { status: 200 });
+    }
+    searchCalls += 1;
+    // First search 401s (token invalidated early); the retry succeeds.
+    if (searchCalls === 1) return new Response("{}", { status: 401 });
+    return new Response(
+      JSON.stringify(searchBody("https://open.spotify.com/track/abc123")),
+      { status: 200 },
+    );
+  }) as typeof fetch;
+
+  const resolve = createSpotifyResolver({
+    clientId: "id",
+    clientSecret: "secret",
+    fetch: routingFetch,
+    now: () => 0,
+  });
+
+  const result = await resolve("a", "b");
+
+  expect(result).toBe("https://open.spotify.com/track/abc123");
+  expect(tokenCalls).toBe(2); // initial + forced refresh after the 401
+});
+
+test("createSpotifyResolver propagates a second consecutive auth failure", async () => {
+  const routingFetch: typeof fetch = (async (url: string) => {
+    if (url === "https://accounts.spotify.com/api/token") {
+      return new Response(JSON.stringify(TOKEN_BODY), { status: 200 });
+    }
+    return new Response("{}", { status: 401 });
+  }) as typeof fetch;
+
+  const resolve = createSpotifyResolver({
+    clientId: "id",
+    clientSecret: "secret",
+    fetch: routingFetch,
+    now: () => 0,
+  });
+
+  await expect(resolve("a", "b")).rejects.toMatchObject({
+    name: "SpotifyResolveError",
+    kind: "auth",
+  });
+});
+
 test("createSpotifyResolver refreshes the token after it nears expiry", async () => {
   let tokenCalls = 0;
   const routingFetch: typeof fetch = (async (url: string) => {
