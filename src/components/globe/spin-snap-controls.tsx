@@ -46,7 +46,9 @@ interface SpinSnapControlsProps {
   fair: boolean;
   visited: ReadonlySet<string>;
   readMode: boolean;
-  onSettle: (code: string) => void;
+  // `changed` is false when the settle re-lands the country already shown, so
+  // the caller can fire on every settle but gate country-change side effects.
+  onSettle: (code: string, changed: boolean) => void;
 }
 
 // Drives the camera as a spun globe: drag to rotate, release to fling with
@@ -136,10 +138,12 @@ export function SpinSnapControls({
     }
     s.settleAz = country.lon * DEG;
     s.settleEl = country.lat * DEG;
-    if (s.settledCode !== country.code) {
-      s.settledCode = country.code;
-      onSettleRef.current(country.code);
-    }
+    // Notify on every settle, even re-landing the same country, so the chart
+    // resurfaces and the tour re-arms its hint; the `changed` flag lets the
+    // caller gate the country-change side effects (?cc=, visited, haptic).
+    const changed = s.settledCode !== country.code;
+    s.settledCode = country.code;
+    onSettleRef.current(country.code, changed);
 
     if (cfg.current.reducedMotion) {
       // Instant cut: jump straight to the spring's end state so the next
