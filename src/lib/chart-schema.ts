@@ -16,7 +16,7 @@ export const CommentarySchema = z.object({
   generatedAt: z.iso.datetime(),
 });
 
-const TrackSchema = z.object({
+const TrackFields = z.object({
   rank: z.number().int().min(1).max(25),
   name: z.string().min(1),
   artist: z.string().min(1),
@@ -26,6 +26,22 @@ const TrackSchema = z.object({
   spotifyUrl: z.url(),
   commentary: CommentarySchema.nullable().optional(),
 });
+
+// Accept the legacy `spotifySearchUrl` field so a blob published before the
+// rename still validates; the next crawl rewrites it as `spotifyUrl`. Without
+// this, parsing a pre-rename blob throws and the served chart route fails.
+const TrackSchema = z.preprocess((value) => {
+  if (
+    value &&
+    typeof value === "object" &&
+    !("spotifyUrl" in value) &&
+    "spotifySearchUrl" in value
+  ) {
+    const { spotifySearchUrl, ...rest } = value as Record<string, unknown>;
+    return { ...rest, spotifyUrl: spotifySearchUrl };
+  }
+  return value;
+}, TrackFields);
 
 const CountrySchema = z.object({
   name: z.string().min(1),
