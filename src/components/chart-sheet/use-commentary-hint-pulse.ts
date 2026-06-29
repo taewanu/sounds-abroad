@@ -50,8 +50,6 @@ export function useCommentaryHintPulse(): CommentaryHintPulse {
     if (!el) return;
 
     let observer: IntersectionObserver | null = null;
-    let clearTimer: ReturnType<typeof setTimeout> | null = null;
-
     const armTimer = setTimeout(() => {
       observer = new IntersectionObserver(
         ([entry]) => {
@@ -61,7 +59,6 @@ export function useCommentaryHintPulse(): CommentaryHintPulse {
           markSeen();
           setPulsing(true);
           observer?.disconnect();
-          clearTimer = setTimeout(() => setPulsing(false), PULSE_MS);
         },
         { threshold: [VISIBLE_RATIO] },
       );
@@ -70,10 +67,19 @@ export function useCommentaryHintPulse(): CommentaryHintPulse {
 
     return () => {
       clearTimeout(armTimer);
-      if (clearTimer) clearTimeout(clearTimer);
       observer?.disconnect();
     };
   }, [armable, markSeen]);
+
+  // Clear the pulse on its own timer, not the observer's. Firing flips `armable`
+  // false (markSeen), which tears down the observer effect; bundling the reset
+  // there would cancel it and strand the cue on (notably the reduced-motion
+  // static ring).
+  useEffect(() => {
+    if (!pulsing) return;
+    const timer = setTimeout(() => setPulsing(false), PULSE_MS);
+    return () => clearTimeout(timer);
+  }, [pulsing]);
 
   return { chevronRef, pulsing };
 }

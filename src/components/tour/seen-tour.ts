@@ -5,20 +5,41 @@ const SEEN_KEY = "sounds-abroad:tour-seen:v1";
 
 type TourStorage = Pick<Storage, "getItem" | "setItem">;
 
-function defaultStorage(): TourStorage | null {
-  try {
-    return typeof localStorage === "undefined" ? null : localStorage;
-  } catch {
-    // Touching localStorage can throw outright (sandboxed iframe, hard-blocked
-    // cookies), not just on read. Treat that as "no storage".
-    return null;
-  }
+// In-memory mirror for the default storage, so the same-tab handoff survives a
+// localStorage that's unavailable or throwing (private mode, blocked cookies,
+// quota): the write still records here and reads fall back to it even when it
+// can't persist. Injected storages (tests) never touch this, staying isolated.
+const memory = new Map<string, string>();
+
+function defaultStorage(): TourStorage {
+  return {
+    getItem(key) {
+      try {
+        // Accessible localStorage is authoritative, even when it returns null
+        // (a real "not set"), so clearing it isn't shadowed by the mirror.
+        if (typeof localStorage !== "undefined")
+          return localStorage.getItem(key);
+      } catch {
+        // Touching localStorage can throw outright (sandboxed iframe,
+        // hard-blocked cookies); only then fall back to the in-memory mirror.
+      }
+      return memory.get(key) ?? null;
+    },
+    setItem(key, value) {
+      memory.set(key, value);
+      try {
+        if (typeof localStorage !== "undefined")
+          localStorage.setItem(key, value);
+      } catch {
+        // Best-effort persistence; the in-memory mirror already holds it.
+      }
+    },
+  };
 }
 
 // Reads tolerantly: any failure means "not seen", so a storage hiccup makes the
 // tour run rather than silently suppressing it.
 export function hasSeenTour(storage = defaultStorage()): boolean {
-  if (!storage) return false;
   try {
     return storage.getItem(SEEN_KEY) === "1";
   } catch {
@@ -36,14 +57,13 @@ export function subscribeSeenTour(onChange: () => void): () => void {
   return () => seenListeners.delete(onChange);
 }
 
-// Best-effort write: if persisting fails (quota, private mode), the worst case
-// is the tour shows again next visit, which is harmless.
+// Records the flag (best-effort to disk, always to the in-memory mirror) and
+// notifies same-tab subscribers, so the handoff fires even when persisting fails.
 export function markTourSeen(storage = defaultStorage()): void {
-  if (!storage) return;
   try {
     storage.setItem(SEEN_KEY, "1");
   } catch {
-    return;
+    // An injected storage may throw; the default's mirror already recorded it.
   }
   for (const listener of seenListeners) listener();
 }

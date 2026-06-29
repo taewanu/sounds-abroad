@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { hasSeenTour, markTourSeen } from "./seen-tour";
+import { hasSeenTour, markTourSeen, subscribeSeenTour } from "./seen-tour";
 
 const KEY = "sounds-abroad:tour-seen:v1";
 
@@ -55,6 +55,43 @@ describe("markTourSeen", () => {
     };
 
     expect(() => markTourSeen(hostile)).not.toThrow();
+  });
+});
+
+describe("subscribeSeenTour", () => {
+  test("notifies a subscriber when the tour is marked seen", () => {
+    const onChange = vi.fn();
+    const unsubscribe = subscribeSeenTour(onChange);
+
+    markTourSeen(fakeStorage());
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    unsubscribe();
+  });
+
+  test("notifies even when persisting the flag throws, so the handoff fires", () => {
+    const hostile = {
+      getItem: () => null,
+      setItem: () => {
+        throw new Error("quota");
+      },
+    };
+    const onChange = vi.fn();
+    const unsubscribe = subscribeSeenTour(onChange);
+
+    markTourSeen(hostile);
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    unsubscribe();
+  });
+
+  test("stops notifying after unsubscribe", () => {
+    const onChange = vi.fn();
+
+    subscribeSeenTour(onChange)();
+    markTourSeen(fakeStorage());
+
+    expect(onChange).not.toHaveBeenCalled();
   });
 });
 
