@@ -8,7 +8,16 @@ import type { CountryEntry } from "../../src/lib/countries";
 
 import { AppleRssError, type AppleRssTrack } from "./apple-rss";
 import { ItunesLookupError, type LookupResult } from "./itunes-lookup";
+import { SpotifyResolveError, type SpotifyResolver } from "./spotify-resolve";
 import type { Throttle } from "./throttle";
+
+// Optional Spotify resolution: present only when crawl credentials are wired.
+// Both must travel together (a resolver is useless without its own throttle), so
+// they share one optional bundle rather than two independently-optional fields.
+export interface SpotifyResolution {
+  resolve: SpotifyResolver;
+  throttle: Throttle;
+}
 
 export interface CrawlCountryDeps {
   cc: string;
@@ -16,6 +25,7 @@ export interface CrawlCountryDeps {
   fetchRss: (cc: string) => Promise<AppleRssTrack[]>;
   lookupTrack: (id: string, cc: string) => Promise<LookupResult>;
   throttle: Throttle;
+  spotify?: SpotifyResolution;
 }
 
 export interface CrawlCountryResult {
@@ -28,6 +38,7 @@ export interface CrawlAllDeps {
   fetchRss: (cc: string) => Promise<AppleRssTrack[]>;
   lookupTrack: (id: string, cc: string) => Promise<LookupResult>;
   throttle: Throttle;
+  spotify?: SpotifyResolution;
   uploadCharts: (chartFile: ChartFile) => Promise<string>;
   triggerRevalidate: () => Promise<void>;
   // Source for carrying forward a country that fails this run. Must resolve
@@ -68,10 +79,33 @@ function spotifySearchUrl(name: string, artist: string): string {
   return `https://open.spotify.com/search/${encodeURIComponent(`${name} ${artist}`)}`;
 }
 
+/**
+ * Resolves the track's Spotify link-out: the exact `/track/{id}` deeplink when
+ * resolution succeeds, else the `/search` URL (#80). Resolution is best-effort —
+ * any SpotifyResolveError degrades to the search URL, never worse than before.
+ */
+async function spotifyUrlFor(
+  name: string,
+  artist: string,
+  cc: string,
+  spotify: SpotifyResolution | undefined,
+): Promise<string> {
+  if (!spotify) return spotifySearchUrl(name, artist);
+  try {
+    return await spotify.throttle(() => spotify.resolve(name, artist));
+  } catch (err) {
+    if (!(err instanceof SpotifyResolveError)) throw err;
+    console.warn(
+      `[crawl ${cc}] spotify resolve ${err.kind} for "${name}": ${err.message}`,
+    );
+    return spotifySearchUrl(name, artist);
+  }
+}
+
 export async function crawlCountry(
   deps: CrawlCountryDeps,
 ): Promise<CrawlCountryResult> {
-  const { cc, name, fetchRss, lookupTrack, throttle } = deps;
+  const { cc, name, fetchRss, lookupTrack, throttle, spotify } = deps;
 
   let rssTracks: AppleRssTrack[];
   try {
@@ -102,7 +136,7 @@ export async function crawlCountry(
       previewUrl,
       artworkUrl: rss.artworkUrl,
       appleUrl: rss.appleUrl,
-      spotifySearchUrl: spotifySearchUrl(rss.name, rss.artist),
+      spotifyUrl: await spotifyUrlFor(rss.name, rss.artist, cc, spotify),
     });
   }
 
@@ -137,6 +171,7 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
     fetchRss,
     lookupTrack,
     throttle,
+    spotify,
     uploadCharts,
     triggerRevalidate,
   } = deps;
@@ -156,6 +191,7 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
       fetchRss,
       lookupTrack,
       throttle,
+      spotify,
     });
 
     // Carry forward only genuine prior data, never an earlier empty entry.

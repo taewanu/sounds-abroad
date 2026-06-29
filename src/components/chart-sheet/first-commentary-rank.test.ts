@@ -12,7 +12,7 @@ function track(rank: number, hasCommentary: boolean): Track {
     previewUrl: "https://example.com/preview.m4a",
     artworkUrl: "https://example.com/art.jpg",
     appleUrl: "https://example.com/apple",
-    spotifySearchUrl: "https://example.com/spotify",
+    spotifyUrl: "https://example.com/spotify",
     commentary: hasCommentary
       ? {
           lead: "lead",

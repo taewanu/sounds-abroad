@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-import { createThrottle } from "./throttle";
+import { createSpotifyThrottle, createThrottle } from "./throttle";
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -55,6 +55,40 @@ test("skips the delay when natural elapsed time already meets the gap", async ()
 
   await vi.advanceTimersByTimeAsync(0);
 
+  expect(resolved).toBe(true);
+  expect(await pending).toBe("b");
+});
+
+test("honors a custom gap, spacing the second call by the given interval", async () => {
+  const throttle = createThrottle(500);
+  await throttle(async () => "a");
+
+  let resolved = false;
+  const pending = throttle(async () => "b").then((v) => {
+    resolved = true;
+    return v;
+  });
+
+  await vi.advanceTimersByTimeAsync(499);
+  expect(resolved).toBe(false);
+
+  await vi.advanceTimersByTimeAsync(1);
+  expect(resolved).toBe(true);
+  expect(await pending).toBe("b");
+});
+
+test("the Spotify throttle spaces calls well under the 3000ms iTunes gap", async () => {
+  const throttle = createSpotifyThrottle();
+  await throttle(async () => "a");
+
+  let resolved = false;
+  const pending = throttle(async () => "b").then((v) => {
+    resolved = true;
+    return v;
+  });
+
+  // Far below the iTunes gap, so resolution calls fill its idle windows.
+  await vi.advanceTimersByTimeAsync(1000);
   expect(resolved).toBe(true);
   expect(await pending).toBe("b");
 });

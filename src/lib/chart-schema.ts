@@ -23,7 +23,7 @@ const TrackSchema = z.object({
   previewUrl: z.url().nullable(),
   artworkUrl: z.url(),
   appleUrl: z.url(),
-  spotifySearchUrl: z.url(),
+  spotifyUrl: z.url(),
   commentary: CommentarySchema.nullable().optional(),
 });
 

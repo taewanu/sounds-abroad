@@ -20,6 +20,7 @@ import {
   type CrawlAllDeps,
   type CrawlCountryDeps,
 } from "./run";
+import { SpotifyResolveError } from "./spotify-resolve";
 
 function sampleRssTracks(): AppleRssTrack[] {
   return [
@@ -81,7 +82,7 @@ test("crawlCountry returns valid=true with all tracks on full success", async ()
   expect(country.tracks).toHaveLength(sampleRssTracks().length);
 });
 
-test("crawlCountry composes RSS + Lookup into typed tracks with synthesized spotifySearchUrl", async () => {
+test("crawlCountry falls back to the search URL when Spotify resolution is unconfigured", async () => {
   const [firstRss] = sampleRssTracks();
   const deps = makeCrawlCountryDeps();
 
@@ -94,10 +95,87 @@ test("crawlCountry composes RSS + Lookup into typed tracks with synthesized spot
     appleUrl: firstRss.appleUrl,
     artworkUrl: firstRss.artworkUrl,
     previewUrl: previewUrlForId(firstRss.id),
-    spotifySearchUrl: `https://open.spotify.com/search/${encodeURIComponent(
+    spotifyUrl: `https://open.spotify.com/search/${encodeURIComponent(
       `${firstRss.name} ${firstRss.artist}`,
     )}`,
   });
+});
+
+test("crawlCountry stores the resolved track URL when Spotify resolution succeeds", async () => {
+  const resolved = "https://open.spotify.com/track/abc123";
+  const deps = makeCrawlCountryDeps({
+    spotify: {
+      resolve: vi.fn(async () => resolved),
+      throttle: async (fn) => fn(),
+    },
+  });
+
+  const { country } = await crawlCountry(deps);
+
+  expect(country.tracks[0].spotifyUrl).toBe(resolved);
+});
+
+test("crawlCountry passes each track's name and artist to the resolver", async () => {
+  const [firstRss] = sampleRssTracks();
+  const resolve = vi.fn(async () => "https://open.spotify.com/track/abc123");
+  const deps = makeCrawlCountryDeps({
+    spotify: { resolve, throttle: async (fn) => fn() },
+  });
+
+  await crawlCountry(deps);
+
+  expect(resolve).toHaveBeenCalledWith(firstRss.name, firstRss.artist);
+});
+
+test("crawlCountry falls back to the search URL on SpotifyResolveError", async () => {
+  const [firstRss] = sampleRssTracks();
+  const deps = makeCrawlCountryDeps({
+    spotify: {
+      resolve: vi.fn(async () => {
+        throw new SpotifyResolveError("miss", "no track");
+      }),
+      throttle: async (fn) => fn(),
+    },
+  });
+
+  const { country } = await crawlCountry(deps);
+
+  expect(country.tracks[0].spotifyUrl).toBe(
+    `https://open.spotify.com/search/${encodeURIComponent(
+      `${firstRss.name} ${firstRss.artist}`,
+    )}`,
+  );
+});
+
+test("crawlCountry rethrows a non-SpotifyResolveError from the resolver", async () => {
+  const errorMessage = "unexpected resolve error";
+  const deps = makeCrawlCountryDeps({
+    spotify: {
+      resolve: vi.fn(async () => {
+        throw new TypeError(errorMessage);
+      }),
+      throttle: async (fn) => fn(),
+    },
+  });
+
+  await expect(crawlCountry(deps)).rejects.toThrow(errorMessage);
+});
+
+test("crawlCountry routes resolution through the Spotify throttle", async () => {
+  let spotifyCount = 0;
+  const deps = makeCrawlCountryDeps({
+    spotify: {
+      resolve: vi.fn(async () => "https://open.spotify.com/track/abc123"),
+      throttle: async (fn) => {
+        spotifyCount += 1;
+        return fn();
+      },
+    },
+  });
+
+  await crawlCountry(deps);
+
+  expect(spotifyCount).toBe(sampleRssTracks().length);
 });
 
 test("crawlCountry inserts a placeholder with previewUrl=null on lookup failure", async () => {
@@ -253,7 +331,7 @@ function priorCountry(name: string, trackCount: number): Country {
       previewUrl: `https://prior/preview/${i + 1}.m4a`,
       artworkUrl: `https://prior/art/${i + 1}/600x600bb.jpg`,
       appleUrl: `https://music.apple.com/prior/${i + 1}`,
-      spotifySearchUrl: `https://open.spotify.com/search/prior${i + 1}`,
+      spotifyUrl: `https://open.spotify.com/search/prior${i + 1}`,
     })),
   };
 }
@@ -470,7 +548,7 @@ test("crawlAll clears a stale blurb carried forward from a failed country", asyn
         previewUrl: null,
         artworkUrl: "https://prior/art/1/600x600bb.jpg",
         appleUrl: "https://music.apple.com/prior/1",
-        spotifySearchUrl: "https://open.spotify.com/search/prior1",
+        spotifyUrl: "https://open.spotify.com/search/prior1",
         commentary: commentaryEntry("stale blurb."),
       },
     ],

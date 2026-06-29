@@ -12,7 +12,7 @@
           "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioFixture/v1/kr-01.m4a",
           "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Fixture/kr-01.jpg/600x600bb.jpg",
           "appleUrl": "https://music.apple.com/kr/album/example-album/1700000001?i=1700000002",
-          "spotifySearchUrl": "https://open.spotify.com/search/%EC%86%8C%EB%AC%B8%EC%9D%98%20%EB%82%99%EC%9B%90%20%EC%95%85%EB%AE%A4",
+          "spotifyUrl": "https://open.spotify.com/search/%EC%86%8C%EB%AC%B8%EC%9D%98%20%EB%82%99%EC%9B%90%20%EC%95%85%EB%AE%A4",
           "commentary": {
             "lead": "A new entry climbing fast this week.",
             "detail": "Short context about the track's rise.",
@@ -32,7 +32,7 @@
           "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioFixture/v1/kr-02.m4a",
           "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Fixture/kr-02.jpg/600x600bb.jpg",
           "appleUrl": "https://music.apple.com/kr/album/example-album/1700000003?i=1700000004",
-          "spotifySearchUrl": "https://open.spotify.com/search/Drowning%20WOODZ"
+          "spotifyUrl": "https://open.spotify.com/search/Drowning%20WOODZ"
         },
         {
           "rank": 3,
@@ -41,7 +41,7 @@
           "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioFixture/v1/kr-03.m4a",
           "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Fixture/kr-03.jpg/600x600bb.jpg",
           "appleUrl": "https://music.apple.com/kr/album/example-album/1700000005?i=1700000006",
-          "spotifySearchUrl": "https://open.spotify.com/search/Supernova%20aespa"
+          "spotifyUrl": "https://open.spotify.com/search/Supernova%20aespa"
         }
       ]
     },
@@ -56,7 +56,7 @@
           "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioFixture/v1/us-01.m4a",
           "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Fixture/us-01.jpg/600x600bb.jpg",
           "appleUrl": "https://music.apple.com/us/album/example-album/1700000101?i=1700000102",
-          "spotifySearchUrl": "https://open.spotify.com/search/Espresso%20Sabrina%20Carpenter",
+          "spotifyUrl": "https://open.spotify.com/search/Espresso%20Sabrina%20Carpenter",
           "commentary": {
             "lead": "A long-running chart favorite.",
             "tag": "mainstay",
@@ -72,7 +72,7 @@
           "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioFixture/v1/us-02.m4a",
           "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Fixture/us-02.jpg/600x600bb.jpg",
           "appleUrl": "https://music.apple.com/us/album/example-album/1700000103?i=1700000104",
-          "spotifySearchUrl": "https://open.spotify.com/search/Birds%20of%20a%20Feather%20Billie%20Eilish"
+          "spotifyUrl": "https://open.spotify.com/search/Birds%20of%20a%20Feather%20Billie%20Eilish"
         },
         {
           "rank": 3,
@@ -81,7 +81,7 @@
           "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioFixture/v1/us-03.m4a",
           "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Fixture/us-03.jpg/600x600bb.jpg",
           "appleUrl": "https://music.apple.com/us/album/example-album/1700000105?i=1700000106",
-          "spotifySearchUrl": "https://open.spotify.com/search/Not%20Like%20Us%20Kendrick%20Lamar"
+          "spotifyUrl": "https://open.spotify.com/search/Not%20Like%20Us%20Kendrick%20Lamar"
         }
       ]
     },
@@ -96,7 +96,7 @@
           "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioFixture/v1/br-01.m4a",
           "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Fixture/br-01.jpg/600x600bb.jpg",
           "appleUrl": "https://music.apple.com/br/album/example-album/1700000201?i=1700000202",
-          "spotifySearchUrl": "https://open.spotify.com/search/T%C3%A1%20OK%20Dennis"
+          "spotifyUrl": "https://open.spotify.com/search/T%C3%A1%20OK%20Dennis"
         },
         {
           "rank": 2,
@@ -105,7 +105,7 @@
           "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioFixture/v1/br-02.m4a",
           "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Fixture/br-02.jpg/600x600bb.jpg",
           "appleUrl": "https://music.apple.com/br/album/example-album/1700000203?i=1700000204",
-          "spotifySearchUrl": "https://open.spotify.com/search/Gata%20Only%20FloyyMenor"
+          "spotifyUrl": "https://open.spotify.com/search/Gata%20Only%20FloyyMenor"
         },
         {
           "rank": 3,
@@ -114,7 +114,7 @@
           "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioFixture/v1/br-03.m4a",
           "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Fixture/br-03.jpg/600x600bb.jpg",
           "appleUrl": "https://music.apple.com/br/album/example-album/1700000205?i=1700000206",
-          "spotifySearchUrl": "https://open.spotify.com/search/Pedro%20Raffaela%20Carr%C3%A0"
+          "spotifyUrl": "https://open.spotify.com/search/Pedro%20Raffaela%20Carr%C3%A0"
         }
       ]
     }

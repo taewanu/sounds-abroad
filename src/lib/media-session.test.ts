@@ -18,7 +18,7 @@ function makeTrack(overrides: Partial<Track> = {}): Track {
     previewUrl: "https://example.com/preview.m4a",
     artworkUrl: "https://example.com/art/600x600bb.jpg",
     appleUrl: "https://music.apple.com/x",
-    spotifySearchUrl: "https://open.spotify.com/search/x",
+    spotifyUrl: "https://open.spotify.com/search/x",
     ...overrides,
   };
 }

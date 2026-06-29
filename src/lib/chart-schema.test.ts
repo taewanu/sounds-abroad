@@ -22,7 +22,7 @@ test("ChartFileSchema accepts null previewUrl (placeholder for lookup-failed tra
             previewUrl: null,
             artworkUrl: "https://art/600x600bb.jpg",
             appleUrl: "https://music.apple.com/kr/1",
-            spotifySearchUrl: "https://open.spotify.com/search/Test",
+            spotifyUrl: "https://open.spotify.com/search/Test",
           },
         ],
       },
@@ -47,7 +47,7 @@ test("ChartFileSchema accepts null commentary (track skipped or failed generatio
             previewUrl: null,
             artworkUrl: "https://art/600x600bb.jpg",
             appleUrl: "https://music.apple.com/kr/1",
-            spotifySearchUrl: "https://open.spotify.com/search/Test",
+            spotifyUrl: "https://open.spotify.com/search/Test",
             commentary: null,
           },
         ],
@@ -73,7 +73,7 @@ test("ChartFileSchema rejects commentary missing the required lead", () => {
             previewUrl: null,
             artworkUrl: "https://art/600x600bb.jpg",
             appleUrl: "https://music.apple.com/kr/1",
-            spotifySearchUrl: "https://open.spotify.com/search/Test",
+            spotifyUrl: "https://open.spotify.com/search/Test",
             commentary: {
               detail: "Has detail but no lead.",
               tag: "new entry",
@@ -105,7 +105,7 @@ test("ChartFileSchema rejects commentary with an empty sources array", () => {
             previewUrl: null,
             artworkUrl: "https://art/600x600bb.jpg",
             appleUrl: "https://music.apple.com/kr/1",
-            spotifySearchUrl: "https://open.spotify.com/search/Test",
+            spotifyUrl: "https://open.spotify.com/search/Test",
             commentary: {
               lead: "Has a lead but no sources.",
               tag: "new entry",
@@ -137,7 +137,7 @@ test("ChartFileSchema rejects commentary missing the required tag", () => {
             previewUrl: null,
             artworkUrl: "https://art/600x600bb.jpg",
             appleUrl: "https://music.apple.com/kr/1",
-            spotifySearchUrl: "https://open.spotify.com/search/Test",
+            spotifyUrl: "https://open.spotify.com/search/Test",
             commentary: {
               lead: "Has a lead but no tag.",
               claim: "why-charting",
@@ -168,7 +168,7 @@ test("ChartFileSchema rejects commentary missing the required claim", () => {
             previewUrl: null,
             artworkUrl: "https://art/600x600bb.jpg",
             appleUrl: "https://music.apple.com/kr/1",
-            spotifySearchUrl: "https://open.spotify.com/search/Test",
+            spotifyUrl: "https://open.spotify.com/search/Test",
             commentary: {
               lead: "Has a lead but no claim.",
               tag: "new entry",
@@ -199,7 +199,7 @@ test("ChartFileSchema rejects a claim outside the allowed set", () => {
             previewUrl: null,
             artworkUrl: "https://art/600x600bb.jpg",
             appleUrl: "https://music.apple.com/kr/1",
-            spotifySearchUrl: "https://open.spotify.com/search/Test",
+            spotifyUrl: "https://open.spotify.com/search/Test",
             commentary: {
               lead: "Has a lead and a bogus claim.",
               tag: "new entry",
@@ -231,7 +231,7 @@ test("ChartFileSchema accepts both allowed claim values", () => {
             previewUrl: null,
             artworkUrl: "https://art/600x600bb.jpg",
             appleUrl: "https://music.apple.com/kr/1",
-            spotifySearchUrl: "https://open.spotify.com/search/WhatItIs",
+            spotifyUrl: "https://open.spotify.com/search/WhatItIs",
             commentary: {
               lead: "A stable note about the song itself.",
               tag: "mainstay",
@@ -247,7 +247,7 @@ test("ChartFileSchema accepts both allowed claim values", () => {
             previewUrl: null,
             artworkUrl: "https://art/600x600bb.jpg",
             appleUrl: "https://music.apple.com/kr/2",
-            spotifySearchUrl: "https://open.spotify.com/search/WhyCharting",
+            spotifyUrl: "https://open.spotify.com/search/WhyCharting",
             commentary: {
               lead: "A time-sensitive note about the climb.",
               tag: "new entry",
