@@ -95,6 +95,33 @@ describe("subscribeSeenTour", () => {
   });
 });
 
+describe("falls back to the in-memory mirror when localStorage throws", () => {
+  test("round-trips through the mirror when access throws (private mode)", () => {
+    // Restore in finally, not afterEach: a leaked spy would make the next
+    // suite's localStorage throw and read the mirror instead.
+    const getSpy = vi
+      .spyOn(Storage.prototype, "getItem")
+      .mockImplementation(() => {
+        throw new Error("blocked");
+      });
+    const setSpy = vi
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementation(() => {
+        throw new Error("blocked");
+      });
+    try {
+      expect(hasSeenTour()).toBe(false);
+
+      markTourSeen();
+
+      expect(hasSeenTour()).toBe(true);
+    } finally {
+      getSpy.mockRestore();
+      setSpy.mockRestore();
+    }
+  });
+});
+
 describe("seen-tour through the real localStorage", () => {
   afterEach(() => {
     localStorage.clear();
