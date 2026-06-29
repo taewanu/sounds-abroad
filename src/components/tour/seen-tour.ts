@@ -26,6 +26,16 @@ export function hasSeenTour(storage = defaultStorage()): boolean {
   }
 }
 
+// Same-tab subscribers to the flag flipping. A localStorage write fires no
+// storage event in the writing tab, so a consumer that outlives the tour (the
+// commentary hint) can't otherwise notice the gate opening.
+const seenListeners = new Set<() => void>();
+
+export function subscribeSeenTour(onChange: () => void): () => void {
+  seenListeners.add(onChange);
+  return () => seenListeners.delete(onChange);
+}
+
 // Best-effort write: if persisting fails (quota, private mode), the worst case
 // is the tour shows again next visit, which is harmless.
 export function markTourSeen(storage = defaultStorage()): void {
@@ -35,4 +45,5 @@ export function markTourSeen(storage = defaultStorage()): void {
   } catch {
     return;
   }
+  for (const listener of seenListeners) listener();
 }

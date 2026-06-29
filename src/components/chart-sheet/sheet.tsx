@@ -4,6 +4,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -11,6 +12,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 
 import type { Country } from "@/lib/chart-schema";
 
+import { firstCommentaryRank } from "./first-commentary-rank";
 import { TrackRow } from "./track-row";
 
 export type SnapState = "hidden" | "closed" | "peek" | "full";
@@ -112,6 +114,13 @@ export function ChartSheet({
 }: ChartSheetProps) {
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const olRef = useRef<HTMLOListElement | null>(null);
+
+  // The one row eligible for the commentary discovery pulse, recomputed per
+  // country (the <ol> remounts on country change, resetting the hint).
+  const hintRank = useMemo(
+    () => firstCommentaryRank(country.tracks),
+    [country.tracks],
+  );
 
   // Lifts the peek max-height clamp so the list fills the sheet while it's
   // dragged; only toggled at gesture start/end, never per frame.
@@ -504,6 +513,7 @@ export function ChartSheet({
                 key={track.rank}
                 track={track}
                 countryCode={countryCode}
+                isHintTarget={track.rank === hintRank}
               />
             ))}
           </ol>

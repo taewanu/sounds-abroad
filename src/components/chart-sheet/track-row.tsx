@@ -11,6 +11,8 @@ import { useOverflowMarquee } from "@/components/use-overflow-marquee";
 import type { Track } from "@/lib/chart-schema";
 import { useAudioStore } from "@/providers/audio-store-provider";
 
+import { useCommentaryHintPulse } from "./use-commentary-hint-pulse";
+
 // Cited sources show as bare hostnames; drop a leading www. for scannability.
 const WWW_PREFIX = /^www\./;
 function sourceLabel(url: string): string {
@@ -21,12 +23,39 @@ function sourceLabel(url: string): string {
   }
 }
 
+function ChevronGlyph({ expanded }: { expanded: boolean }) {
+  return (
+    <ChevronDownIcon
+      data-expanded={expanded || undefined}
+      className="text-fg-3 h-4 w-4 transition-transform duration-200 ease-[var(--ease-out)] data-[expanded]:rotate-180 motion-reduce:transition-none"
+    />
+  );
+}
+
+// Only mounted on the single hint-target row, so its store reads and observer
+// are paid once. The pulse animates this wrapper, not the SVG inside it.
+function HintedChevron({ expanded }: { expanded: boolean }) {
+  const { chevronRef, pulsing } = useCommentaryHintPulse();
+  return (
+    <span
+      ref={chevronRef}
+      data-commentary-hint={pulsing || undefined}
+      className="inline-flex shrink-0 items-center justify-center"
+    >
+      <ChevronGlyph expanded={expanded} />
+    </span>
+  );
+}
+
 export interface TrackRowProps {
   track: Track;
   countryCode: string;
+  // True on the first commentary-bearing row of the current country: the one
+  // row eligible for the one-time discovery pulse.
+  isHintTarget?: boolean;
 }
 
-export function TrackRow({ track, countryCode }: TrackRowProps) {
+export function TrackRow({ track, countryCode, isHintTarget }: TrackRowProps) {
   const isCurrent = useAudioStore(
     (s) =>
       s.currentTrack?.previewUrl === track.previewUrl &&
@@ -173,10 +202,13 @@ export function TrackRow({ track, countryCode }: TrackRowProps) {
             <span className="text-fg-2 text-small line-clamp-2 min-w-0 flex-1">
               {commentary.lead}
             </span>
-            <ChevronDownIcon
-              data-expanded={expanded || undefined}
-              className="text-fg-3 h-4 w-4 shrink-0 transition-transform duration-200 ease-[var(--ease-out)] data-[expanded]:rotate-180 motion-reduce:transition-none"
-            />
+            {isHintTarget ? (
+              <HintedChevron expanded={expanded} />
+            ) : (
+              <span className="inline-flex shrink-0 items-center justify-center">
+                <ChevronGlyph expanded={expanded} />
+              </span>
+            )}
           </button>
           <div
             id={panelId}
