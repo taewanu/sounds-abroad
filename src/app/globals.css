@@ -704,6 +704,67 @@
     commentary-hint-pop 1150ms var(--ease-out);
 }
 
+/* Skip cue: a directional chevron on the tapped edge confirms a track skip
+   (next = right, prev = left). It fades in, slides toward that edge, and fades
+   out, never rotating the globe so "skip a song" stays distinct from rotating
+   to a country. Duration and travel come from JS (--skip-flash-*) so they tune
+   in one place. */
+@keyframes skip-flash-next {
+  0% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+  28% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(var(--skip-flash-travel, 20px));
+  }
+}
+
+@keyframes skip-flash-prev {
+  0% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+  28% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(calc(-1 * var(--skip-flash-travel, 20px)));
+  }
+}
+
+/* Reduced motion keeps the cue but drops the slide: a brief opacity flash. */
+@keyframes skip-flash-static {
+  0% {
+    opacity: 0;
+  }
+  28% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.skip-flash {
+  animation-duration: var(--skip-flash-dur, 340ms);
+  animation-timing-function: var(--ease-out);
+  animation-fill-mode: forwards;
+  filter: drop-shadow(0 0 16px rgba(255, 107, 71, 0.45));
+}
+
+.skip-flash[data-dir="next"] {
+  animation-name: skip-flash-next;
+}
+
+.skip-flash[data-dir="prev"] {
+  animation-name: skip-flash-prev;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .eq,
   .eq span {
@@ -713,6 +774,11 @@
   [data-commentary-hint] {
     animation: none;
     box-shadow: 0 0 0 2px rgba(255, 107, 71, 0.45);
+  }
+  /* Skip cue keeps a brief opacity flash but drops the directional slide. */
+  .skip-flash[data-dir="next"],
+  .skip-flash[data-dir="prev"] {
+    animation-name: skip-flash-static;
   }
   .eq span {
     transform: scaleY(0.7);

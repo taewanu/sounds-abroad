@@ -30,11 +30,17 @@ export interface GlobeChartState {
   // place that owns the adjacency logic. Default no-op until the chart publishes
   // it, so calling before a track plays is safe.
   skip: (dir: 1 | -1) => void;
+  // One-shot cue for the directional skip flash: `dir` is the skip direction and
+  // `nonce` bumps on each skip so the overlay replays even on a repeat direction
+  // (a plain `dir` diff would miss next-after-next). The globe edge-tap is the
+  // only producer, so the flash lands on the tapped edge, not on a button skip.
+  skipSignal: { dir: 1 | -1; nonce: number };
   setSelectedCountry: (code: string | null) => void;
   setReadMode: (readMode: boolean) => void;
   signalSettle: () => void;
   setListening: (listening: boolean) => void;
   setSkip: (skip: (dir: 1 | -1) => void) => void;
+  signalSkip: (dir: 1 | -1) => void;
 }
 
 export const globeChartStore = createStore<GlobeChartState>()((set) => ({
@@ -43,12 +49,17 @@ export const globeChartStore = createStore<GlobeChartState>()((set) => ({
   settleSignal: 0,
   listening: false,
   skip: () => {},
+  skipSignal: { dir: 1, nonce: 0 },
   setSelectedCountry: (selectedCountry) => set({ selectedCountry }),
   setReadMode: (readMode) => set({ readMode }),
   signalSettle: () =>
     set((state) => ({ settleSignal: state.settleSignal + 1 })),
   setListening: (listening) => set({ listening }),
   setSkip: (skip) => set({ skip }),
+  signalSkip: (dir) =>
+    set((state) => ({
+      skipSignal: { dir, nonce: state.skipSignal.nonce + 1 },
+    })),
 }));
 
 export function useGlobeChart<T>(selector: (state: GlobeChartState) => T): T {

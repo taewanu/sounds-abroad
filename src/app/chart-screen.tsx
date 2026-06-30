@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 
 import { ChartSheet, type SnapState } from "@/components/chart-sheet/sheet";
 import { EdgeTapHint } from "@/components/globe/edge-tap-hint";
+import { SkipFlash } from "@/components/globe/skip-flash";
 import { MiniPlayer } from "@/components/mini-player";
 import { TourHost } from "@/components/tour/tour-host";
 import { findAdjacentPlayable } from "@/lib/adjacent-playable";
@@ -246,6 +247,7 @@ function ChartScreenInner({
         canNext={canNext}
       />
       <EdgeTapHint active={hasCurrentTrack} />
+      <SkipFlash />
       <TourHost
         snap={snap}
         hasCurrentTrack={hasCurrentTrack}

@@ -64,6 +64,16 @@ function SceneContent() {
   const listening = useGlobeChart((s) => s.listening);
   const skip = useGlobeChart((s) => s.skip);
 
+  // Route the edge-tap skip and signal the directional cue from one place: the
+  // decision still lives in the controls, this only forwards and flashes.
+  const handleSkip = useCallback(
+    (dir: 1 | -1) => {
+      skip(dir);
+      globeChartStore.getState().signalSkip(dir);
+    },
+    [skip],
+  );
+
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
   const hoveredIsoNum =
     hoveredCode !== null && hoveredCode !== selectedCode
@@ -130,7 +140,7 @@ function SceneContent() {
         visited={visited}
         readMode={readMode}
         listening={listening}
-        onSkip={skip}
+        onSkip={handleSkip}
         onSettle={handleSettle}
       />
     </>
