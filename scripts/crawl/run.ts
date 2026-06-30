@@ -102,6 +102,31 @@ async function spotifyUrlFor(
   }
 }
 
+/**
+ * Resolves the track's audio preview: the iTunes `previewUrl` when the lookup
+ * succeeds, else null. Best-effort, mirroring spotifyUrlFor — any
+ * ItunesLookupError degrades to a null preview so one bad track never aborts
+ * the crawl; any other error propagates.
+ */
+async function previewUrlFor(
+  id: string,
+  rank: number,
+  cc: string,
+  lookupTrack: CrawlCountryDeps["lookupTrack"],
+  throttle: Throttle,
+): Promise<string | null> {
+  try {
+    const lookup = await throttle(() => lookupTrack(id, cc));
+    return lookup.previewUrl;
+  } catch (err) {
+    if (!(err instanceof ItunesLookupError)) throw err;
+    console.warn(
+      `[crawl ${cc}] lookup ${err.kind} for rank ${rank} id=${id}: ${err.message}`,
+    );
+    return null;
+  }
+}
+
 export async function crawlCountry(
   deps: CrawlCountryDeps,
 ): Promise<CrawlCountryResult> {
@@ -118,17 +143,10 @@ export async function crawlCountry(
 
   const tracks: Track[] = [];
   for (const rss of rssTracks) {
-    let previewUrl: string | null;
-    try {
-      const lookup = await throttle(() => lookupTrack(rss.id, cc));
-      previewUrl = lookup.previewUrl;
-    } catch (err) {
-      if (!(err instanceof ItunesLookupError)) throw err;
-      console.warn(
-        `[crawl ${cc}] lookup ${err.kind} for rank ${rss.rank} id=${rss.id}: ${err.message}`,
-      );
-      previewUrl = null;
-    }
+    const [previewUrl, spotifyUrl] = await Promise.all([
+      previewUrlFor(rss.id, rss.rank, cc, lookupTrack, throttle),
+      spotifyUrlFor(rss.name, rss.artist, cc, spotify),
+    ]);
     tracks.push({
       rank: rss.rank,
       name: rss.name,
@@ -136,7 +154,7 @@ export async function crawlCountry(
       previewUrl,
       artworkUrl: rss.artworkUrl,
       appleUrl: rss.appleUrl,
-      spotifyUrl: await spotifyUrlFor(rss.name, rss.artist, cc, spotify),
+      spotifyUrl,
     });
   }
 
