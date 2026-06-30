@@ -1,13 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { ChartSheet, type SnapState } from "@/components/chart-sheet/sheet";
 import { MiniPlayer } from "@/components/mini-player";
 import { TourHost } from "@/components/tour/tour-host";
+import { findAdjacentPlayable } from "@/lib/adjacent-playable";
 import type { ChartFile, Country } from "@/lib/chart-schema";
 import { globeChartStore, useGlobeChart } from "@/lib/globe-chart-store";
+import { setSkipHandlers } from "@/lib/media-session";
 import {
   AudioStoreProvider,
   useAudioStore,
@@ -76,8 +78,10 @@ function ChartScreenInner({
   // prop: that resolves from useSearchParams, which a replaceState-only globe
   // landing never re-triggers, so it wouldn't move on a fling.
   const selectedCountry = useGlobeChart((s) => s.selectedCountry);
-  const hasCurrentTrack = useAudioStore((s) => s.currentTrack !== null);
-  const currentTrackRank = useAudioStore((s) => s.currentTrack?.rank ?? null);
+  const currentTrack = useAudioStore((s) => s.currentTrack);
+  const currentCountryCode = useAudioStore((s) => s.currentCountryCode);
+  const hasCurrentTrack = currentTrack !== null;
+  const currentTrackRank = currentTrack?.rank ?? null;
   const endedSignal = useAudioStore((s) => s.endedSignal);
   const audioStore = useAudioStoreApi();
 
@@ -118,16 +122,12 @@ function ChartScreenInner({
     if (currentTrack === null || currentCountryCode === null) return;
     const source = charts.countries[currentCountryCode];
     if (!source) return;
-    const startIdx = source.tracks.findIndex(
-      (t) => t.previewUrl === currentTrack.previewUrl,
+    const next = findAdjacentPlayable(
+      source.tracks,
+      currentTrack.previewUrl,
+      1,
     );
-    if (startIdx === -1) return;
-    for (let i = startIdx + 1; i < source.tracks.length; i++) {
-      if (source.tracks[i].previewUrl !== null) {
-        toggle(source.tracks[i], currentCountryCode);
-        return;
-      }
-    }
+    if (next) toggle(next, currentCountryCode);
   }, [endedSignal, audioStore, charts.countries]);
 
   // Hidden sheet has no on-screen affordance; the next pointerdown anywhere
@@ -170,6 +170,49 @@ function ChartScreenInner({
     setScrollSignal((n) => n + 1);
   }, [audioStore, countryCode]);
 
+  // Step within the source country, not the visible one. Reads live store state
+  // so the callbacks stay stable across track changes.
+  const step = useCallback(
+    (dir: 1 | -1) => {
+      const { currentTrack, currentCountryCode, toggle } =
+        audioStore.getState();
+      if (currentTrack === null || currentCountryCode === null) return;
+      const source = charts.countries[currentCountryCode];
+      if (!source) return;
+      const adj = findAdjacentPlayable(
+        source.tracks,
+        currentTrack.previewUrl,
+        dir,
+      );
+      if (adj) toggle(adj, currentCountryCode);
+    },
+    [audioStore, charts.countries],
+  );
+  const goPrev = useCallback(() => step(-1), [step]);
+  const goNext = useCallback(() => step(1), [step]);
+
+  const canPrev = useMemo(() => {
+    if (currentTrack === null || currentCountryCode === null) return false;
+    const source = charts.countries[currentCountryCode];
+    return source
+      ? findAdjacentPlayable(source.tracks, currentTrack.previewUrl, -1) !==
+          null
+      : false;
+  }, [currentTrack, currentCountryCode, charts.countries]);
+  const canNext = useMemo(() => {
+    if (currentTrack === null || currentCountryCode === null) return false;
+    const source = charts.countries[currentCountryCode];
+    return source
+      ? findAdjacentPlayable(source.tracks, currentTrack.previewUrl, 1) !== null
+      : false;
+  }, [currentTrack, currentCountryCode, charts.countries]);
+
+  // Skip lives here, not in the audio store: routing prev/next needs the chart
+  // data to find the adjacent playable track, which the store doesn't hold.
+  useEffect(() => {
+    setSkipHandlers({ previoustrack: goPrev, nexttrack: goNext });
+  }, [goPrev, goNext]);
+
   return (
     <>
       <ChartSheet
@@ -181,7 +224,13 @@ function ChartScreenInner({
         hasMiniPlayer={hasCurrentTrack}
         scrollSignal={scrollSignal}
       />
-      <MiniPlayer onTap={handleMiniTap} />
+      <MiniPlayer
+        onTap={handleMiniTap}
+        onPrev={goPrev}
+        onNext={goNext}
+        canPrev={canPrev}
+        canNext={canNext}
+      />
       <TourHost
         snap={snap}
         hasCurrentTrack={hasCurrentTrack}
