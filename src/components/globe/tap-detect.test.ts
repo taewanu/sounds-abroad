@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { horizontalThird, isTap } from "./tap-detect";
+import { classifyTap, horizontalThird, isTap } from "./tap-detect";
 
 const MAX = 8;
 
@@ -40,4 +40,94 @@ test("horizontalThird leans the left boundary into the center", () => {
 
 test("horizontalThird leans the right boundary into the right zone", () => {
   expect(horizontalThird((WIDTH * 2) / 3, WIDTH)).toBe("right");
+});
+
+const WINDOW = 280;
+
+test("classifyTap selects immediately for a center tap while listening", () => {
+  const action = classifyTap({
+    listening: true,
+    region: "center",
+    now: 1000,
+    lastEdgeTapAt: null,
+    windowMs: WINDOW,
+  });
+
+  expect(action).toEqual({ kind: "select" });
+});
+
+test("classifyTap selects immediately for a side tap when not listening", () => {
+  const action = classifyTap({
+    listening: false,
+    region: "left",
+    now: 1000,
+    lastEdgeTapAt: 900,
+    windowMs: WINDOW,
+  });
+
+  expect(action).toEqual({ kind: "select" });
+});
+
+test("classifyTap defers a first side tap while listening", () => {
+  const action = classifyTap({
+    listening: true,
+    region: "right",
+    now: 1000,
+    lastEdgeTapAt: null,
+    windowMs: WINDOW,
+  });
+
+  expect(action).toEqual({ kind: "deferSelect" });
+});
+
+test("classifyTap skips back on a second left tap within the window", () => {
+  const first = 1000;
+  const action = classifyTap({
+    listening: true,
+    region: "left",
+    now: first + WINDOW - 1,
+    lastEdgeTapAt: first,
+    windowMs: WINDOW,
+  });
+
+  expect(action).toEqual({ kind: "skip", dir: -1 });
+});
+
+test("classifyTap skips forward on a second right tap within the window", () => {
+  const first = 1000;
+  const action = classifyTap({
+    listening: true,
+    region: "right",
+    now: first + WINDOW - 1,
+    lastEdgeTapAt: first,
+    windowMs: WINDOW,
+  });
+
+  expect(action).toEqual({ kind: "skip", dir: 1 });
+});
+
+test("classifyTap counts a second tap exactly at the window edge as a skip", () => {
+  const first = 1000;
+  const action = classifyTap({
+    listening: true,
+    region: "right",
+    now: first + WINDOW,
+    lastEdgeTapAt: first,
+    windowMs: WINDOW,
+  });
+
+  expect(action).toEqual({ kind: "skip", dir: 1 });
+});
+
+test("classifyTap defers again once the window has elapsed", () => {
+  const first = 1000;
+  const action = classifyTap({
+    listening: true,
+    region: "left",
+    now: first + WINDOW + 1,
+    lastEdgeTapAt: first,
+    windowMs: WINDOW,
+  });
+
+  expect(action).toEqual({ kind: "deferSelect" });
 });
