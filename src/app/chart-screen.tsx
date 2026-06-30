@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { ChartSheet, type SnapState } from "@/components/chart-sheet/sheet";
+import { EdgeTapHint } from "@/components/globe/edge-tap-hint";
 import { MiniPlayer } from "@/components/mini-player";
 import { TourHost } from "@/components/tour/tour-host";
 import { findAdjacentPlayable } from "@/lib/adjacent-playable";
@@ -213,6 +214,19 @@ function ChartScreenInner({
     setSkipHandlers({ previoustrack: goPrev, nexttrack: goNext });
   }, [goPrev, goNext]);
 
+  // Mirror the listening gate and the shared step to the globe so an edge-tap on
+  // the layout-backdrop globe routes through the same prev/next. The globe sits
+  // outside the audio provider, so it can't read currentTrack or call step
+  // directly; this crosses the same seam selectedCountry already does.
+  useEffect(() => {
+    globeChartStore.getState().setListening(hasCurrentTrack);
+    return () => globeChartStore.getState().setListening(false);
+  }, [hasCurrentTrack]);
+  useEffect(() => {
+    globeChartStore.getState().setSkip(step);
+    return () => globeChartStore.getState().setSkip(() => {});
+  }, [step]);
+
   return (
     <>
       <ChartSheet
@@ -231,6 +245,7 @@ function ChartScreenInner({
         canPrev={canPrev}
         canNext={canNext}
       />
+      <EdgeTapHint active={hasCurrentTrack} />
       <TourHost
         snap={snap}
         hasCurrentTrack={hasCurrentTrack}
