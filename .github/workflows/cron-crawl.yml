@@ -8,7 +8,8 @@ on:
     - cron: "17 4,11,16,22 * * *" # UTC; ADR-0002. Minute off :00 to avoid GH Actions scheduler peak.
   workflow_dispatch:
 
-# A run takes ~50 minutes; never cancel an in-flight run for a superseding trigger.
+# A run is long (a large share of its timeout); never cancel an in-flight run
+# for a superseding trigger — that would forfeit the chart refresh it's mid-way through.
 concurrency:
   group: cron-crawl
   cancel-in-progress: false
@@ -17,7 +18,7 @@ jobs:
   crawl:
     name: Crawl + Publish + Revalidate
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
 
     steps:
       - name: Checkout
