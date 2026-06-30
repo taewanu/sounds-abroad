@@ -60,6 +60,13 @@ export function MiniPlayer({
     startYRef.current = e.clientY;
     trackingRef.current = true;
     swipedRef.current = false;
+    // Capture so a swipe that drifts off the button still delivers its pointerup
+    // here; the browser releases the capture on pointerup/cancel.
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      /* setPointerCapture is unsupported under jsdom; capture is best-effort */
+    }
   };
 
   const handlePointerUp = (e: ReactPointerEvent<HTMLButtonElement>) => {
