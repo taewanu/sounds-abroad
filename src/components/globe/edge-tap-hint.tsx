@@ -12,10 +12,14 @@ const VISIBLE_MS = 2600;
 const CHIP_CLASS =
   "bg-void/70 text-fg-1 ring-fg-1/10 shadow-sheet flex h-11 w-11 items-center justify-center rounded-full opacity-80 ring-1 backdrop-blur-sm";
 
-// One-time cue that the globe's left/right edges skip tracks while a preview
-// plays. Pointer-transparent so it never intercepts the taps it teaches; shown
-// once per device, then the seen flag persists. Entrance uses the shared
-// tour-fade, which globals.css already drops under prefers-reduced-motion.
+const CAPTION_CLASS =
+  "bg-void/70 text-fg-1 ring-fg-1/10 shadow-sheet rounded-full px-3 py-1.5 text-sm font-medium opacity-80 ring-1 backdrop-blur-sm";
+
+// One-time cue that a double-tap on the globe's left/right edge skips tracks
+// while a preview plays (a single tap still selects a country). Pointer-
+// transparent so it never intercepts the taps it teaches; shown once per device,
+// then the seen flag persists. Entrance uses the shared tour-fade, which
+// globals.css already drops under prefers-reduced-motion.
 export function EdgeTapHint({ active }: { active: boolean }) {
   // Read the persisted flag once at mount, before any track plays, so it holds
   // the true prior-session value. Visibility is then derived from `active`, not
@@ -45,6 +49,7 @@ export function EdgeTapHint({ active }: { active: boolean }) {
       <span className={CHIP_CLASS}>
         <SkipBackIcon className="h-5 w-5" />
       </span>
+      <span className={CAPTION_CLASS}>Double-tap to skip</span>
       <span className={CHIP_CLASS}>
         <SkipForwardIcon className="h-5 w-5" />
       </span>
