@@ -14,3 +14,15 @@ export function isTap(start: Point, end: Point, maxPx: number): boolean {
 
   return Math.hypot(dx, dy) <= maxPx;
 }
+
+export type HorizontalThird = "left" | "center" | "right";
+
+// Which horizontal third of a `width`-wide viewport the point `x` falls in. In
+// listening mode the caller maps left->prev and right->next, leaving the center
+// third to the default select-country tap. Boundaries lean toward the center so
+// the side zones never overrun the middle.
+export function horizontalThird(x: number, width: number): HorizontalThird {
+  if (x < width / 3) return "left";
+  if (x >= (width * 2) / 3) return "right";
+  return "center";
+}

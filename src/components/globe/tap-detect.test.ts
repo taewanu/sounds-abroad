@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { isTap } from "./tap-detect";
+import { horizontalThird, isTap } from "./tap-detect";
 
 const MAX = 8;
 
@@ -18,4 +18,26 @@ test("isTap treats a release beyond the tolerance as a spin", () => {
 
 test("isTap measures straight-line distance, not per-axis", () => {
   expect(isTap({ x: 100, y: 100 }, { x: 106, y: 106 }, MAX)).toBe(false);
+});
+
+const WIDTH = 300;
+
+test("horizontalThird reads a point in the first third as left", () => {
+  expect(horizontalThird(50, WIDTH)).toBe("left");
+});
+
+test("horizontalThird reads a point in the middle third as center", () => {
+  expect(horizontalThird(150, WIDTH)).toBe("center");
+});
+
+test("horizontalThird reads a point in the last third as right", () => {
+  expect(horizontalThird(250, WIDTH)).toBe("right");
+});
+
+test("horizontalThird leans the left boundary into the center", () => {
+  expect(horizontalThird(WIDTH / 3, WIDTH)).toBe("center");
+});
+
+test("horizontalThird leans the right boundary into the right zone", () => {
+  expect(horizontalThird((WIDTH * 2) / 3, WIDTH)).toBe("right");
 });

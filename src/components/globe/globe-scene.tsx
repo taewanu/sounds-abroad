@@ -61,6 +61,8 @@ function SceneContent() {
   const selectedCode = useGlobeChart((s) => s.selectedCountry);
   const reducedMotion = usePrefersReducedMotion();
   const readMode = useGlobeChart((s) => s.readMode);
+  const listening = useGlobeChart((s) => s.listening);
+  const skip = useGlobeChart((s) => s.skip);
 
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
   const hoveredIsoNum =
@@ -127,6 +129,8 @@ function SceneContent() {
         fair={SPIN_FAIR}
         visited={visited}
         readMode={readMode}
+        listening={listening}
+        onSkip={skip}
         onSettle={handleSettle}
       />
     </>

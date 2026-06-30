@@ -11,7 +11,7 @@ import {
   pickSnapCountry,
   projectFrontCountries,
 } from "./spin-select";
-import { isTap } from "./tap-detect";
+import { horizontalThird, isTap } from "./tap-detect";
 
 const DEG = Math.PI / 180;
 const RADIUS = 3.5;
@@ -46,6 +46,10 @@ interface SpinSnapControlsProps {
   fair: boolean;
   visited: ReadonlySet<string>;
   readMode: boolean;
+  // A track is playing: a no-movement tap on the left/right third skips instead
+  // of selecting. Off (no track) keeps every tap selecting a country.
+  listening: boolean;
+  onSkip: (dir: 1 | -1) => void;
   // `changed` is false when the settle re-lands the country already shown, so
   // the caller can fire on every settle but gate country-change side effects.
   onSettle: (code: string, changed: boolean) => void;
@@ -66,6 +70,8 @@ export function SpinSnapControls({
   fair,
   visited,
   readMode,
+  listening,
+  onSkip,
   onSettle,
 }: SpinSnapControlsProps) {
   const camera = useThree((s) => s.camera);
@@ -80,6 +86,8 @@ export function SpinSnapControls({
     visited,
     reducedMotion,
     readMode,
+    listening,
+    onSkip,
   });
   const onSettleRef = useRef(onSettle);
 
@@ -95,6 +103,8 @@ export function SpinSnapControls({
       visited,
       reducedMotion,
       readMode,
+      listening,
+      onSkip,
     };
     onSettleRef.current = onSettle;
   });
@@ -237,6 +247,22 @@ export function SpinSnapControls({
         )
       ) {
         const rect = el.getBoundingClientRect();
+
+        // While listening, an edge tap skips: left third -> prev, right third ->
+        // next. The center third falls through to the usual select-nearest. A
+        // drag never reaches here (isTap above gates it), so spinning is intact.
+        if (cfg.current.listening) {
+          const third = horizontalThird(e.clientX - rect.left, rect.width);
+          if (third === "left") {
+            cfg.current.onSkip(-1);
+            return;
+          }
+          if (third === "right") {
+            cfg.current.onSkip(1);
+            return;
+          }
+        }
+
         const candidates = projectFrontCountries(
           camera,
           rect.width,
