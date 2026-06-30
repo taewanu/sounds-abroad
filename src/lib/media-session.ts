@@ -10,6 +10,11 @@ export interface MediaSessionHandlers {
   pause: () => void;
 }
 
+export interface MediaSessionSkipHandlers {
+  nexttrack: () => void;
+  previoustrack: () => void;
+}
+
 function defaultDeps(): MediaSessionDeps {
   const nav = typeof navigator !== "undefined" ? navigator : undefined;
   return {
@@ -54,7 +59,7 @@ export function setPlaybackState(
 /**
  * Registers play/pause transport handlers. iOS requires at least these for a
  * reliable now-playing presentation; without them it falls back to a minimal,
- * art-only card. Next/previous and seek are out of scope.
+ * art-only card. Seek is out of scope.
  */
 export function setActionHandlers(
   handlers: MediaSessionHandlers,
@@ -64,6 +69,21 @@ export function setActionHandlers(
   if (!mediaSession) return;
   mediaSession.setActionHandler("play", handlers.play);
   mediaSession.setActionHandler("pause", handlers.pause);
+}
+
+/**
+ * Registers the OS skip controls. Separate from play/pause because routing them
+ * needs the chart data to find the adjacent track, which lives in the chart UI,
+ * not the audio store that wires play/pause.
+ */
+export function setSkipHandlers(
+  handlers: MediaSessionSkipHandlers,
+  deps: MediaSessionDeps = defaultDeps(),
+): void {
+  const { mediaSession } = deps;
+  if (!mediaSession) return;
+  mediaSession.setActionHandler("nexttrack", handlers.nexttrack);
+  mediaSession.setActionHandler("previoustrack", handlers.previoustrack);
 }
 
 export function clearNowPlaying(deps: MediaSessionDeps = defaultDeps()): void {

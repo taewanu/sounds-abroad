@@ -7,6 +7,7 @@ import {
   setActionHandlers,
   setNowPlaying,
   setPlaybackState,
+  setSkipHandlers,
   type MediaSessionDeps,
 } from "./media-session";
 
@@ -102,6 +103,30 @@ test("setActionHandlers registers play and pause", () => {
 
 test("setActionHandlers no-ops when mediaSession is unavailable", () => {
   setActionHandlers({ play: vi.fn(), pause: vi.fn() }, { mediaSession: null });
+});
+
+test("setSkipHandlers registers nexttrack and previoustrack", () => {
+  const deps = makeDeps();
+  const nexttrack = vi.fn();
+  const previoustrack = vi.fn();
+
+  setSkipHandlers({ nexttrack, previoustrack }, deps);
+
+  expect(deps.mediaSession!.setActionHandler).toHaveBeenCalledWith(
+    "nexttrack",
+    nexttrack,
+  );
+  expect(deps.mediaSession!.setActionHandler).toHaveBeenCalledWith(
+    "previoustrack",
+    previoustrack,
+  );
+});
+
+test("setSkipHandlers no-ops when mediaSession is unavailable", () => {
+  setSkipHandlers(
+    { nexttrack: vi.fn(), previoustrack: vi.fn() },
+    { mediaSession: null },
+  );
 });
 
 test("setNowPlaying no-ops when mediaSession is unavailable", () => {

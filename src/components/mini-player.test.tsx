@@ -6,7 +6,7 @@ import { type AudioState, createAudioStore } from "@/lib/audio-store";
 import type { Track } from "@/lib/chart-schema";
 import { AudioStoreContext } from "@/providers/audio-store-provider";
 
-import { MiniPlayer } from "./mini-player";
+import { MiniPlayer, type MiniPlayerProps } from "./mini-player";
 
 function makeMockAudio(): AudioEngine {
   return {
@@ -33,19 +33,27 @@ function makeTrack(overrides: Partial<Track> = {}): Track {
 }
 
 function renderMiniPlayer(
-  props: { onTap: () => void },
+  props: Partial<MiniPlayerProps> = {},
   init?: Partial<AudioState>,
 ) {
   const store = createAudioStore(() => makeMockAudio());
   if (init) {
     store.setState(init);
   }
+  const fullProps: MiniPlayerProps = {
+    onTap: vi.fn(),
+    onPrev: vi.fn(),
+    onNext: vi.fn(),
+    canPrev: true,
+    canNext: true,
+    ...props,
+  };
   const utils = render(
     <AudioStoreContext.Provider value={store}>
-      <MiniPlayer {...props} />
+      <MiniPlayer {...fullProps} />
     </AudioStoreContext.Provider>,
   );
-  return { ...utils, store };
+  return { ...utils, store, props: fullProps };
 }
 
 describe("MiniPlayer", () => {
@@ -120,5 +128,86 @@ describe("MiniPlayer", () => {
     renderMiniPlayer({ onTap: vi.fn() }, { currentTrack: makeTrack() });
 
     expect(screen.getByRole("button", { name: /volume/i })).toBeDefined();
+  });
+
+  test("next button fires onNext", () => {
+    const onNext = vi.fn();
+
+    renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
+
+    fireEvent.click(screen.getByRole("button", { name: /next track/i }));
+
+    expect(onNext).toHaveBeenCalledTimes(1);
+  });
+
+  test("prev button fires onPrev", () => {
+    const onPrev = vi.fn();
+
+    renderMiniPlayer({ onPrev }, { currentTrack: makeTrack() });
+
+    fireEvent.click(screen.getByRole("button", { name: /previous track/i }));
+
+    expect(onPrev).toHaveBeenCalledTimes(1);
+  });
+
+  test("next button is disabled when canNext is false", () => {
+    renderMiniPlayer({ canNext: false }, { currentTrack: makeTrack() });
+
+    const nextButton = screen.getByRole("button", { name: /next track/i });
+    expect((nextButton as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  test("prev button is disabled when canPrev is false", () => {
+    renderMiniPlayer({ canPrev: false }, { currentTrack: makeTrack() });
+
+    const prevButton = screen.getByRole("button", { name: /previous track/i });
+    expect((prevButton as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  test("swipe left fires onNext and suppresses the tap", () => {
+    const onNext = vi.fn();
+    const onTap = vi.fn();
+
+    renderMiniPlayer({ onNext, onTap }, { currentTrack: makeTrack() });
+
+    const area = screen.getByRole("button", { name: /reopen chart/i });
+    fireEvent.pointerDown(area, { clientX: 200, clientY: 10 });
+    fireEvent.pointerUp(area, { clientX: 40, clientY: 10 });
+    fireEvent.click(area);
+
+    expect(onNext).toHaveBeenCalledTimes(1);
+    expect(onTap).not.toHaveBeenCalled();
+  });
+
+  test("swipe right fires onPrev and suppresses the tap", () => {
+    const onPrev = vi.fn();
+    const onTap = vi.fn();
+
+    renderMiniPlayer({ onPrev, onTap }, { currentTrack: makeTrack() });
+
+    const area = screen.getByRole("button", { name: /reopen chart/i });
+    fireEvent.pointerDown(area, { clientX: 40, clientY: 10 });
+    fireEvent.pointerUp(area, { clientX: 200, clientY: 10 });
+    fireEvent.click(area);
+
+    expect(onPrev).toHaveBeenCalledTimes(1);
+    expect(onTap).not.toHaveBeenCalled();
+  });
+
+  test("a short press below the swipe threshold still taps", () => {
+    const onNext = vi.fn();
+    const onPrev = vi.fn();
+    const onTap = vi.fn();
+
+    renderMiniPlayer({ onNext, onPrev, onTap }, { currentTrack: makeTrack() });
+
+    const area = screen.getByRole("button", { name: /reopen chart/i });
+    fireEvent.pointerDown(area, { clientX: 100, clientY: 10 });
+    fireEvent.pointerUp(area, { clientX: 110, clientY: 10 });
+    fireEvent.click(area);
+
+    expect(onTap).toHaveBeenCalledTimes(1);
+    expect(onNext).not.toHaveBeenCalled();
+    expect(onPrev).not.toHaveBeenCalled();
   });
 });
