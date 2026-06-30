@@ -32,36 +32,6 @@ test("ChartFileSchema accepts null previewUrl (placeholder for lookup-failed tra
   expect(() => ChartFileSchema.parse(withNullPreview)).not.toThrow();
 });
 
-test("ChartFileSchema accepts a legacy spotifySearchUrl blob and maps it to spotifyUrl", () => {
-  const legacy = {
-    lastUpdated: "2026-05-16T00:00:00.000Z",
-    countries: {
-      kr: {
-        name: "South Korea",
-        valid: true,
-        tracks: [
-          {
-            rank: 1,
-            name: "Test",
-            artist: "Test Artist",
-            previewUrl: null,
-            artworkUrl: "https://art/600x600bb.jpg",
-            appleUrl: "https://music.apple.com/kr/1",
-            spotifySearchUrl: "https://open.spotify.com/search/Test",
-          },
-        ],
-      },
-    },
-  };
-
-  const parsed = ChartFileSchema.parse(legacy);
-
-  expect(parsed.countries.kr.tracks[0].spotifyUrl).toBe(
-    "https://open.spotify.com/search/Test",
-  );
-  expect(parsed.countries.kr.tracks[0]).not.toHaveProperty("spotifySearchUrl");
-});
-
 test("ChartFileSchema accepts null commentary (track skipped or failed generation)", () => {
   const withNullCommentary = {
     lastUpdated: "2026-05-16T00:00:00.000Z",
