@@ -65,11 +65,14 @@ function SceneContent() {
   const skip = useGlobeChart((s) => s.skip);
 
   // Route the edge-tap skip and signal the directional cue from one place: the
-  // decision still lives in the controls, this only forwards and flashes.
+  // decision still lives in the controls; this forwards, then flashes only when
+  // a track actually changed.
   const handleSkip = useCallback(
     (dir: 1 | -1) => {
-      skip(dir);
-      globeChartStore.getState().signalSkip(dir);
+      // step clamps (returns false) at the first/last playable track, mirroring
+      // the mini-player's disabled prev/next, so the cue never claims a skip
+      // that didn't happen.
+      if (skip(dir)) globeChartStore.getState().signalSkip(dir);
     },
     [skip],
   );

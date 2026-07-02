@@ -175,18 +175,20 @@ function ChartScreenInner({
   // Step within the source country, not the visible one. Reads live store state
   // so the callbacks stay stable across track changes.
   const step = useCallback(
-    (dir: 1 | -1) => {
+    (dir: 1 | -1): boolean => {
       const { currentTrack, currentCountryCode, toggle } =
         audioStore.getState();
-      if (currentTrack === null || currentCountryCode === null) return;
+      if (currentTrack === null || currentCountryCode === null) return false;
       const source = charts.countries[currentCountryCode];
-      if (!source) return;
+      if (!source) return false;
       const adj = findAdjacentPlayable(
         source.tracks,
         currentTrack.previewUrl,
         dir,
       );
-      if (adj) toggle(adj, currentCountryCode);
+      if (!adj) return false;
+      toggle(adj, currentCountryCode);
+      return true;
     },
     [audioStore, charts.countries],
   );
@@ -225,7 +227,7 @@ function ChartScreenInner({
   }, [hasCurrentTrack]);
   useEffect(() => {
     globeChartStore.getState().setSkip(step);
-    return () => globeChartStore.getState().setSkip(() => {});
+    return () => globeChartStore.getState().setSkip(() => false);
   }, [step]);
 
   return (

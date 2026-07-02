@@ -27,9 +27,10 @@ export interface GlobeChartState {
   // chart mirrors the gate here alongside selectedCountry.
   listening: boolean;
   // Routes a globe edge-tap to the chart's shared prev/next (dir -1/+1), the one
-  // place that owns the adjacency logic. Default no-op until the chart publishes
-  // it, so calling before a track plays is safe.
-  skip: (dir: 1 | -1) => void;
+  // place that owns the adjacency logic. Returns whether a track actually
+  // changed (false when it clamps at the first/last playable track) so the cue
+  // only flashes on a real skip. Default no-op until the chart publishes it.
+  skip: (dir: 1 | -1) => boolean;
   // One-shot cue for the directional skip flash: `dir` is the skip direction and
   // `nonce` bumps on each skip so the overlay replays even on a repeat direction
   // (a plain `dir` diff would miss next-after-next). The globe edge-tap is the
@@ -39,7 +40,7 @@ export interface GlobeChartState {
   setReadMode: (readMode: boolean) => void;
   signalSettle: () => void;
   setListening: (listening: boolean) => void;
-  setSkip: (skip: (dir: 1 | -1) => void) => void;
+  setSkip: (skip: (dir: 1 | -1) => boolean) => void;
   signalSkip: (dir: 1 | -1) => void;
 }
 
@@ -48,7 +49,7 @@ export const globeChartStore = createStore<GlobeChartState>()((set) => ({
   readMode: false,
   settleSignal: 0,
   listening: false,
-  skip: () => {},
+  skip: () => false,
   skipSignal: { dir: 1, nonce: 0 },
   setSelectedCountry: (selectedCountry) => set({ selectedCountry }),
   setReadMode: (readMode) => set({ readMode }),
