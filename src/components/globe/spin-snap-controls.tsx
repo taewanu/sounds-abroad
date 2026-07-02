@@ -185,8 +185,11 @@ export function SpinSnapControls({
   // the time this runs — it no-ops, no feedback loop.
   useEffect(() => {
     if (targetCode && targetCode !== sim.current.settledCode) {
-      // An external ?cc= selection cancels any armed edge-tap select.
+      // An external ?cc= selection cancels any armed edge-tap select, clearing
+      // both the timer and the arm window (matching onCancel / the skip branch)
+      // so a following tap isn't misread as a double-tap's second tap.
       clearPendingSelect();
+      lastEdgeTapAt.current = null;
       settleTo(targetCode);
     }
   }, [targetCode, clearPendingSelect]);

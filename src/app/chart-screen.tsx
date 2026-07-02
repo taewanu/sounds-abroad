@@ -248,7 +248,9 @@ function ChartScreenInner({
         canPrev={canPrev}
         canNext={canNext}
       />
-      <EdgeTapHint active={hasCurrentTrack} />
+      {/* Only while the globe is visible: at full the sheet covers it, so
+          showing the hint there would burn its one-time display unseen. */}
+      <EdgeTapHint active={hasCurrentTrack && snap !== "full"} />
       <SkipFlash sheetSnap={snap} />
       <TourHost
         snap={snap}
