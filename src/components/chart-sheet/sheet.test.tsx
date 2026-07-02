@@ -348,6 +348,46 @@ describe("ChartSheet", () => {
     expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
   });
 
+  test("does not scroll when the playing country differs from the displayed country", async () => {
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
+    // Row would be off-screen, but the now-playing track belongs to another
+    // country, so its rank must not scroll the browsed country's list.
+    stubRects(rect(0, 100), rect(200, 240));
+    const first = COUNTRY_KR.tracks[0].rank;
+    const next = COUNTRY_KR.tracks[2].rank;
+
+    const { rerender } = render(
+      <AudioStoreProvider>
+        <ChartSheet
+          country={COUNTRY_KR}
+          countryCode="kr"
+          snap="peek"
+          onSnapChange={vi.fn()}
+          currentTrackRank={first}
+          currentCountryCode="us"
+        />
+      </AudioStoreProvider>,
+    );
+    scrollIntoViewMock.mockClear();
+
+    rerender(
+      <AudioStoreProvider>
+        <ChartSheet
+          country={COUNTRY_KR}
+          countryCode="kr"
+          snap="peek"
+          onSnapChange={vi.fn()}
+          currentTrackRank={next}
+          currentCountryCode="us"
+        />
+      </AudioStoreProvider>,
+    );
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+    expect(scrollIntoViewMock).not.toHaveBeenCalled();
+  });
+
   test("does not scroll when the track changes while open but the row is already fully visible", async () => {
     const scrollIntoViewMock = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoViewMock;

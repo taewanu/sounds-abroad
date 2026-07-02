@@ -23,6 +23,7 @@ export interface ChartSheetProps {
   snap: SnapState;
   onSnapChange: (snap: SnapState) => void;
   currentTrackRank?: number | null;
+  currentCountryCode?: string | null;
   hasMiniPlayer?: boolean;
   scrollSignal?: number;
 }
@@ -46,17 +47,13 @@ const SNAP_Y: Record<SnapState, string> = {
 
 // True when the whole row sits inside the list's scroll viewport. Reveal-only
 // auto-scroll uses this to leave an already-visible now-playing row untouched;
-// only a partially- or fully-clipped row is scrolled into view.
+// only a partially- or fully-clipped row is scrolled into view. The 1px
+// tolerance absorbs sub-pixel layout rounding so a hair's clip doesn't read as
+// hidden and trigger a needless scroll.
 function isRowFullyVisible(row: HTMLElement, viewport: HTMLElement): boolean {
-  if (row.getBoundingClientRect().top < viewport.getBoundingClientRect().top) {
-    return false;
-  }
-  if (
-    row.getBoundingClientRect().bottom > viewport.getBoundingClientRect().bottom
-  ) {
-    return false;
-  }
-  return true;
+  const r = row.getBoundingClientRect();
+  const v = viewport.getBoundingClientRect();
+  return r.top >= v.top - 1 && r.bottom <= v.bottom + 1;
 }
 
 const SNAP_ORDER: SnapState[] = ["full", "peek", "closed", "hidden"];
@@ -124,6 +121,7 @@ export function ChartSheet({
   snap,
   onSnapChange,
   currentTrackRank = null,
+  currentCountryCode = null,
   hasMiniPlayer = false,
   scrollSignal = 0,
 }: ChartSheetProps) {
@@ -468,6 +466,12 @@ export function ChartSheet({
     prevRankRef.current = currentTrackRank;
     if (snap === "closed" || snap === "hidden") return;
     if (currentTrackRank === null) return;
+    // The now-playing row only exists in the displayed list when the playing
+    // country is the one on screen. Ranks repeat across countries, so a
+    // mismatch would scroll to an unrelated row of the browsed country; skip
+    // until they align (null = nothing playing, already handled above).
+    if (currentCountryCode !== null && currentCountryCode !== countryCode)
+      return;
     // A reopen (raised from minimized, or a mini-player tap that bumped the
     // signal) always reveals the row. An in-place track change while the sheet
     // is already open only follows it when the row would otherwise be hidden,
@@ -489,7 +493,7 @@ export function ChartSheet({
       });
     });
     return () => cancelAnimationFrame(id);
-  }, [snap, currentTrackRank, scrollSignal]);
+  }, [snap, currentTrackRank, scrollSignal, countryCode, currentCountryCode]);
 
   return (
     // Not wrapped in Dialog.Portal: the sheet must be in the server-rendered

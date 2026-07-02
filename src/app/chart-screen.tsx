@@ -221,6 +221,7 @@ function ChartScreenInner({
         snap={snap}
         onSnapChange={setSnap}
         currentTrackRank={currentTrackRank}
+        currentCountryCode={currentCountryCode}
         hasMiniPlayer={hasCurrentTrack}
         scrollSignal={scrollSignal}
       />
