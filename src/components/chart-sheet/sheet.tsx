@@ -44,6 +44,21 @@ const SNAP_Y: Record<SnapState, string> = {
   hidden: `${SNAP_Y_PCT.hidden}%`,
 };
 
+// True when the whole row sits inside the list's scroll viewport. Reveal-only
+// auto-scroll uses this to leave an already-visible now-playing row untouched;
+// only a partially- or fully-clipped row is scrolled into view.
+function isRowFullyVisible(row: HTMLElement, viewport: HTMLElement): boolean {
+  if (row.getBoundingClientRect().top < viewport.getBoundingClientRect().top) {
+    return false;
+  }
+  if (
+    row.getBoundingClientRect().bottom > viewport.getBoundingClientRect().bottom
+  ) {
+    return false;
+  }
+  return true;
+}
+
 const SNAP_ORDER: SnapState[] = ["full", "peek", "closed", "hidden"];
 
 // Pointer travel (px) before a press becomes a drag, so a tap on the handle
@@ -441,22 +456,34 @@ export function ChartSheet({
 
   const prevSnapRef = useRef(snap);
   const prevSignalRef = useRef(scrollSignal);
+  const prevRankRef = useRef(currentTrackRank);
 
   useEffect(() => {
     const wasMin =
       prevSnapRef.current === "closed" || prevSnapRef.current === "hidden";
     const signalChanged = prevSignalRef.current !== scrollSignal;
+    const rankChanged = prevRankRef.current !== currentTrackRank;
     prevSnapRef.current = snap;
     prevSignalRef.current = scrollSignal;
+    prevRankRef.current = currentTrackRank;
     if (snap === "closed" || snap === "hidden") return;
     if (currentTrackRank === null) return;
-    if (!wasMin && !signalChanged) return;
+    // A reopen (raised from minimized, or a mini-player tap that bumped the
+    // signal) always reveals the row. An in-place track change while the sheet
+    // is already open only follows it when the row would otherwise be hidden,
+    // so a row that's already visible (an adjacent step, or one the user tapped)
+    // never yanks the list.
+    const isReopen = wasMin || signalChanged;
+    if (!isReopen && !rankChanged) return;
     // Defer one frame so the new snap/country is in the DOM before query.
     const id = requestAnimationFrame(() => {
-      const el = olRef.current?.querySelector<HTMLElement>(
+      const ol = olRef.current;
+      const el = ol?.querySelector<HTMLElement>(
         `[data-rank="${currentTrackRank}"]`,
       );
-      el?.scrollIntoView({
+      if (!ol || !el) return;
+      if (!isReopen && isRowFullyVisible(el, ol)) return;
+      el.scrollIntoView({
         block: snap === "peek" ? "start" : "center",
         behavior: "smooth",
       });

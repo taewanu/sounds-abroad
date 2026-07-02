@@ -11,10 +11,37 @@ function setScrollTop(el: Element, value: number) {
 }
 
 const originalScrollIntoView = Element.prototype.scrollIntoView;
+const originalGetBoundingClientRect = Element.prototype.getBoundingClientRect;
 
 afterEach(() => {
   Element.prototype.scrollIntoView = originalScrollIntoView;
+  Element.prototype.getBoundingClientRect = originalGetBoundingClientRect;
 });
+
+// jsdom has no layout, so reveal-only's visibility check reads all-zero rects.
+// Stub the vertical bounds the check compares: the <ol> is the viewport, and any
+// row is placed relative to it to force the fully-visible / clipped branch.
+function rect(top: number, bottom: number): DOMRect {
+  return {
+    top,
+    bottom,
+    left: 0,
+    right: 0,
+    width: 0,
+    height: bottom - top,
+    x: 0,
+    y: top,
+    toJSON: () => ({}),
+  } as DOMRect;
+}
+
+function stubRects(viewport: DOMRect, row: DOMRect) {
+  Element.prototype.getBoundingClientRect = function () {
+    if (this.tagName === "OL") return viewport;
+    if (this.hasAttribute("data-rank")) return row;
+    return rect(0, 0);
+  };
+}
 
 function renderSheet(snap: SnapState) {
   const onSnapChange = vi.fn();
@@ -279,6 +306,80 @@ describe("ChartSheet", () => {
       </AudioStoreProvider>,
     );
 
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+    expect(scrollIntoViewMock).not.toHaveBeenCalled();
+  });
+
+  test("scrolls the now-playing row into view when the track changes while open and the row is off-screen", async () => {
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
+    // Row sits below the peek viewport, so reveal-only must pull it in.
+    stubRects(rect(0, 100), rect(200, 240));
+    const first = COUNTRY_KR.tracks[0].rank;
+    const next = COUNTRY_KR.tracks[2].rank;
+
+    const { rerender } = render(
+      <AudioStoreProvider>
+        <ChartSheet
+          country={COUNTRY_KR}
+          countryCode="kr"
+          snap="peek"
+          onSnapChange={vi.fn()}
+          currentTrackRank={first}
+        />
+      </AudioStoreProvider>,
+    );
+    scrollIntoViewMock.mockClear();
+
+    rerender(
+      <AudioStoreProvider>
+        <ChartSheet
+          country={COUNTRY_KR}
+          countryCode="kr"
+          snap="peek"
+          onSnapChange={vi.fn()}
+          currentTrackRank={next}
+        />
+      </AudioStoreProvider>,
+    );
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+    expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("does not scroll when the track changes while open but the row is already fully visible", async () => {
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
+    // Row sits inside the peek viewport, so reveal-only leaves the list put.
+    stubRects(rect(0, 100), rect(10, 50));
+    const first = COUNTRY_KR.tracks[0].rank;
+    const next = COUNTRY_KR.tracks[2].rank;
+
+    const { rerender } = render(
+      <AudioStoreProvider>
+        <ChartSheet
+          country={COUNTRY_KR}
+          countryCode="kr"
+          snap="peek"
+          onSnapChange={vi.fn()}
+          currentTrackRank={first}
+        />
+      </AudioStoreProvider>,
+    );
+    scrollIntoViewMock.mockClear();
+
+    rerender(
+      <AudioStoreProvider>
+        <ChartSheet
+          country={COUNTRY_KR}
+          countryCode="kr"
+          snap="peek"
+          onSnapChange={vi.fn()}
+          currentTrackRank={next}
+        />
+      </AudioStoreProvider>,
+    );
     await new Promise<void>((r) => requestAnimationFrame(() => r()));
 
     expect(scrollIntoViewMock).not.toHaveBeenCalled();
