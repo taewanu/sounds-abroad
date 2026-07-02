@@ -83,6 +83,29 @@ export function createAudioStore(
       return engine;
     }
 
+    // play() rejects when playback can't start. AbortError means a newer action
+    // interrupted this play (rapid track-switch); it's benign, and the newer
+    // action owns the resulting state, so leave state untouched. A stale
+    // rejection (the track was already switched) must not clobber the live
+    // track either. Otherwise mirror the engine's error listener: clear
+    // isPlaying, record lastError, breadcrumb, and tell the OS it's paused.
+    function handlePlayRejection(track: Track) {
+      return (error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
+        if (get().currentTrack?.previewUrl !== track.previewUrl) return;
+        const previewUrl = track.previewUrl ?? null;
+        set({ isPlaying: false, lastError: { previewUrl } });
+        setPlaybackState("paused");
+        Sentry.addBreadcrumb({
+          category: "audio",
+          level: "warning",
+          message: "preview audio play rejected",
+          data: { previewUrl },
+        });
+      };
+    }
+
     return {
       currentTrack: null,
       currentCountryCode: null,
@@ -102,12 +125,12 @@ export function createAudioStore(
         if (isCurrent) {
           // Resume in place: reassigning src restarts at 0, so leave it and
           // just play. Keeps the preview position and the stored countryCode.
-          void a.play();
+          void a.play().catch(handlePlayRejection(track));
           set({ currentTrack: track, isPlaying: true, lastError: null });
           return;
         }
         a.src = track.previewUrl ?? "";
-        void a.play();
+        void a.play().catch(handlePlayRejection(track));
         setNowPlaying(track);
         set({
           currentTrack: track,
