@@ -8,8 +8,8 @@ import { useGlobeChart } from "@/lib/globe-chart-store";
 // Tune the skip cue here: how long the chevron stays on screen and how far it
 // slides toward the tapped edge. Kept brief so it confirms the skip without
 // pulling the eye off the globe.
-const FLASH_MS = 340;
-const TRAVEL_PX = 20;
+const FLASH_MS = 460;
+const TRAVEL_PX = 24;
 
 // A transient directional chevron on the tapped globe edge confirms a track
 // skip (next = right, prev = left): it fades in, slides toward that edge, and
@@ -43,16 +43,18 @@ export function SkipFlash() {
 
   const isNext = flash.dir === 1;
   return (
+    // The box spans the globe area above the peek sheet (~top 65%), so the cue
+    // centers on visible globe rather than the viewport middle the sheet crowds.
     <div
       aria-hidden
-      className={`pointer-events-none fixed inset-y-0 right-0 left-0 z-40 flex items-center px-5 ${
+      className={`pointer-events-none fixed top-0 right-0 bottom-[35%] left-0 z-40 flex items-center px-5 ${
         isNext ? "justify-end" : "justify-start"
       }`}
     >
       <span
         key={flash.nonce}
         data-dir={isNext ? "next" : "prev"}
-        className="skip-flash text-sunrise"
+        className="skip-flash text-aurora"
         style={
           {
             "--skip-flash-dur": `${FLASH_MS}ms`,
@@ -61,7 +63,8 @@ export function SkipFlash() {
         }
       >
         <ChevronsRightIcon
-          className={`h-10 w-10 ${isNext ? "" : "-scale-x-100"}`}
+          strokeWidth={2.5}
+          className={`h-16 w-16 ${isNext ? "" : "-scale-x-100"}`}
         />
       </span>
     </div>

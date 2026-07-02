@@ -712,28 +712,38 @@
 @keyframes skip-flash-next {
   0% {
     opacity: 0;
-    transform: translateX(0);
+    transform: translateX(0) scale(0.86);
   }
-  28% {
+  22% {
     opacity: 1;
+    transform: translateX(calc(var(--skip-flash-travel, 24px) * 0.25)) scale(1);
+  }
+  55% {
+    opacity: 1;
+    transform: translateX(calc(var(--skip-flash-travel, 24px) * 0.6)) scale(1);
   }
   100% {
     opacity: 0;
-    transform: translateX(var(--skip-flash-travel, 20px));
+    transform: translateX(var(--skip-flash-travel, 24px)) scale(1);
   }
 }
 
 @keyframes skip-flash-prev {
   0% {
     opacity: 0;
-    transform: translateX(0);
+    transform: translateX(0) scale(0.86);
   }
-  28% {
+  22% {
     opacity: 1;
+    transform: translateX(calc(var(--skip-flash-travel, 24px) * -0.25)) scale(1);
+  }
+  55% {
+    opacity: 1;
+    transform: translateX(calc(var(--skip-flash-travel, 24px) * -0.6)) scale(1);
   }
   100% {
     opacity: 0;
-    transform: translateX(calc(-1 * var(--skip-flash-travel, 20px)));
+    transform: translateX(calc(var(--skip-flash-travel, 24px) * -1)) scale(1);
   }
 }
 
@@ -754,7 +764,10 @@
   animation-duration: var(--skip-flash-dur, 340ms);
   animation-timing-function: var(--ease-out);
   animation-fill-mode: forwards;
-  filter: drop-shadow(0 0 16px rgba(255, 107, 71, 0.45));
+  /* aurora glow (transient-feedback color); doubled so the chevron reads over
+     the globe's warm glow, which a same-hue sunrise cue washed out on device. */
+  filter: drop-shadow(0 0 16px rgba(107, 229, 197, 0.6))
+    drop-shadow(0 0 8px rgba(107, 229, 197, 0.6));
 }
 
 .skip-flash[data-dir="next"] {
