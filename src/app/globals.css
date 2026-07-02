@@ -709,60 +709,40 @@
    out, never rotating the globe so "skip a song" stays distinct from rotating
    to a country. Duration and travel come from JS (--skip-flash-*) so they tune
    in one place. */
-@keyframes skip-flash-next {
+@keyframes skip-fade {
   0% {
     opacity: 0;
-    transform: translateX(0) scale(0.86);
   }
-  22% {
+  18% {
     opacity: 1;
-    transform: translateX(calc(var(--skip-flash-travel, 24px) * 0.25)) scale(1);
   }
-  55% {
+  62% {
     opacity: 1;
-    transform: translateX(calc(var(--skip-flash-travel, 24px) * 0.6)) scale(1);
   }
   100% {
     opacity: 0;
+  }
+}
+
+@keyframes skip-slide-next {
+  0% {
+    transform: translateX(0) scale(0.9);
+  }
+  100% {
     transform: translateX(var(--skip-flash-travel, 24px)) scale(1);
   }
 }
 
-@keyframes skip-flash-prev {
+@keyframes skip-slide-prev {
   0% {
-    opacity: 0;
-    transform: translateX(0) scale(0.86);
-  }
-  22% {
-    opacity: 1;
-    transform: translateX(calc(var(--skip-flash-travel, 24px) * -0.25)) scale(1);
-  }
-  55% {
-    opacity: 1;
-    transform: translateX(calc(var(--skip-flash-travel, 24px) * -0.6)) scale(1);
+    transform: translateX(0) scale(0.9);
   }
   100% {
-    opacity: 0;
-    transform: translateX(calc(var(--skip-flash-travel, 24px) * -1)) scale(1);
-  }
-}
-
-/* Reduced motion keeps the cue but drops the slide: a brief opacity flash. */
-@keyframes skip-flash-static {
-  0% {
-    opacity: 0;
-  }
-  28% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
+    transform: translateX(calc(-1 * var(--skip-flash-travel, 24px))) scale(1);
   }
 }
 
 .skip-flash {
-  animation-duration: var(--skip-flash-dur, 340ms);
-  animation-timing-function: var(--ease-out);
   animation-fill-mode: forwards;
   /* aurora glow (transient-feedback color); doubled so the chevron reads over
      the globe's warm glow, which a same-hue sunrise cue washed out on device. */
@@ -770,12 +750,19 @@
     drop-shadow(0 0 8px rgba(107, 229, 197, 0.6));
 }
 
+/* Opacity (linear) and the slide (single-segment ease-out) run as two concurrent
+   animations. A single multi-stop keyframe re-eases at every stop, which read as
+   a two-stage stutter on device; splitting them keeps the slide one smooth ease. */
 .skip-flash[data-dir="next"] {
-  animation-name: skip-flash-next;
+  animation:
+    skip-fade var(--skip-flash-dur, 460ms) linear forwards,
+    skip-slide-next var(--skip-flash-dur, 460ms) var(--ease-out) forwards;
 }
 
 .skip-flash[data-dir="prev"] {
-  animation-name: skip-flash-prev;
+  animation:
+    skip-fade var(--skip-flash-dur, 460ms) linear forwards,
+    skip-slide-prev var(--skip-flash-dur, 460ms) var(--ease-out) forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -788,10 +775,10 @@
     animation: none;
     box-shadow: 0 0 0 2px rgba(255, 107, 71, 0.45);
   }
-  /* Skip cue keeps a brief opacity flash but drops the directional slide. */
+  /* Skip cue keeps the opacity flash but drops the directional slide. */
   .skip-flash[data-dir="next"],
   .skip-flash[data-dir="prev"] {
-    animation-name: skip-flash-static;
+    animation: skip-fade var(--skip-flash-dur, 460ms) linear forwards;
   }
   .eq span {
     transform: scaleY(0.7);

@@ -247,7 +247,7 @@ function ChartScreenInner({
         canNext={canNext}
       />
       <EdgeTapHint active={hasCurrentTrack} />
-      <SkipFlash />
+      <SkipFlash sheetSnap={snap} />
       <TourHost
         snap={snap}
         hasCurrentTrack={hasCurrentTrack}

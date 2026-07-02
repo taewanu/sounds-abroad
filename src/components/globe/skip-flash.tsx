@@ -2,6 +2,7 @@
 
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 
+import { type SnapState } from "@/components/chart-sheet/sheet";
 import { ChevronsRightIcon } from "@/components/icons/chevrons-right";
 import { useGlobeChart } from "@/lib/globe-chart-store";
 
@@ -11,13 +12,23 @@ import { useGlobeChart } from "@/lib/globe-chart-store";
 const FLASH_MS = 460;
 const TRAVEL_PX = 24;
 
+// Vertical center of the cue = middle of the globe visible above the sheet. The
+// sheet's top edge sits near SNAP_Y% of the viewport, so the box bottom is the
+// covered fraction (100% - SNAP_Y%): peek leaves 35%, closed 10%, hidden 0%.
+const COVER_BOTTOM: Record<SnapState, string> = {
+  full: "0%",
+  peek: "35%",
+  closed: "10%",
+  hidden: "0%",
+};
+
 // A transient directional chevron on the tapped globe edge confirms a track
 // skip (next = right, prev = left): it fades in, slides toward that edge, and
 // fades out. It stays an overlay, never a globe rotation, so "skip a song" reads
 // distinct from rotating to a country. Pointer-transparent so it never blocks
 // the taps below it; reduced motion drops the slide for a plain opacity flash
 // (handled in globals.css, matching the tour/hint idiom).
-export function SkipFlash() {
+export function SkipFlash({ sheetSnap }: { sheetSnap: SnapState }) {
   const skipSignal = useGlobeChart((s) => s.skipSignal);
   const prevNonceRef = useRef(skipSignal.nonce);
   const [flash, setFlash] = useState<{ dir: 1 | -1; nonce: number } | null>(
@@ -43,11 +54,13 @@ export function SkipFlash() {
 
   const isNext = flash.dir === 1;
   return (
-    // The box spans the globe area above the peek sheet (~top 65%), so the cue
-    // centers on visible globe rather than the viewport middle the sheet crowds.
+    // The box spans the globe visible above the sheet (bottom tracks the snap),
+    // so the cue centers on visible globe, not the viewport middle the sheet
+    // crowds at peek.
     <div
       aria-hidden
-      className={`pointer-events-none fixed top-0 right-0 bottom-[35%] left-0 z-40 flex items-center px-5 ${
+      style={{ bottom: COVER_BOTTOM[sheetSnap] }}
+      className={`pointer-events-none fixed top-0 right-0 left-0 z-40 flex items-center px-5 ${
         isNext ? "justify-end" : "justify-start"
       }`}
     >
