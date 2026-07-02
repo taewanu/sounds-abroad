@@ -31,7 +31,7 @@ export interface ChartSheetProps {
 // translateY as a fraction of the sheet's own height at each snap: full shows
 // all of it, hidden pushes it fully below the viewport, peek leaves ~35% (the
 // height the <ol> max-height clamp is tuned to).
-const SNAP_Y_PCT: Record<SnapState, number> = {
+export const SNAP_Y_PCT: Record<SnapState, number> = {
   full: 0,
   peek: 65,
   closed: 90,

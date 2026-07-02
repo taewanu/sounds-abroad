@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { ChartSheet, type SnapState } from "@/components/chart-sheet/sheet";
+import { EdgeTapHint } from "@/components/globe/edge-tap-hint";
+import { SkipFlash } from "@/components/globe/skip-flash";
 import { MiniPlayer } from "@/components/mini-player";
 import { TourHost } from "@/components/tour/tour-host";
 import { findAdjacentPlayable } from "@/lib/adjacent-playable";
@@ -173,18 +175,20 @@ function ChartScreenInner({
   // Step within the source country, not the visible one. Reads live store state
   // so the callbacks stay stable across track changes.
   const step = useCallback(
-    (dir: 1 | -1) => {
+    (dir: 1 | -1): boolean => {
       const { currentTrack, currentCountryCode, toggle } =
         audioStore.getState();
-      if (currentTrack === null || currentCountryCode === null) return;
+      if (currentTrack === null || currentCountryCode === null) return false;
       const source = charts.countries[currentCountryCode];
-      if (!source) return;
+      if (!source) return false;
       const adj = findAdjacentPlayable(
         source.tracks,
         currentTrack.previewUrl,
         dir,
       );
-      if (adj) toggle(adj, currentCountryCode);
+      if (!adj) return false;
+      toggle(adj, currentCountryCode);
+      return true;
     },
     [audioStore, charts.countries],
   );
@@ -213,6 +217,19 @@ function ChartScreenInner({
     setSkipHandlers({ previoustrack: goPrev, nexttrack: goNext });
   }, [goPrev, goNext]);
 
+  // Mirror the listening gate and the shared step to the globe so an edge-tap on
+  // the layout-backdrop globe routes through the same prev/next. The globe sits
+  // outside the audio provider, so it can't read currentTrack or call step
+  // directly; this crosses the same seam selectedCountry already does.
+  useEffect(() => {
+    globeChartStore.getState().setListening(hasCurrentTrack);
+    return () => globeChartStore.getState().setListening(false);
+  }, [hasCurrentTrack]);
+  useEffect(() => {
+    globeChartStore.getState().setSkip(step);
+    return () => globeChartStore.getState().setSkip(() => false);
+  }, [step]);
+
   return (
     <>
       <ChartSheet
@@ -232,6 +249,10 @@ function ChartScreenInner({
         canPrev={canPrev}
         canNext={canNext}
       />
+      {/* Only while the globe is visible: at full the sheet covers it, so
+          showing the hint there would burn its one-time display unseen. */}
+      <EdgeTapHint active={hasCurrentTrack && snap !== "full"} />
+      <SkipFlash sheetSnap={snap} />
       <TourHost
         snap={snap}
         hasCurrentTrack={hasCurrentTrack}

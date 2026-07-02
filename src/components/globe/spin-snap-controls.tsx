@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 
 import { COUNTRIES } from "@/lib/countries";
+import { globeChartStore } from "@/lib/globe-chart-store";
 
 import { flickToSpin } from "./spin-feel";
 import {
@@ -11,7 +12,7 @@ import {
   pickSnapCountry,
   projectFrontCountries,
 } from "./spin-select";
-import { isTap } from "./tap-detect";
+import { classifyTap, horizontalThird, isTap } from "./tap-detect";
 
 const DEG = Math.PI / 180;
 const RADIUS = 3.5;
@@ -21,6 +22,11 @@ const SETTLE_VEL = 2; // rad/s under which a fling hands off to the snap spring
 const SNAP_OMEGA = 17; // snap spring frequency: higher settles faster
 const TAP_MAX_PX = 8; // press-to-release drift under which a gesture is a tap
 const TAP_HIT_PX = 44; // a tap beyond this from every country pin selects nothing
+const DOUBLE_TAP_MS = 280; // edge double-tap window: a 2nd side-third tap within this skips
+// Deferred-select delay: waits past the double-tap window (longer than
+// DOUBLE_TAP_MS) so main-thread jank can't fire the select before a second
+// tap's pointerup and misclassify a skip as a select.
+const SELECT_DEFER_MS = 360;
 
 const COUNTRY_BY_CODE = new Map(COUNTRIES.map((c) => [c.code, c]));
 
@@ -82,6 +88,21 @@ export function SpinSnapControls({
     readMode,
   });
   const onSettleRef = useRef(onSettle);
+
+  // A side-third tap while listening defers its select by one double-tap window
+  // so a second tap can cancel it into a skip. These hold that pending timer and
+  // the time of the tap that armed it; cleared on a new press and on unmount.
+  const pendingSelect = useRef<number | null>(null);
+  const lastEdgeTapAt = useRef<number | null>(null);
+
+  // Cancel a pending deferred edge-tap select. Shared by the pointer handlers
+  // and the external-selection effect.
+  const clearPendingSelect = useCallback(() => {
+    if (pendingSelect.current !== null) {
+      window.clearTimeout(pendingSelect.current);
+      pendingSelect.current = null;
+    }
+  }, []);
 
   // Keep the long-lived pointer handlers and per-frame loop reading the latest
   // props without re-subscribing. Written in an effect, never during render.
@@ -164,9 +185,14 @@ export function SpinSnapControls({
   // the time this runs — it no-ops, no feedback loop.
   useEffect(() => {
     if (targetCode && targetCode !== sim.current.settledCode) {
+      // An external ?cc= selection cancels any armed edge-tap select, clearing
+      // both the timer and the arm window (matching onCancel / the skip branch)
+      // so a following tap isn't misread as a double-tap's second tap.
+      clearPendingSelect();
+      lastEdgeTapAt.current = null;
       settleTo(targetCode);
     }
-  }, [targetCode]);
+  }, [targetCode, clearPendingSelect]);
 
   useEffect(() => {
     const el = gl.domElement;
@@ -189,6 +215,9 @@ export function SpinSnapControls({
     const onDown = (e: PointerEvent) => {
       // Read mode covers the globe; ignore presses so reading never grabs it.
       if (cfg.current.readMode) return;
+      // Cancel a deferred edge-tap select so it can't fire mid-gesture; the
+      // armed window survives this press so a second tap can still skip.
+      clearPendingSelect();
       const s = sim.current;
       s.mode = "drag";
       s.vAz = 0;
@@ -237,23 +266,73 @@ export function SpinSnapControls({
         )
       ) {
         const rect = el.getBoundingClientRect();
-        const candidates = projectFrontCountries(
-          camera,
-          rect.width,
-          rect.height,
-        );
-        const hit = pickNearestToPoint(
-          candidates,
-          e.clientX - rect.left,
-          e.clientY - rect.top,
-          TAP_HIT_PX,
-        );
-        // A tap that lands on no country re-centres the current one, so a
-        // mis-aim on open ocean does nothing rather than jumping away.
-        settleTo(hit ?? s.settledCode);
+        const cx = e.clientX;
+        const cy = e.clientY;
+        const region = horizontalThird(cx - rect.left, rect.width);
+
+        // Select the nearest country, re-centring the current one on a miss so a
+        // tap on open ocean never jumps away. Coordinates are captured now, not
+        // read in the timer, so a deferred run still aims at the tap point.
+        const runSelect = () => {
+          // Bail if the situation changed while armed: read mode forbids moving
+          // the globe under the reader, and mode "settle" means an external ?cc=
+          // already landed the globe during the window.
+          if (cfg.current.readMode || sim.current.mode === "settle") return;
+          lastEdgeTapAt.current = null;
+          const candidates = projectFrontCountries(
+            camera,
+            rect.width,
+            rect.height,
+          );
+          const hit = pickNearestToPoint(
+            candidates,
+            cx - rect.left,
+            cy - rect.top,
+            TAP_HIT_PX,
+          );
+          settleTo(hit ?? sim.current.settledCode);
+        };
+
+        const action = classifyTap({
+          listening: globeChartStore.getState().listening,
+          region,
+          now: e.timeStamp,
+          lastEdgeTapAt: lastEdgeTapAt.current,
+          windowMs: DOUBLE_TAP_MS,
+        });
+
+        if (action.kind === "skip") {
+          // A second side-third tap within the window: drop the first tap's
+          // pending select and skip instead.
+          clearPendingSelect();
+          lastEdgeTapAt.current = null;
+          // A skip moves no globe, so return the machine to rest instead of
+          // leaving it at "drag" from the press.
+          s.mode = "idle";
+          // Skip via the chart's adjacency owner; flash only on a real change.
+          if (globeChartStore.getState().skip(action.dir))
+            globeChartStore.getState().signalSkip(action.dir);
+          return;
+        }
+
+        if (action.kind === "deferSelect") {
+          // First side-third tap while listening: defer the select past the
+          // double-tap window so a second tap can turn it into a skip; select if
+          // none comes.
+          clearPendingSelect();
+          lastEdgeTapAt.current = e.timeStamp;
+          pendingSelect.current = window.setTimeout(runSelect, SELECT_DEFER_MS);
+          return;
+        }
+
+        // Center third or no preview: a double-tap has no skip meaning, so
+        // select with no delay and arm no window.
+        runSelect();
         return;
       }
 
+      // A fling is a fresh intent: drop any armed double-tap window.
+      lastEdgeTapAt.current = null;
       const sens = cfg.current.sensitivity;
       s.vAz = -flickToSpin(g.vx) * sens;
       s.vEl = cfg.current.horizontalLock ? 0 : flickToSpin(g.vy) * sens;
@@ -267,6 +346,9 @@ export function SpinSnapControls({
       if (!g.dragging) return;
       g.dragging = false;
       el.releasePointerCapture?.(e.pointerId);
+      // An abandoned gesture ends any armed double-tap window too.
+      clearPendingSelect();
+      lastEdgeTapAt.current = null;
       const s = sim.current;
       settleTo(
         pickSnapCountry(s.el, s.az, cfg.current.visited, cfg.current.fair),
@@ -278,12 +360,14 @@ export function SpinSnapControls({
     el.addEventListener("pointerup", onUp);
     el.addEventListener("pointercancel", onCancel);
     return () => {
+      clearPendingSelect();
+      lastEdgeTapAt.current = null;
       el.removeEventListener("pointerdown", onDown);
       el.removeEventListener("pointermove", onMove);
       el.removeEventListener("pointerup", onUp);
       el.removeEventListener("pointercancel", onCancel);
     };
-  }, [gl, camera]);
+  }, [gl, camera, clearPendingSelect]);
 
   useFrame((_, dt) => {
     const s = sim.current;
