@@ -61,21 +61,6 @@ function SceneContent() {
   const selectedCode = useGlobeChart((s) => s.selectedCountry);
   const reducedMotion = usePrefersReducedMotion();
   const readMode = useGlobeChart((s) => s.readMode);
-  const listening = useGlobeChart((s) => s.listening);
-  const skip = useGlobeChart((s) => s.skip);
-
-  // Route the edge-tap skip and signal the directional cue from one place: the
-  // decision still lives in the controls; this forwards, then flashes only when
-  // a track actually changed.
-  const handleSkip = useCallback(
-    (dir: 1 | -1) => {
-      // step clamps (returns false) at the first/last playable track, mirroring
-      // the mini-player's disabled prev/next, so the cue never claims a skip
-      // that didn't happen.
-      if (skip(dir)) globeChartStore.getState().signalSkip(dir);
-    },
-    [skip],
-  );
 
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
   const hoveredIsoNum =
@@ -142,8 +127,6 @@ function SceneContent() {
         fair={SPIN_FAIR}
         visited={visited}
         readMode={readMode}
-        listening={listening}
-        onSkip={handleSkip}
         onSettle={handleSettle}
       />
     </>

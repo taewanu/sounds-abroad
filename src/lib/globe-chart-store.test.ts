@@ -8,6 +8,8 @@ describe("globeChartStore", () => {
       readMode: false,
       settleSignal: 0,
       skipSignal: { dir: 1, nonce: 0 },
+      listening: false,
+      skip: () => false,
     });
   });
 

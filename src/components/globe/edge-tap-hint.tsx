@@ -32,7 +32,13 @@ export function EdgeTapHint({ active }: { active: boolean }) {
   const visible = active && !seenAtMount && !dismissed;
 
   useEffect(() => {
-    if (!visible || armedRef.current) return;
+    // Reset the gate when the hint hides so a later show re-arms the timer; the
+    // gate keeps a single continuous show from re-arming.
+    if (!visible) {
+      armedRef.current = false;
+      return;
+    }
+    if (armedRef.current) return;
     armedRef.current = true;
     markEdgeTapHintSeen();
     const id = window.setTimeout(() => setDismissed(true), VISIBLE_MS);

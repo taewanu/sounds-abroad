@@ -2,7 +2,7 @@
 
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 
-import { type SnapState } from "@/components/chart-sheet/sheet";
+import { SNAP_Y_PCT, type SnapState } from "@/components/chart-sheet/sheet";
 import { ChevronsRightIcon } from "@/components/icons/chevrons-right";
 import { useGlobeChart } from "@/lib/globe-chart-store";
 
@@ -11,16 +11,6 @@ import { useGlobeChart } from "@/lib/globe-chart-store";
 // pulling the eye off the globe.
 const FLASH_MS = 460;
 const TRAVEL_PX = 24;
-
-// Vertical center of the cue = middle of the globe visible above the sheet. The
-// sheet's top edge sits near SNAP_Y% of the viewport, so the box bottom is the
-// covered fraction (100% - SNAP_Y%): peek leaves 35%, closed 10%, hidden 0%.
-const COVER_BOTTOM: Record<SnapState, string> = {
-  full: "0%",
-  peek: "35%",
-  closed: "10%",
-  hidden: "0%",
-};
 
 // A transient directional chevron on the tapped globe edge confirms a track
 // skip (next = right, prev = left): it fades in, slides toward that edge, and
@@ -54,24 +44,26 @@ export function SkipFlash({ sheetSnap }: { sheetSnap: SnapState }) {
 
   const isNext = flash.dir === 1;
   return (
-    // The box spans the globe visible above the sheet (bottom tracks the snap),
-    // so the cue centers on visible globe, not the viewport middle the sheet
-    // crowds at peek.
     <div
       aria-hidden
-      style={{ bottom: COVER_BOTTOM[sheetSnap] }}
+      style={{
+        // Bottom tracks the sheet: its top edge sits near SNAP_Y% of the
+        // viewport, so the covered fraction below is 100 - SNAP_Y% (full covers
+        // all, so bottom 0). Centers the cue on visible globe, not the viewport
+        // middle the sheet crowds at peek.
+        bottom: sheetSnap === "full" ? "0%" : `${100 - SNAP_Y_PCT[sheetSnap]}%`,
+      }}
       className={`pointer-events-none fixed top-0 right-0 left-0 z-40 flex items-center px-5 ${
         isNext ? "justify-end" : "justify-start"
       }`}
     >
       <span
         key={flash.nonce}
-        data-dir={isNext ? "next" : "prev"}
         className="skip-flash text-aurora"
         style={
           {
             "--skip-flash-dur": `${FLASH_MS}ms`,
-            "--skip-flash-travel": `${TRAVEL_PX}px`,
+            "--skip-flash-travel": `${isNext ? TRAVEL_PX : -TRAVEL_PX}px`,
           } as CSSProperties
         }
       >

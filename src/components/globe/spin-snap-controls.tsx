@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 
 import { COUNTRIES } from "@/lib/countries";
+import { globeChartStore } from "@/lib/globe-chart-store";
 
 import { flickToSpin } from "./spin-feel";
 import {
@@ -21,7 +22,11 @@ const SETTLE_VEL = 2; // rad/s under which a fling hands off to the snap spring
 const SNAP_OMEGA = 17; // snap spring frequency: higher settles faster
 const TAP_MAX_PX = 8; // press-to-release drift under which a gesture is a tap
 const TAP_HIT_PX = 44; // a tap beyond this from every country pin selects nothing
-const DOUBLE_TAP_MS = 280; // edge double-tap window: a 2nd side-third tap within this skips; the only added tap latency
+const DOUBLE_TAP_MS = 280; // edge double-tap window: a 2nd side-third tap within this skips
+// Deferred-select delay: waits past the double-tap window (longer than
+// DOUBLE_TAP_MS) so main-thread jank can't fire the select before a second
+// tap's pointerup and misclassify a skip as a select.
+const SELECT_DEFER_MS = 360;
 
 const COUNTRY_BY_CODE = new Map(COUNTRIES.map((c) => [c.code, c]));
 
@@ -47,10 +52,6 @@ interface SpinSnapControlsProps {
   fair: boolean;
   visited: ReadonlySet<string>;
   readMode: boolean;
-  // A track is playing: a no-movement tap on the left/right third skips instead
-  // of selecting. Off (no track) keeps every tap selecting a country.
-  listening: boolean;
-  onSkip: (dir: 1 | -1) => void;
   // `changed` is false when the settle re-lands the country already shown, so
   // the caller can fire on every settle but gate country-change side effects.
   onSettle: (code: string, changed: boolean) => void;
@@ -71,8 +72,6 @@ export function SpinSnapControls({
   fair,
   visited,
   readMode,
-  listening,
-  onSkip,
   onSettle,
 }: SpinSnapControlsProps) {
   const camera = useThree((s) => s.camera);
@@ -87,8 +86,6 @@ export function SpinSnapControls({
     visited,
     reducedMotion,
     readMode,
-    listening,
-    onSkip,
   });
   const onSettleRef = useRef(onSettle);
 
@@ -97,6 +94,15 @@ export function SpinSnapControls({
   // the time of the tap that armed it; cleared on a new press and on unmount.
   const pendingSelect = useRef<number | null>(null);
   const lastEdgeTapAt = useRef<number | null>(null);
+
+  // Cancel a pending deferred edge-tap select. Shared by the pointer handlers
+  // and the external-selection effect.
+  const clearPendingSelect = useCallback(() => {
+    if (pendingSelect.current !== null) {
+      window.clearTimeout(pendingSelect.current);
+      pendingSelect.current = null;
+    }
+  }, []);
 
   // Keep the long-lived pointer handlers and per-frame loop reading the latest
   // props without re-subscribing. Written in an effect, never during render.
@@ -110,8 +116,6 @@ export function SpinSnapControls({
       visited,
       reducedMotion,
       readMode,
-      listening,
-      onSkip,
     };
     onSettleRef.current = onSettle;
   });
@@ -181,9 +185,11 @@ export function SpinSnapControls({
   // the time this runs — it no-ops, no feedback loop.
   useEffect(() => {
     if (targetCode && targetCode !== sim.current.settledCode) {
+      // An external ?cc= selection cancels any armed edge-tap select.
+      clearPendingSelect();
       settleTo(targetCode);
     }
-  }, [targetCode]);
+  }, [targetCode, clearPendingSelect]);
 
   useEffect(() => {
     const el = gl.domElement;
@@ -201,13 +207,6 @@ export function SpinSnapControls({
       vx: 0,
       vy: 0,
       dragging: false,
-    };
-
-    const clearPendingSelect = () => {
-      if (pendingSelect.current !== null) {
-        window.clearTimeout(pendingSelect.current);
-        pendingSelect.current = null;
-      }
     };
 
     const onDown = (e: PointerEvent) => {
@@ -272,6 +271,10 @@ export function SpinSnapControls({
         // tap on open ocean never jumps away. Coordinates are captured now, not
         // read in the timer, so a deferred run still aims at the tap point.
         const runSelect = () => {
+          // Bail if the situation changed while armed: read mode forbids moving
+          // the globe under the reader, and mode "settle" means an external ?cc=
+          // already landed the globe during the window.
+          if (cfg.current.readMode || sim.current.mode === "settle") return;
           lastEdgeTapAt.current = null;
           const candidates = projectFrontCountries(
             camera,
@@ -288,7 +291,7 @@ export function SpinSnapControls({
         };
 
         const action = classifyTap({
-          listening: cfg.current.listening,
+          listening: globeChartStore.getState().listening,
           region,
           now: e.timeStamp,
           lastEdgeTapAt: lastEdgeTapAt.current,
@@ -300,16 +303,22 @@ export function SpinSnapControls({
           // pending select and skip instead.
           clearPendingSelect();
           lastEdgeTapAt.current = null;
-          cfg.current.onSkip(action.dir);
+          // A skip moves no globe, so return the machine to rest instead of
+          // leaving it at "drag" from the press.
+          s.mode = "idle";
+          // Skip via the chart's adjacency owner; flash only on a real change.
+          if (globeChartStore.getState().skip(action.dir))
+            globeChartStore.getState().signalSkip(action.dir);
           return;
         }
 
         if (action.kind === "deferSelect") {
-          // First side-third tap while listening: hold one window for a second
-          // tap to make it a skip; select if none comes. The only added latency.
+          // First side-third tap while listening: defer the select past the
+          // double-tap window so a second tap can turn it into a skip; select if
+          // none comes.
           clearPendingSelect();
           lastEdgeTapAt.current = e.timeStamp;
-          pendingSelect.current = window.setTimeout(runSelect, DOUBLE_TAP_MS);
+          pendingSelect.current = window.setTimeout(runSelect, SELECT_DEFER_MS);
           return;
         }
 
@@ -349,12 +358,13 @@ export function SpinSnapControls({
     el.addEventListener("pointercancel", onCancel);
     return () => {
       clearPendingSelect();
+      lastEdgeTapAt.current = null;
       el.removeEventListener("pointerdown", onDown);
       el.removeEventListener("pointermove", onMove);
       el.removeEventListener("pointerup", onUp);
       el.removeEventListener("pointercancel", onCancel);
     };
-  }, [gl, camera]);
+  }, [gl, camera, clearPendingSelect]);
 
   useFrame((_, dt) => {
     const s = sim.current;

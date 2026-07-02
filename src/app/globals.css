@@ -724,45 +724,27 @@
   }
 }
 
-@keyframes skip-slide-next {
+@keyframes skip-slide {
   0% {
     transform: translateX(0) scale(0.9);
   }
   100% {
-    transform: translateX(var(--skip-flash-travel, 24px)) scale(1);
-  }
-}
-
-@keyframes skip-slide-prev {
-  0% {
-    transform: translateX(0) scale(0.9);
-  }
-  100% {
-    transform: translateX(calc(-1 * var(--skip-flash-travel, 24px))) scale(1);
+    transform: translateX(var(--skip-flash-travel)) scale(1);
   }
 }
 
 .skip-flash {
-  animation-fill-mode: forwards;
   /* aurora glow (transient-feedback color); doubled so the chevron reads over
      the globe's warm glow, which a same-hue sunrise cue washed out on device. */
   filter: drop-shadow(0 0 16px rgba(107, 229, 197, 0.6))
     drop-shadow(0 0 8px rgba(107, 229, 197, 0.6));
-}
-
-/* Opacity (linear) and the slide (single-segment ease-out) run as two concurrent
-   animations. A single multi-stop keyframe re-eases at every stop, which read as
-   a two-stage stutter on device; splitting them keeps the slide one smooth ease. */
-.skip-flash[data-dir="next"] {
+  /* Opacity (linear) and the slide (single-segment ease-out) run as two
+     concurrent animations. A single multi-stop keyframe re-eases at every stop,
+     a two-stage stutter on device; splitting them keeps the slide one smooth
+     ease. Direction is the sign of --skip-flash-travel, set in JS. */
   animation:
-    skip-fade var(--skip-flash-dur, 460ms) linear forwards,
-    skip-slide-next var(--skip-flash-dur, 460ms) var(--ease-out) forwards;
-}
-
-.skip-flash[data-dir="prev"] {
-  animation:
-    skip-fade var(--skip-flash-dur, 460ms) linear forwards,
-    skip-slide-prev var(--skip-flash-dur, 460ms) var(--ease-out) forwards;
+    skip-fade var(--skip-flash-dur) linear forwards,
+    skip-slide var(--skip-flash-dur) var(--ease-out) forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -776,9 +758,8 @@
     box-shadow: 0 0 0 2px rgba(255, 107, 71, 0.45);
   }
   /* Skip cue keeps the opacity flash but drops the directional slide. */
-  .skip-flash[data-dir="next"],
-  .skip-flash[data-dir="prev"] {
-    animation: skip-fade var(--skip-flash-dur, 460ms) linear forwards;
+  .skip-flash {
+    animation: skip-fade var(--skip-flash-dur) linear forwards;
   }
   .eq span {
     transform: scaleY(0.7);
