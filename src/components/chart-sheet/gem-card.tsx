@@ -1,5 +1,6 @@
 "use client";
 
+import { GemIcon } from "@/components/icons/gem";
 import { PauseIcon } from "@/components/icons/pause";
 import { PlayIcon } from "@/components/icons/play";
 import type { Track } from "@/lib/chart-schema";
@@ -12,6 +13,30 @@ export interface GemCardProps {
   track: Track;
   tier: GemTier;
   countryCode: string;
+}
+
+// Dots lit per tier, strongest to fallback, mirroring selectGem's own order
+// (select-gem.ts) so the meter and the wording never drift apart.
+const TIER_STRENGTH: Record<GemTier, number> = {
+  "entirely their own": 3,
+  "a local favorite": 2,
+  "their most local pick today": 1,
+};
+
+// A three-dot strength meter standing next to the tier label so the three
+// tiers read apart by shape, not only by wording or color.
+function TierDots({ tier }: { tier: GemTier }) {
+  const lit = TIER_STRENGTH[tier];
+  return (
+    <span aria-hidden className="flex shrink-0 items-center gap-0.5">
+      {[1, 2, 3].map((dot) => (
+        <span
+          key={dot}
+          className={`h-1 w-1 rounded-full ${dot <= lit ? "bg-fg-1" : "bg-fg-1/15"}`}
+        />
+      ))}
+    </span>
+  );
 }
 
 // The "today's gem" hero card: the play row mirrors TrackRow's (same store
@@ -37,7 +62,7 @@ export function GemCard({ track, tier, countryCode }: GemCardProps) {
   return (
     <section
       aria-label="Today's gem"
-      className="border-fg-1/10 mb-3 flex flex-col rounded-[14px] border px-3 py-2.5"
+      className="border-fg-1/10 bg-atmos mb-3 flex flex-col rounded-lg border px-3 py-2.5"
     >
       <button
         type="button"
@@ -61,7 +86,14 @@ export function GemCard({ track, tier, countryCode }: GemCardProps) {
           className="bg-fg-1/5 h-12 w-12 shrink-0 rounded-lg bg-cover bg-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
         />
         <div className="min-w-0 flex-1">
-          <p className="text-fg-3 text-micro uppercase">{`Today's gem · ${tier}`}</p>
+          <p className="text-gold text-micro mb-0.5 flex items-center gap-1.5 font-medium tracking-wide uppercase">
+            <GemIcon className="h-3.5 w-3.5 shrink-0" />
+            {"Today's gem"}
+          </p>
+          <p className="text-fg-2 text-small mb-0.5 flex min-w-0 items-center gap-1.5">
+            <TierDots tier={tier} />
+            <span className="min-w-0 truncate">{tier}</span>
+          </p>
           <p
             className={`text-body truncate font-medium ${
               isCurrent ? "text-sunrise" : "text-fg-1"
