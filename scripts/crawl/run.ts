@@ -5,6 +5,7 @@ import {
   type CommentaryStore,
 } from "../../src/lib/commentary-store";
 import type { CountryEntry } from "../../src/lib/countries";
+import { trackSpreadKey } from "../../src/lib/track-spread";
 
 import { AppleRssError, type AppleRssTrack } from "./apple-rss";
 import { ItunesLookupError, type LookupResult } from "./itunes-lookup";
@@ -183,6 +184,28 @@ export function bakeCommentary(
   }
 }
 
+/**
+ * Back-fills each track's spread: how many countries' charts contain a track
+ * with the same cross-country key (ADR-0013). Recomputed from scratch every
+ * crawl, so a track's spread always reflects this run's charts, including
+ * any carried-forward country.
+ */
+export function bakeSpread(countries: ChartFile["countries"]): void {
+  const countryCountByKey = new Map<string, number>();
+  for (const country of Object.values(countries)) {
+    const keysInCountry = new Set(country.tracks.map(trackSpreadKey));
+    for (const key of keysInCountry) {
+      countryCountByKey.set(key, (countryCountByKey.get(key) ?? 0) + 1);
+    }
+  }
+
+  for (const country of Object.values(countries)) {
+    for (const track of country.tracks) {
+      track.spread = countryCountByKey.get(trackSpreadKey(track));
+    }
+  }
+}
+
 export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
   const {
     countries,
@@ -227,6 +250,8 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
       `[crawl ${cc}] ${country.tracks.length} tracks (valid=${country.valid})`,
     );
   }
+
+  bakeSpread(countriesMap);
 
   const commentary = deps.fetchCommentary ? await deps.fetchCommentary() : null;
   if (commentary) {
