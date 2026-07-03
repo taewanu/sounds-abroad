@@ -51,7 +51,7 @@ export function ShuffleButton() {
           type="button"
           onClick={onShuffle}
           aria-label="Surprise me with a random country"
-          className="bg-aurora/90 text-void focus-visible:outline-aurora flex items-center justify-center rounded-full p-3 shadow-lg transition-transform hover:scale-[1.03] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-95"
+          className="bg-void/55 text-aurora ring-aurora/40 focus-visible:outline-aurora flex items-center justify-center rounded-full p-3 shadow-lg ring-1 backdrop-blur transition-transform hover:scale-[1.03] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-95"
         >
           <svg
             aria-hidden="true"
