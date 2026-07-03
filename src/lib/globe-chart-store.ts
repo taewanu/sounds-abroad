@@ -41,6 +41,12 @@ export interface GlobeChartState {
   // set does), so the button can't run it directly; it signals across this seam
   // and the globe draws and settles like any other landing.
   shuffleSignal: number;
+  // The country a shuffle just drew, set by the globe when it lands one. The
+  // screen-reader announcement keys on this rather than the next selectedCountry
+  // change, so a selection from another source (a fling settling, a list pick)
+  // can't be mistaken for this shuffle's result. `nonce` re-fires the announce
+  // even if a later shuffle repeats the country.
+  shuffleLanded: { code: string; nonce: number } | null;
   setSelectedCountry: (code: string | null) => void;
   setReadMode: (readMode: boolean) => void;
   signalSettle: () => void;
@@ -48,6 +54,8 @@ export interface GlobeChartState {
   setSkip: (skip: (dir: 1 | -1) => boolean) => void;
   signalSkip: (dir: 1 | -1) => void;
   requestShuffle: () => void;
+  // Land a shuffle draw: move the globe and record the landing to announce.
+  shuffleTo: (code: string) => void;
 }
 
 export const globeChartStore = createStore<GlobeChartState>()((set) => ({
@@ -58,6 +66,7 @@ export const globeChartStore = createStore<GlobeChartState>()((set) => ({
   skip: () => false,
   skipSignal: { dir: 1, nonce: 0 },
   shuffleSignal: 0,
+  shuffleLanded: null,
   setSelectedCountry: (selectedCountry) => set({ selectedCountry }),
   setReadMode: (readMode) => set({ readMode }),
   signalSettle: () =>
@@ -70,6 +79,11 @@ export const globeChartStore = createStore<GlobeChartState>()((set) => ({
     })),
   requestShuffle: () =>
     set((state) => ({ shuffleSignal: state.shuffleSignal + 1 })),
+  shuffleTo: (code) =>
+    set((state) => ({
+      selectedCountry: code,
+      shuffleLanded: { code, nonce: (state.shuffleLanded?.nonce ?? 0) + 1 },
+    })),
 }));
 
 export function useGlobeChart<T>(selector: (state: GlobeChartState) => T): T {

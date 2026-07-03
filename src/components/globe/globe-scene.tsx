@@ -93,18 +93,19 @@ function SceneContent() {
   }, []);
 
   // "Surprise me": on a bumped shuffle signal, draw a fair random country and
-  // publish it like the a11y list does. The globe's targetCode effect then
-  // settles to it, and handleSettle owns the ?cc= write, visited, and haptic —
-  // so this only picks and publishes. Ref-gated so only a real bump acts, never
-  // the mount value or a visited/selection re-render. Excluding the settled code
-  // (selectedCode, or the initial centre before the first selection) guarantees
-  // a different country, so the settle always fires.
+  // publish it via shuffleTo — sets selectedCountry (the globe's targetCode
+  // effect then settles to it, handleSettle owns the ?cc= write, visited, and
+  // haptic) and records the landing so the button announces this shuffle's own
+  // pick, not whatever selection changes next. Ref-gated so only a real bump
+  // acts, never the mount value or a visited/selection re-render. Excluding the
+  // settled code (selectedCode, or the initial centre before the first
+  // selection) guarantees a different country, so the settle always fires.
   const prevShuffleRef = useRef(shuffleSignal);
   useEffect(() => {
     if (shuffleSignal === prevShuffleRef.current) return;
     prevShuffleRef.current = shuffleSignal;
     const code = pickShuffleCountry(visited, selectedCode ?? initialCode);
-    globeChartStore.getState().setSelectedCountry(code);
+    globeChartStore.getState().shuffleTo(code);
   }, [shuffleSignal, visited, selectedCode, initialCode]);
 
   return (

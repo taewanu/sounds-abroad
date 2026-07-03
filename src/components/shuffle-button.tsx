@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { countryByCode } from "@/lib/country-code";
 import { globeChartStore, useGlobeChart } from "@/lib/globe-chart-store";
@@ -15,26 +15,22 @@ export function ShuffleButton() {
   const readMode = useGlobeChart((s) => s.readMode);
 
   // Announce the landed country to screen readers, since the change is otherwise
-  // only visual. Only a shuffle this button started should speak, not a fling or
-  // list pick, so a pending flag arms the next selection change. Announcing from
-  // the store subscription (not a selector + effect) keeps setState in an
-  // external-update callback and off the button's render path.
+  // only visual. Keyed on the globe's shuffleLanded signal (the shuffle's own
+  // pick), so a selection from another source — a fling settling, a list pick —
+  // can't be mistaken for this shuffle's result. Announcing from the store
+  // subscription (not a selector + effect) keeps setState in an external-update
+  // callback and off the button's render path.
   const [announcement, setAnnouncement] = useState("");
-  const pendingAnnounce = useRef(false);
   useEffect(() => {
     return globeChartStore.subscribe((state, prev) => {
-      if (state.selectedCountry === prev.selectedCountry) return;
-      if (!pendingAnnounce.current) return;
-      pendingAnnounce.current = false;
-      const country = state.selectedCountry
-        ? countryByCode(state.selectedCountry)
-        : null;
+      if (state.shuffleLanded === prev.shuffleLanded) return;
+      if (!state.shuffleLanded) return;
+      const country = countryByCode(state.shuffleLanded.code);
       if (country) setAnnouncement(`Now showing ${country.name}`);
     });
   }, []);
 
   const onShuffle = () => {
-    pendingAnnounce.current = true;
     globeChartStore.getState().requestShuffle();
   };
 
@@ -55,7 +51,7 @@ export function ShuffleButton() {
           type="button"
           onClick={onShuffle}
           aria-label="Surprise me with a random country"
-          className="bg-aurora text-void focus-visible:outline-aurora flex items-center justify-center rounded-full p-3 shadow-lg transition-transform hover:scale-[1.03] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-95"
+          className="bg-aurora/90 text-void focus-visible:outline-aurora flex items-center justify-center rounded-full p-3 shadow-lg transition-transform hover:scale-[1.03] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-95"
         >
           <svg
             aria-hidden="true"
