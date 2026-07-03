@@ -11,8 +11,10 @@ import {
 import * as Dialog from "@radix-ui/react-dialog";
 
 import type { Country } from "@/lib/chart-schema";
+import { selectGem } from "@/lib/select-gem";
 
 import { firstCommentaryRank } from "./first-commentary-rank";
+import { GemCard } from "./gem-card";
 import { TrackRow } from "./track-row";
 
 export type SnapState = "hidden" | "closed" | "peek" | "full";
@@ -132,6 +134,13 @@ export function ChartSheet({
   // country (the <ol> remounts on country change, resetting the hint).
   const hintRank = useMemo(
     () => firstCommentaryRank(country.tracks),
+    [country.tracks],
+  );
+
+  // selectGem always returns a gem, so the card renders on every landing
+  // regardless of how the country was reached (spin, tap, or shuffle).
+  const gemSelection = useMemo(
+    () => selectGem(country.tracks),
     [country.tracks],
   );
 
@@ -539,6 +548,13 @@ export function ChartSheet({
             data-peek={(snap === "peek" && !isDragging) || undefined}
             className="min-h-0 flex-1 touch-none overflow-y-auto overscroll-y-contain px-4 pb-12 transition-[max-height] duration-300 ease-out [-ms-overflow-style:none] [scrollbar-width:none] group-data-[snap=full]:touch-pan-y data-[peek]:max-h-[calc(35dvh-62px)] [&::-webkit-scrollbar]:hidden"
           >
+            <li>
+              <GemCard
+                track={gemSelection.gem}
+                tier={gemSelection.tier}
+                countryCode={countryCode}
+              />
+            </li>
             {country.tracks.map((track) => (
               <TrackRow
                 key={track.rank}
