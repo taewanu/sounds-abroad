@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, use, useCallback, useEffect, useState } from "react";
+import { Suspense, use, useCallback, useEffect, useRef, useState } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { PerspectiveCamera } from "three";
 
@@ -16,7 +16,7 @@ import { CountryFill } from "./country-fill";
 import { CountryOutlinesLayer } from "./country-outlines";
 import { CountryPins } from "./country-pins";
 import { triggerLandingHaptic } from "./landing-haptic";
-import { addVisited } from "./spin-select";
+import { addVisited, pickShuffleCountry } from "./spin-select";
 import { SpinSnapControls } from "./spin-snap-controls";
 import { StarBackdrop } from "./star-backdrop";
 
@@ -61,6 +61,7 @@ function SceneContent() {
   const selectedCode = useGlobeChart((s) => s.selectedCountry);
   const reducedMotion = usePrefersReducedMotion();
   const readMode = useGlobeChart((s) => s.readMode);
+  const shuffleSignal = useGlobeChart((s) => s.shuffleSignal);
 
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
   const hoveredIsoNum =
@@ -90,6 +91,21 @@ function SceneContent() {
     window.history.replaceState(null, "", `?cc=${code}`);
     setVisited((prev) => addVisited(prev, code));
   }, []);
+
+  // "Surprise me": on a bumped shuffle signal, draw a fair random country and
+  // publish it like the a11y list does. The globe's targetCode effect then
+  // settles to it, and handleSettle owns the ?cc= write, visited, and haptic —
+  // so this only picks and publishes. Ref-gated so only a real bump acts, never
+  // the mount value or a visited/selection re-render. Excluding the settled code
+  // (selectedCode, or the initial centre before the first selection) guarantees
+  // a different country, so the settle always fires.
+  const prevShuffleRef = useRef(shuffleSignal);
+  useEffect(() => {
+    if (shuffleSignal === prevShuffleRef.current) return;
+    prevShuffleRef.current = shuffleSignal;
+    const code = pickShuffleCountry(visited, selectedCode ?? initialCode);
+    globeChartStore.getState().setSelectedCountry(code);
+  }, [shuffleSignal, visited, selectedCode, initialCode]);
 
   return (
     <>

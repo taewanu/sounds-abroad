@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 
 import { CountrySelector } from "@/components/country-selector";
 import { GlobeMount } from "@/components/globe/globe-mount";
+import { ShuffleButton } from "@/components/shuffle-button";
 import { SITE_URL } from "@/lib/site-url";
 
 import "./globals.css";
@@ -87,6 +88,7 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <CountrySelector />
         </Suspense>
+        <ShuffleButton />
         {children}
       </body>
     </html>

@@ -8,6 +8,7 @@ describe("globeChartStore", () => {
       readMode: false,
       settleSignal: 0,
       skipSignal: { dir: 1, nonce: 0 },
+      shuffleSignal: 0,
       listening: false,
       skip: () => false,
     });
@@ -46,5 +47,12 @@ describe("globeChartStore", () => {
     globeChartStore.getState().signalSkip(1);
 
     expect(globeChartStore.getState().skipSignal).toEqual({ dir: 1, nonce: 2 });
+  });
+
+  test("requestShuffle increments so each press is a distinct landing signal", () => {
+    globeChartStore.getState().requestShuffle();
+    globeChartStore.getState().requestShuffle();
+
+    expect(globeChartStore.getState().shuffleSignal).toBe(2);
   });
 });

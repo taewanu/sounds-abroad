@@ -160,3 +160,23 @@ export function pickSnapCountry(
     rng(),
   );
 }
+
+const ALL_CODES = COUNTRIES.map((c) => c.code);
+
+// Shuffle target: a fair random country from anywhere on the globe, never the
+// one already shown so "surprise me" always lands somewhere new. Unlike
+// pickSnapCountry there is no rest direction — geography doesn't narrow the pool,
+// every country is a candidate — but the draw reuses the same visited-weighting,
+// so a run of shuffles spreads across the map instead of repeating. Randomness
+// enters via `rng` (defaults to Math.random), injected so the draw stays
+// testable.
+export function pickShuffleCountry(
+  visited: ReadonlySet<string>,
+  current: string | null,
+  rng: () => number = Math.random,
+): string {
+  const pool = current
+    ? ALL_CODES.filter((code) => code !== current)
+    : ALL_CODES;
+  return weightedDraw(pool, visited, rng());
+}
