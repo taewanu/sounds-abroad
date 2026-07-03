@@ -1,10 +1,27 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { COUNTRY_KR } from "@/lib/__fixtures__";
-import { AudioStoreProvider } from "@/providers/audio-store-provider";
+import type { AudioEngine } from "@/lib/audio-engine";
+import { createAudioStore } from "@/lib/audio-store";
+import { selectGem } from "@/lib/select-gem";
+import {
+  AudioStoreContext,
+  AudioStoreProvider,
+} from "@/providers/audio-store-provider";
 
 import { ChartSheet, type SnapState } from "./sheet";
+
+function makeMockAudio(): AudioEngine {
+  return {
+    src: "",
+    play: vi.fn().mockResolvedValue(undefined),
+    pause: vi.fn(),
+    setVolume: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  };
+}
 
 function setScrollTop(el: Element, value: number) {
   Object.defineProperty(el, "scrollTop", { value, configurable: true });
@@ -45,17 +62,18 @@ function stubRects(viewport: DOMRect, row: DOMRect) {
 
 function renderSheet(snap: SnapState) {
   const onSnapChange = vi.fn();
+  const store = createAudioStore(() => makeMockAudio());
   const utils = render(
-    <AudioStoreProvider>
+    <AudioStoreContext.Provider value={store}>
       <ChartSheet
         country={COUNTRY_KR}
         countryCode="kr"
         snap={snap}
         onSnapChange={onSnapChange}
       />
-    </AudioStoreProvider>,
+    </AudioStoreContext.Provider>,
   );
-  return { ...utils, onSnapChange };
+  return { ...utils, onSnapChange, store };
 }
 
 // Drag the body with a mouse pointer: press, cross the threshold, drag, release.
@@ -86,9 +104,11 @@ describe("ChartSheet", () => {
   test("renders each track in the country", () => {
     renderSheet("peek");
 
+    // getAllByText, not getByText: the gem card duplicates one track's name
+    // and artist above the ranked list, so that track's text renders twice.
     for (const track of COUNTRY_KR.tracks) {
-      expect(screen.getByText(track.name)).toBeDefined();
-      expect(screen.getByText(track.artist)).toBeDefined();
+      expect(screen.getAllByText(track.name).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(track.artist).length).toBeGreaterThan(0);
     }
   });
 
@@ -96,6 +116,29 @@ describe("ChartSheet", () => {
     renderSheet("peek");
 
     expect(screen.getByText(COUNTRY_KR.name)).toBeDefined();
+  });
+
+  test("renders the country's gem, matching what selectGem picks", () => {
+    const { gem, tier } = selectGem(COUNTRY_KR.tracks);
+
+    renderSheet("peek");
+
+    const region = screen.getByRole("region", { name: /today's gem/i });
+    expect(region.textContent).toContain(gem.name);
+    expect(region.textContent).toContain(tier);
+  });
+
+  test("one-tap play from the gem card plays it on the audio store", () => {
+    const { gem } = selectGem(COUNTRY_KR.tracks);
+    const { store } = renderSheet("peek");
+
+    // Scoped to the region: the gem also renders as an ordinary row further
+    // down the list, which has its own same-named play button.
+    const region = screen.getByRole("region", { name: /today's gem/i });
+    fireEvent.click(within(region).getByRole("button", { name: /play/i }));
+
+    expect(store.getState().currentTrack).toEqual(gem);
+    expect(store.getState().isPlaying).toBe(true);
   });
 
   test("exposes data-snap='peek' when snap prop is peek", () => {

@@ -1,0 +1,91 @@
+"use client";
+
+import { PauseIcon } from "@/components/icons/pause";
+import { PlayIcon } from "@/components/icons/play";
+import type { Track } from "@/lib/chart-schema";
+import type { GemTier } from "@/lib/select-gem";
+import { useAudioStore } from "@/providers/audio-store-provider";
+
+import { TrackCommentary } from "./track-commentary";
+
+export interface GemCardProps {
+  track: Track;
+  tier: GemTier;
+  countryCode: string;
+}
+
+// The "today's gem" hero card: the play row mirrors TrackRow's (same store
+// reads, same toggle call) so a tap here behaves identically to tapping a
+// ranked row, with the tier label standing in for the rank number.
+export function GemCard({ track, tier, countryCode }: GemCardProps) {
+  const isCurrent = useAudioStore(
+    (s) =>
+      s.currentTrack?.previewUrl === track.previewUrl &&
+      s.currentCountryCode === countryCode,
+  );
+  const isPlaying = useAudioStore(
+    (s) =>
+      s.isPlaying &&
+      s.currentTrack?.previewUrl === track.previewUrl &&
+      s.currentCountryCode === countryCode,
+  );
+  const toggle = useAudioStore((s) => s.toggle);
+
+  const hasPreview = track.previewUrl !== null;
+  const commentary = track.commentary ?? null;
+
+  return (
+    <section
+      aria-label="Today's gem"
+      className="border-fg-1/10 mb-3 flex flex-col rounded-[14px] border px-3 py-2.5"
+    >
+      <button
+        type="button"
+        disabled={!hasPreview}
+        onClick={() => toggle(track, countryCode)}
+        aria-label={`${isPlaying ? "Pause" : "Play"} today's gem, ${track.name} by ${track.artist}`}
+        className="focus-visible:outline-aurora flex min-w-0 items-center gap-[14px] text-left transition-transform duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none"
+      >
+        <span className="text-fg-3 text-body flex w-7 shrink-0 items-center justify-center">
+          {isPlaying ? (
+            <PauseIcon className="text-sunrise h-4 w-4" />
+          ) : (
+            <PlayIcon
+              className={`h-4 w-4 ${isCurrent ? "text-sunrise" : "text-fg-3"}`}
+            />
+          )}
+        </span>
+        <div
+          aria-hidden="true"
+          style={{ backgroundImage: `url(${track.artworkUrl})` }}
+          className="bg-fg-1/5 h-12 w-12 shrink-0 rounded-lg bg-cover bg-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+        />
+        <div className="min-w-0 flex-1">
+          <p className="text-fg-3 text-micro uppercase">{`Today's gem · ${tier}`}</p>
+          <p
+            className={`text-body truncate font-medium ${
+              isCurrent ? "text-sunrise" : "text-fg-1"
+            }`}
+          >
+            {track.name}
+            {isCurrent && (
+              <span
+                className="eq ml-2 inline-flex align-middle"
+                data-paused={!isPlaying || undefined}
+                aria-hidden
+              >
+                <span />
+                <span />
+                <span />
+              </span>
+            )}
+          </p>
+          <p className="text-fg-2 text-small truncate">
+            {hasPreview ? track.artist : `No preview · ${track.artist}`}
+          </p>
+        </div>
+      </button>
+      {commentary ? <TrackCommentary commentary={commentary} /> : null}
+    </section>
+  );
+}
