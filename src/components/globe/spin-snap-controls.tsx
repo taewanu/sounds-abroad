@@ -20,6 +20,11 @@ const DRAG_RAD_PER_PX = 0.005; // base drag gain, scaled by the sensitivity slid
 const EL_LIMIT = 75 * DEG; // stop short of the poles so the view never flips
 const SETTLE_VEL = 2; // rad/s under which a fling hands off to the snap spring
 const SNAP_OMEGA = 17; // snap spring frequency: higher settles faster
+// rad/s ceiling on a settle. A far external pick (shuffle / a11y list) would
+// otherwise ride the spring's amplitude-scaled peak velocity and strobe across
+// the globe; the cap turns that into a steady glide. Small post-fling snaps
+// stay under it, so their feel is untouched.
+const MAX_SETTLE_VEL = 7;
 const TAP_MAX_PX = 8; // press-to-release drift under which a gesture is a tap
 const TAP_HIT_PX = 44; // a tap beyond this from every country pin selects nothing
 const DOUBLE_TAP_MS = 280; // edge double-tap window: a 2nd side-third tap within this skips
@@ -411,6 +416,12 @@ export function SpinSnapControls({
         (SNAP_OMEGA * SNAP_OMEGA * dAz - 2 * zeta * SNAP_OMEGA * s.vAz) * dtc;
       s.vEl +=
         (SNAP_OMEGA * SNAP_OMEGA * dEl - 2 * zeta * SNAP_OMEGA * s.vEl) * dtc;
+      const speed = Math.hypot(s.vAz, s.vEl);
+      if (speed > MAX_SETTLE_VEL) {
+        const k = MAX_SETTLE_VEL / speed;
+        s.vAz *= k;
+        s.vEl *= k;
+      }
       s.az += s.vAz * dtc;
       s.el += s.vEl * dtc;
       if (
