@@ -322,6 +322,78 @@ describe("createAudioStore", () => {
     expect(store.getState().lastError).toBeNull();
   });
 
+  test("play rejection clears isPlaying and records lastError", async () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    const track = makeTrack({ previewUrl: "https://example.com/blocked.m4a" });
+    vi.mocked(audio.play).mockRejectedValueOnce(
+      new DOMException("autoplay blocked", "NotAllowedError"),
+    );
+
+    store.getState().toggle(track);
+    await Promise.resolve();
+
+    expect(store.getState().isPlaying).toBe(false);
+    expect(store.getState().lastError).toEqual({
+      previewUrl: track.previewUrl,
+    });
+  });
+
+  test("play rejection with AbortError leaves state untouched (benign interrupt)", async () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    const track = makeTrack();
+    vi.mocked(audio.play).mockRejectedValueOnce(
+      new DOMException("interrupted", "AbortError"),
+    );
+
+    store.getState().toggle(track);
+    await Promise.resolve();
+
+    expect(store.getState().isPlaying).toBe(true);
+    expect(store.getState().lastError).toBeNull();
+  });
+
+  test("a stale play rejection does not clobber a newer track's state", async () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    const trackA = makeTrack({ previewUrl: "https://example.com/a.m4a" });
+    const trackB = makeTrack({ previewUrl: "https://example.com/b.m4a" });
+    vi.mocked(audio.play).mockRejectedValueOnce(
+      new DOMException("autoplay blocked", "NotAllowedError"),
+    );
+
+    store.getState().toggle(trackA);
+    store.getState().toggle(trackB);
+    await Promise.resolve();
+
+    expect(store.getState().currentTrack).toBe(trackB);
+    expect(store.getState().isPlaying).toBe(true);
+    expect(store.getState().lastError).toBeNull();
+  });
+
+  test("a stale rejection sharing the live track's previewUrl does not clobber it", async () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    const trackA = makeTrack({ previewUrl: "https://example.com/a.m4a" });
+    const trackB = makeTrack({ previewUrl: "https://example.com/b.m4a" });
+    // Only the first attempt rejects; re-selecting trackA succeeds. The stale
+    // rejection shares trackA's previewUrl, so a value-keyed guard would let it
+    // through and mark the live re-attempt as errored.
+    vi.mocked(audio.play).mockRejectedValueOnce(
+      new DOMException("autoplay blocked", "NotAllowedError"),
+    );
+
+    store.getState().toggle(trackA); // attempt 1 (rejects)
+    store.getState().toggle(trackB); // attempt 2
+    store.getState().toggle(trackA); // attempt 3 (live)
+    await Promise.resolve();
+
+    expect(store.getState().currentTrack).toBe(trackA);
+    expect(store.getState().isPlaying).toBe(true);
+    expect(store.getState().lastError).toBeNull();
+  });
+
   test("browser pause event syncs store (Layer 1)", () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
