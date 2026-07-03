@@ -7,6 +7,7 @@ import { latLonToVec3 } from "@/lib/lat-lon-to-vec3";
 import {
   addVisited,
   pickNearestToPoint,
+  pickShuffleCountry,
   pickSnapCountry,
   projectFrontCountries,
   rankNearest,
@@ -188,6 +189,57 @@ test("every country appears in some nearest pool over the reachable sphere", () 
     (c) => c.code,
   );
   expect(unreachable).toEqual([]);
+});
+
+test("pickShuffleCountry never returns the country already shown", () => {
+  const current = COUNTRIES[0].code;
+
+  // Sweep the whole draw range: none of it may land back on the current country.
+  for (let r = 0; r < 1; r += 0.02) {
+    expect(pickShuffleCountry(new Set(), current, () => r)).not.toBe(current);
+  }
+});
+
+test("pickShuffleCountry draws from the whole globe, not a rest-direction cluster", () => {
+  // r=0 takes the first pool member. With the current country excluded that is
+  // the first COUNTRIES entry that isn't current, so the pool spans every
+  // country rather than a geographic neighbourhood.
+  const current = COUNTRIES[1].code;
+  const firstOther = COUNTRIES.find((c) => c.code !== current)!.code;
+
+  expect(pickShuffleCountry(new Set(), current, () => 0)).toBe(firstOther);
+});
+
+test("pickShuffleCountry allows any country when nothing is shown yet", () => {
+  expect(pickShuffleCountry(new Set(), null, () => 0)).toBe(COUNTRIES[0].code);
+});
+
+test("pickShuffleCountry favours an unvisited country over any single visited one", () => {
+  // Visit every country but one; the current (also visited) is excluded from the
+  // pool. Across a uniform draw sweep the unvisited country wins far more often
+  // than any single visited one, and the current country never appears.
+  const current = COUNTRIES[0].code;
+  const unseen = COUNTRIES[COUNTRIES.length - 1].code;
+  const visited = new Set(
+    COUNTRIES.filter((c) => c.code !== current && c.code !== unseen).map(
+      (c) => c.code,
+    ),
+  );
+
+  const counts = new Map<string, number>();
+  for (let r = 0; r < 1; r += 0.001) {
+    const code = pickShuffleCountry(visited, current, () => r);
+    counts.set(code, (counts.get(code) ?? 0) + 1);
+  }
+
+  const unseenCount = counts.get(unseen) ?? 0;
+  const maxVisited = Math.max(
+    ...[...counts]
+      .filter(([code]) => code !== unseen)
+      .map(([, count]) => count),
+  );
+  expect(counts.has(current)).toBe(false);
+  expect(unseenCount).toBeGreaterThan(maxVisited);
 });
 
 test("addVisited records a newly settled country in the visited set", () => {
