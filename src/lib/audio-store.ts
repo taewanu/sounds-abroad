@@ -37,6 +37,10 @@ export function createAudioStore(
   factory: AudioEngineFactory = createBrowserAudioEngine,
 ) {
   let engine: AudioEngine | null = null;
+  // Monotonic id per play() attempt. A rejection only owns the state if its
+  // token still matches; a newer attempt (even one on a track that shares this
+  // previewUrl, e.g. two preview-less tracks) supersedes it.
+  let playToken = 0;
 
   return createStore<AudioState>()((set, get) => {
     function getEngine(): AudioEngine {
@@ -89,11 +93,11 @@ export function createAudioStore(
     // rejection (the track was already switched) must not clobber the live
     // track either. Otherwise mirror the engine's error listener: clear
     // isPlaying, record lastError, breadcrumb, and tell the OS it's paused.
-    function handlePlayRejection(track: Track) {
+    function handlePlayRejection(track: Track, token: number) {
       return (error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError")
           return;
-        if (get().currentTrack?.previewUrl !== track.previewUrl) return;
+        if (token !== playToken) return;
         const previewUrl = track.previewUrl ?? null;
         set({ isPlaying: false, lastError: { previewUrl } });
         setPlaybackState("paused");
@@ -125,12 +129,12 @@ export function createAudioStore(
         if (isCurrent) {
           // Resume in place: reassigning src restarts at 0, so leave it and
           // just play. Keeps the preview position and the stored countryCode.
-          void a.play().catch(handlePlayRejection(track));
+          void a.play().catch(handlePlayRejection(track, ++playToken));
           set({ currentTrack: track, isPlaying: true, lastError: null });
           return;
         }
         a.src = track.previewUrl ?? "";
-        void a.play().catch(handlePlayRejection(track));
+        void a.play().catch(handlePlayRejection(track, ++playToken));
         setNowPlaying(track);
         set({
           currentTrack: track,
