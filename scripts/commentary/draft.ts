@@ -99,6 +99,8 @@ const SIGNIFICANCE: Record<WorklistReason, (bestRank: number) => string> = {
   "new-entry": (r) => `a new chart entry, peaking at #${r}`,
   "rank-jump": (r) => `a sharp climb up the chart, now peaking at #${r}`,
   "top-debut": (r) => `a strong move into the upper chart, peaking at #${r}`,
+  "local-gem": (r) =>
+    `a track distinctly local to where it charts, holding at #${r} there while barely charting anywhere else`,
 };
 
 /**
