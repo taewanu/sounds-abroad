@@ -264,6 +264,32 @@ test("ChartFileSchema accepts both allowed claim values", () => {
   expect(() => ChartFileSchema.parse(withBothClaims)).not.toThrow();
 });
 
+test("ChartFileSchema accepts a track with a baked spread", () => {
+  const withSpread = {
+    lastUpdated: "2026-05-16T00:00:00.000Z",
+    countries: {
+      kr: {
+        name: "South Korea",
+        valid: true,
+        tracks: [
+          {
+            rank: 1,
+            name: "Test",
+            artist: "Test Artist",
+            previewUrl: null,
+            artworkUrl: "https://art/600x600bb.jpg",
+            appleUrl: "https://music.apple.com/kr/1",
+            spotifyUrl: "https://open.spotify.com/search/Test",
+            spread: 3,
+          },
+        ],
+      },
+    },
+  };
+
+  expect(() => ChartFileSchema.parse(withSpread)).not.toThrow();
+});
+
 test("ChartFileSchema rejects an empty countries record", () => {
   const empty = {
     lastUpdated: "2026-05-16T00:00:00.000Z",

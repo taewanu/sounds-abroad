@@ -25,6 +25,7 @@ const TrackSchema = z.object({
   appleUrl: z.url(),
   spotifyUrl: z.url(),
   commentary: CommentarySchema.nullable().optional(),
+  spread: z.number().int().min(1).optional(),
 });
 
 const CountrySchema = z.object({

@@ -500,6 +500,44 @@ test("summarizeValidity reports total, valid count, and the invalid codes", asyn
   expect(summary).toEqual({ total: 3, validCount: 2, invalidCodes: ["ng"] });
 });
 
+test("crawlAll bakes spread as the count of countries whose chart contains a matching track", async () => {
+  const US: CountryEntry = {
+    code: "us",
+    name: "United States",
+    region: "Americas",
+    lat: 38.9015,
+    lon: -77.0114,
+    isoNum: 840,
+  };
+  const sharedTrack = (cc: string): AppleRssTrack => ({
+    rank: 1,
+    id: `${cc}-shared`,
+    name: "Shared Song",
+    artist: "Shared Artist",
+    appleUrl: `https://music.apple.com/${cc}/album/1?i=999999`,
+    artworkUrl: `https://art/${cc}/1/600x600bb.jpg`,
+  });
+  const onlyKrTrack: AppleRssTrack = {
+    rank: 2,
+    id: "kr-only",
+    name: "KR Only Song",
+    artist: "KR Only Artist",
+    appleUrl: "https://music.apple.com/kr/album/2?i=111111",
+    artworkUrl: "https://art/kr/2/600x600bb.jpg",
+  };
+  const fetchRss = vi.fn(async (cc: string) =>
+    cc === "kr" ? [sharedTrack(cc), onlyKrTrack] : [sharedTrack(cc)],
+  );
+  const deps = makeCrawlAllDeps({ countries: [KR, NG, US], fetchRss });
+
+  const result = await crawlAll(deps);
+
+  expect(result.chartFile.countries.kr.tracks[0].spread).toBe(3);
+  expect(result.chartFile.countries.ng.tracks[0].spread).toBe(3);
+  expect(result.chartFile.countries.us.tracks[0].spread).toBe(3);
+  expect(result.chartFile.countries.kr.tracks[1].spread).toBe(1);
+});
+
 test("crawlAll bakes a matching blurb and sets null on tracks without one", async () => {
   const krEntry = commentaryEntry("KR blurb.");
   const store: CommentaryStore = {
