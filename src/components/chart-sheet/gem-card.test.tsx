@@ -109,6 +109,41 @@ describe("GemCard", () => {
 
     expect(store.getState().currentTrack).toBeNull();
   });
+
+  test("shows the now-playing badge only while this gem is the current, playing track", () => {
+    const track = makeTrack();
+    const { container } = renderGemCard(track, "entirely their own", {
+      currentTrack: track,
+      isPlaying: true,
+      currentCountryCode: "kr",
+    });
+
+    expect(container.querySelector(".eq")).not.toBeNull();
+    expect(container.querySelector(".eq[data-paused]")).toBeNull();
+  });
+
+  test("marks the now-playing badge paused when the current gem is paused", () => {
+    const track = makeTrack();
+    const { container } = renderGemCard(track, "entirely their own", {
+      currentTrack: track,
+      isPlaying: false,
+      currentCountryCode: "kr",
+    });
+
+    expect(container.querySelector(".eq[data-paused]")).not.toBeNull();
+  });
+
+  test("shows no now-playing badge when a different track is current", () => {
+    const track = makeTrack();
+    const other = makeTrack({ previewUrl: "https://example.com/other.m4a" });
+    const { container } = renderGemCard(track, "entirely their own", {
+      currentTrack: other,
+      isPlaying: true,
+      currentCountryCode: "kr",
+    });
+
+    expect(container.querySelector(".eq")).toBeNull();
+  });
 });
 
 describe("GemCard commentary", () => {
