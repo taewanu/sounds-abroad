@@ -4,7 +4,7 @@
 
 ## Context
 
-#175 wants to surface "gems": tracks that are charting widely across countries but easy to miss on any single country's list. The input signal is spread — how many of the 40 countries' charts contain a given track — and the open questions are where spread gets computed and how a track's identity is compared across countries that each ran their own independent crawl.
+#175 wants to surface "gems": tracks that are charting widely across countries but easy to miss on any single country's list. The input signal is spread — how many of the 63 countries' charts contain a given track — and the open questions are where spread gets computed and how a track's identity is compared across countries that each ran their own independent crawl.
 
 Cross-country identity needs a key that's stable regardless of which country's RSS feed produced the track. The raw Apple RSS response carries the song id as a plain field (`AppleRssTrack.id`), but `crawlCountry` currently drops it when building the public `Track` object; the same id is also recoverable by parsing the `i=` query param off `appleUrl`, which every observed RSS response carries.
 
