@@ -137,10 +137,15 @@ export function ChartSheet({
     [country.tracks],
   );
 
-  // selectGem always returns a gem, so the card renders on every landing
-  // regardless of how the country was reached (spin, tap, or shuffle).
+  // selectGem assumes a non-empty track list; a failed crawl with no
+  // carried-forward snapshot can leave a country with none (crawlCountry
+  // writes { valid: false, tracks: [] }), and that country is reachable via
+  // both a random landing and a direct ?cc= — guard here rather than inside
+  // selectGem, which keeps its non-empty precondition simple to reason about.
+  // Otherwise selectGem always returns a gem, so the card renders on every
+  // landing with real tracks, regardless of how it was reached.
   const gemSelection = useMemo(
-    () => selectGem(country.tracks),
+    () => (country.tracks.length > 0 ? selectGem(country.tracks) : null),
     [country.tracks],
   );
 
@@ -548,13 +553,15 @@ export function ChartSheet({
             data-peek={(snap === "peek" && !isDragging) || undefined}
             className="min-h-0 flex-1 touch-none overflow-y-auto overscroll-y-contain px-4 pb-12 transition-[max-height] duration-300 ease-out [-ms-overflow-style:none] [scrollbar-width:none] group-data-[snap=full]:touch-pan-y data-[peek]:max-h-[calc(35dvh-62px)] [&::-webkit-scrollbar]:hidden"
           >
-            <li>
-              <GemCard
-                track={gemSelection.gem}
-                tier={gemSelection.tier}
-                countryCode={countryCode}
-              />
-            </li>
+            {gemSelection ? (
+              <li>
+                <GemCard
+                  track={gemSelection.gem}
+                  tier={gemSelection.tier}
+                  countryCode={countryCode}
+                />
+              </li>
+            ) : null}
             {country.tracks.map((track) => (
               <TrackRow
                 key={track.rank}
