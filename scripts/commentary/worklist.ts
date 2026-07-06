@@ -148,10 +148,11 @@ export function chartConfidence(
 function gemKeys(chart: ChartFile, lang: string): Set<string> {
   const keys = new Set<string>();
   for (const country of Object.values(chart.countries)) {
-    if (!country.valid || country.tracks.length === 0) continue;
-    const { gem, tier } = selectGem(country.tracks);
-    if (tier === "their most local pick today") continue;
-    keys.add(commentaryKey(lang, gem.artist, gem.name));
+    if (!country.valid) continue;
+    const selection = selectGem(country.tracks);
+    if (!selection || selection.tier === "their most local pick today")
+      continue;
+    keys.add(commentaryKey(lang, selection.gem.artist, selection.gem.name));
   }
   return keys;
 }
