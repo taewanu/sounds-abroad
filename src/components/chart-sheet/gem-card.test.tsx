@@ -144,6 +144,18 @@ describe("GemCard", () => {
 
     expect(container.querySelector(".eq")).toBeNull();
   });
+
+  test("shows no now-playing badge when the same previewUrl plays in a different country", () => {
+    const track = makeTrack();
+    const { container } = renderGemCard(
+      track,
+      "entirely their own",
+      { currentTrack: track, isPlaying: true, currentCountryCode: "br" },
+      "kr",
+    );
+
+    expect(container.querySelector(".eq")).toBeNull();
+  });
 });
 
 describe("GemCard tier strength meter", () => {
