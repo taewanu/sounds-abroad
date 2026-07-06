@@ -32,6 +32,7 @@ function TierDots({ tier }: { tier: GemTier }) {
       {[1, 2, 3].map((dot) => (
         <span
           key={dot}
+          data-lit={dot <= lit || undefined}
           className={`h-1 w-1 rounded-full ${dot <= lit ? "bg-fg-1" : "bg-fg-1/15"}`}
         />
       ))}

@@ -111,6 +111,18 @@ describe("GemCard", () => {
   });
 });
 
+describe("GemCard tier strength meter", () => {
+  test.each([
+    ["entirely their own", 3],
+    ["a local favorite", 2],
+    ["their most local pick today", 1],
+  ] as const)('tier "%s" lights %i dot(s)', (tier, litCount) => {
+    const { container } = renderGemCard(makeTrack(), tier);
+
+    expect(container.querySelectorAll("[data-lit]")).toHaveLength(litCount);
+  });
+});
+
 describe("GemCard commentary", () => {
   const COMMENTARY = {
     lead: "Barely charts anywhere else.",
