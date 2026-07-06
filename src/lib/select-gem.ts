@@ -10,6 +10,15 @@ export interface GemSelection {
   tier: GemTier;
 }
 
+// Strongest to weakest, matching selectGem's own tier order below. The single
+// source other modules (e.g. the gem card's strength meter) read from, so
+// they can't drift out of sync with a tier being added or reordered here.
+export const GEM_TIER_STRENGTH: Record<GemTier, number> = {
+  "entirely their own": 3,
+  "a local favorite": 2,
+  "their most local pick today": 1,
+};
+
 /**
  * Picks a country's "today's gem" from its baked spread counts (ADR-0013):
  * a spread-1 top track is "entirely their own"; a spread-1 track further

@@ -137,15 +137,13 @@ export function ChartSheet({
     [country.tracks],
   );
 
-  // selectGem assumes a non-empty track list; a failed crawl with no
-  // carried-forward snapshot can leave a country with none (crawlCountry
-  // writes { valid: false, tracks: [] }), and that country is reachable via
-  // both a random landing and a direct ?cc= — guard here rather than inside
-  // selectGem, which keeps its non-empty precondition simple to reason about.
-  // Otherwise selectGem always returns a gem, so the card renders on every
-  // landing with real tracks, regardless of how it was reached.
+  // selectGem returns null for an empty track list (a failed crawl with no
+  // carried-forward snapshot can leave a country with none, and that country
+  // is reachable via both a random landing and a direct ?cc=); otherwise it
+  // always returns a gem, so the card renders on every landing with real
+  // tracks, regardless of how it was reached.
   const gemSelection = useMemo(
-    () => (country.tracks.length > 0 ? selectGem(country.tracks) : null),
+    () => selectGem(country.tracks),
     [country.tracks],
   );
 

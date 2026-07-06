@@ -4,7 +4,7 @@ import { GemIcon } from "@/components/icons/gem";
 import { PauseIcon } from "@/components/icons/pause";
 import { PlayIcon } from "@/components/icons/play";
 import type { Track } from "@/lib/chart-schema";
-import type { GemTier } from "@/lib/select-gem";
+import { GEM_TIER_STRENGTH, type GemTier } from "@/lib/select-gem";
 import { useAudioStore } from "@/providers/audio-store-provider";
 
 import { TrackCommentary } from "./track-commentary";
@@ -15,18 +15,10 @@ export interface GemCardProps {
   countryCode: string;
 }
 
-// Dots lit per tier, strongest to fallback, mirroring selectGem's own order
-// (select-gem.ts) so the meter and the wording never drift apart.
-const TIER_STRENGTH: Record<GemTier, number> = {
-  "entirely their own": 3,
-  "a local favorite": 2,
-  "their most local pick today": 1,
-};
-
 // A three-dot strength meter standing next to the tier label so the three
 // tiers read apart by shape, not only by wording or color.
 function TierDots({ tier }: { tier: GemTier }) {
-  const lit = TIER_STRENGTH[tier];
+  const lit = GEM_TIER_STRENGTH[tier];
   return (
     <span aria-hidden className="flex shrink-0 items-center gap-0.5">
       {[1, 2, 3].map((dot) => (

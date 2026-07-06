@@ -120,17 +120,20 @@ describe("ChartSheet", () => {
   });
 
   test("renders the country's gem, matching what selectGem picks", () => {
-    const { gem, tier } = selectGem(COUNTRY_KR.tracks);
+    const selection = selectGem(COUNTRY_KR.tracks);
+    if (!selection) throw new Error("fixture has tracks; expected a gem");
 
     renderSheet("peek");
 
     const region = screen.getByRole("region", { name: /today's gem/i });
-    expect(region.textContent).toContain(gem.name);
-    expect(region.textContent).toContain(tier);
+    expect(region.textContent).toContain(selection.gem.name);
+    expect(region.textContent).toContain(selection.tier);
   });
 
   test("one-tap play from the gem card plays it on the audio store", () => {
-    const { gem } = selectGem(COUNTRY_KR.tracks);
+    const selection = selectGem(COUNTRY_KR.tracks);
+    if (!selection) throw new Error("fixture has tracks; expected a gem");
+    const gem = selection.gem;
     const { store } = renderSheet("peek");
 
     // Scoped to the region: the gem also renders as an ordinary row further
