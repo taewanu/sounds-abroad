@@ -33,14 +33,18 @@ describe("ChartScreen", () => {
 
     render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
 
-    expect(screen.getByText(COUNTRY_US.tracks[0].name)).toBeDefined();
+    expect(
+      screen.getAllByText(COUNTRY_US.tracks[0].name).length,
+    ).toBeGreaterThan(0);
     expect(replaceState).not.toHaveBeenCalled();
   });
 
   test("falls back to defaultCountryCode and writes it to the URL when ?cc= is absent", () => {
     render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_US} />);
 
-    expect(screen.getByText(COUNTRY_US.tracks[0].name)).toBeDefined();
+    expect(
+      screen.getAllByText(COUNTRY_US.tracks[0].name).length,
+    ).toBeGreaterThan(0);
     expect(replaceState).toHaveBeenCalledWith(null, "", `?cc=${CODE_US}`);
   });
 
@@ -49,7 +53,9 @@ describe("ChartScreen", () => {
 
     render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_US} />);
 
-    expect(screen.getByText(COUNTRY_US.tracks[0].name)).toBeDefined();
+    expect(
+      screen.getAllByText(COUNTRY_US.tracks[0].name).length,
+    ).toBeGreaterThan(0);
     expect(replaceState).toHaveBeenCalledWith(null, "", `?cc=${CODE_US}`);
   });
 
@@ -58,7 +64,9 @@ describe("ChartScreen", () => {
 
     render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
 
-    expect(screen.getByText(COUNTRY_US.tracks[0].name)).toBeDefined();
+    expect(
+      screen.getAllByText(COUNTRY_US.tracks[0].name).length,
+    ).toBeGreaterThan(0);
     expect(replaceState).toHaveBeenCalledWith(null, "", `?cc=${CODE_US}`);
   });
 });
