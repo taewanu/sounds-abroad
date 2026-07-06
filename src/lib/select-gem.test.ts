@@ -49,11 +49,27 @@ describe("selectGem", () => {
     });
   });
 
-  test("selectGem always returns a non-null gem, even in a homogenized market", () => {
-    const tracks = [makeTrack(1, 40), makeTrack(2, 38), makeTrack(3, 40)];
+  test("in a homogenized market, picks the exact lowest-spread track even among close values", () => {
+    const gem = makeTrack(2, 38);
+    const tracks = [makeTrack(1, 40), gem, makeTrack(3, 40)];
 
-    const { gem } = selectGem(tracks);
+    expect(selectGem(tracks)).toEqual({
+      gem,
+      tier: "their most local pick today",
+    });
+  });
 
-    expect(gem).not.toBeNull();
+  test("treats a missing spread as lower priority than any known spread in the fallback tie-break", () => {
+    const gem = makeTrack(2, 20);
+    const tracks = [makeTrack(1, undefined), gem, makeTrack(3, undefined)];
+
+    expect(selectGem(tracks)).toEqual({
+      gem,
+      tier: "their most local pick today",
+    });
+  });
+
+  test("returns null for an empty track list", () => {
+    expect(selectGem([])).toBeNull();
   });
 });

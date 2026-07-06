@@ -15,10 +15,15 @@ export interface GemSelection {
  * a spread-1 top track is "entirely their own"; a spread-1 track further
  * down the chart, or a top track with spread 2-3, is "a local favorite";
  * otherwise the lowest-spread, best-ranked track stands in as "their most
- * local pick today", so a homogenized market still returns a gem. Assumes a
- * non-empty track list, true for any crawled country.
+ * local pick today", so a homogenized market still returns a gem. Returns
+ * null for an empty track list -- a failed crawl with no carried-forward
+ * snapshot can leave a country with none (crawlCountry writes
+ * `{ valid: false, tracks: [] }`), and that's the caller's "nothing to show"
+ * case to render, not this function's to guess at.
  */
-export function selectGem(tracks: Track[]): GemSelection {
+export function selectGem(tracks: Track[]): GemSelection | null {
+  if (tracks.length === 0) return null;
+
   const topTrack = bestRanked(tracks);
 
   if (topTrack.spread === 1) {
