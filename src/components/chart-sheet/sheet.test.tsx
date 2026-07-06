@@ -4,6 +4,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { COUNTRY_KR } from "@/lib/__fixtures__";
 import type { AudioEngine } from "@/lib/audio-engine";
 import { createAudioStore } from "@/lib/audio-store";
+import type { Country } from "@/lib/chart-schema";
 import { selectGem } from "@/lib/select-gem";
 import {
   AudioStoreContext,
@@ -139,6 +140,26 @@ describe("ChartSheet", () => {
 
     expect(store.getState().currentTrack).toEqual(gem);
     expect(store.getState().isPlaying).toBe(true);
+  });
+
+  test("renders no gem card, and doesn't throw, for a country with no tracks", () => {
+    const emptyCountry: Country = { ...COUNTRY_KR, tracks: [] };
+    const store = createAudioStore(() => makeMockAudio());
+
+    expect(() =>
+      render(
+        <AudioStoreContext.Provider value={store}>
+          <ChartSheet
+            country={emptyCountry}
+            countryCode="kr"
+            snap="peek"
+            onSnapChange={vi.fn()}
+          />
+        </AudioStoreContext.Provider>,
+      ),
+    ).not.toThrow();
+
+    expect(screen.queryByRole("region", { name: /today's gem/i })).toBeNull();
   });
 
   test("exposes data-snap='peek' when snap prop is peek", () => {
