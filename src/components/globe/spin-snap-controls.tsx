@@ -314,9 +314,9 @@ export function SpinSnapControls({
           // A skip moves no globe, so return the machine to rest instead of
           // leaving it at "drag" from the press.
           s.mode = "idle";
-          // Skip via the chart's adjacency owner; flash only on a real change.
-          if (globeChartStore.getState().skip(action.dir))
-            globeChartStore.getState().signalSkip(action.dir);
+          // Raise a skip-intent; the chart runs the skip and flashes on a real
+          // change. The globe emits data and learns no outcome.
+          globeChartStore.getState().signalSkip(action.dir);
           return;
         }
 

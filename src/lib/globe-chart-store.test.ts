@@ -7,12 +7,11 @@ describe("globeChartStore", () => {
     globeChartStore.setState({
       readMode: false,
       settleSignal: 0,
-      skipSignal: { dir: 1, nonce: 0 },
+      skipIntent: { dir: 1, nonce: 0 },
       shuffleSignal: 0,
       shuffleLanded: null,
       selectedCountry: null,
       listening: false,
-      skip: () => false,
     });
   });
 
@@ -35,10 +34,10 @@ describe("globeChartStore", () => {
     expect(globeChartStore.getState().settleSignal).toBe(2);
   });
 
-  test("signalSkip records the direction and bumps the nonce", () => {
+  test("signalSkip raises a skip-intent with the direction and a bumped nonce", () => {
     globeChartStore.getState().signalSkip(-1);
 
-    expect(globeChartStore.getState().skipSignal).toEqual({
+    expect(globeChartStore.getState().skipIntent).toEqual({
       dir: -1,
       nonce: 1,
     });
@@ -48,7 +47,7 @@ describe("globeChartStore", () => {
     globeChartStore.getState().signalSkip(1);
     globeChartStore.getState().signalSkip(1);
 
-    expect(globeChartStore.getState().skipSignal).toEqual({ dir: 1, nonce: 2 });
+    expect(globeChartStore.getState().skipIntent).toEqual({ dir: 1, nonce: 2 });
   });
 
   test("requestShuffle increments so each press is a distinct landing signal", () => {

@@ -75,6 +75,10 @@ function ChartScreenInner({
 }) {
   const [snap, setSnap] = useState<SnapState>("peek");
   const [scrollSignal, setScrollSignal] = useState(0);
+  const [skipFlash, setSkipFlash] = useState<{
+    dir: 1 | -1;
+    nonce: number;
+  } | null>(null);
   const settleSignal = useGlobeChart((s) => s.settleSignal);
   // The gesture-driven selection (the tour's beat-1 signal). Not the countryCode
   // prop: that resolves from useSearchParams, which a replaceState-only globe
@@ -217,17 +221,25 @@ function ChartScreenInner({
     setSkipHandlers({ previoustrack: goPrev, nexttrack: goNext });
   }, [goPrev, goNext]);
 
-  // Mirror the listening gate and the shared step to the globe so an edge-tap on
-  // the layout-backdrop globe routes through the same prev/next. The globe sits
-  // outside the audio provider, so it can't read currentTrack or call step
-  // directly; this crosses the same seam selectedCountry already does.
+  // Mirror the listening gate to the globe so an edge-tap on the layout-backdrop
+  // globe knows a track is loaded and skips instead of selecting a country. The
+  // globe sits outside the audio provider, so it can't read currentTrack; this
+  // crosses the same seam selectedCountry already does.
   useEffect(() => {
     globeChartStore.getState().setListening(hasCurrentTrack);
     return () => globeChartStore.getState().setListening(false);
   }, [hasCurrentTrack]);
+
+  // A globe edge-tap raises a skip-intent; the chart owns adjacency, so it runs
+  // the shared step and flashes only on a real track change. Subscribing to the
+  // store sets flash state inside the change callback (the pattern for reacting
+  // to an external system) and spares the screen a re-render per skip. The nonce
+  // diff drops dep-only re-runs; step's own return gates the clamped end-of-list.
   useEffect(() => {
-    globeChartStore.getState().setSkip(step);
-    return () => globeChartStore.getState().setSkip(() => false);
+    return globeChartStore.subscribe((state, prev) => {
+      if (state.skipIntent.nonce === prev.skipIntent.nonce) return;
+      if (step(state.skipIntent.dir)) setSkipFlash(state.skipIntent);
+    });
   }, [step]);
 
   return (
@@ -252,7 +264,7 @@ function ChartScreenInner({
       {/* Only while the globe is visible: at full the sheet covers it, so
           showing the hint there would burn its one-time display unseen. */}
       <EdgeTapHint active={hasCurrentTrack && snap !== "full"} />
-      <SkipFlash sheetSnap={snap} />
+      <SkipFlash skip={skipFlash} sheetSnap={snap} />
       <TourHost
         snap={snap}
         hasCurrentTrack={hasCurrentTrack}
