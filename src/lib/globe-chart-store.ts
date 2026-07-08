@@ -26,16 +26,13 @@ export interface GlobeChartState {
   // the page's provider, which the layout-backdrop globe can't read, so the
   // chart mirrors the gate here alongside selectedCountry.
   listening: boolean;
-  // Routes a globe edge-tap to the chart's shared prev/next (dir -1/+1), the one
-  // place that owns the adjacency logic. Returns whether a track actually
-  // changed (false when it clamps at the first/last playable track) so the cue
-  // only flashes on a real skip. Default no-op until the chart publishes it.
-  skip: (dir: 1 | -1) => boolean;
-  // One-shot cue for the directional skip flash: `dir` is the skip direction and
-  // `nonce` bumps on each skip so the overlay replays even on a repeat direction
-  // (a plain `dir` diff would miss next-after-next). The globe edge-tap is the
-  // only producer, so the flash lands on the tapped edge, not on a button skip.
-  skipSignal: { dir: 1 | -1; nonce: number };
+  // The globe's edge-tap skip-intent, a plain data signal: `dir` is the
+  // direction (prev -1 / next +1) and `nonce` bumps on each tap so a repeat
+  // direction still fires (a plain `dir` diff would miss next-after-next). The
+  // chart subscribes, runs its shared step (the one owner of adjacency), and
+  // drives the skip flash from step's result. The globe carries no callback and
+  // learns no outcome, so the whole seam is data, not behavior.
+  skipIntent: { dir: 1 | -1; nonce: number };
   // Monotonic counter a "surprise me" button bumps to fling the globe to a
   // random country. The pick lives in the globe (where the anti-repeat `visited`
   // set does), so the button can't run it directly; it signals across this seam
@@ -51,7 +48,6 @@ export interface GlobeChartState {
   setReadMode: (readMode: boolean) => void;
   signalSettle: () => void;
   setListening: (listening: boolean) => void;
-  setSkip: (skip: (dir: 1 | -1) => boolean) => void;
   signalSkip: (dir: 1 | -1) => void;
   requestShuffle: () => void;
   // Land a shuffle draw: move the globe and record the landing to announce.
@@ -63,8 +59,7 @@ export const globeChartStore = createStore<GlobeChartState>()((set) => ({
   readMode: false,
   settleSignal: 0,
   listening: false,
-  skip: () => false,
-  skipSignal: { dir: 1, nonce: 0 },
+  skipIntent: { dir: 1, nonce: 0 },
   shuffleSignal: 0,
   shuffleLanded: null,
   setSelectedCountry: (selectedCountry) => set({ selectedCountry }),
@@ -72,10 +67,9 @@ export const globeChartStore = createStore<GlobeChartState>()((set) => ({
   signalSettle: () =>
     set((state) => ({ settleSignal: state.settleSignal + 1 })),
   setListening: (listening) => set({ listening }),
-  setSkip: (skip) => set({ skip }),
   signalSkip: (dir) =>
     set((state) => ({
-      skipSignal: { dir, nonce: state.skipSignal.nonce + 1 },
+      skipIntent: { dir, nonce: state.skipIntent.nonce + 1 },
     })),
   requestShuffle: () =>
     set((state) => ({ shuffleSignal: state.shuffleSignal + 1 })),

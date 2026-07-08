@@ -4,7 +4,6 @@ import { type CSSProperties, useEffect, useRef, useState } from "react";
 
 import { SNAP_Y_PCT, type SnapState } from "@/components/chart-sheet/sheet";
 import { ChevronsRightIcon } from "@/components/icons/chevrons-right";
-import { useGlobeChart } from "@/lib/globe-chart-store";
 
 // Tune the skip cue here: how long the chevron stays on screen and how far it
 // slides toward the tapped edge. Kept brief so it confirms the skip without
@@ -18,20 +17,29 @@ const TRAVEL_PX = 24;
 // distinct from rotating to a country. Pointer-transparent so it never blocks
 // the taps below it; reduced motion drops the slide for a plain opacity flash
 // (handled in globals.css, matching the tour/hint idiom).
-export function SkipFlash({ sheetSnap }: { sheetSnap: SnapState }) {
-  const skipSignal = useGlobeChart((s) => s.skipSignal);
-  const prevNonceRef = useRef(skipSignal.nonce);
+export function SkipFlash({
+  skip,
+  sheetSnap,
+}: {
+  // The chart's skip cue: `dir` is the skipped direction and `nonce` bumps per
+  // skip so a repeat direction still replays. Null until the first skip. The
+  // chart raises it only on a real track change, so the cue never fires on a
+  // clamped end-of-list skip.
+  skip: { dir: 1 | -1; nonce: number } | null;
+  sheetSnap: SnapState;
+}) {
+  const prevNonceRef = useRef(skip?.nonce ?? null);
   const [flash, setFlash] = useState<{ dir: 1 | -1; nonce: number } | null>(
     null,
   );
 
-  // Ref-gated so only an actual skip (a bumped nonce) plays the cue, never a
+  // Ref-gated so only a fresh skip (a bumped nonce) plays the cue, never a
   // dep-only re-run or the mount baseline.
   useEffect(() => {
-    if (skipSignal.nonce === prevNonceRef.current) return;
-    prevNonceRef.current = skipSignal.nonce;
-    setFlash({ dir: skipSignal.dir, nonce: skipSignal.nonce });
-  }, [skipSignal]);
+    if (!skip || skip.nonce === prevNonceRef.current) return;
+    prevNonceRef.current = skip.nonce;
+    setFlash(skip);
+  }, [skip]);
 
   // Clear after the animation; keyed on the flash so a fresh skip resets it.
   useEffect(() => {
