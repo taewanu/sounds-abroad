@@ -310,4 +310,24 @@ describe("ChartScreen auto-advance", () => {
     expect(viaEnded).toBe("3");
     expect(viaEnded).toBe(viaNext);
   });
+
+  test("ending the last playable track falls silent instead of wrapping to the head", () => {
+    const { container } = render(
+      <ChartScreen charts={ADJACENCY_CHARTS} defaultCountryCode={ADJ_CODE} />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Play preview of Playable tail by Tail artist",
+      }),
+    );
+    expect(playingRank(container)).toBe("3");
+
+    act(() => {
+      audioEngine.end();
+    });
+
+    // step(1) finds no track past the tail, returns false, and advances nothing,
+    // so the chart ends in silence rather than wrapping back to the head.
+    expect(playingRank(container)).toBeNull();
+  });
 });
