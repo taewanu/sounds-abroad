@@ -113,25 +113,6 @@ function ChartScreenInner({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [audioStore]);
 
-  // Advance within the source country, not the visible one. Ref-gated so
-  // only an actual ended event triggers advance, never a dep-only re-run.
-  const prevEndedRef = useRef(endedSignal);
-  useEffect(() => {
-    if (endedSignal === prevEndedRef.current) return;
-    prevEndedRef.current = endedSignal;
-    if (endedSignal === 0) return;
-    const { currentTrack, currentCountryCode, toggle } = audioStore.getState();
-    if (currentTrack === null || currentCountryCode === null) return;
-    const source = charts.countries[currentCountryCode];
-    if (!source) return;
-    const next = findAdjacentPlayable(
-      source.tracks,
-      currentTrack.previewUrl,
-      1,
-    );
-    if (next) toggle(next, currentCountryCode);
-  }, [endedSignal, audioStore, charts.countries]);
-
   // Hidden sheet has no on-screen affordance; the next pointerdown anywhere
   // restores it.
   useEffect(() => {
@@ -194,6 +175,18 @@ function ChartScreenInner({
   );
   const goPrev = useCallback(() => step(-1), [step]);
   const goNext = useCallback(() => step(1), [step]);
+
+  // A track ending advances through the same step as the buttons, swipe, media
+  // keys, and edge-tap, so every "next track" shares one adjacency rule. Step
+  // no-ops past the last playable track, so the chart still ends in silence.
+  // Ref-gated so only an actual ended event advances, never a dep-only re-run.
+  const prevEndedRef = useRef(endedSignal);
+  useEffect(() => {
+    if (endedSignal === prevEndedRef.current) return;
+    prevEndedRef.current = endedSignal;
+    if (endedSignal === 0) return;
+    step(1);
+  }, [endedSignal, step]);
 
   const canPrev = useMemo(() => {
     if (currentTrack === null || currentCountryCode === null) return false;
