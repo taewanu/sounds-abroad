@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { SkipBackIcon } from "@/components/icons/skip-back";
 import { SkipForwardIcon } from "@/components/icons/skip-forward";
 
-import { hasSeenEdgeTapHint, markEdgeTapHintSeen } from "./seen-edge-tap-hint";
+import { edgeTapSeen } from "./seen-edge-tap-hint";
 
 const VISIBLE_MS = 2600;
 
@@ -25,7 +25,7 @@ export function EdgeTapHint({ active }: { active: boolean }) {
   // the true prior-session value. Visibility is then derived from `active`, not
   // toggled on synchronously in an effect; only the auto-dismiss flips state,
   // from the timer callback.
-  const [seenAtMount] = useState(() => hasSeenEdgeTapHint());
+  const [seenAtMount] = useState(() => edgeTapSeen.hasSeen());
   const [dismissed, setDismissed] = useState(false);
   const armedRef = useRef(false);
 
@@ -40,7 +40,7 @@ export function EdgeTapHint({ active }: { active: boolean }) {
     }
     if (armedRef.current) return;
     armedRef.current = true;
-    markEdgeTapHintSeen();
+    edgeTapSeen.markSeen();
     const id = window.setTimeout(() => setDismissed(true), VISIBLE_MS);
     return () => window.clearTimeout(id);
   }, [visible]);

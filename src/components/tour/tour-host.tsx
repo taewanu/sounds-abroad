@@ -6,10 +6,11 @@ import { useStore } from "zustand";
 import type { SnapState } from "@/components/chart-sheet/sheet";
 import { useGlobeChart } from "@/lib/globe-chart-store";
 import { tourBridge } from "@/lib/tour-bridge";
+import { useSeenFlag } from "@/lib/use-seen-flag";
 
+import { tourSeen } from "./seen-tour";
 import { TourOverlay } from "./tour-overlay";
 import { initialTourState, tourReducer } from "./tour-step";
-import { useSeenTour } from "./use-seen-tour";
 import { useTourAnchor } from "./use-tour-anchor";
 
 export interface TourHostProps {
@@ -28,7 +29,7 @@ export function TourHost({
   hasCurrentTrack,
   selectedCode,
 }: TourHostProps) {
-  const { seen, markSeen } = useSeenTour();
+  const { seen, markSeen } = useSeenFlag(tourSeen);
   const globeReady = useStore(tourBridge, (s) => s.globeReady);
   const [dismissed, setDismissed] = useState(false);
 
