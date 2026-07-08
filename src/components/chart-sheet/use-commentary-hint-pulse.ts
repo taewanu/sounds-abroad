@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
-import { hasSeenTour, subscribeSeenTour } from "@/components/tour/seen-tour";
+import { tourSeen } from "@/components/tour/seen-tour";
+import { useSeenFlag } from "@/lib/use-seen-flag";
 
-import { useCommentaryHintSeen } from "./use-commentary-hint-seen";
+import { commentarySeen } from "./seen-commentary-hint";
 
-// Reactive read of the tour-done gate. Unlike useSeenTour's no-op subscribe,
-// the hint outlives the tour, so it must re-render when markTourSeen flips the
-// flag mid-session, not just read it once at mount.
+// Reactive read of the tour-done gate. Unlike useSeenFlag's no-op subscribe, the
+// hint outlives the tour, so it must re-render when the tour flag flips
+// mid-session, not just read it once at mount.
 const tourServerSnapshot = (): boolean | null => null;
 
 // Wait a beat after the gate opens so the pulse reads as its own moment rather
@@ -31,18 +32,18 @@ export interface CommentaryHintPulse {
 // Drives the one-time discovery pulse for the single target row. Mounted only on
 // that row, so its store reads and observer cost are paid once, not per row.
 export function useCommentaryHintPulse(): CommentaryHintPulse {
-  const tourSeen = useSyncExternalStore(
-    subscribeSeenTour,
-    hasSeenTour,
+  const tourDone = useSyncExternalStore(
+    tourSeen.subscribe,
+    tourSeen.hasSeen,
     tourServerSnapshot,
   );
-  const { seen: hintSeen, markSeen } = useCommentaryHintSeen();
+  const { seen: hintSeen, markSeen } = useSeenFlag(commentarySeen);
   const chevronRef = useRef<HTMLSpanElement>(null);
   const [pulsing, setPulsing] = useState(false);
 
   // Both flags are booleans (null during SSR), so the effect keys off a single
   // primitive: only arm once the tour is done and the hint hasn't fired.
-  const armable = tourSeen === true && hintSeen === false;
+  const armable = tourDone === true && hintSeen === false;
 
   useEffect(() => {
     if (!armable) return;
