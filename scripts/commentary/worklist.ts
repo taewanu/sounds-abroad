@@ -5,17 +5,23 @@ import {
   type CommentaryStore,
 } from "../../src/lib/commentary-store";
 import { COUNTRIES, type Region } from "../../src/lib/countries";
+import { selectGem } from "../../src/lib/select-gem";
 
 import { DEFAULT_MAX_ATTEMPTS, type DropsStore } from "./drops";
 
 /**
  * The worklist for a refinement pass: which charting tracks still need a blurb.
- * A track qualifies only if its movement is significant AND no blurb exists yet,
- * so a pass surfaces a tractable, deduped list instead of every charting track
- * (ADR-0007's quantitative gate, an analog to a significance trigger).
+ * A track qualifies if its movement is significant, OR it's some country's
+ * "today's gem" (ADR-0014), AND no blurb exists yet, so a pass surfaces a
+ * tractable, deduped list instead of every charting track (ADR-0007's
+ * quantitative gate, an analog to a significance trigger).
  */
 
-export type WorklistReason = "new-entry" | "rank-jump" | "top-debut";
+export type WorklistReason =
+  | "new-entry"
+  | "rank-jump"
+  | "top-debut"
+  | "local-gem";
 
 export interface WorklistItem {
   key: string;
@@ -24,6 +30,8 @@ export interface WorklistItem {
   bestRank: number;
   reason: WorklistReason;
   confidence: ConfidenceLevel;
+  /** Some country's selected gem (ADR-0014) — bypasses the low-confidence penalty below. */
+  isGem: boolean;
   countries: { cc: string; rank: number }[];
 }
 
@@ -128,6 +136,27 @@ export function chartConfidence(
   return "low";
 }
 
+/**
+ * The set of commentary keys currently selected as some country's gem with
+ * real evidence behind the pick (ADR-0014): "entirely their own" or "a local
+ * favorite", meaning an actual low-spread track exists. Excludes the
+ * "their most local pick today" fallback tier deliberately — that tier fires
+ * precisely when a market has no genuinely local track, so it carries the
+ * same thin evidence chartConfidence already distrusts, not a reason to
+ * bypass it.
+ */
+function gemKeys(chart: ChartFile, lang: string): Set<string> {
+  const keys = new Set<string>();
+  for (const country of Object.values(chart.countries)) {
+    if (!country.valid) continue;
+    const selection = selectGem(country.tracks);
+    if (!selection || selection.tier === "their most local pick today")
+      continue;
+    keys.add(commentaryKey(lang, selection.gem.artist, selection.gem.name));
+  }
+  return keys;
+}
+
 function bestRankByKey(
   chart: ChartFile | null,
   lang: string,
@@ -182,21 +211,31 @@ export function computeWorklist(input: {
   const current = aggregateByKey(input.current, lang);
   const previousBest = bestRankByKey(input.previous, lang);
   const hasHistory = input.previous !== null;
+  const gems = gemKeys(input.current, lang);
 
   const items: WorklistItem[] = [];
   for (const [key, agg] of current) {
     if (key in input.commentary) continue; // cache hit: never regenerate
     if ((drops[key]?.attempts ?? 0) >= maxAttempts) continue; // tombstoned: retries spent
-    const reason = classify(
+    const isGem = gems.has(key);
+    const movementReason = classify(
       agg.bestRank,
       previousBest.get(key),
       hasHistory,
       jumpBy,
       topDebutMax,
     );
+    // A gem queues even with no rank movement (e.g. a stable local #1 that
+    // would otherwise never re-trigger); a real movement reason still wins
+    // when both apply, since it's the more specific story.
+    const reason = movementReason ?? (isGem ? "local-gem" : null);
     if (!reason) continue;
     const confidence = chartConfidence(agg.countries);
-    if (confidence === "low" && suppressLowConfidence) continue;
+    // A gem is single-market by construction (that's what makes it a gem),
+    // which is exactly what chartConfidence reads as a thin-market quirk.
+    // Being selected as a gem is itself evidence the position is a real
+    // local story, so it bypasses that penalty (ADR-0014).
+    if (confidence === "low" && suppressLowConfidence && !isGem) continue;
     items.push({
       key,
       artist: agg.artist,
@@ -204,16 +243,20 @@ export function computeWorklist(input: {
       bestRank: agg.bestRank,
       reason,
       confidence,
+      isGem,
       countries: [...agg.countries].sort((a, b) => a.rank - b.rank),
     });
   }
 
   // Confident items first so a pass spends effort on them before any retained
-  // low-confidence ones; within a tier, by best rank then key for stability.
-  const confidenceWeight = (c: ConfidenceLevel) => (c === "low" ? 1 : 0);
+  // low-confidence ones; a gem always sorts as if confident, for the same
+  // reason it bypasses suppression above. Within a tier, by best rank then
+  // key for stability.
+  const confidenceWeight = (item: WorklistItem) =>
+    item.confidence === "low" && !item.isGem ? 1 : 0;
   return items.sort(
     (a, b) =>
-      confidenceWeight(a.confidence) - confidenceWeight(b.confidence) ||
+      confidenceWeight(a) - confidenceWeight(b) ||
       a.bestRank - b.bestRank ||
       a.key.localeCompare(b.key),
   );

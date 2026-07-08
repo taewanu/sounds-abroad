@@ -17,6 +17,7 @@ function item(overrides: Partial<WorklistItem> = {}): WorklistItem {
     bestRank: 3,
     reason: "new-entry",
     confidence: "ok",
+    isGem: false,
     countries: [
       { cc: "us", rank: 3 },
       { cc: "ca", rank: 5 },

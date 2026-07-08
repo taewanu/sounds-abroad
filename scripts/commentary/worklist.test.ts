@@ -9,7 +9,12 @@ import {
 import type { DropsStore } from "./drops";
 import { chartConfidence, computeWorklist } from "./worklist";
 
-function track(rank: number, artist: string, name: string): Track {
+function track(
+  rank: number,
+  artist: string,
+  name: string,
+  spread?: number,
+): Track {
   return {
     rank,
     name,
@@ -18,6 +23,7 @@ function track(rank: number, artist: string, name: string): Track {
     artworkUrl: "https://art/x/600x600bb.jpg",
     appleUrl: "https://music.apple.com/x/1",
     spotifyUrl: "https://open.spotify.com/search/x",
+    spread,
   };
 }
 
@@ -336,4 +342,81 @@ test("suppresses low-confidence items entirely when asked", () => {
   });
 
   expect(items.map((i) => i.name)).toEqual(["Broad Mover"]);
+});
+
+test("queues a country's stable gem for commentary even with no rank movement", () => {
+  const previous = chart({
+    kr: country("South Korea", [
+      track(1, "Artist A", "Local Hit", 1),
+      track(2, "Artist B", "Global Hit", 40),
+    ]),
+  });
+  const current = chart({
+    kr: country("South Korea", [
+      track(1, "Artist A", "Local Hit", 1),
+      track(2, "Artist B", "Global Hit", 40),
+    ]),
+  });
+
+  const items = computeWorklist({ current, previous, commentary: {} });
+
+  expect(items.map((i) => i.name)).toEqual(["Local Hit"]);
+  expect(items[0].reason).toBe("local-gem");
+  expect(items[0].isGem).toBe(true);
+});
+
+test("does not queue a fallback-tier gem picked from a market with no real local track", () => {
+  const previous = chart({
+    kr: country("South Korea", [
+      track(1, "Artist A", "Global A", 40),
+      track(2, "Artist B", "Global B", 38),
+    ]),
+  });
+  const current = chart({
+    kr: country("South Korea", [
+      track(1, "Artist A", "Global A", 40),
+      track(2, "Artist B", "Global B", 38),
+    ]),
+  });
+
+  const items = computeWorklist({ current, previous, commentary: {} });
+
+  expect(items).toEqual([]);
+});
+
+test("a local-gem bypasses suppressLowConfidence", () => {
+  const current = chart({
+    jp: country("Japan", [
+      track(1, "Artist A", "Local Hit", 1),
+      track(2, "Artist B", "Global Hit", 40),
+    ]),
+  });
+
+  const items = computeWorklist({
+    current,
+    previous: null,
+    commentary: {},
+    options: { suppressLowConfidence: true },
+  });
+
+  expect(items.map((i) => i.name)).toEqual(["Local Hit"]);
+});
+
+test("a local-gem sorts ahead of similarly thin non-gems despite a worse rank", () => {
+  const current = chart({
+    jp: country("Japan", [
+      track(9, "Artist A", "Local Hit", 1),
+      track(1, "Artist B", "Filler", 40),
+    ]),
+    kr: country("South Korea", [track(2, "Artist C", "Thin Mover")]),
+  });
+
+  const items = computeWorklist({ current, previous: null, commentary: {} });
+
+  expect(items.map((i) => i.name)).toEqual([
+    "Local Hit",
+    "Filler",
+    "Thin Mover",
+  ]);
+  expect(items[0].isGem).toBe(true);
 });
