@@ -19,7 +19,7 @@ Phase 1 commits directly to `main`. From Phase 2 onward, each slice gets its own
 ## Where to look
 
 - Phase boundaries — annotated git tags (`git tag --list`)
-- PRDs and tickets — GitHub Issues (`gh issue list`, see `docs/agents/issue-tracker.md`)
+- Specs and tickets — GitHub Issues (`gh issue list`, see `docs/agents/issue-tracker.md`)
 - Architecture Decision Records — `docs/adr/` (why we chose X over Y)
 - Per-repo agent configuration — `docs/agents/` (engineering skills assume this layout)
 

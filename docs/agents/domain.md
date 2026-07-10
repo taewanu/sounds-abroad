@@ -13,8 +13,7 @@ This repo is **single-context** — all domain documentation lives at the repo r
 │   ├── adr/                                         ← Architecture Decision Records
 │   │   ├── 0001-toolchain-mise-pnpm-node-24.md      ← why mise + pnpm 10 + Node 24
 │   │   └── 0002-public-repo-for-actions-budget.md   ← why public GitHub repo
-│   ├── agents/                                      ← per-repo skills config (this directory)
-│   └── plans/                                       ← Phase implementation plans
+│   └── agents/                                      ← per-repo skills config (this directory)
 └── src/
 ```
 

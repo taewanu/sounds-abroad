@@ -6,21 +6,18 @@ https://github.com/mattpocock/skills
 
 Vendored skills (used under the MIT License reproduced below):
 
-- caveman
-- diagnose
+- diagnosing-bugs
 - git-guardrails-claude-code
-- grill-me
 - grill-with-docs
+- grilling
 - handoff
 - improve-codebase-architecture
 - prototype
 - setup-pre-commit
 - tdd
-- to-issues
-- to-prd
+- to-spec
+- to-tickets
 - triage
-- write-a-skill
-- zoom-out
 
 ---
 
