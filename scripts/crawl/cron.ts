@@ -79,8 +79,23 @@ try {
         fetchPrevious: previousUrl
           ? () => fetchPublishedCharts(previousUrl)
           : undefined,
+        // A configured store that reads back null means the bake silently
+        // skips and freshly-crawled cards ship without commentary, so the
+        // degradation must surface in Sentry, not just the run log.
         fetchCommentary: commentaryUrl
-          ? () => fetchCommentaryStore(commentaryUrl)
+          ? async () => {
+              const store = await fetchCommentaryStore(commentaryUrl);
+              if (store === null) {
+                console.warn(
+                  "[crawl] commentary store unreadable — bake skipped this run.",
+                );
+                Sentry.captureMessage("commentary:unavailable", {
+                  level: "warning",
+                  extra: { run_id: process.env.GITHUB_RUN_ID },
+                });
+              }
+              return store;
+            }
           : undefined,
       });
 

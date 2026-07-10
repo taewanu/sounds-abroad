@@ -61,10 +61,45 @@ test("returns null on invalid JSON", async () => {
   expect(result).toBeNull();
 });
 
-test("returns null on schema mismatch", async () => {
+test("keeps valid entries when another entry fails the schema", async () => {
+  // One entry a since-tightened schema rejects must cost only itself: the
+  // bake is authoritative, so voiding the whole store would clear every
+  // freshly-crawled card.
+  const store = validStore();
+  const mixed = { ...store, "en:a|b": { lead: "" } };
+
+  const result = await fetchCommentaryStore(
+    URL,
+    fakeFetch({ body: JSON.stringify(mixed) }),
+  );
+
+  expect(result).toEqual(store);
+});
+
+test("returns null when no entry survives validation", async () => {
+  // Total loss on a non-empty store reads as schema drift, not content:
+  // skipping the bake beats baking an empty store over every card.
   const result = await fetchCommentaryStore(
     URL,
     fakeFetch({ body: JSON.stringify({ "en:a|b": { lead: "" } }) }),
+  );
+
+  expect(result).toBeNull();
+});
+
+test("returns an empty store as-is, distinct from total validation loss", async () => {
+  const result = await fetchCommentaryStore(
+    URL,
+    fakeFetch({ body: JSON.stringify({}) }),
+  );
+
+  expect(result).toEqual({});
+});
+
+test("returns null on a payload that is not an object", async () => {
+  const result = await fetchCommentaryStore(
+    URL,
+    fakeFetch({ body: JSON.stringify([validStore()]) }),
   );
 
   expect(result).toBeNull();
@@ -80,9 +115,9 @@ test("returns null when fetch rejects", async () => {
   expect(result).toBeNull();
 });
 
-test("fetchCommentaryStoreRaw keeps an entry the strict schema would reject", async () => {
-  // The strict read returns null for this same body (see "schema mismatch");
-  // the raw read preserves it so one stale entry cannot void the whole store.
+test("fetchCommentaryStoreRaw keeps an entry the schema would reject", async () => {
+  // The baking read drops this entry (see "no entry survives"); the raw read
+  // preserves it verbatim so a merge-then-overwrite cannot erase it.
   const body = JSON.stringify({ "en:a|b": { lead: "" } });
 
   const store = await fetchCommentaryStoreRaw(URL, fakeFetch({ body }));
