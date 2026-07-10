@@ -260,7 +260,7 @@ function ChartScreenInner({
       <SkipFlash skip={skipFlash} sheetSnap={snap} />
       <TourHost
         snap={snap}
-        currentTrackId={currentTrack?.previewUrl ?? null}
+        currentTrackKey={currentTrack?.previewUrl ?? null}
         // Fall back to the resolved route code until the globe publishes its
         // first selection: a null baseline would make the tour read the store
         // populating itself as the user's first flick.

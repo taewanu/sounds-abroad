@@ -84,9 +84,11 @@
   --scrim-light: rgba(245, 242, 236, 0.04);
   --scrim: rgba(5, 6, 8, 0.7);
   --scrim-deep: rgba(5, 6, 8, 0.92);
-  /* The onboarding tour's dim peak, tuned by eye in the v2.3.0 prototype;
-     lighter than --scrim-deep so the spotlit target reads through it. */
+  /* The onboarding tour's dim: a peak lighter than --scrim-deep so the spotlit
+     target reads through it, settling to --scrim-tour-rest of that peak (an
+     absolute 0.5) so the target stays visible. Both tuned by eye. */
   --scrim-tour: rgba(5, 6, 8, 0.82);
+  --scrim-tour-rest: 0.61;
   --blur-glass: blur(24px) saturate(140%);
 
   --dur-fast: 160ms;
@@ -272,8 +274,8 @@
 /* Onboarding tour dim: the scrim darkens to a peak, holds, then settles to a
    residual so the spotlit target stays visible and reachable rather than staying
    fully blacked out. Percentages map the 620ms dim-in / 1000ms hold / 760ms
-   settle onto the 2380ms total; ending at 0.61 of the 0.82 (--scrim-tour) peak
-   lands the residual on the prototype's absolute 0.5. */
+   settle onto the 2380ms total; ending at --scrim-tour-rest of the peak opacity
+   lands the residual at an absolute 0.5. */
 @keyframes tour-dim {
   0% {
     opacity: 0;
@@ -285,7 +287,7 @@
     opacity: 1;
   }
   100% {
-    opacity: 0.61;
+    opacity: var(--scrim-tour-rest);
   }
 }
 
@@ -838,7 +840,7 @@
   /* Rest the dim at its residual with no dim-in or settle motion. */
   .tour-dim {
     animation: none;
-    opacity: 0.61;
+    opacity: var(--scrim-tour-rest);
   }
   .tour-fade,
   .tour-badge-breathe,

@@ -24,7 +24,7 @@ function stubMatchMedia(reduced: boolean) {
 function renderHost(overrides: Partial<TourHostProps> = {}) {
   const props: TourHostProps = {
     snap: "peek" as SnapState,
-    currentTrackId: null,
+    currentTrackKey: null,
     selectedCode: "us",
     ...overrides,
   };
@@ -165,7 +165,7 @@ describe("TourHost", () => {
       rerenderWith({
         selectedCode: "jp",
         snap: "full",
-        currentTrackId: "kr-1",
+        currentTrackKey: "kr-1",
       });
     });
 
@@ -176,14 +176,20 @@ describe("TourHost", () => {
   test("a track already previewing when the audio beat opens does not skip it", () => {
     stubMatchMedia(false);
     // A track was played earlier (e.g. an accidental tap during beats 1-2).
-    const { getByTestId, rerenderWith } = renderHost({ currentTrackId: "pre" });
+    const { getByTestId, rerenderWith } = renderHost({
+      currentTrackKey: "pre",
+    });
     makeGlobeReady();
 
     act(() => {
-      rerenderWith({ selectedCode: "jp", currentTrackId: "pre" });
+      rerenderWith({ selectedCode: "jp", currentTrackKey: "pre" });
     });
     act(() => {
-      rerenderWith({ selectedCode: "jp", snap: "full", currentTrackId: "pre" });
+      rerenderWith({
+        selectedCode: "jp",
+        snap: "full",
+        currentTrackKey: "pre",
+      });
     });
 
     // The audio beat baselines the already-playing track, so it keeps teaching
@@ -191,14 +197,17 @@ describe("TourHost", () => {
     expect(getByTestId("tour-overlay").getAttribute("data-beat")).toBe("audio");
   });
 
-  test("mounts the badge without an inline animation under reduced motion", () => {
+  test("keeps the badge and its accessible text under reduced motion", () => {
     stubMatchMedia(true);
     const { getByTestId } = renderHost();
     makeGlobeReady();
 
+    // The badge stays mounted as the wordless tour's a11y fallback. The breathe
+    // and hand animations are suppressed by a CSS media query, which jsdom does
+    // not evaluate, so that suppression is device-verified, not asserted here.
     const badge = getByTestId("tour-badge");
-    expect(badge).toBeTruthy();
-    expect(badge.style.animation).toBe("");
+    expect(badge.getAttribute("aria-hidden")).toBeNull();
+    expect(badge.textContent).toMatch(/flick to spin/i);
   });
 
   test("withholds the track spotlight until the sheet finishes rising", () => {

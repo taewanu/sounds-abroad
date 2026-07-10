@@ -19,10 +19,11 @@ export interface TourHostProps {
   // selection in beat 1. Wired when the host is mounted (the chart-screen
   // edit), not by this file.
   snap: SnapState;
-  // The previewing track's id, or null when nothing plays. An id (not a
-  // boolean) so the audio beat can baseline what was already playing on entry
-  // and complete only on a fresh preview, never on a track from before the beat.
-  currentTrackId: string | null;
+  // A key for the previewing track (its preview URL), or null when nothing
+  // plays. A key, not a boolean, so the audio beat can baseline what was already
+  // playing on entry and complete only on a fresh preview, never on a track from
+  // before the beat.
+  currentTrackKey: string | null;
   selectedCode: string | null;
 }
 
@@ -30,7 +31,7 @@ export interface TourHostProps {
 // then hands off to the runner, which owns the step machine.
 export function TourHost({
   snap,
-  currentTrackId,
+  currentTrackKey,
   selectedCode,
 }: TourHostProps) {
   const { seen, markSeen } = useSeenFlag(tourSeen);
@@ -50,7 +51,7 @@ export function TourHost({
   return (
     <TourRunner
       snap={snap}
-      currentTrackId={currentTrackId}
+      currentTrackKey={currentTrackKey}
       selectedCode={selectedCode}
       onDone={handleDone}
     />
@@ -63,7 +64,7 @@ interface TourRunnerProps extends TourHostProps {
 
 function TourRunner({
   snap,
-  currentTrackId,
+  currentTrackKey,
   selectedCode,
   onDone,
 }: TourRunnerProps) {
@@ -182,16 +183,16 @@ function TourRunner({
     if (state.beat !== "audio") return;
     if (!audioArmedRef.current) {
       audioArmedRef.current = true;
-      audioBaselineRef.current = currentTrackId;
+      audioBaselineRef.current = currentTrackKey;
       return;
     }
     if (
-      currentTrackId !== null &&
-      currentTrackId !== audioBaselineRef.current
+      currentTrackKey !== null &&
+      currentTrackKey !== audioBaselineRef.current
     ) {
       dispatch({ type: "TRACK_PREVIEWED" });
     }
-  }, [currentTrackId, state.beat]);
+  }, [currentTrackKey, state.beat]);
 
   // ESC dismisses from any beat (counts as seen). Window-level, like the Space
   // play/pause handler in chart-screen.tsx.

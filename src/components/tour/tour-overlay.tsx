@@ -262,8 +262,8 @@ export function TourOverlay({
           data-testid="tour-vignette"
           className="tour-dim pointer-events-none fixed inset-0"
           style={{
-            // Prototype's soft vignette: peak 0.82 at the edges through a
-            // half-strength midpoint, settling to the shared 0.5 residual.
+            // Soft vignette: peak 0.82 at the edges through a half-strength
+            // midpoint, settling with the scrim to the shared 0.5 residual.
             background:
               "radial-gradient(ellipse 46% 26% at 50% 44%, transparent 40%, rgba(5, 6, 8, 0.41) 70%, rgba(5, 6, 8, 0.82) 100%)",
           }}
