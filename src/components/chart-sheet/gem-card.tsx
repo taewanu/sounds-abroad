@@ -47,6 +47,9 @@ export function GemCard({ track, tier, countryCode }: GemCardProps) {
       s.currentTrack?.previewUrl === track.previewUrl &&
       s.currentCountryCode === countryCode,
   );
+  const hasError = useAudioStore(
+    (s) => s.lastError?.previewUrl === track.previewUrl,
+  );
   const toggle = useAudioStore((s) => s.toggle);
 
   const hasPreview = track.previewUrl !== null;
@@ -108,6 +111,11 @@ export function GemCard({ track, tier, countryCode }: GemCardProps) {
           <p className="text-fg-2 text-small truncate">
             {hasPreview ? track.artist : `No preview · ${track.artist}`}
           </p>
+          {hasError && (
+            <p className="text-error text-micro mt-1">
+              Preview unavailable, try another track
+            </p>
+          )}
         </div>
       </button>
       {commentary ? <TrackCommentary commentary={commentary} /> : null}
