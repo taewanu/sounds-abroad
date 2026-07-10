@@ -4,7 +4,10 @@ import { fetchPublishedCharts } from "../crawl/published-charts";
 
 import { createClaudeDrafter, draftEntry } from "./draft";
 import { dropsUrlFrom, recordAttempts } from "./drops";
-import { fetchCommentaryStoreRaw } from "./fetch-commentary";
+import {
+  fetchCommentaryStoreRaw,
+  salvageCommentaryStore,
+} from "./fetch-commentary";
 import { fetchDrops } from "./fetch-drops";
 import { createClaudeJudge, fetchSourceText, groundEntry } from "./ground";
 import { routeStore } from "./route";
@@ -66,12 +69,24 @@ const existing: CommentaryStore = commentaryUrl
 const dropsUrl = commentaryUrl ? dropsUrlFrom(commentaryUrl) : undefined;
 const priorDrops = dropsUrl ? await fetchDrops(dropsUrl) : {};
 
+// The worklist diffs against the validated view, not the raw base: an entry
+// the tightened schema rejects bakes as no card, so its key must re-queue for
+// drafting instead of blocking its own regeneration. The raw `existing` stays
+// the merge base below, so the fresh draft overwrites the invalid entry and
+// the store converges back to valid.
+const { store: validExisting, droppedKeys } = salvageCommentaryStore(existing);
+if (droppedKeys.length > 0) {
+  console.warn(
+    `[draft] ${droppedKeys.length} invalid entr${droppedKeys.length === 1 ? "y" : "ies"} re-queued for drafting: ${droppedKeys.join(", ")}`,
+  );
+}
+
 // Suppress thin-market low-confidence positions: don't spend a drafter call on
 // noise the worklist would rank last anyway (#117).
 const worklist = computeWorklist({
   current,
   previous,
-  commentary: existing,
+  commentary: validExisting,
   drops: priorDrops,
   options: { suppressLowConfidence: true },
 });
