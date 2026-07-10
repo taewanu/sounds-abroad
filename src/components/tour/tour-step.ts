@@ -5,8 +5,19 @@
 
 export type Beat = "gesture" | "sheet" | "audio" | "done";
 
+// The teachable beats, in the order the tour runs them. "done" is the terminal
+// state, not a beat to teach.
+export type TeachBeat = Exclude<Beat, "done">;
+export const TEACH_ORDER: TeachBeat[] = ["gesture", "sheet", "audio"];
+
+// The tour runs an ordered subset of the teachable beats (only the un-learned
+// ones, decided by the record). `index` is how many of `beats` are complete, so
+// `beats[index]` is the current one and `beats.slice(0, index)` is what the user
+// performed this run. `dismissed` (the X) ends the run without learning the rest.
 export interface TourState {
-  beat: Beat;
+  beats: TeachBeat[];
+  index: number;
+  dismissed: boolean;
 }
 
 export type TourEvent =
@@ -15,30 +26,40 @@ export type TourEvent =
   | { type: "TRACK_PREVIEWED" } // the user tapped a track to preview it
   | { type: "SKIP" }; // dismiss (the X) or Escape
 
-// No auto-demo: the gesture beat opens inviting the user to flick the globe
-// themselves, so the tour never moves the globe or changes the selection on the
-// user's behalf. A hint, not a scripted motion, teaches the gesture.
-export function initialTourState(): TourState {
-  return { beat: "gesture" };
+// The event that completes each beat. A beat advances only when the user
+// performs its real gesture on the live target; there is no tap-to-skip a step.
+const EVENT_FOR: Record<TeachBeat, TourEvent["type"]> = {
+  gesture: "USER_SELECTED",
+  sheet: "SHEET_OPENED",
+  audio: "TRACK_PREVIEWED",
+};
+
+// No auto-demo: each beat opens inviting the user to perform the gesture
+// themselves, so the tour never drives the globe, sheet, or selection. A hint,
+// not a scripted motion, teaches it. Defaults to the full sequence.
+export function initialTourState(beats: TeachBeat[] = TEACH_ORDER): TourState {
+  return { beats, index: 0, dismissed: false };
+}
+
+// The beat to render, or "done" once dismissed or past the last beat.
+export function currentBeat(state: TourState): Beat {
+  if (state.dismissed || state.index >= state.beats.length) return "done";
+  return state.beats[state.index];
+}
+
+// The beats the user actually performed this run, to fold into the record as
+// learned. A dismissal doesn't retroactively learn the beats it skipped.
+export function learnedSoFar(state: TourState): TeachBeat[] {
+  return state.beats.slice(0, state.index);
 }
 
 export function tourReducer(state: TourState, event: TourEvent): TourState {
-  // Skip ends the tour from any beat; dismissing counts as seen.
-  if (event.type === "SKIP") return { beat: "done" };
-  if (state.beat === "done") return state;
-
-  switch (state.beat) {
-    case "gesture":
-      // Each beat advances only when the user performs its real gesture on the
-      // live target under the pass-through dim; there is no tap-to-skip a step.
-      // The single exit is the X (SKIP), so the dim never competes with the
-      // gesture for the same tap.
-      return event.type === "USER_SELECTED" ? { beat: "sheet" } : state;
-    case "sheet":
-      return event.type === "SHEET_OPENED" ? { beat: "audio" } : state;
-    case "audio":
-      return event.type === "TRACK_PREVIEWED" ? { beat: "done" } : state;
-    default:
-      return state;
-  }
+  if (currentBeat(state) === "done") return state;
+  // The single exit is the X (SKIP), so the dim never competes with the gesture
+  // for the same tap.
+  if (event.type === "SKIP") return { ...state, dismissed: true };
+  const beat = state.beats[state.index];
+  return event.type === EVENT_FOR[beat]
+    ? { ...state, index: state.index + 1 }
+    : state;
 }
