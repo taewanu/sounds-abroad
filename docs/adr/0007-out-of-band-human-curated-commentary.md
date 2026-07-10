@@ -20,7 +20,7 @@ Options weighed for where commentary is generated:
 Commentary is generated out-of-band and human-reviewed, never by the crawl. The crawl reads a commentary store and bakes each entry into the served chart data, leaving tracks without an entry as `null` (no card) and never aborting on a miss, the same carry-forward contract it already uses for failed fetches.
 
 - **Store:** a Vercel Blob sidecar, `commentary/v1/commentary.json`, keyed by `lang:normalized(artist|name)`. It is owned by the publish step; the crawl reads it but never writes it, a clean producer split from `charts.json` (which the crawl overwrites every run).
-- **Selection:** a deterministic significance trigger (new entry, large rank jump, re-entry) from current versus carried-forward ranks decides which tracks warrant commentary. Effort goes only to tracks with a story; an entry, once written, persists and is reused after the track stabilizes.
+- **Selection:** a deterministic significance trigger (new entry, large rank jump, re-entry) from current versus carried-forward ranks decides which tracks warrant commentary. Effort goes only to tracks with a story; an entry, once written, persists and is reused after the track stabilizes. (The shipped third trigger is top-debut, not re-entry; see the 2026-07-10 amendment.)
 - **No-lyric guard:** a deterministic lint hard-blocks publish on any entry resembling reproduced lyric text; the editor's read-through is the second layer. The guard runs at publish, not in the crawl. (Under [ADR-0008](0008-risk-tiered-commentary-gate.md) the lint joins the primary code gate; the read-through second layer narrows to risky-tier review plus safe-tier sampling.)
 - **Cadence:** commentary is filled in by re-running the publish flow, not on a schedule. A brand-new track shows no card until the next pass.
 
@@ -49,3 +49,7 @@ The data plane is already Vercel Blob: the crawl writes `charts.json` there and 
 
 - The sidecar adds one producer (the publish step) but no new infrastructure type; Blob is already in use.
 - Language is a key dimension (`lang:…`), so per-language commentary is additive later without reshaping the store.
+
+## Amendment (2026-07-10): the third movement trigger is top-debut, not re-entry
+
+The Selection bullet lists "(new entry, large rank jump, re-entry)"; the implemented triggers are new-entry, rank-jump, and top-debut (`movementReason` in `scripts/commentary/worklist.ts`), joined later by the gem trigger of [ADR-0014](0014-gem-selection-triggers-commentary.md). Re-entry cannot be detected from the data the worklist reads: with only the current chart and one previous snapshot, a track absent from the snapshot and present now is indistinguishable from a first entry. Top-debut (entering the top ranks, or appearing there with no history to diff) covers the prominent slice of those cases and needs no deeper history. ADR-0014 already describes the live trigger set; this note corrects the original list.
