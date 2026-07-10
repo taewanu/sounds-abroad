@@ -8,7 +8,6 @@ import {
   useRef,
   useState,
 } from "react";
-import * as Dialog from "@radix-ui/react-dialog";
 
 import type { Country } from "@/lib/chart-schema";
 import { selectGem } from "@/lib/select-gem";
@@ -455,14 +454,26 @@ export function ChartSheet({
     onSnapChange(snap === "peek" ? "full" : "peek");
   }, [snap, onSnapChange]);
 
-  // open is pinned true to keep the sheet mounted for hidden<->visible
-  // animation; Escape collapses to closed instead of unmounting.
-  const handleOpenChange = useCallback(
-    (next: boolean) => {
-      if (!next) onSnapChange("closed");
-    },
-    [onSnapChange],
-  );
+  // Escape collapses the sheet. Radix's Dialog owned this before; with the
+  // Dialog removed for its focus trap we listen on the window directly.
+  // Mirror the file's long-lived-listener pattern (see the touch controller):
+  // read the latest values from refs so this attaches once, not per render.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      // Leave Escape to the focused control when it owns a field-local cancel
+      // (a range/text input, a select), matching the Space handler's guard.
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      // Already collapsed or off-screen: nothing to close, so skip the write.
+      const currentSnap = snapRef.current;
+      if (currentSnap === "closed" || currentSnap === "hidden") return;
+      onSnapChangeRef.current("closed");
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   const prevSnapRef = useRef(snap);
   const prevSignalRef = useRef(scrollSignal);
@@ -508,69 +519,65 @@ export function ChartSheet({
   }, [snap, currentTrackRank, scrollSignal, countryCode, currentCountryCode]);
 
   return (
-    // Not wrapped in Dialog.Portal: the sheet must be in the server-rendered
-    // HTML so it (not the client-only globe) is the LCP element. Rendering in
-    // place is safe because it is a fixed overlay declared after the globe layer
-    // with no clipping or transformed ancestor (modal={false}, so no focus trap
-    // either). If an ancestor ever gains overflow/transform, restore the portal.
-    <Dialog.Root open onOpenChange={handleOpenChange} modal={false}>
-      <Dialog.Content
-        asChild
-        aria-describedby={undefined}
-        onInteractOutside={(e) => e.preventDefault()}
+    // Rendered in place, not portaled: the sheet must be in the server HTML so
+    // it (not the client-only globe) anchors first paint. Safe because it is a
+    // fixed overlay after the globe layer with no clipping or transformed
+    // ancestor; restore a portal if an ancestor ever gains overflow/transform.
+    // A plain <section>, not a Radix Dialog: Dialog's FocusScope hardcodes a Tab
+    // loop with no opt-out even at modal={false}, trapping keyboard and SR-focus
+    // users in the sheet. Only Dialog.Title semantics and Escape-to-collapse
+    // were ever used; both are reproduced here without the trap.
+    <section
+      ref={sheetRef}
+      aria-labelledby="chart-sheet-title"
+      data-snap={snap}
+      data-testid="chart-sheet"
+      onPointerDown={handlePointerDown}
+      style={{
+        ...(hasMiniPlayer ? SHEET_STYLE_WITH_MINI : SHEET_STYLE_NO_MINI),
+        transform: `translateY(${SNAP_Y[initialSnap]})`,
+        willChange: "transform",
+      }}
+      className="group bg-void text-fg-1 border-fg-1/10 shadow-sheet fixed inset-x-0 flex flex-col rounded-t-2xl border-t"
+    >
+      <div className="shrink-0 touch-none">
+        <button
+          type="button"
+          onClick={handleToggle}
+          aria-label={snap === "full" ? "Collapse chart" : "Expand chart"}
+          className="bg-fg-1/15 rounded-pill mx-auto mt-3 mb-2 block h-1.5 w-12"
+        />
+        <h2 id="chart-sheet-title" className="text-h3 px-6 pb-3 font-semibold">
+          {country.name}
+        </h2>
+      </div>
+      {/* Native list scroll is enabled only at full (touch-pan-y); at the
+          partial snaps a vertical drag drives the sheet instead, so the list
+          is touch-none there. */}
+      <ol
+        key={countryCode}
+        ref={olRef}
+        data-peek={(snap === "peek" && !isDragging) || undefined}
+        className="min-h-0 flex-1 touch-none overflow-y-auto overscroll-y-contain px-4 pb-12 transition-[max-height] duration-300 ease-out [-ms-overflow-style:none] [scrollbar-width:none] group-data-[snap=full]:touch-pan-y data-[peek]:max-h-[calc(35dvh-62px)] [&::-webkit-scrollbar]:hidden"
       >
-        <div
-          ref={sheetRef}
-          data-snap={snap}
-          data-testid="chart-sheet"
-          onPointerDown={handlePointerDown}
-          style={{
-            ...(hasMiniPlayer ? SHEET_STYLE_WITH_MINI : SHEET_STYLE_NO_MINI),
-            transform: `translateY(${SNAP_Y[initialSnap]})`,
-            willChange: "transform",
-          }}
-          className="group bg-void text-fg-1 border-fg-1/10 shadow-sheet fixed inset-x-0 flex flex-col rounded-t-2xl border-t"
-        >
-          <div className="shrink-0 touch-none">
-            <button
-              type="button"
-              onClick={handleToggle}
-              aria-label={snap === "full" ? "Collapse chart" : "Expand chart"}
-              className="bg-fg-1/15 rounded-pill mx-auto mt-3 mb-2 block h-1.5 w-12"
+        {gemSelection ? (
+          <li>
+            <GemCard
+              track={gemSelection.gem}
+              tier={gemSelection.tier}
+              countryCode={countryCode}
             />
-            <Dialog.Title className="text-h3 px-6 pb-3 font-semibold">
-              {country.name}
-            </Dialog.Title>
-          </div>
-          {/* Native list scroll is enabled only at full (touch-pan-y); at the
-              partial snaps a vertical drag drives the sheet instead, so the list
-              is touch-none there. */}
-          <ol
-            key={countryCode}
-            ref={olRef}
-            data-peek={(snap === "peek" && !isDragging) || undefined}
-            className="min-h-0 flex-1 touch-none overflow-y-auto overscroll-y-contain px-4 pb-12 transition-[max-height] duration-300 ease-out [-ms-overflow-style:none] [scrollbar-width:none] group-data-[snap=full]:touch-pan-y data-[peek]:max-h-[calc(35dvh-62px)] [&::-webkit-scrollbar]:hidden"
-          >
-            {gemSelection ? (
-              <li>
-                <GemCard
-                  track={gemSelection.gem}
-                  tier={gemSelection.tier}
-                  countryCode={countryCode}
-                />
-              </li>
-            ) : null}
-            {country.tracks.map((track) => (
-              <TrackRow
-                key={track.rank}
-                track={track}
-                countryCode={countryCode}
-                isHintTarget={track.rank === hintRank}
-              />
-            ))}
-          </ol>
-        </div>
-      </Dialog.Content>
-    </Dialog.Root>
+          </li>
+        ) : null}
+        {country.tracks.map((track) => (
+          <TrackRow
+            key={track.rank}
+            track={track}
+            countryCode={countryCode}
+            isHintTarget={track.rank === hintRank}
+          />
+        ))}
+      </ol>
+    </section>
   );
 }

@@ -23,7 +23,6 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@radix-ui/react-dialog": "1.1.15",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
     "@sentry/nextjs": "^10.51.0",
