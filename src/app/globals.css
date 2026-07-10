@@ -720,6 +720,174 @@
   animation: tour-tap-ripple 1.8s var(--ease-out) infinite;
 }
 
+/* Beat-4 skip cue, wordless. The contextual edge-tap hint renders a double-tap
+   hand at the right edge plus two aurora rails marking both skip zones, over the
+   shared dim. It teaches the double-tap-either-edge skip in the moment it first
+   becomes usable (a track plays and the sheet is below full). */
+
+/* The hand presses twice in place, holds, lifts, repeats: the literal
+   double-tap. Animate the wrapper, not the SVG, so the transform stays on the
+   compositor. */
+@keyframes tour-double-tap {
+  0% {
+    transform: scale(0.55);
+    opacity: 0;
+  }
+  9% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  17% {
+    transform: translateY(4px) scale(0.86);
+    opacity: 1;
+  }
+  25% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  33% {
+    transform: translateY(4px) scale(0.86);
+    opacity: 1;
+  }
+  41% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  74% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  88% {
+    transform: scale(0.55);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.55);
+    opacity: 0;
+  }
+}
+
+@keyframes tour-double-tap-ripple {
+  0%,
+  13% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3);
+  }
+  19% {
+    opacity: 0.75;
+    transform: translate(-50%, -50%) scale(0.55);
+  }
+  29% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.7);
+  }
+  33% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3);
+  }
+  39% {
+    opacity: 0.75;
+    transform: translate(-50%, -50%) scale(0.55);
+  }
+  49% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.7);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.7);
+  }
+}
+
+.tour-double-tap {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  color: var(--color-aurora);
+  animation: tour-double-tap 2000ms var(--ease-out) infinite;
+}
+
+.tour-double-tap::after {
+  content: "";
+  position: absolute;
+  top: 14%;
+  left: 35%;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-pill);
+  border: 2px solid rgba(107, 229, 197, 0.8);
+  transform: translate(-50%, -50%) scale(0.3);
+  animation: tour-double-tap-ripple 2000ms var(--ease-out) infinite;
+}
+
+/* Left-edge echo: the same touch ripple as the right hand's double-tap, mirrored
+   to the left edge with no hand and in sync, so "either edge" is shown, not only
+   worded. left 35% -> 65% mirrors the hand's fingertip so both land at the same
+   height; one ring only, matching the hand's single pulsing ::after. */
+.tour-edge-echo {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  /* Same bob + fade envelope as the hand, so the ripple rides it identically
+     (the hand icon is just absent). Without this the left ripple pulses on a
+     static parent and reads subtly different from the right. */
+  animation: tour-double-tap 2000ms var(--ease-out) infinite;
+}
+
+.tour-edge-echo::after {
+  content: "";
+  position: absolute;
+  top: 14%;
+  left: 65%;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-pill);
+  border: 2px solid rgba(107, 229, 197, 0.8);
+  transform: translate(-50%, -50%) scale(0.3);
+  animation: tour-double-tap-ripple 2000ms var(--ease-out) infinite;
+}
+
+/* Two full-height aurora washes, strongest at each screen edge and gone by the
+   centre, so the pair reads as "either side" where a single hand cannot. They
+   sit behind the sheet (a lower z), which masks their bottom with its own
+   rounded silhouette. One slow smooth swell, ease-in-out dwelling at both ends,
+   so it breathes rather than blinks. */
+@keyframes tour-rail-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.82;
+  }
+}
+
+.tour-rail {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  animation: tour-rail-pulse 1900ms ease-in-out infinite;
+}
+
+.tour-rail-l {
+  left: 0;
+  background: linear-gradient(
+    to right,
+    rgba(107, 229, 197, 0.34),
+    rgba(107, 229, 197, 0) 52%
+  );
+}
+
+.tour-rail-r {
+  right: 0;
+  background: linear-gradient(
+    to left,
+    rgba(107, 229, 197, 0.34),
+    rgba(107, 229, 197, 0) 52%
+  );
+}
+
 /* One-time commentary discovery hint: an aurora ring draws the eye while the
    chevron wrapper bobs down to say "open". Fires once, then the JS clears the
    attribute and the chevron returns to rest. Animate the wrapper, not the SVG,
@@ -852,14 +1020,25 @@
   .tour-pull,
   .tour-pull::after,
   .tour-tap,
-  .tour-tap::after {
+  .tour-tap::after,
+  .tour-double-tap,
+  .tour-double-tap::after,
+  .tour-edge-echo,
+  .tour-edge-echo::after {
     animation: none;
   }
   /* The touch-ripple rings read as motion; frozen they leave a stray dot at the
      fingertip. Hide them so reduced motion shows clean static finger icons. */
   .tour-swipe::after,
   .tour-pull::after,
-  .tour-tap::after {
+  .tour-tap::after,
+  .tour-double-tap::after,
+  .tour-edge-echo::after {
     display: none;
+  }
+  /* The rails keep marking the edges; drop the swell, rest at a steady level. */
+  .tour-rail {
+    animation: none;
+    opacity: 0.6;
   }
 }
