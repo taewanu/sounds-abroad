@@ -156,6 +156,26 @@ describe("GemCard", () => {
 
     expect(container.querySelector(".eq")).toBeNull();
   });
+
+  test("error message renders when lastError matches the gem's previewUrl", () => {
+    const track = makeTrack();
+
+    renderGemCard(track, "entirely their own", {
+      lastError: { previewUrl: track.previewUrl },
+    });
+
+    expect(screen.getByText(/Preview unavailable/)).toBeDefined();
+  });
+
+  test("error message hidden when lastError matches a different track", () => {
+    const track = makeTrack();
+
+    renderGemCard(track, "entirely their own", {
+      lastError: { previewUrl: "https://example.com/other.m4a" },
+    });
+
+    expect(screen.queryByText(/Preview unavailable/)).toBeNull();
+  });
 });
 
 describe("GemCard tier strength meter", () => {
