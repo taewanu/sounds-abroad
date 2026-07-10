@@ -13,14 +13,19 @@ import { edgeTapSeen } from "./seen-edge-tap-hint";
 // over their listening.
 const FALLBACK_MS = 6000;
 
+// The demonstrating hand's horizontal centre; the left echo mirrors it so the
+// pair stays symmetric when either moves.
+const HAND_EDGE_PCT = 83.5;
+const ECHO_EDGE_PCT = 100 - HAND_EDGE_PCT;
+
 // Contextual first-encounter cue for the double-tap-either-edge skip. Unlike the
 // linear onboarding tour, this waits for the moment the gesture first becomes
 // usable (a track plays and the sheet is below full, so the globe edges are
 // tappable), then teaches it in place. Shown once per device; the seen flag
 // persists. Pointer-transparent throughout so it never intercepts the taps it
-// teaches. Reskinned to the v2.3.0 wordless language: a globe-dim / sheet-dim
-// sandwich, two aurora edge rails behind the sheet, one right-edge double-tap
-// hand, and a "Double-tap either edge to skip" badge.
+// teaches. Wordless chrome: a globe-dim / sheet-dim sandwich, two aurora edge
+// rails behind the sheet, one right-edge double-tap hand with a synced left-edge
+// ripple echo, and a "Double-tap either edge to skip" badge.
 export function EdgeTapHint({
   active,
   snap,
@@ -79,14 +84,18 @@ export function EdgeTapHint({
         className="pointer-events-none fixed inset-0 z-10"
       >
         <div className="tour-dim absolute inset-0 bg-[var(--scrim-tour)]" />
-        <div className="tour-rail tour-rail-l" />
-        <div className="tour-rail tour-rail-r" />
+        {/* The rails fade in over the dim-in window so all three layers appear
+            together; the pulse rides that fade. */}
+        <div className="tour-rails">
+          <div className="tour-rail tour-rail-l" />
+          <div className="tour-rail tour-rail-r" />
+        </div>
       </div>
 
       {/* Foreground: the sheet's own dim, the double-tap hand, and the badge,
-          above the sheet (z-40 > sheet z-20, below the mini-player z-50). */}
+          above the sheet (z-40 > sheet z-20, below the mini-player z-50). Not
+          aria-hidden: it holds the status badge, the cue's a11y fallback. */}
       <div
-        aria-hidden={undefined}
         data-testid="edge-tap-foreground"
         className="pointer-events-none fixed inset-0 z-40"
       >
@@ -107,7 +116,7 @@ export function EdgeTapHint({
         <div
           aria-hidden
           className="fixed -translate-x-1/2 -translate-y-1/2"
-          style={{ left: "83.5%", top: "42%" }}
+          style={{ left: `${HAND_EDGE_PCT}%`, top: "42%" }}
         >
           <div className="tour-double-tap">
             <PointerIcon className="tour-swipe-hand" />
@@ -120,7 +129,7 @@ export function EdgeTapHint({
           aria-hidden
           data-testid="edge-tap-echo"
           className="fixed -translate-x-1/2 -translate-y-1/2"
-          style={{ left: "16.5%", top: "42%" }}
+          style={{ left: `${ECHO_EDGE_PCT}%`, top: "42%" }}
         >
           <div className="tour-edge-echo" />
         </div>

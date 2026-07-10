@@ -799,46 +799,27 @@
   }
 }
 
-.tour-double-tap {
-  position: relative;
-  width: 44px;
-  height: 44px;
-  color: var(--color-aurora);
-  animation: tour-double-tap 2000ms var(--ease-out) infinite;
-}
-
-.tour-double-tap::after {
-  content: "";
-  position: absolute;
-  top: 14%;
-  left: 35%;
-  width: 30px;
-  height: 30px;
-  border-radius: var(--radius-pill);
-  border: 2px solid rgba(107, 229, 197, 0.8);
-  transform: translate(-50%, -50%) scale(0.3);
-  animation: tour-double-tap-ripple 2000ms var(--ease-out) infinite;
-}
-
-/* Left-edge echo: the same touch ripple as the right hand's double-tap, mirrored
-   to the left edge with no hand and in sync, so "either edge" is shown, not only
-   worded. left 35% -> 65% mirrors the hand's fingertip so both land at the same
-   height; one ring only, matching the hand's single pulsing ::after. */
+/* The double-tap hand and the left-edge echo share one bob+fade envelope and one
+   touch ripple; only the ripple's horizontal origin mirrors (35% vs 65%) so both
+   rings sit at the same height. The echo carries no hand icon: it is the ripple
+   alone, riding the same envelope so it reads identically to the hand's. */
+.tour-double-tap,
 .tour-edge-echo {
   position: relative;
   width: 44px;
   height: 44px;
-  /* Same bob + fade envelope as the hand, so the ripple rides it identically
-     (the hand icon is just absent). Without this the left ripple pulses on a
-     static parent and reads subtly different from the right. */
   animation: tour-double-tap 2000ms var(--ease-out) infinite;
 }
 
+.tour-double-tap {
+  color: var(--color-aurora);
+}
+
+.tour-double-tap::after,
 .tour-edge-echo::after {
   content: "";
   position: absolute;
   top: 14%;
-  left: 65%;
   width: 30px;
   height: 30px;
   border-radius: var(--radius-pill);
@@ -847,11 +828,19 @@
   animation: tour-double-tap-ripple 2000ms var(--ease-out) infinite;
 }
 
-/* Two full-height aurora washes, strongest at each screen edge and gone by the
-   centre, so the pair reads as "either side" where a single hand cannot. They
-   sit behind the sheet (a lower z), which masks their bottom with its own
-   rounded silhouette. One slow smooth swell, ease-in-out dwelling at both ends,
-   so it breathes rather than blinks. */
+.tour-double-tap::after {
+  left: 35%;
+}
+
+.tour-edge-echo::after {
+  left: 65%;
+}
+
+/* Two full-height aurora washes marking each skip edge, strongest at the edge and
+   gone by the centre. They sit behind the sheet (a lower z), which masks their
+   bottom with its own rounded silhouette. The pair fades in with the dim (see
+   .tour-rails), then swells as one slow smooth breath, ease-in-out dwelling at
+   both ends, so it breathes rather than blinks. */
 @keyframes tour-rail-pulse {
   0%,
   100% {
@@ -886,6 +875,25 @@
     rgba(107, 229, 197, 0.34),
     rgba(107, 229, 197, 0) 52%
   );
+}
+
+/* The rails fade in over the dim-in window (the 620ms leading edge of tour-dim's
+   2380ms), so the globe-dim, rails, and sheet-dim all appear together instead of
+   the rails popping in at full while the dims fade up. The pulse rides this fade:
+   wrapper opacity (0 to 1) times each rail's pulse. */
+@keyframes tour-rails-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.tour-rails {
+  position: absolute;
+  inset: 0;
+  animation: tour-rails-in 620ms var(--ease-out) both;
 }
 
 /* One-time commentary discovery hint: an aurora ring draws the eye while the
@@ -1036,7 +1044,11 @@
   .tour-edge-echo::after {
     display: none;
   }
-  /* The rails keep marking the edges; drop the swell, rest at a steady level. */
+  /* The rails keep marking the edges; drop the swell and the fade-in, rest at a
+     steady level. */
+  .tour-rails {
+    animation: none;
+  }
   .tour-rail {
     animation: none;
     opacity: 0.6;

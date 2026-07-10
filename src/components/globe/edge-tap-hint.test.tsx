@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { globeChartStore } from "@/lib/globe-chart-store";
 
 import { EdgeTapHint } from "./edge-tap-hint";
+import { edgeTapSeen } from "./seen-edge-tap-hint";
 
 function renderHint(active = true) {
   return render(<EdgeTapHint active={active} snap="peek" />);
@@ -29,7 +30,7 @@ describe("EdgeTapHint", () => {
   });
 
   test("does not show again once the flag is already set", () => {
-    localStorage.setItem("sounds-abroad:edge-tap-hint-seen:v1", "1");
+    edgeTapSeen.markSeen();
 
     expect(renderHint(true).queryByTestId("edge-tap-badge")).toBeNull();
   });
@@ -37,9 +38,7 @@ describe("EdgeTapHint", () => {
   test("marks itself seen on show", () => {
     renderHint(true);
 
-    expect(localStorage.getItem("sounds-abroad:edge-tap-hint-seen:v1")).toBe(
-      "1",
-    );
+    expect(edgeTapSeen.hasSeen()).toBe(true);
   });
 
   test("dismisses when the user performs a real skip", () => {
