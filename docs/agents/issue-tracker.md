@@ -1,6 +1,6 @@
 # Issue tracker: GitHub
 
-Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for all operations.
+Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all operations.
 
 ## Conventions
 
@@ -15,7 +15,7 @@ Infer the repo from `git remote -v` — `gh` does this automatically when run in
 
 ## Title prefixes
 
-PRD parent issues prefix titles with `[PRD]`; child slices use no prefix. In a slice's `## Parent` link, escape the brackets: `[\[PRD\] ...](...)`.
+Spec parent issues prefix titles with `[PRD]`; child tickets use no prefix. The prefix stays `[PRD]` to match existing issues — `to-spec` produces what the skill set calls a spec, which this repo titles `[PRD]`. In a ticket's `## Parent` link, escape the brackets: `[\[PRD\] ...](...)`.
 
 ## When a skill says "publish to the issue tracker"
 
