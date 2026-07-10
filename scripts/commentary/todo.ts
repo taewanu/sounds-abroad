@@ -1,6 +1,7 @@
 import { fetchPublishedCharts } from "../crawl/published-charts";
 
 import { fetchCommentaryStore } from "./fetch-commentary";
+import { loadPreviousCharts } from "./previous-charts";
 import { computeWorklist } from "./worklist";
 
 // Prints the tracks a refinement pass still needs to write: significant movers
@@ -18,10 +19,10 @@ if (!current) {
   throw new Error(`Could not read published charts from ${chartsUrl}.`);
 }
 
-// Optional prior snapshot. Without it, the worklist falls back to absolute
-// prominence (top-ranked tracks) instead of rank movement.
-const prevUrl = process.env.CHARTS_PREV_BLOB_URL;
-const previous = prevUrl ? await fetchPublishedCharts(prevUrl) : null;
+// Optional prior snapshot (the crawl maintains it next to the live charts).
+// Without it, the worklist falls back to absolute prominence (top-ranked
+// tracks) instead of rank movement; loadPreviousCharts says which on stderr.
+const previous = await loadPreviousCharts(process.env.CHARTS_PREV_BLOB_URL);
 
 const commentaryUrl = process.env.COMMENTARY_BLOB_URL;
 const commentary = commentaryUrl

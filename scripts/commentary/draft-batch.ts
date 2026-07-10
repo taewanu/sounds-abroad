@@ -10,6 +10,7 @@ import {
 } from "./fetch-commentary";
 import { fetchDrops } from "./fetch-drops";
 import { createClaudeJudge, fetchSourceText, groundEntry } from "./ground";
+import { loadPreviousCharts } from "./previous-charts";
 import { routeStore } from "./route";
 import { backupCommentary, uploadCommentary } from "./upload-commentary";
 import { uploadDrops } from "./upload-drops";
@@ -51,8 +52,7 @@ if (!current) {
   throw new Error(`Could not read published charts from ${chartsUrl}.`);
 }
 
-const prevUrl = process.env.CHARTS_PREV_BLOB_URL;
-const previous = prevUrl ? await fetchPublishedCharts(prevUrl) : null;
+const previous = await loadPreviousCharts(process.env.CHARTS_PREV_BLOB_URL);
 
 // Read the live store raw, never schema-validated: one entry that fails the
 // since-tightened schema must not void the whole store, and a failed read must

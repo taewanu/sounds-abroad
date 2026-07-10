@@ -3,10 +3,11 @@ import { COUNTRIES } from "../../src/lib/countries";
 import { fetchAppleRss } from "./apple-rss";
 import { createItunesFetchers } from "./itunes-fetchers";
 import { lookupTrack } from "./itunes-lookup";
+import { fetchPublishedCharts } from "./published-charts";
 import { crawlAll, crawlCountry, type SpotifyResolution } from "./run";
 import { createSpotifyResolver } from "./spotify-resolve";
 import { createSpotifyThrottle, createThrottle } from "./throttle";
-import { uploadCharts } from "./upload-blob";
+import { uploadCharts, uploadPreviousCharts } from "./upload-blob";
 
 // Spotify resolution for local debug: enabled only when both credentials are in
 // .env.local; otherwise links fall back to the search URL, same as production.
@@ -63,6 +64,15 @@ async function runAllCountries(): Promise<void> {
       "BLOB_READ_WRITE_TOKEN missing. Run with: pnpm crawl (loads .env.local via tsx --env-file).",
     );
   }
+  // This run publishes to the live pathname, so it must keep the same
+  // read/snapshot pair as cron: without them a local run overwrites the
+  // outgoing charts unsnapshotted and skips carry-forward.
+  const previousUrl = process.env.CHARTS_BLOB_URL;
+  if (!previousUrl) {
+    console.warn(
+      "[crawl] CHARTS_BLOB_URL not set: carry-forward and prev snapshot skipped this run.",
+    );
+  }
   const itunes = createItunesFetchers({
     fetchRss: fetchAppleRss,
     lookupTrack,
@@ -74,6 +84,18 @@ async function runAllCountries(): Promise<void> {
     lookupTrack: itunes.lookupTrack,
     spotify: spotifyFromEnv(),
     uploadCharts,
+    fetchPrevious: previousUrl
+      ? () => fetchPublishedCharts(previousUrl)
+      : undefined,
+    uploadPrevious: async (chartFile) => {
+      try {
+        await uploadPreviousCharts(chartFile);
+      } catch (err) {
+        console.warn(
+          `[crawl] prev snapshot write failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    },
     // Local debug entry never hits production revalidate — cron.ts injects the real one.
     triggerRevalidate: async () => {
       console.log("[crawl] revalidate skipped (local debug)");
