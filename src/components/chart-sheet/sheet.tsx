@@ -538,7 +538,10 @@ export function ChartSheet({
         transform: `translateY(${SNAP_Y[initialSnap]})`,
         willChange: "transform",
       }}
-      className="group bg-void text-fg-1 border-fg-1/10 shadow-sheet fixed inset-x-0 flex flex-col rounded-t-2xl border-t"
+      // Explicit z so the edge-tap hint can bracket the sheet: its aurora rails
+      // sit below (a lower z) and its sheet-dim above, reproducing the backdrop
+      // sandwich. Stays under the mini-player (z-50) and the tour overlay (z-60).
+      className="group bg-void text-fg-1 border-fg-1/10 shadow-sheet fixed inset-x-0 z-20 flex flex-col rounded-t-2xl border-t"
     >
       <div className="shrink-0 touch-none">
         <button
