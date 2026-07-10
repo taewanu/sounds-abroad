@@ -1,6 +1,21 @@
 # ADR-0004: Dynamic rendering of the home route for a server-painted chart
 
-**Status:** Accepted (2026-06-07)
+**Status:** Accepted (2026-06-07); amended 2026-07-10 (#200)
+
+## Amendment (2026-07-10, #200)
+
+The Decision's claim that `modal={false}` loses no focus trap is false. Radix
+`react-dialog` hardcodes `loop: true` on its FocusScope even at `modal={false}`,
+with no prop-level opt-out, so the sheet trapped keyboard and screen-reader
+focus inside itself on every page load (verified against
+@radix-ui/react-dialog 1.1.15). Keyboard and SR-focus users could never reach
+the country selector, mini-player, or tour controls.
+
+The sheet no longer uses Radix Dialog. It renders a plain
+`<section aria-labelledby>` with a window Escape handler, reproducing the only
+two Dialog features it actually used (Title semantics and Escape-to-collapse)
+without the trap. The render-in-place, de-portaled decision below is unchanged;
+only the focus-trap premise was wrong.
 
 ## Context
 
@@ -23,7 +38,7 @@ Render the home route dynamically and keep the chart reading the country from th
 - `ChartScreen` stays a Client Component and reads the country from `useSearchParams().get('cc')`, falling back to the `defaultCountryCode` prop. On the dynamic route this server-renders the sheet into the initial HTML; because the country stays client-readable, a pin click writes the new code with `window.history.pushState` (no navigation) and the chart re-renders from the `useSearchParams` update in place, with no server round-trip.
 - The globe (`globe-scene`, client-only via `next/dynamic` `ssr:false`) keeps reading the country from `useSearchParams()`. Chart and globe both read the country from the URL, which stays the single source of truth.
 - For bare `/`, the client writes the chosen country into the URL with `window.history.replaceState` after hydration, so the URL becomes shareable and the globe can read it.
-- The chart sheet (a Radix Dialog) renders **without** `Dialog.Portal`. A React portal renders nothing during server rendering (it needs a live DOM node), so a portaled sheet would stay out of the initial HTML even on a dynamic route. This was a second, independent cause of the missing chart, found only after the `useSearchParams` bailout was fixed. Rendering in place is safe here: the sheet is a fixed overlay declared after the globe layer, with no clipping or transformed ancestor, and `modal={false}` was already set so no focus trap is lost.
+- The chart sheet (a Radix Dialog) renders **without** `Dialog.Portal`. A React portal renders nothing during server rendering (it needs a live DOM node), so a portaled sheet would stay out of the initial HTML even on a dynamic route. This was a second, independent cause of the missing chart, found only after the `useSearchParams` bailout was fixed. Rendering in place is safe here: the sheet is a fixed overlay declared after the globe layer, with no clipping or transformed ancestor, and `modal={false}` was already set so no focus trap is lost. **(Amended 2026-07-10: the focus-trap claim is false; see Amendment above. #200)**
 
 ### Why keep `useSearchParams` (hybrid) over a server prop only
 

@@ -113,10 +113,70 @@ describe("ChartSheet", () => {
     }
   });
 
-  test("renders the country name as the dialog title", () => {
+  test("renders the country name as the sheet title", () => {
     renderSheet("peek");
 
     expect(screen.getByText(COUNTRY_KR.name)).toBeDefined();
+  });
+
+  test("labels the sheet region with its title", () => {
+    renderSheet("peek");
+
+    const sheet = screen.getByTestId("chart-sheet");
+    const labelId = sheet.getAttribute("aria-labelledby");
+    expect(labelId).toBeTruthy();
+    expect(document.getElementById(labelId as string)?.textContent).toBe(
+      COUNTRY_KR.name,
+    );
+  });
+
+  // The sheet must not autofocus its own controls on mount, and Tab off the
+  // last control must escape the sheet rather than wrap back into it. Both
+  // regress if the sheet is ever rewrapped in a focus-trapping Dialog.
+  test("does not steal focus into the sheet on mount", () => {
+    renderSheet("peek");
+
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  test("does not trap Tab: a Tab keydown on the last control is not intercepted", () => {
+    renderSheet("full");
+    const sheet = screen.getByTestId("chart-sheet");
+    const tabbables = sheet.querySelectorAll<HTMLElement>("button, a[href]");
+    const last = tabbables[tabbables.length - 1];
+
+    // fireEvent returns false when a handler called preventDefault on the
+    // cancelable event; a trapping FocusScope would cancel the wrap here.
+    const notPrevented = fireEvent.keyDown(last, { key: "Tab" });
+
+    expect(notPrevented).toBe(true);
+  });
+
+  test("collapses to closed on Escape", () => {
+    const { onSnapChange } = renderSheet("full");
+
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    expect(onSnapChange).toHaveBeenCalledWith("closed");
+  });
+
+  test("ignores Escape when already collapsed off-screen", () => {
+    const { onSnapChange } = renderSheet("hidden");
+
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    expect(onSnapChange).not.toHaveBeenCalled();
+  });
+
+  test("leaves Escape to a focused form control instead of collapsing", () => {
+    const { onSnapChange } = renderSheet("full");
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+
+    fireEvent.keyDown(input, { key: "Escape" });
+
+    expect(onSnapChange).not.toHaveBeenCalled();
+    input.remove();
   });
 
   test("renders the country's gem, matching what selectGem picks", () => {
