@@ -6,8 +6,8 @@ import { globeChartStore } from "@/lib/globe-chart-store";
 import { tourBridge } from "@/lib/tour-bridge";
 
 import { TourHost, type TourHostProps } from "./tour-host";
-
-const KEY = "sounds-abroad:tour-seen:v1";
+import type { TourRecord } from "./tour-record";
+import { readRecord, writeRecord } from "./tour-record-store";
 
 function stubMatchMedia(reduced: boolean) {
   vi.spyOn(window, "matchMedia").mockImplementation(
@@ -19,6 +19,10 @@ function stubMatchMedia(reduced: boolean) {
         removeEventListener: vi.fn(),
       }) as unknown as MediaQueryList,
   );
+}
+
+function seedRecord(record: TourRecord) {
+  writeRecord(record);
 }
 
 function renderHost(overrides: Partial<TourHostProps> = {}) {
@@ -46,13 +50,24 @@ afterEach(() => {
   globeChartStore.setState({ lastSettleViaTap: false });
   act(() => {
     tourBridge.getState().setGlobeReady(false);
+    tourBridge.getState().setTourActive(false);
   });
 });
 
 describe("TourHost", () => {
-  test("stays hidden for a returning user even once the globe is ready", () => {
+  test("stays hidden for a user who dismissed the tour, even once the globe is ready", () => {
     stubMatchMedia(false);
-    localStorage.setItem(KEY, "1");
+    seedRecord({ learned: [], shows: 1, dismissed: true });
+
+    const { queryByTestId } = renderHost();
+    makeGlobeReady();
+
+    expect(queryByTestId("tour-overlay")).toBeNull();
+  });
+
+  test("stays hidden once the appearance cap is reached", () => {
+    stubMatchMedia(false);
+    seedRecord({ learned: ["gesture"], shows: 2, dismissed: false });
 
     const { queryByTestId } = renderHost();
     makeGlobeReady();
@@ -83,6 +98,17 @@ describe("TourHost", () => {
     expect(badge.textContent).toMatch(/flick to spin/i);
   });
 
+  test("re-teaches only the un-learned beats, opening on the first of them", () => {
+    stubMatchMedia(false);
+    seedRecord({ learned: ["gesture"], shows: 1, dismissed: false });
+
+    const { getByTestId } = renderHost();
+    makeGlobeReady();
+
+    // The gesture is already learned, so the tour opens on the sheet beat.
+    expect(getByTestId("tour-overlay").getAttribute("data-beat")).toBe("sheet");
+  });
+
   test("the user's first selection advances to the sheet beat", () => {
     stubMatchMedia(false);
     const { getByTestId, rerenderWith } = renderHost();
@@ -111,7 +137,7 @@ describe("TourHost", () => {
     );
   });
 
-  test("the X control ends the tour and records it as seen", () => {
+  test("the X control ends the tour and latches dismissed permanently", () => {
     stubMatchMedia(false);
     const { getByRole, queryByTestId } = renderHost();
     makeGlobeReady();
@@ -119,10 +145,10 @@ describe("TourHost", () => {
     fireEvent.click(getByRole("button", { name: "Dismiss tour" }));
 
     expect(queryByTestId("tour-overlay")).toBeNull();
-    expect(localStorage.getItem(KEY)).toBe("1");
+    expect(readRecord().dismissed).toBe(true);
   });
 
-  test("Escape dismisses the tour and records it as seen", () => {
+  test("Escape dismisses the tour and latches dismissed permanently", () => {
     stubMatchMedia(false);
     const { queryByTestId } = renderHost();
     makeGlobeReady();
@@ -132,7 +158,7 @@ describe("TourHost", () => {
     });
 
     expect(queryByTestId("tour-overlay")).toBeNull();
-    expect(localStorage.getItem(KEY)).toBe("1");
+    expect(readRecord().dismissed).toBe(true);
   });
 
   test("advances to the audio beat when the sheet is pulled to full", () => {
@@ -150,7 +176,7 @@ describe("TourHost", () => {
     expect(getByTestId("tour-overlay").getAttribute("data-beat")).toBe("audio");
   });
 
-  test("completes and records as seen when a track previews on the audio beat", () => {
+  test("completes and records every beat as learned when a track previews", () => {
     stubMatchMedia(false);
     const { queryByTestId, rerenderWith } = renderHost();
     makeGlobeReady();
@@ -170,7 +196,7 @@ describe("TourHost", () => {
     });
 
     expect(queryByTestId("tour-overlay")).toBeNull();
-    expect(localStorage.getItem(KEY)).toBe("1");
+    expect(readRecord().learned).toEqual(["gesture", "sheet", "audio"]);
   });
 
   test("a track already previewing when the audio beat opens does not skip it", () => {

@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useStore } from "zustand";
 
-import { tourSeen } from "@/components/tour/seen-tour";
+import { tourConcluded } from "@/components/tour/tour-concluded";
+import { tourBridge } from "@/lib/tour-bridge";
 import { useSeenFlag } from "@/lib/use-seen-flag";
 
 import { commentarySeen } from "./seen-commentary-hint";
@@ -33,17 +35,21 @@ export interface CommentaryHintPulse {
 // that row, so its store reads and observer cost are paid once, not per row.
 export function useCommentaryHintPulse(): CommentaryHintPulse {
   const tourDone = useSyncExternalStore(
-    tourSeen.subscribe,
-    tourSeen.hasSeen,
+    tourConcluded.subscribe,
+    tourConcluded.isConcluded,
     tourServerSnapshot,
   );
+  // A capped final appearance marks the record concluded while the tour is still
+  // on screen; wait for it to leave so the pulse isn't spent under the tour dim.
+  const tourActive = useStore(tourBridge, (s) => s.tourActive);
   const { seen: hintSeen, markSeen } = useSeenFlag(commentarySeen);
   const chevronRef = useRef<HTMLSpanElement>(null);
   const [pulsing, setPulsing] = useState(false);
 
   // Both flags are booleans (null during SSR), so the effect keys off a single
-  // primitive: only arm once the tour is done and the hint hasn't fired.
-  const armable = tourDone === true && hintSeen === false;
+  // primitive: only arm once the tour is done, off screen, and the hint hasn't
+  // fired.
+  const armable = tourDone === true && !tourActive && hintSeen === false;
 
   useEffect(() => {
     if (!armable) return;

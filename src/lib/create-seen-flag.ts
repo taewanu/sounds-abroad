@@ -1,15 +1,11 @@
 // A one-time "seen" flag persisted in localStorage: the shared machinery behind
-// the tour, commentary-hint, and edge-tap cues, each of which gates a cue that
-// should fire once and stay dismissed across sessions. One call per flag, keyed
-// by its storage key; bump the key's :v1 suffix to re-trigger everyone with no
-// migration code.
-//
-// Each flag closes over an in-memory mirror so a same-tab handoff survives a
-// localStorage that's unavailable or throwing (private mode, blocked cookies,
-// quota): the write records to the mirror even when it can't persist, and reads
-// fall back to it. Injected storages (tests) never touch the mirror, staying
-// isolated. This mirror lived only in the tour flag before; folding it into the
-// factory gives all three flags the same private-mode resilience.
+// the commentary-hint and edge-tap cues, each of which gates a cue that should
+// fire once and stay dismissed across sessions. One call per flag, keyed by its
+// storage key; bump the key's :v1 suffix to re-trigger everyone with no migration
+// code. Private-mode resilience (the in-memory mirror) comes from the shared
+// createMirroredStorage; injected storages (tests) bypass it, staying isolated.
+
+import { createMirroredStorage } from "./mirrored-storage";
 
 // The slice of Storage a flag touches; lets tests inject a fake.
 type FlagStorage = Pick<Storage, "getItem" | "setItem">;
@@ -28,36 +24,10 @@ export interface SeenFlag {
 }
 
 export function createSeenFlag(key: string): SeenFlag {
-  const memory = new Map<string, string>();
+  const store = createMirroredStorage();
   const listeners = new Set<() => void>();
 
-  function defaultStorage(): FlagStorage {
-    return {
-      getItem(k) {
-        try {
-          // Accessible localStorage is authoritative, even when it returns null
-          // (a real "not set"), so clearing it isn't shadowed by the mirror.
-          if (typeof localStorage !== "undefined")
-            return localStorage.getItem(k);
-        } catch {
-          // Touching localStorage can throw outright (sandboxed iframe,
-          // hard-blocked cookies); only then fall back to the in-memory mirror.
-        }
-        return memory.get(k) ?? null;
-      },
-      setItem(k, value) {
-        memory.set(k, value);
-        try {
-          if (typeof localStorage !== "undefined")
-            localStorage.setItem(k, value);
-        } catch {
-          // Best-effort persistence; the in-memory mirror already holds it.
-        }
-      },
-    };
-  }
-
-  function hasSeen(storage: FlagStorage = defaultStorage()): boolean {
+  function hasSeen(storage: FlagStorage = store): boolean {
     try {
       return storage.getItem(key) === "1";
     } catch {
@@ -65,7 +35,7 @@ export function createSeenFlag(key: string): SeenFlag {
     }
   }
 
-  function markSeen(storage: FlagStorage = defaultStorage()): void {
+  function markSeen(storage: FlagStorage = store): void {
     try {
       storage.setItem(key, "1");
     } catch {

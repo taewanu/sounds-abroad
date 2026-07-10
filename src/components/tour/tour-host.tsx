@@ -6,11 +6,17 @@ import { useStore } from "zustand";
 import type { SnapState } from "@/components/chart-sheet/sheet";
 import { globeChartStore, useGlobeChart } from "@/lib/globe-chart-store";
 import { tourBridge } from "@/lib/tour-bridge";
-import { useSeenFlag } from "@/lib/use-seen-flag";
 
-import { tourSeen } from "./seen-tour";
 import { TourOverlay } from "./tour-overlay";
-import { initialTourState, tourReducer } from "./tour-step";
+import { decideShow, recordLearned, recordShown } from "./tour-record";
+import { readRecord, writeRecord } from "./tour-record-store";
+import {
+  currentBeat,
+  initialTourState,
+  learnedSoFar,
+  type TeachBeat,
+  tourReducer,
+} from "./tour-step";
 import { useTourAnchor } from "./use-tour-anchor";
 
 export interface TourHostProps {
@@ -27,29 +33,28 @@ export interface TourHostProps {
   selectedCode: string | null;
 }
 
-// Gate only. Runs once the user is known to be first-run and the globe is live,
-// then hands off to the runner, which owns the step machine.
+// Gate only. Runs once the globe is live and the record says there is still
+// something to teach, then hands off to the runner, which owns the step machine.
 export function TourHost({
   snap,
   currentTrackKey,
   selectedCode,
 }: TourHostProps) {
-  const { seen, markSeen } = useSeenFlag(tourSeen);
   const globeReady = useStore(tourBridge, (s) => s.globeReady);
-  const [dismissed, setDismissed] = useState(false);
+  // Decided once, from the record as it stood at mount (before this appearance is
+  // counted): which un-learned beats to run this launch, or nothing.
+  const [decision] = useState(() => decideShow(readRecord()));
+  const [done, setDone] = useState(false);
 
-  const handleDone = useCallback(() => {
-    markSeen();
-    setDismissed(true);
-  }, [markSeen]);
+  const handleDone = useCallback(() => setDone(true), []);
 
-  // Derived, not latched in an effect. seen === false is a definite first-run
-  // (null means the SSR/first-paint read hasn't resolved); once dismissed it
-  // stays gone. globeReady only ever turns true here, so this won't flicker.
-  const active = globeReady && seen === false && !dismissed;
+  // Derived, not latched in an effect. globeReady only ever turns true here, so
+  // this won't flicker; once done it stays gone.
+  const active = globeReady && decision.show && !done;
   if (!active) return null;
   return (
     <TourRunner
+      beats={decision.beats}
       snap={snap}
       currentTrackKey={currentTrackKey}
       selectedCode={selectedCode}
@@ -59,16 +64,45 @@ export function TourHost({
 }
 
 interface TourRunnerProps extends TourHostProps {
+  beats: TeachBeat[];
   onDone: () => void;
 }
 
 function TourRunner({
+  beats,
   snap,
   currentTrackKey,
   selectedCode,
   onDone,
 }: TourRunnerProps) {
-  const [state, dispatch] = useReducer(tourReducer, initialTourState());
+  const [state, dispatch] = useReducer(tourReducer, beats, initialTourState);
+  const beat = currentBeat(state);
+  const setTourActive = useStore(tourBridge, (s) => s.setTourActive);
+
+  // Count this appearance once, at show time, so the two-appearance cap holds
+  // even if the user leaves mid-tour. Captured before any learning is folded in.
+  const [baseRecord] = useState(() => recordShown(readRecord()));
+
+  // Flag the tour on screen so the commentary hint waits: a capped final
+  // appearance marks the record concluded while the tour is still up. Declared
+  // before the persistence write below so tourActive is true when the write
+  // notifies the hint.
+  useEffect(() => {
+    setTourActive(true);
+    return () => setTourActive(false);
+  }, [setTourActive]);
+
+  // Persist the run's progress on every transition: the beats performed become
+  // learned, and an X latches dismissed. Folding into baseRecord (which already
+  // counted this show) means a mid-tour close keeps what was learned.
+  useEffect(() => {
+    writeRecord(
+      recordLearned(baseRecord, {
+        learned: learnedSoFar(state),
+        dismissedByX: state.dismissed,
+      }),
+    );
+  }, [state, baseRecord]);
 
   // Beat 1: hide the demo hand the instant the user grabs the globe (a flick is
   // starting), not when it settles seconds later. The hand is a "do this" cue;
@@ -77,7 +111,7 @@ function TourRunner({
   // doesn't strand them with no hint and no Next.
   const [engaged, setEngaged] = useState(false);
   useEffect(() => {
-    if (state.beat !== "gesture") return;
+    if (beat !== "gesture") return;
     const onDown = (e: PointerEvent) => {
       const target = e.target as HTMLElement | null;
       // Engage on a globe grab, not on the other interactive surfaces in view:
@@ -96,7 +130,7 @@ function TourRunner({
     });
     return () =>
       window.removeEventListener("pointerdown", onDown, { capture: true });
-  }, [state.beat]);
+  }, [beat]);
 
   // A settle ends the spin: if it changed the country the gesture beat advances
   // (the hand is already gone); if not, re-arm the hand. Ref-gated so the mount
@@ -114,11 +148,11 @@ function TourRunner({
   // mid-slide drags the glow up with it. Gate on the sheet's transform
   // transitionend (with a timeout fallback if it never fires) so the glow only
   // appears once the row is at rest.
-  // Starts false and only ever flips true (below); the tour is linear, so audio
-  // is entered exactly once and never needs resetting back to false.
+  // Starts false and only ever flips true (below); audio is entered at most once
+  // per run and never needs resetting back to false.
   const [sheetSettled, setSheetSettled] = useState(false);
   useEffect(() => {
-    if (state.beat !== "audio") return;
+    if (beat !== "audio") return;
     let done = false;
     const finish = () => {
       if (done) return;
@@ -140,7 +174,7 @@ function TourRunner({
       window.removeEventListener("transitionend", onEnd, true);
       window.clearTimeout(fallback);
     };
-  }, [state.beat]);
+  }, [beat]);
 
   // The user's first selection (a flick, or a pick from the a11y list) advances
   // the gesture beat: doing the gesture is the advance. On the first render we
@@ -149,7 +183,7 @@ function TourRunner({
   const prevCodeRef = useRef(selectedCode);
   const tryArmedRef = useRef(false);
   useEffect(() => {
-    if (state.beat !== "gesture") return;
+    if (beat !== "gesture") return;
     if (!tryArmedRef.current) {
       tryArmedRef.current = true;
       prevCodeRef.current = selectedCode;
@@ -163,15 +197,15 @@ function TourRunner({
       if (globeChartStore.getState().lastSettleViaTap) return;
       dispatch({ type: "USER_SELECTED" });
     }
-  }, [selectedCode, state.beat]);
+  }, [selectedCode, beat]);
 
   // Beat 2 advances when the user pulls the sheet to full; beat 3 when a track
   // starts. Both observe, never drive. Show, don't tell.
   useEffect(() => {
-    if (state.beat === "sheet" && snap === "full") {
+    if (beat === "sheet" && snap === "full") {
       dispatch({ type: "SHEET_OPENED" });
     }
-  }, [snap, state.beat]);
+  }, [snap, beat]);
 
   // Beat 3 baselines whatever is already previewing when it opens, so a track
   // played earlier (even an accidental tap during beats 1-2) never auto-skips
@@ -180,7 +214,7 @@ function TourRunner({
   const audioBaselineRef = useRef<string | null>(null);
   const audioArmedRef = useRef(false);
   useEffect(() => {
-    if (state.beat !== "audio") return;
+    if (beat !== "audio") return;
     if (!audioArmedRef.current) {
       audioArmedRef.current = true;
       audioBaselineRef.current = currentTrackKey;
@@ -192,9 +226,9 @@ function TourRunner({
     ) {
       dispatch({ type: "TRACK_PREVIEWED" });
     }
-  }, [currentTrackKey, state.beat]);
+  }, [currentTrackKey, beat]);
 
-  // ESC dismisses from any beat (counts as seen). Window-level, like the Space
+  // ESC dismisses from any beat (latches dismissed). Window-level, like the Space
   // play/pause handler in chart-screen.tsx.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -205,10 +239,9 @@ function TourRunner({
   }, []);
 
   useEffect(() => {
-    if (state.beat === "done") onDone();
-  }, [state.beat, onDone]);
+    if (beat === "done") onDone();
+  }, [beat, onDone]);
 
-  const beat = state.beat;
   // Beat 2 frames the whole sheet; beat 3 frames the first track row (the thing
   // to tap), selected by its rank attribute so it needs no id of its own.
   const targetSelector =
