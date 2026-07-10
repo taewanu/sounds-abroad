@@ -17,6 +17,10 @@ Infer the repo from `git remote -v` — `gh` does this automatically when run in
 
 Spec parent issues prefix titles with `[PRD]`; child tickets use no prefix. The prefix stays `[PRD]` to match existing issues — `to-spec` produces what the skill set calls a spec, which this repo titles `[PRD]`. In a ticket's `## Parent` link, escape the brackets: `[\[PRD\] ...](...)`.
 
+## External pull requests
+
+This repo does not treat external pull requests as a triage request surface. `/triage` handles issues only; its PR-scoped branches do not apply here.
+
 ## When a skill says "publish to the issue tracker"
 
 Create a GitHub issue.
