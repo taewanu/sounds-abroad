@@ -4,7 +4,7 @@ import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useStore } from "zustand";
 
 import type { SnapState } from "@/components/chart-sheet/sheet";
-import { useGlobeChart } from "@/lib/globe-chart-store";
+import { globeChartStore, useGlobeChart } from "@/lib/globe-chart-store";
 import { tourBridge } from "@/lib/tour-bridge";
 import { useSeenFlag } from "@/lib/use-seen-flag";
 
@@ -14,11 +14,15 @@ import { initialTourState, tourReducer } from "./tour-step";
 import { useTourAnchor } from "./use-tour-anchor";
 
 export interface TourHostProps {
-  // Observed from ChartScreenInner. The sheet snap and a live preview drive
-  // beats 2 and 3; the resolved country code marks a real selection in beat 1.
-  // Wired when the host is mounted (the chart-screen edit), not by this file.
+  // Observed from ChartScreenInner. The sheet snap and the previewing track's
+  // identity drive beats 2 and 3; the resolved country code marks a real
+  // selection in beat 1. Wired when the host is mounted (the chart-screen
+  // edit), not by this file.
   snap: SnapState;
-  hasCurrentTrack: boolean;
+  // The previewing track's id, or null when nothing plays. An id (not a
+  // boolean) so the audio beat can baseline what was already playing on entry
+  // and complete only on a fresh preview, never on a track from before the beat.
+  currentTrackId: string | null;
   selectedCode: string | null;
 }
 
@@ -26,7 +30,7 @@ export interface TourHostProps {
 // then hands off to the runner, which owns the step machine.
 export function TourHost({
   snap,
-  hasCurrentTrack,
+  currentTrackId,
   selectedCode,
 }: TourHostProps) {
   const { seen, markSeen } = useSeenFlag(tourSeen);
@@ -46,7 +50,7 @@ export function TourHost({
   return (
     <TourRunner
       snap={snap}
-      hasCurrentTrack={hasCurrentTrack}
+      currentTrackId={currentTrackId}
       selectedCode={selectedCode}
       onDone={handleDone}
     />
@@ -59,7 +63,7 @@ interface TourRunnerProps extends TourHostProps {
 
 function TourRunner({
   snap,
-  hasCurrentTrack,
+  currentTrackId,
   selectedCode,
   onDone,
 }: TourRunnerProps) {
@@ -72,14 +76,14 @@ function TourRunner({
   // doesn't strand them with no hint and no Next.
   const [engaged, setEngaged] = useState(false);
   useEffect(() => {
-    if (state.beat !== "gesture" || state.gesturePhase !== "try") return;
+    if (state.beat !== "gesture") return;
     const onDown = (e: PointerEvent) => {
       const target = e.target as HTMLElement | null;
       // Engage on a globe grab, not on the other interactive surfaces in view:
-      // a tap on the callout or the peek sheet isn't the user starting a flick.
+      // a tap on the badge, the X, or the peek sheet isn't the user flicking.
       if (
         target?.closest(
-          '[data-testid="tour-callout"], [data-testid="chart-sheet"]',
+          '[data-testid="tour-badge"], [data-testid="chart-sheet"]',
         )
       )
         return;
@@ -91,7 +95,7 @@ function TourRunner({
     });
     return () =>
       window.removeEventListener("pointerdown", onDown, { capture: true });
-  }, [state.beat, state.gesturePhase]);
+  }, [state.beat]);
 
   // A settle ends the spin: if it changed the country the gesture beat advances
   // (the hand is already gone); if not, re-arm the hand. Ref-gated so the mount
@@ -137,13 +141,14 @@ function TourRunner({
     };
   }, [state.beat]);
 
-  // The user's first selection (a flick, or a pick from the a11y list) reveals
-  // Next rather than advancing. On the first render we snapshot the baseline so
-  // the country the globe loaded on isn't mistaken for that selection.
+  // The user's first selection (a flick, or a pick from the a11y list) advances
+  // the gesture beat: doing the gesture is the advance. On the first render we
+  // snapshot the baseline so the country the globe loaded on isn't mistaken for
+  // that selection.
   const prevCodeRef = useRef(selectedCode);
   const tryArmedRef = useRef(false);
   useEffect(() => {
-    if (state.beat !== "gesture" || state.gesturePhase !== "try") return;
+    if (state.beat !== "gesture") return;
     if (!tryArmedRef.current) {
       tryArmedRef.current = true;
       prevCodeRef.current = selectedCode;
@@ -151,9 +156,13 @@ function TourRunner({
     }
     if (selectedCode !== prevCodeRef.current) {
       prevCodeRef.current = selectedCode;
+      // A bare globe tap-select changes the country but is not the flick this
+      // beat teaches, so an accidental tap must not skip it. A real fling or a
+      // deliberate list pick (both leave lastSettleViaTap false) still advances.
+      if (globeChartStore.getState().lastSettleViaTap) return;
       dispatch({ type: "USER_SELECTED" });
     }
-  }, [selectedCode, state.beat, state.gesturePhase]);
+  }, [selectedCode, state.beat]);
 
   // Beat 2 advances when the user pulls the sheet to full; beat 3 when a track
   // starts. Both observe, never drive. Show, don't tell.
@@ -163,11 +172,26 @@ function TourRunner({
     }
   }, [snap, state.beat]);
 
+  // Beat 3 baselines whatever is already previewing when it opens, so a track
+  // played earlier (even an accidental tap during beats 1-2) never auto-skips
+  // the "tap a track" teaching. Only a fresh preview started during the beat
+  // advances. Mirrors the gesture beat's baseline snapshot above.
+  const audioBaselineRef = useRef<string | null>(null);
+  const audioArmedRef = useRef(false);
   useEffect(() => {
-    if (state.beat === "audio" && hasCurrentTrack) {
+    if (state.beat !== "audio") return;
+    if (!audioArmedRef.current) {
+      audioArmedRef.current = true;
+      audioBaselineRef.current = currentTrackId;
+      return;
+    }
+    if (
+      currentTrackId !== null &&
+      currentTrackId !== audioBaselineRef.current
+    ) {
       dispatch({ type: "TRACK_PREVIEWED" });
     }
-  }, [hasCurrentTrack, state.beat]);
+  }, [currentTrackId, state.beat]);
 
   // ESC dismisses from any beat (counts as seen). Window-level, like the Space
   // play/pause handler in chart-screen.tsx.
@@ -204,13 +228,9 @@ function TourRunner({
   return (
     <TourOverlay
       beat={beat}
-      gesturePhase={state.gesturePhase}
       spotlight={spotlightReady ? (anchor?.rect ?? null) : null}
       spotlightRadius={anchor?.radius ?? 0}
       hideFlickHint={engaged}
-      passThrough={beat === "gesture"}
-      isLastBeat={beat === "audio"}
-      onNext={() => dispatch({ type: "NEXT" })}
       onSkip={() => dispatch({ type: "SKIP" })}
     />
   );

@@ -59,7 +59,9 @@ interface SpinSnapControlsProps {
   readMode: boolean;
   // `changed` is false when the settle re-lands the country already shown, so
   // the caller can fire on every settle but gate country-change side effects.
-  onSettle: (code: string, changed: boolean) => void;
+  // `viaTap` is true only for a bare tap-select, so the tour can tell an
+  // accidental tap from the flick it teaches.
+  onSettle: (code: string, changed: boolean, viaTap: boolean) => void;
 }
 
 // Drives the camera as a spun globe: drag to rotate, release to fling with
@@ -155,7 +157,7 @@ export function SpinSnapControls({
   // onSettle no matter how we got here (fling, tap, or an external ?cc=
   // change), then either cuts instantly (reduced motion) or hands off to the
   // snap spring in useFrame.
-  const settleTo = (code: string | null) => {
+  const settleTo = (code: string | null, viaTap = false) => {
     const s = sim.current;
     const country = code ? COUNTRY_BY_CODE.get(code) : null;
     if (!country) {
@@ -169,7 +171,7 @@ export function SpinSnapControls({
     // caller gate the country-change side effects (?cc=, visited, haptic).
     const changed = s.settledCode !== country.code;
     s.settledCode = country.code;
-    onSettleRef.current(country.code, changed);
+    onSettleRef.current(country.code, changed, viaTap);
 
     if (cfg.current.reducedMotion) {
       // Instant cut: jump straight to the spring's end state so the next
@@ -295,7 +297,9 @@ export function SpinSnapControls({
             cy - rect.top,
             TAP_HIT_PX,
           );
-          settleTo(hit ?? sim.current.settledCode);
+          // viaTap: a bare tap-select, so the tour's gesture beat can ignore it
+          // rather than treat an accidental tap as the flick it teaches.
+          settleTo(hit ?? sim.current.settledCode, true);
         };
 
         const action = classifyTap({

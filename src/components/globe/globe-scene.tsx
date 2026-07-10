@@ -81,16 +81,20 @@ function SceneContent() {
   // A landing is a selection: buzz where supported, write ?cc= (replaceState,
   // so rapid flinging doesn't flood history), record the country as visited,
   // and signal the chart tree so a dismissed sheet resurfaces the result.
-  const handleSettle = useCallback((code: string, changed: boolean) => {
-    // Every settle resurfaces the result (raises a dismissed sheet, re-arms the
-    // tour hint), even when the country is unchanged.
-    globeChartStore.getState().signalSettle();
-    if (!changed) return;
-    triggerLandingHaptic();
-    globeChartStore.getState().setSelectedCountry(code);
-    window.history.replaceState(null, "", `?cc=${code}`);
-    setVisited((prev) => addVisited(prev, code));
-  }, []);
+  const handleSettle = useCallback(
+    (code: string, changed: boolean, viaTap: boolean) => {
+      // Every settle resurfaces the result (raises a dismissed sheet, re-arms
+      // the tour hint), even when the country is unchanged. viaTap rides along
+      // so the tour can tell a tap-select from the flick it teaches.
+      globeChartStore.getState().signalSettle(viaTap);
+      if (!changed) return;
+      triggerLandingHaptic();
+      globeChartStore.getState().setSelectedCountry(code);
+      window.history.replaceState(null, "", `?cc=${code}`);
+      setVisited((prev) => addVisited(prev, code));
+    },
+    [],
+  );
 
   // "Surprise me": on a bumped shuffle signal, draw a fair random country and
   // publish it via shuffleTo — sets selectedCountry (the globe's targetCode
