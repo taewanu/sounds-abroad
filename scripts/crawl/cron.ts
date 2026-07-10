@@ -4,11 +4,10 @@ import * as Sentry from "@sentry/node";
 import { COUNTRIES } from "../../src/lib/countries";
 import { fetchCommentaryStore } from "../commentary/fetch-commentary";
 
-import { AppleRssError, fetchAppleRss } from "./apple-rss";
+import { fetchAppleRss } from "./apple-rss";
+import { createItunesFetchers } from "./itunes-fetchers";
 import { lookupTrack } from "./itunes-lookup";
-import { withLookupRetry } from "./lookup-retry";
 import { fetchPublishedCharts } from "./published-charts";
-import { withRetry } from "./retry";
 import { triggerRevalidate } from "./revalidate-trigger";
 import { crawlAll, summarizeValidity, type SpotifyResolution } from "./run";
 import { createSpotifyResolver } from "./spotify-resolve";
@@ -64,17 +63,16 @@ try {
   await Sentry.withMonitor(
     "charts-crawl",
     async () => {
+      const itunes = createItunesFetchers({
+        fetchRss: fetchAppleRss,
+        lookupTrack,
+        throttle: createThrottle(),
+        sleep,
+      });
       const result = await crawlAll({
         countries: COUNTRIES,
-        fetchRss: (cc) =>
-          withRetry(() => fetchAppleRss(cc), {
-            retries: 2,
-            backoffMs: 500,
-            sleep,
-            shouldRetry: (err) => err instanceof AppleRssError,
-          }),
-        lookupTrack: withLookupRetry(lookupTrack, { sleep }),
-        throttle: createThrottle(),
+        fetchRss: itunes.fetchRss,
+        lookupTrack: itunes.lookupTrack,
         spotify,
         uploadCharts,
         triggerRevalidate,
