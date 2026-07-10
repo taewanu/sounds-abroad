@@ -60,6 +60,10 @@ export interface CrawlAllDeps {
 export interface CrawlAllResult {
   url: string;
   chartFile: ChartFile;
+  // Countries republished from the previous payload this run. Carried entries
+  // keep `valid: true`, so they are invisible to summarizeValidity — this is
+  // the only signal that data is going stale.
+  carriedCodes: string[];
 }
 
 export interface ValiditySummary {
@@ -160,7 +164,18 @@ export async function crawlCountry(
     });
   }
 
-  return { cc, country: { name, valid: true, tracks } };
+  // A successful lookup always carries a preview URL, so zero playable tracks
+  // means every lookup failed — a lookup-host outage, not a real chart. Marked
+  // invalid so carry-forward keeps the last playable data instead of letting
+  // an unplayable chart overwrite it while telemetry reports healthy.
+  const playable = tracks.some((t) => t.previewUrl !== null);
+  if (tracks.length > 0 && !playable) {
+    console.warn(
+      `[crawl ${cc}] all ${tracks.length} lookups failed — zero playable previews`,
+    );
+  }
+
+  return { cc, country: { name, valid: playable, tracks } };
 }
 
 /**
@@ -225,6 +240,7 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
   const previous = deps.fetchPrevious ? await deps.fetchPrevious() : null;
 
   const countriesMap: ChartFile["countries"] = {};
+  const carriedCodes: string[] = [];
   for (const entry of countries) {
     const { cc, country } = await crawlCountry({
       cc: entry.code,
@@ -238,6 +254,7 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
     const prior = previous?.countries[cc];
     if (!country.valid && prior?.valid && prior.tracks.length > 0) {
       countriesMap[cc] = prior;
+      carriedCodes.push(cc);
       console.log(
         `[crawl ${cc}] crawl failed — carried forward last-good (${prior.tracks.length} tracks)`,
       );
@@ -266,5 +283,5 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
   console.log(`[crawl] uploaded → ${url}`);
   await triggerRevalidate();
 
-  return { url, chartFile };
+  return { url, chartFile, carriedCodes };
 }
