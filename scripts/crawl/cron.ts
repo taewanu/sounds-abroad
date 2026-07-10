@@ -91,15 +91,20 @@ try {
           run_id: process.env.GITHUB_RUN_ID,
           country_count: summary.total,
           valid_count: summary.validCount,
+          carried_codes: result.carriedCodes,
           blob_url: result.url,
         },
       });
-      if (summary.invalidCodes.length > 0) {
+      // Carried-forward entries republish stale data as valid, so validity
+      // alone under-reports degradation — a run that carried anything is a
+      // degraded run even when every published entry parses as healthy.
+      if (summary.invalidCodes.length > 0 || result.carriedCodes.length > 0) {
         Sentry.captureMessage("charts:degraded", {
           level: "warning",
           extra: {
             run_id: process.env.GITHUB_RUN_ID,
             invalid_codes: summary.invalidCodes,
+            carried_codes: result.carriedCodes,
             valid_count: summary.validCount,
             country_count: summary.total,
           },

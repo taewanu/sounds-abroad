@@ -202,6 +202,23 @@ test("crawlCountry inserts a placeholder with previewUrl=null on lookup failure"
   expect(failingTrack?.artworkUrl).toBe(failingRss.artworkUrl);
 });
 
+test("crawlCountry returns valid=false when every lookup fails, keeping the placeholders", async () => {
+  // Zero playable previews means a lookup-host outage, not a real chart:
+  // the entry must read as failed so carry-forward can prefer prior data.
+  const lookupTrack = vi.fn<(id: string, cc: string) => Promise<LookupResult>>(
+    async (id, cc) => {
+      throw new ItunesLookupError(id, cc, "http", "503 Service Unavailable");
+    },
+  );
+  const deps = makeCrawlCountryDeps({ lookupTrack });
+
+  const { country } = await crawlCountry(deps);
+
+  expect(country.valid).toBe(false);
+  expect(country.tracks).toHaveLength(sampleRssTracks().length);
+  expect(country.tracks.every((t) => t.previewUrl === null)).toBe(true);
+});
+
 test("crawlCountry returns valid=false with empty tracks when RSS throws AppleRssError", async () => {
   const fetchRss = vi.fn(async () => {
     throw new AppleRssError("kr", "503 Service Unavailable");
@@ -260,15 +277,21 @@ function fakeRssFor(cc: string): AppleRssTrack[] {
 function makeCrawlAllDeps(input: {
   countries: readonly CountryEntry[];
   fetchRss?: (cc: string) => Promise<AppleRssTrack[]>;
+  lookupTrack?: (id: string, cc: string) => Promise<LookupResult>;
   fetchPrevious?: () => Promise<ChartFile | null>;
   fetchCommentary?: () => Promise<CommentaryStore | null>;
 }): CrawlAllDeps {
   return {
     countries: input.countries,
     fetchRss: input.fetchRss ?? vi.fn(async (cc) => fakeRssFor(cc)),
-    lookupTrack: vi.fn<(id: string, cc: string) => Promise<LookupResult>>(
-      async (id, cc) => ({ id, previewUrl: `https://preview/${cc}/${id}.m4a` }),
-    ),
+    lookupTrack:
+      input.lookupTrack ??
+      vi.fn<(id: string, cc: string) => Promise<LookupResult>>(
+        async (id, cc) => ({
+          id,
+          previewUrl: `https://preview/${cc}/${id}.m4a`,
+        }),
+      ),
     uploadCharts: vi.fn(async () => BLOB_URL),
     triggerRevalidate: vi.fn(async () => {}),
     fetchPrevious: input.fetchPrevious,
@@ -368,6 +391,7 @@ test("crawlAll assembles a valid ChartFile, uploads once, and revalidates once",
   expect(deps.uploadCharts).toHaveBeenCalledTimes(1);
   expect(deps.uploadCharts).toHaveBeenCalledWith(result.chartFile);
   expect(deps.triggerRevalidate).toHaveBeenCalledTimes(1);
+  expect(result.carriedCodes).toEqual([]);
 });
 
 test("crawlAll publishes whatever succeeded when one country's RSS fails", async () => {
@@ -424,6 +448,51 @@ test("crawlAll carries forward the previous entry when a country fails but prior
 
   expect(result.chartFile.countries.ng).toEqual(priorNg);
   expect(result.chartFile.countries.kr.valid).toBe(true);
+  expect(result.carriedCodes).toEqual([NG.code]);
+});
+
+test("crawlAll carries forward the previous entry when a country's lookups all fail", async () => {
+  const priorNg = priorCountry(NG.name, 3);
+  const failNgLookups = vi.fn<
+    (id: string, cc: string) => Promise<LookupResult>
+  >(async (id, cc) => {
+    if (cc === NG.code)
+      throw new ItunesLookupError(id, cc, "http", "503 Service Unavailable");
+    return { id, previewUrl: `https://preview/${cc}/${id}.m4a` };
+  });
+  const deps = makeCrawlAllDeps({
+    countries: [KR, NG],
+    lookupTrack: failNgLookups,
+    fetchPrevious: vi.fn(async () => previousChartFile({ ng: priorNg })),
+  });
+
+  const result = await crawlAll(deps);
+
+  expect(result.chartFile.countries.ng).toEqual(priorNg);
+  expect(result.chartFile.countries.kr.valid).toBe(true);
+  expect(result.carriedCodes).toEqual([NG.code]);
+});
+
+test("crawlAll publishes a zero-playable country as invalid when no prior data exists", async () => {
+  const failNgLookups = vi.fn<
+    (id: string, cc: string) => Promise<LookupResult>
+  >(async (id, cc) => {
+    if (cc === NG.code)
+      throw new ItunesLookupError(id, cc, "http", "503 Service Unavailable");
+    return { id, previewUrl: `https://preview/${cc}/${id}.m4a` };
+  });
+  const deps = makeCrawlAllDeps({
+    countries: [KR, NG],
+    lookupTrack: failNgLookups,
+  });
+
+  const result = await crawlAll(deps);
+
+  expect(result.chartFile.countries.ng.valid).toBe(false);
+  expect(result.chartFile.countries.ng.tracks).toHaveLength(
+    fakeRssFor(NG.code).length,
+  );
+  expect(result.carriedCodes).toEqual([]);
 });
 
 test("crawlAll keeps a failed country invalid when fetchPrevious returns null", async () => {
