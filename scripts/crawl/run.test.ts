@@ -66,7 +66,6 @@ function makeCrawlCountryDeps(
     lookupTrack: vi.fn<(id: string, cc: string) => Promise<LookupResult>>(
       async (id) => ({ id, previewUrl: previewUrlForId(id) }),
     ),
-    throttle: async (fn) => fn(),
     ...overrides,
   };
 }
@@ -242,20 +241,6 @@ test("crawlCountry rethrows non-ItunesLookupError from lookupTrack", async () =>
   await expect(promise).rejects.toThrow(errorMessage);
 });
 
-test("crawlCountry routes every external call through the injected throttle", async () => {
-  let count = 0;
-  const throttle = async <T>(fn: () => Promise<T>): Promise<T> => {
-    count += 1;
-    return fn();
-  };
-  const deps = makeCrawlCountryDeps({ throttle });
-  const expectedCount = 1 + sampleRssTracks().length; // 1 RSS + N Lookups
-
-  await crawlCountry(deps);
-
-  expect(count).toBe(expectedCount);
-});
-
 const FROZEN_NOW = new Date("2026-05-15T12:00:00.000Z");
 const BLOB_URL = "https://blob/charts/v1/charts.json";
 
@@ -284,7 +269,6 @@ function makeCrawlAllDeps(input: {
     lookupTrack: vi.fn<(id: string, cc: string) => Promise<LookupResult>>(
       async (id, cc) => ({ id, previewUrl: `https://preview/${cc}/${id}.m4a` }),
     ),
-    throttle: async (fn) => fn(),
     uploadCharts: vi.fn(async () => BLOB_URL),
     triggerRevalidate: vi.fn(async () => {}),
     fetchPrevious: input.fetchPrevious,

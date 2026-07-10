@@ -23,9 +23,11 @@ export interface SpotifyResolution {
 export interface CrawlCountryDeps {
   cc: string;
   name: string;
+  // Both iTunes fetchers arrive rate-limited and retry-wrapped (they share one
+  // throttle, and the retry must sit around the throttle so each attempt takes
+  // its own slot — see createItunesFetchers). The orchestrator never throttles.
   fetchRss: (cc: string) => Promise<AppleRssTrack[]>;
   lookupTrack: (id: string, cc: string) => Promise<LookupResult>;
-  throttle: Throttle;
   spotify?: SpotifyResolution;
 }
 
@@ -36,9 +38,9 @@ export interface CrawlCountryResult {
 
 export interface CrawlAllDeps {
   countries: readonly CountryEntry[];
+  // Rate-limited and retry-wrapped, as in CrawlCountryDeps.
   fetchRss: (cc: string) => Promise<AppleRssTrack[]>;
   lookupTrack: (id: string, cc: string) => Promise<LookupResult>;
-  throttle: Throttle;
   spotify?: SpotifyResolution;
   uploadCharts: (chartFile: ChartFile) => Promise<string>;
   triggerRevalidate: () => Promise<void>;
@@ -114,10 +116,9 @@ async function previewUrlFor(
   rank: number,
   cc: string,
   lookupTrack: CrawlCountryDeps["lookupTrack"],
-  throttle: Throttle,
 ): Promise<string | null> {
   try {
-    const lookup = await throttle(() => lookupTrack(id, cc));
+    const lookup = await lookupTrack(id, cc);
     return lookup.previewUrl;
   } catch (err) {
     if (!(err instanceof ItunesLookupError)) throw err;
@@ -131,11 +132,11 @@ async function previewUrlFor(
 export async function crawlCountry(
   deps: CrawlCountryDeps,
 ): Promise<CrawlCountryResult> {
-  const { cc, name, fetchRss, lookupTrack, throttle, spotify } = deps;
+  const { cc, name, fetchRss, lookupTrack, spotify } = deps;
 
   let rssTracks: AppleRssTrack[];
   try {
-    rssTracks = await throttle(() => fetchRss(cc));
+    rssTracks = await fetchRss(cc);
   } catch (err) {
     if (!(err instanceof AppleRssError)) throw err;
     console.warn(`[crawl ${cc}] RSS failed: ${err.message}`);
@@ -145,7 +146,7 @@ export async function crawlCountry(
   const tracks: Track[] = [];
   for (const rss of rssTracks) {
     const [previewUrl, spotifyUrl] = await Promise.all([
-      previewUrlFor(rss.id, rss.rank, cc, lookupTrack, throttle),
+      previewUrlFor(rss.id, rss.rank, cc, lookupTrack),
       spotifyUrlFor(rss.name, rss.artist, cc, spotify),
     ]);
     tracks.push({
@@ -211,7 +212,6 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
     countries,
     fetchRss,
     lookupTrack,
-    throttle,
     spotify,
     uploadCharts,
     triggerRevalidate,
@@ -231,7 +231,6 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
       name: entry.name,
       fetchRss,
       lookupTrack,
-      throttle,
       spotify,
     });
 

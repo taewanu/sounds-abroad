@@ -1,6 +1,7 @@
 import { COUNTRIES } from "../../src/lib/countries";
 
 import { fetchAppleRss } from "./apple-rss";
+import { createItunesFetchers } from "./itunes-fetchers";
 import { lookupTrack } from "./itunes-lookup";
 import { crawlAll, crawlCountry, type SpotifyResolution } from "./run";
 import { createSpotifyResolver } from "./spotify-resolve";
@@ -36,14 +37,17 @@ async function runSingleCountry(cc: string): Promise<void> {
     );
   }
 
-  const throttle = createThrottle();
+  const itunes = createItunesFetchers({
+    fetchRss: fetchAppleRss,
+    lookupTrack,
+    throttle: createThrottle(),
+  });
   console.log(`[crawl ${cc}] starting single-country debug crawl...`);
   const { country } = await crawlCountry({
     cc,
     name: entry.name,
-    fetchRss: fetchAppleRss,
-    lookupTrack,
-    throttle,
+    fetchRss: itunes.fetchRss,
+    lookupTrack: itunes.lookupTrack,
     spotify: spotifyFromEnv(),
   });
   console.log(
@@ -59,12 +63,15 @@ async function runAllCountries(): Promise<void> {
       "BLOB_READ_WRITE_TOKEN missing. Run with: pnpm crawl (loads .env.local via tsx --env-file).",
     );
   }
-  const throttle = createThrottle();
-  await crawlAll({
-    countries: COUNTRIES,
+  const itunes = createItunesFetchers({
     fetchRss: fetchAppleRss,
     lookupTrack,
-    throttle,
+    throttle: createThrottle(),
+  });
+  await crawlAll({
+    countries: COUNTRIES,
+    fetchRss: itunes.fetchRss,
+    lookupTrack: itunes.lookupTrack,
     spotify: spotifyFromEnv(),
     uploadCharts,
     // Local debug entry never hits production revalidate — cron.ts injects the real one.
