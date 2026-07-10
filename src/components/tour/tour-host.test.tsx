@@ -24,7 +24,7 @@ function stubMatchMedia(reduced: boolean) {
 function renderHost(overrides: Partial<TourHostProps> = {}) {
   const props: TourHostProps = {
     snap: "peek" as SnapState,
-    hasCurrentTrack: false,
+    currentTrackKey: null,
     selectedCode: "us",
     ...overrides,
   };
@@ -43,6 +43,7 @@ function makeGlobeReady() {
 afterEach(() => {
   vi.restoreAllMocks();
   localStorage.clear();
+  globeChartStore.setState({ lastSettleViaTap: false });
   act(() => {
     tourBridge.getState().setGlobeReady(false);
   });
@@ -67,54 +68,55 @@ describe("TourHost", () => {
     expect(queryByTestId("tour-overlay")).toBeNull();
   });
 
-  test("opens on the gesture beat inviting a flick, with no Next yet", () => {
+  test("opens on the gesture beat with the flick hint and its badge", () => {
     stubMatchMedia(false);
 
-    const { getByTestId, getByText, queryByRole } = renderHost();
+    const { getByTestId } = renderHost();
     makeGlobeReady();
 
     expect(getByTestId("tour-overlay").getAttribute("data-beat")).toBe(
       "gesture",
     );
-    expect(getByText(/flick the globe/i)).toBeTruthy();
     expect(getByTestId("tour-flick-hint")).toBeTruthy();
-    expect(queryByRole("button", { name: "Next" })).toBeNull();
+    const badge = getByTestId("tour-badge");
+    expect(badge.getAttribute("role")).toBe("status");
+    expect(badge.textContent).toMatch(/flick to spin/i);
   });
 
-  test("the user's first selection reveals Next without leaving the gesture beat", () => {
+  test("the user's first selection advances to the sheet beat", () => {
     stubMatchMedia(false);
-    const { getByTestId, getByRole, rerenderWith } = renderHost();
+    const { getByTestId, rerenderWith } = renderHost();
     makeGlobeReady();
 
     act(() => {
       rerenderWith({ selectedCode: "jp" });
     });
-
-    expect(getByTestId("tour-overlay").getAttribute("data-beat")).toBe(
-      "gesture",
-    );
-    expect(getByRole("button", { name: "Next" })).toBeTruthy();
-  });
-
-  test("Next advances to the sheet beat once the user has flicked", () => {
-    stubMatchMedia(false);
-    const { getByTestId, getByRole, rerenderWith } = renderHost();
-    makeGlobeReady();
-
-    act(() => {
-      rerenderWith({ selectedCode: "jp" });
-    });
-    fireEvent.click(getByRole("button", { name: "Next" }));
 
     expect(getByTestId("tour-overlay").getAttribute("data-beat")).toBe("sheet");
   });
 
-  test("Skip ends the tour and records it as seen", () => {
+  test("a bare globe tap-select does not skip the gesture beat", () => {
+    stubMatchMedia(false);
+    const { getByTestId, rerenderWith } = renderHost();
+    makeGlobeReady();
+
+    act(() => {
+      // The country changed, but the settle came from a tap, not the flick.
+      globeChartStore.getState().signalSettle(true);
+      rerenderWith({ selectedCode: "jp" });
+    });
+
+    expect(getByTestId("tour-overlay").getAttribute("data-beat")).toBe(
+      "gesture",
+    );
+  });
+
+  test("the X control ends the tour and records it as seen", () => {
     stubMatchMedia(false);
     const { getByRole, queryByTestId } = renderHost();
     makeGlobeReady();
 
-    fireEvent.click(getByRole("button", { name: "Skip tour" }));
+    fireEvent.click(getByRole("button", { name: "Dismiss tour" }));
 
     expect(queryByTestId("tour-overlay")).toBeNull();
     expect(localStorage.getItem(KEY)).toBe("1");
@@ -135,13 +137,12 @@ describe("TourHost", () => {
 
   test("advances to the audio beat when the sheet is pulled to full", () => {
     stubMatchMedia(false);
-    const { getByTestId, getByRole, rerenderWith } = renderHost();
+    const { getByTestId, rerenderWith } = renderHost();
     makeGlobeReady();
 
     act(() => {
       rerenderWith({ selectedCode: "jp" });
     });
-    fireEvent.click(getByRole("button", { name: "Next" }));
     act(() => {
       rerenderWith({ selectedCode: "jp", snap: "full" });
     });
@@ -151,22 +152,62 @@ describe("TourHost", () => {
 
   test("completes and records as seen when a track previews on the audio beat", () => {
     stubMatchMedia(false);
-    const { getByRole, queryByTestId, rerenderWith } = renderHost();
+    const { queryByTestId, rerenderWith } = renderHost();
     makeGlobeReady();
 
     act(() => {
       rerenderWith({ selectedCode: "jp" });
     });
-    fireEvent.click(getByRole("button", { name: "Next" }));
     act(() => {
       rerenderWith({ selectedCode: "jp", snap: "full" });
     });
     act(() => {
-      rerenderWith({ selectedCode: "jp", snap: "full", hasCurrentTrack: true });
+      rerenderWith({
+        selectedCode: "jp",
+        snap: "full",
+        currentTrackKey: "kr-1",
+      });
     });
 
     expect(queryByTestId("tour-overlay")).toBeNull();
     expect(localStorage.getItem(KEY)).toBe("1");
+  });
+
+  test("a track already previewing when the audio beat opens does not skip it", () => {
+    stubMatchMedia(false);
+    // A track was played earlier (e.g. an accidental tap during beats 1-2).
+    const { getByTestId, rerenderWith } = renderHost({
+      currentTrackKey: "pre",
+    });
+    makeGlobeReady();
+
+    act(() => {
+      rerenderWith({ selectedCode: "jp", currentTrackKey: "pre" });
+    });
+    act(() => {
+      rerenderWith({
+        selectedCode: "jp",
+        snap: "full",
+        currentTrackKey: "pre",
+      });
+    });
+
+    // The audio beat baselines the already-playing track, so it keeps teaching
+    // rather than auto-completing on a preview from before the beat.
+    expect(getByTestId("tour-overlay").getAttribute("data-beat")).toBe("audio");
+  });
+
+  test("keeps the badge and its accessible text under reduced motion", () => {
+    stubMatchMedia(true);
+    const { getByTestId } = renderHost();
+    makeGlobeReady();
+
+    // The badge stays mounted as the wordless tour's a11y fallback. The breathe
+    // and hand animations are suppressed by a CSS media query, which jsdom does
+    // not evaluate, so that suppression is device-verified, not asserted here.
+    const badge = getByTestId("tour-badge");
+    expect(badge.getAttribute("aria-hidden")).toBeNull();
+    expect(badge.textContent).toMatch(/flick to spin/i);
   });
 
   test("withholds the track spotlight until the sheet finishes rising", () => {
@@ -176,13 +217,11 @@ describe("TourHost", () => {
     sheet.innerHTML = '<ol><li data-rank="1">track</li></ol>';
     document.body.appendChild(sheet);
 
-    const { getByTestId, getByRole, queryByTestId, rerenderWith } =
-      renderHost();
+    const { getByTestId, queryByTestId, rerenderWith } = renderHost();
     makeGlobeReady();
     act(() => {
       rerenderWith({ selectedCode: "jp" });
     });
-    fireEvent.click(getByRole("button", { name: "Next" }));
     act(() => {
       rerenderWith({ selectedCode: "jp", snap: "full" });
     });
@@ -203,7 +242,7 @@ describe("TourHost", () => {
 
   test("hides the flick hand on a globe grab, then re-arms it on a no-op settle", () => {
     stubMatchMedia(false);
-    const { getByTestId, queryByRole, queryByTestId } = renderHost();
+    const { getByTestId, queryByTestId } = renderHost();
     makeGlobeReady();
 
     expect(getByTestId("tour-flick-hint")).toBeTruthy();
@@ -216,7 +255,6 @@ describe("TourHost", () => {
     expect(getByTestId("tour-overlay").getAttribute("data-beat")).toBe(
       "gesture",
     );
-    expect(queryByRole("button", { name: "Next" })).toBeNull();
 
     act(() => {
       globeChartStore.getState().signalSettle();
@@ -231,7 +269,7 @@ describe("TourHost", () => {
     sheet.setAttribute("data-testid", "chart-sheet");
     document.body.appendChild(sheet);
 
-    const { getByTestId, queryByTestId } = renderHost();
+    const { getByTestId } = renderHost();
     makeGlobeReady();
 
     expect(getByTestId("tour-flick-hint")).toBeTruthy();
@@ -240,7 +278,7 @@ describe("TourHost", () => {
       fireEvent.pointerDown(sheet);
     });
 
-    expect(queryByTestId("tour-flick-hint")).toBeTruthy();
+    expect(getByTestId("tour-flick-hint")).toBeTruthy();
 
     document.body.removeChild(sheet);
   });

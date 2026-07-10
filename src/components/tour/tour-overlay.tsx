@@ -4,14 +4,13 @@ import type { CSSProperties } from "react";
 
 import { PointerIcon } from "@/components/icons/pointer";
 
-import type { Beat, GesturePhase } from "./tour-step";
+import type { Beat } from "./tour-step";
 
 // "done" never renders an overlay; the host unmounts at that point.
 export type VisibleBeat = Exclude<Beat, "done">;
 
 export interface TourOverlayProps {
   beat: VisibleBeat;
-  gesturePhase: GesturePhase;
   // Screen box to spotlight, or null for a full-screen beat (the gesture beat
   // has no cutout: the whole globe is the target) or before the box is read.
   spotlight: DOMRect | null;
@@ -19,46 +18,64 @@ export interface TourOverlayProps {
   // to 0 (square) when unset.
   spotlightRadius?: number;
   // Drop the gesture demo hand once the user has grabbed the globe; they're
-  // already flicking, so the "do this" cue is in the way. The callout copy and
-  // Next stay driven by the actual selection, not by this.
+  // already flicking, so the "do this" cue is in the way.
   hideFlickHint?: boolean;
-  // The gesture beat lets flings reach the globe, so its scrim must not capture
-  // pointer events; the sheet/audio beats dim and block everything but the hole.
-  passThrough: boolean;
-  isLastBeat: boolean;
-  onNext: () => void;
   onSkip: () => void;
 }
 
-// Per beat: a verb-first eyebrow (the gesture) over a body that states the
-// payoff. The gesture body also names the non-gesture path so a keyboard or SR
-// user is never told to only fling.
-function calloutCopy(
-  beat: VisibleBeat,
-  phase: GesturePhase,
-): { eyebrow: string; body: string } {
+// One imperative naming the gesture, per beat. This text is the accessibility
+// fallback for the wordless visual, so it lives in the a11y tree (see the badge
+// role below), not as a separate sr-only string.
+function badgeLabel(beat: VisibleBeat): string {
   switch (beat) {
     case "gesture":
-      return phase === "try"
-        ? {
-            eyebrow: "Flick the globe",
-            body: "Spin to a new country, or pick one from the list.",
-          }
-        : {
-            eyebrow: "Nice, you've got it",
-            body: "Spin as much as you like, then continue.",
-          };
+      return "Flick to spin";
     case "sheet":
-      return {
-        eyebrow: "Pull up the chart",
-        body: "See every track, not just the top few.",
-      };
+      return "Pull up the chart";
     case "audio":
-      return {
-        eyebrow: "Tap a track",
-        body: "Hear a preview; it follows you as you explore.",
-      };
+      return "Tap a track";
   }
+}
+
+// The nudge badge is announced politely on appear and carries the per-beat
+// breathe rhythm (matched to that beat's hand hint) plus the aurora glow. It is
+// not aria-hidden: its text is the tour's a11y fallback for the wordless look.
+function NudgeBadge({
+  beat,
+  spotlight,
+}: {
+  beat: VisibleBeat;
+  spotlight: DOMRect | null;
+}) {
+  // Gesture and sheet badges sit at a fixed screen fraction (globe centre, and
+  // above the sheet handle); the tap badge tracks the spotlit row, below it.
+  const style: CSSProperties =
+    beat === "audio" && spotlight
+      ? {
+          left: spotlight.left + spotlight.width / 2,
+          top: spotlight.bottom + 24,
+        }
+      : beat === "gesture"
+        ? { left: "50%", top: "53%" }
+        : { left: "50%", top: "38%" };
+  const rhythm =
+    beat === "gesture"
+      ? "tour-badge-flick"
+      : beat === "sheet"
+        ? "tour-badge-sheet"
+        : "tour-badge-tap";
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      data-testid="tour-badge"
+      className={`tour-badge tour-badge-breathe tour-badge-glow ${rhythm}`}
+      style={style}
+    >
+      {badgeLabel(beat)}
+    </div>
+  );
 }
 
 // A ghost hand that presses onto the globe and flings it (windup, whip,
@@ -190,23 +207,12 @@ function padHole(rect: DOMRect): Rect {
 
 export function TourOverlay({
   beat,
-  gesturePhase,
   spotlight,
   spotlightRadius = 0,
   hideFlickHint = false,
-  passThrough,
-  isLastBeat,
-  onNext,
   onSkip,
 }: TourOverlayProps) {
-  const { eyebrow, body } = calloutCopy(beat, gesturePhase);
   const hole = spotlight ? padHole(spotlight) : null;
-  const scrimPointer = passThrough
-    ? "pointer-events-none"
-    : "pointer-events-auto";
-  // The flick hint invites the first gesture; once the user has flicked (phase
-  // "ready") it gives way to Next, so they aren't rushed past beat one.
-  const inviting = beat === "gesture" && gesturePhase === "try";
 
   return (
     <div
@@ -220,7 +226,10 @@ export function TourOverlay({
           {scrimStrips(hole).map(({ key, style }) => (
             <div
               key={key}
-              className={`tour-fade fixed bg-[var(--scrim-deep)] ${scrimPointer}`}
+              // Visual only: the whole overlay is pointer-events:none, so the
+              // dim never blocks. Every gesture reaches the live target beneath
+              // it, which is what advances the beat.
+              className="tour-dim fixed bg-[var(--scrim-tour)]"
               style={style}
             />
           ))}
@@ -251,15 +260,17 @@ export function TourOverlay({
         <div
           aria-hidden
           data-testid="tour-vignette"
-          className="tour-fade pointer-events-none fixed inset-0"
+          className="tour-dim pointer-events-none fixed inset-0"
           style={{
+            // Soft vignette: peak 0.82 at the edges through a half-strength
+            // midpoint, settling with the scrim to the shared 0.5 residual.
             background:
-              "radial-gradient(circle at 50% 44%, transparent 14%, rgba(5, 6, 8, 0.88) 82%)",
+              "radial-gradient(ellipse 46% 26% at 50% 44%, transparent 40%, rgba(5, 6, 8, 0.41) 70%, rgba(5, 6, 8, 0.82) 100%)",
           }}
         />
       ) : null}
 
-      {inviting && !hideFlickHint ? <FlickHint /> : null}
+      {beat === "gesture" && !hideFlickHint ? <FlickHint /> : null}
 
       {beat === "sheet" && spotlight ? (
         <SheetPullHint spotlight={spotlight} />
@@ -267,36 +278,26 @@ export function TourOverlay({
 
       {beat === "audio" && spotlight ? <TapHint spotlight={spotlight} /> : null}
 
-      <div
-        role="dialog"
-        aria-modal={false}
-        aria-label="App tour"
-        data-testid="tour-callout"
-        className="tour-rise border-fg-1/10 bg-dusk/95 pointer-events-auto fixed inset-x-4 bottom-[max(env(safe-area-inset-bottom),20px)] mx-auto max-w-sm rounded-[var(--radius-lg)] border p-5 shadow-[var(--shadow-lg)] backdrop-blur-md"
+      <NudgeBadge beat={beat} spotlight={spotlight} />
+
+      <button
+        type="button"
+        onClick={onSkip}
+        aria-label="Dismiss tour"
+        className="text-fg-1 focus-visible:outline-aurora pointer-events-auto fixed top-[56px] right-4 grid h-[42px] w-[42px] place-items-center rounded-full bg-[rgba(10,11,16,0.62)] shadow-[inset_0_0_0_1px_rgba(245,242,236,0.14)] backdrop-blur-md focus-visible:outline-2 focus-visible:outline-offset-2"
       >
-        <p className="text-small text-sunrise font-medium tracking-wide uppercase">
-          {eyebrow}
-        </p>
-        <p className="text-body text-fg-1 mt-1">{body}</p>
-        <div className="mt-4 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={onSkip}
-            className="text-small text-fg-3 hover:text-fg-2 focus-visible:outline-aurora transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
-          >
-            Skip tour
-          </button>
-          {inviting ? null : (
-            <button
-              type="button"
-              onClick={onNext}
-              className="text-small bg-sunrise text-void focus-visible:outline-aurora rounded-[var(--radius-pill)] px-4 py-2 font-medium transition-transform duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]"
-            >
-              {isLastBeat ? "Done" : "Next"}
-            </button>
-          )}
-        </div>
-      </div>
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          className="h-5 w-5"
+        >
+          <line x1="6" y1="6" x2="18" y2="18" />
+          <line x1="18" y1="6" x2="6" y2="18" />
+        </svg>
+      </button>
     </div>
   );
 }

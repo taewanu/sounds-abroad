@@ -21,6 +21,11 @@ export interface GlobeChartState {
   // raise a dismissed sheet, so re-landing on the same country still raises
   // (a plain ?cc= diff would miss that).
   settleSignal: number;
+  // Whether the most recent settle came from a bare globe tap (vs a fling, an
+  // external ?cc=/list pick, or a snap). The onboarding tour's gesture beat
+  // reads this so an accidental tap-select does not count as performing the
+  // flick it teaches; a real fling or a deliberate list pick still advances.
+  lastSettleViaTap: boolean;
   // A track is loaded (the "listening" state), so a no-movement tap on the globe
   // edge skips a track instead of selecting a country. The audio store lives in
   // the page's provider, which the layout-backdrop globe can't read, so the
@@ -46,7 +51,7 @@ export interface GlobeChartState {
   shuffleLanded: { code: string; nonce: number } | null;
   setSelectedCountry: (code: string | null) => void;
   setReadMode: (readMode: boolean) => void;
-  signalSettle: () => void;
+  signalSettle: (viaTap?: boolean) => void;
   setListening: (listening: boolean) => void;
   signalSkip: (dir: 1 | -1) => void;
   requestShuffle: () => void;
@@ -58,14 +63,18 @@ export const globeChartStore = createStore<GlobeChartState>()((set) => ({
   selectedCountry: null,
   readMode: false,
   settleSignal: 0,
+  lastSettleViaTap: false,
   listening: false,
   skipIntent: { dir: 1, nonce: 0 },
   shuffleSignal: 0,
   shuffleLanded: null,
   setSelectedCountry: (selectedCountry) => set({ selectedCountry }),
   setReadMode: (readMode) => set({ readMode }),
-  signalSettle: () =>
-    set((state) => ({ settleSignal: state.settleSignal + 1 })),
+  signalSettle: (viaTap = false) =>
+    set((state) => ({
+      settleSignal: state.settleSignal + 1,
+      lastSettleViaTap: viaTap,
+    })),
   setListening: (listening) => set({ listening }),
   signalSkip: (dir) =>
     set((state) => ({
