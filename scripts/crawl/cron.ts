@@ -12,7 +12,7 @@ import { triggerRevalidate } from "./revalidate-trigger";
 import { crawlAll, summarizeValidity, type SpotifyResolution } from "./run";
 import { createSpotifyResolver } from "./spotify-resolve";
 import { createSpotifyThrottle, createThrottle } from "./throttle";
-import { uploadCharts } from "./upload-blob";
+import { uploadCharts, uploadPreviousCharts } from "./upload-blob";
 
 if (!process.env.BLOB_READ_WRITE_TOKEN) {
   throw new Error("BLOB_READ_WRITE_TOKEN missing.");
@@ -75,6 +75,22 @@ try {
         lookupTrack: itunes.lookupTrack,
         spotify,
         uploadCharts,
+        // Never rejects: a lost snapshot generation only lags the movement
+        // diff one run, which must not abort a finished crawl. It still pages,
+        // because a silently dead snapshot is how the triggers went inert.
+        uploadPrevious: async (chartFile) => {
+          try {
+            await uploadPreviousCharts(chartFile);
+          } catch (err) {
+            console.warn(
+              `[crawl] prev snapshot write failed: ${err instanceof Error ? err.message : String(err)}`,
+            );
+            Sentry.captureMessage("charts:prev-snapshot-failed", {
+              level: "warning",
+              extra: { run_id: process.env.GITHUB_RUN_ID },
+            });
+          }
+        },
         triggerRevalidate,
         fetchPrevious: previousUrl
           ? () => fetchPublishedCharts(previousUrl)

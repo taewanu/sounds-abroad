@@ -17,7 +17,7 @@ It is never the song's lyrics. Commentary describes a song; it does not reproduc
 
 ## Per-pass steps
 
-1. **Get the worklist.** Run `pnpm commentary:todo`. It lists significant movers that have no blurb yet, deduped across countries, so a track is written once and reused everywhere it charts. The list is pre-filtered; work straight down it.
+1. **Get the worklist.** Run `pnpm commentary:todo`. It lists significant movers that have no blurb yet, deduped across countries, so a track is written once and reused everywhere it charts. The list is pre-filtered; work straight down it. The new-entry and rank-jump triggers need `CHARTS_PREV_BLOB_URL` in the environment, pointing at the crawl-maintained `charts/v1/charts-prev.json` snapshot; the script states on stderr whether movement triggers are live. Without the snapshot it falls back to absolute prominence (top-debut and local-gem only).
 2. **Research each track** under the source policy below. Establish what the song is and why it is moving. If two credible sources do not support a "why it is charting" claim, keep the blurb to what the song is, or skip the track.
 3. **Write the entry** in the style below, into a candidate file keyed by the worklist key (`pnpm commentary:todo --json` emits the keys).
 4. **Sanity-check the blurbs** as you draft: no reproduced lyrics, claims match the sources, no overstatement. The publish gate is the load-bearing guard now (ADR-0009); this read only catches drafting slips early.

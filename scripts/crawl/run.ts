@@ -47,6 +47,11 @@ export interface CrawlAllDeps {
   // Source for carrying forward a country that fails this run. Must resolve
   // null (never reject) when unavailable, which skips carry-forward.
   fetchPrevious?: () => Promise<ChartFile | null>;
+  // Snapshots the outgoing charts before uploadCharts overwrites them in
+  // place; the worklist's rank-movement triggers diff against it. Like
+  // fetchPrevious, must resolve (never reject): losing one snapshot
+  // generation is cheaper than aborting a finished crawl.
+  uploadPrevious?: (chartFile: ChartFile) => Promise<unknown>;
   // Out-of-band commentary baked into the served charts. Like fetchPrevious,
   // must resolve null (never reject) when unavailable, which skips the bake and
   // leaves charts untouched. The crawl only ever reads this store (ADR-0007).
@@ -278,6 +283,12 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
     lastUpdated: now().toISOString(),
     countries: countriesMap,
   };
+
+  // Snapshot strictly before the overwrite: once uploadCharts runs, the
+  // outgoing payload is gone and the movement diff loses a generation.
+  if (deps.uploadPrevious && previous) {
+    await deps.uploadPrevious(previous);
+  }
 
   const url = await uploadCharts(chartFile);
   console.log(`[crawl] uploaded → ${url}`);

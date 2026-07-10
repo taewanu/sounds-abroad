@@ -279,7 +279,9 @@ function makeCrawlAllDeps(input: {
   fetchRss?: (cc: string) => Promise<AppleRssTrack[]>;
   lookupTrack?: (id: string, cc: string) => Promise<LookupResult>;
   fetchPrevious?: () => Promise<ChartFile | null>;
+  uploadPrevious?: (chartFile: ChartFile) => Promise<unknown>;
   fetchCommentary?: () => Promise<CommentaryStore | null>;
+  uploadCharts?: (chartFile: ChartFile) => Promise<string>;
 }): CrawlAllDeps {
   return {
     countries: input.countries,
@@ -292,9 +294,10 @@ function makeCrawlAllDeps(input: {
           previewUrl: `https://preview/${cc}/${id}.m4a`,
         }),
       ),
-    uploadCharts: vi.fn(async () => BLOB_URL),
+    uploadCharts: input.uploadCharts ?? vi.fn(async () => BLOB_URL),
     triggerRevalidate: vi.fn(async () => {}),
     fetchPrevious: input.fetchPrevious,
+    uploadPrevious: input.uploadPrevious,
     fetchCommentary: input.fetchCommentary,
     now: () => FROZEN_NOW,
   };
@@ -493,6 +496,45 @@ test("crawlAll publishes a zero-playable country as invalid when no prior data e
     fakeRssFor(NG.code).length,
   );
   expect(result.carriedCodes).toEqual([]);
+});
+
+test("crawlAll snapshots the outgoing charts before overwriting them", async () => {
+  // Order is the invariant: once the in-place overwrite runs, the outgoing
+  // payload is unrecoverable and the movement diff loses a generation.
+  const events: string[] = [];
+  const previous = previousChartFile({ kr: priorCountry(KR.name, 2) });
+  const uploadPrevious = vi.fn(async () => {
+    events.push("snapshot");
+  });
+  const uploadCharts = vi.fn(async () => {
+    events.push("publish");
+    return BLOB_URL;
+  });
+  const deps = makeCrawlAllDeps({
+    countries: [KR],
+    fetchPrevious: vi.fn(async () => previous),
+    uploadPrevious,
+    uploadCharts,
+  });
+
+  await crawlAll(deps);
+
+  expect(uploadPrevious).toHaveBeenCalledWith(previous);
+  expect(events).toEqual(["snapshot", "publish"]);
+});
+
+test("crawlAll skips the snapshot when no previous payload exists", async () => {
+  const uploadPrevious = vi.fn(async () => {});
+  const deps = makeCrawlAllDeps({
+    countries: [KR],
+    fetchPrevious: vi.fn(async () => null),
+    uploadPrevious,
+  });
+
+  await crawlAll(deps);
+
+  expect(uploadPrevious).not.toHaveBeenCalled();
+  expect(deps.uploadCharts).toHaveBeenCalledTimes(1);
 });
 
 test("crawlAll keeps a failed country invalid when fetchPrevious returns null", async () => {
