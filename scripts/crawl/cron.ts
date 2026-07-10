@@ -2,7 +2,10 @@ import "./sentry-init";
 import * as Sentry from "@sentry/node";
 
 import { COUNTRIES } from "../../src/lib/countries";
-import { fetchCommentaryStore } from "../commentary/fetch-commentary";
+import {
+  fetchCommentaryStore,
+  withCommentaryDegradationSignal,
+} from "../commentary/fetch-commentary";
 
 import { fetchAppleRss } from "./apple-rss";
 import { createItunesFetchers } from "./itunes-fetchers";
@@ -83,19 +86,18 @@ try {
         // skips and freshly-crawled cards ship without commentary, so the
         // degradation must surface in Sentry, not just the run log.
         fetchCommentary: commentaryUrl
-          ? async () => {
-              const store = await fetchCommentaryStore(commentaryUrl);
-              if (store === null) {
+          ? withCommentaryDegradationSignal(
+              () => fetchCommentaryStore(commentaryUrl),
+              () => {
                 console.warn(
-                  "[crawl] commentary store unreadable — bake skipped this run.",
+                  "[crawl] commentary store unreadable: bake skipped this run.",
                 );
                 Sentry.captureMessage("commentary:unavailable", {
                   level: "warning",
                   extra: { run_id: process.env.GITHUB_RUN_ID },
                 });
-              }
-              return store;
-            }
+              },
+            )
           : undefined,
       });
 

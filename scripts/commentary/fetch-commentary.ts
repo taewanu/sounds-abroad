@@ -1,14 +1,40 @@
 import { CommentarySchema } from "../../src/lib/chart-schema";
 import { type CommentaryStore } from "../../src/lib/commentary-store";
 
+export interface SalvagedStore {
+  store: CommentaryStore;
+  droppedKeys: string[];
+}
+
+/**
+ * Validates a store per entry, keeping the survivors and naming the dropped
+ * keys. Pure and shared by both consumers of the raw payload: the baking read
+ * keeps only valid entries, and the draft batch re-queues exactly the keys
+ * dropped here, so a preserved-but-invalid entry cannot block its own
+ * regeneration.
+ */
+export function salvageCommentaryStore(raw: object): SalvagedStore {
+  const store: CommentaryStore = {};
+  const droppedKeys: string[] = [];
+  for (const [key, value] of Object.entries(raw)) {
+    const parsed = CommentarySchema.safeParse(value);
+    if (parsed.success) {
+      store[key] = parsed.data;
+    } else {
+      droppedKeys.push(key);
+    }
+  }
+  return { store, droppedKeys };
+}
+
 /**
  * Reads the published commentary store for the crawl to bake in and for the
  * worklist to diff against. Validates per entry, dropping only the entries
- * that fail — one entry invalidated by a since-tightened schema must not void
+ * that fail: one entry invalidated by a since-tightened schema must not void
  * the whole store (the bake is authoritative, so a voided store would clear
  * every freshly-crawled card). Degrades to null on a failed read, a payload
  * that is not an object, or a non-empty store where no entry survives (total
- * loss reads as schema drift, not an empty store) — commentary is additive
+ * loss reads as schema drift, not an empty store); commentary is additive
  * and must never abort the crawl.
  */
 export async function fetchCommentaryStore(
@@ -23,26 +49,34 @@ export async function fetchCommentaryStore(
       return null;
     }
 
-    const store: CommentaryStore = {};
-    const dropped: string[] = [];
-    for (const [key, value] of Object.entries(json)) {
-      const parsed = CommentarySchema.safeParse(value);
-      if (parsed.success) {
-        store[key] = parsed.data;
-      } else {
-        dropped.push(key);
-      }
-    }
-    if (dropped.length > 0) {
+    const { store, droppedKeys } = salvageCommentaryStore(json);
+    if (droppedKeys.length > 0) {
       console.warn(
-        `[commentary] dropped ${dropped.length} invalid entr${dropped.length === 1 ? "y" : "ies"}: ${dropped.join(", ")}`,
+        `[commentary] dropped ${droppedKeys.length} invalid entr${droppedKeys.length === 1 ? "y" : "ies"}: ${droppedKeys.join(", ")}`,
       );
     }
-    if (dropped.length > 0 && Object.keys(store).length === 0) return null;
+    if (droppedKeys.length > 0 && Object.keys(store).length === 0) return null;
     return store;
   } catch {
     return null;
   }
+}
+
+/**
+ * Wraps a commentary read so a null result fires the degradation signal and
+ * still passes through to the caller. The wrapper exists to be testable: the
+ * signal is the only trace that a configured store failed to bake, and an
+ * inline try/catch at the wiring site had no test able to reach it.
+ */
+export function withCommentaryDegradationSignal(
+  fetchStore: () => Promise<CommentaryStore | null>,
+  onUnavailable: () => void,
+): () => Promise<CommentaryStore | null> {
+  return async () => {
+    const store = await fetchStore();
+    if (store === null) onUnavailable();
+    return store;
+  };
 }
 
 /**

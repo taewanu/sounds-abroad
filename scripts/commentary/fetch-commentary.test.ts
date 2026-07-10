@@ -1,15 +1,19 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 
-import { commentaryKey } from "../../src/lib/commentary-store";
+import {
+  commentaryKey,
+  type CommentaryStore,
+} from "../../src/lib/commentary-store";
 
 import {
   fetchCommentaryStore,
   fetchCommentaryStoreRaw,
+  withCommentaryDegradationSignal,
 } from "./fetch-commentary";
 
 const URL = "https://blob/commentary/v1/commentary.json";
 
-function validStore() {
+function validStore(): CommentaryStore {
   return {
     [commentaryKey("en", "Artist", "Song")]: {
       lead: "A blurb about the song.",
@@ -138,4 +142,44 @@ test("fetchCommentaryStoreRaw throws on a non-object payload rather than merging
   await expect(
     fetchCommentaryStoreRaw(URL, fakeFetch({ body: JSON.stringify([]) })),
   ).rejects.toThrow();
+});
+
+test("withCommentaryDegradationSignal fires on a null read and passes the null through", async () => {
+  const onUnavailable = vi.fn();
+  const wrapped = withCommentaryDegradationSignal(
+    async () => null,
+    onUnavailable,
+  );
+
+  const result = await wrapped();
+
+  expect(result).toBeNull();
+  expect(onUnavailable).toHaveBeenCalledTimes(1);
+});
+
+test("withCommentaryDegradationSignal stays silent on an empty store", async () => {
+  const onUnavailable = vi.fn();
+  const wrapped = withCommentaryDegradationSignal(
+    async () => ({}),
+    onUnavailable,
+  );
+
+  const result = await wrapped();
+
+  expect(result).toEqual({});
+  expect(onUnavailable).not.toHaveBeenCalled();
+});
+
+test("withCommentaryDegradationSignal passes a loaded store through untouched", async () => {
+  const store = validStore();
+  const onUnavailable = vi.fn();
+  const wrapped = withCommentaryDegradationSignal(
+    async () => store,
+    onUnavailable,
+  );
+
+  const result = await wrapped();
+
+  expect(result).toBe(store);
+  expect(onUnavailable).not.toHaveBeenCalled();
 });
