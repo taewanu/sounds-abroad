@@ -1,22 +1,41 @@
+<div align="center">
+
 # Sounds Abroad
 
-A 3D globe-based world music discovery web app — explore trending music around the world.
+Spin a globe, tap a country, hear what's trending there.
 
-## Tech stack
+[soundsabroad.app](https://soundsabroad.app)
 
-- **Framework**: Next.js 16 (App Router + Turbopack), React 19, TypeScript
-- **Styling**: Tailwind CSS v4 (CSS-first config via `@theme`)
-- **3D**: `@react-three/fiber`, `@react-three/drei`, `gsap`, `d3-geo` _(planned, Phase 4)_
-- **UI**: `@radix-ui/react-dialog`, `motion` _(planned, Phase 3)_
-- **Design system**: generated with Claude Design and refined through pointing-and-feedback — tokens live in [`src/app/globals.css`](src/app/globals.css), self-hosted fonts in [`src/app/fonts/`](src/app/fonts/), brand assets in [`public/`](public/)
-- **Toolchain**: Node 24 + pnpm 10 via [mise](https://mise.jdx.dev) (see [`mise.toml`](mise.toml)); Husky 9 + lint-staged for pre-commit format/lint/typecheck
-- **Testing**: Vitest
-- **Hosting**: Vercel
-- **Observability**: Sentry (errors + Cron Monitor on the data pipeline)
+<img src="docs/media/hero.png" alt="Sounds Abroad: South Korea selected, showing its trending tracks" width="300" />
+<img src="docs/media/playing.png" alt="Sounds Abroad: a Korean track playing, with the now-playing bar" width="300" />
 
-## Run
+</div>
 
-Wrap commands with `mise exec --` so non-interactive shells (CI, git hooks) resolve the right binaries.
+---
+
+## What it does
+
+Travel through other countries' music. Spin the globe, pick a country, and you get its top tracks for the day, pulled from Apple's charts. Each country also has one "gem": a local favorite, sometimes with a short note on why it caught on. Preview a track in place, or open it in Spotify or Apple Music.
+
+First-time visitors get a short gesture tour instead of written instructions.
+
+## How it was built
+
+A solo project, built mostly with Claude Code. A few specifics:
+
+- Charts refresh daily: a scheduled crawl reads Apple's public charts and bakes them into a static payload (Vercel Cron, monitored by Sentry).
+- The globe is real 3D (react-three-fiber), not a map image; each country is a selectable geographic feature.
+- Decisions are written down as they happen, in `docs/adr/`, rather than reconstructed after.
+
+## Tech
+
+Next.js 16 (App Router) · React 19 · react-three-fiber / three · topojson-client · motion · zustand · Tailwind CSS v4 · Vercel · Sentry.
+
+---
+
+## For developers
+
+Node 24 + pnpm 10 via [mise](https://mise.jdx.dev). Wrap commands with `mise exec --` so non-interactive shells (CI, git hooks) resolve the right binaries.
 
 ```bash
 mise exec -- pnpm install
@@ -28,9 +47,13 @@ mise exec -- pnpm typecheck
 mise exec -- pnpm test
 ```
 
-## Where to look
+Pre-commit hook (Husky 9 + lint-staged) runs format + lint + typecheck on staged files.
 
-- Phase boundaries — annotated git tags (`git tag --list`)
-- PRDs and tickets — GitHub Issues (`gh issue list`)
-- Architecture Decision Records — [`docs/adr/`](docs/adr)
-- Agent-facing project notes — [`AGENTS.md`](AGENTS.md) (also served as `CLAUDE.md` via symlink)
+### Where to look
+
+- Design system: tokens in [`src/app/globals.css`](src/app/globals.css), self-hosted fonts in [`src/app/fonts/`](src/app/fonts/), brand assets in [`public/`](public/)
+- Architecture Decision Records: [`docs/adr/`](docs/adr)
+- Phase history: annotated git tags (`git tag --list`)
+- Issues: GitHub Issues (`gh issue list`)
+- Agent notes: [`AGENTS.md`](AGENTS.md) (served as `CLAUDE.md` via symlink)
+- Agent configuration: [`docs/agents/`](docs/agents) (issue tracker, triage labels, domain notes)
