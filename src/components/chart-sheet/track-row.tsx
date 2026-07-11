@@ -61,7 +61,11 @@ export function TrackRow({ track, countryCode, isHintTarget }: TrackRowProps) {
       data-disabled={!hasPreview || undefined}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="hover:bg-atmos data-[state]:bg-sunrise/[0.08] data-[state]:hover:bg-sunrise/[0.15] flex flex-col rounded-[14px] px-3 py-2.5 transition-colors duration-200 data-[disabled]:opacity-40 data-[disabled]:hover:bg-transparent"
+      // content-visibility:auto skips layout/paint for rows scrolled out of view
+      // (most of the list). contain-intrinsic-size seeds an off-screen row at a
+      // collapsed single-line height (~68px) and, via `auto`, reuses its real
+      // height once rendered, reducing data-rank scroll drift for taller rows.
+      className="hover:bg-atmos data-[state]:bg-sunrise/[0.08] data-[state]:hover:bg-sunrise/[0.15] flex flex-col rounded-[14px] px-3 py-2.5 transition-colors duration-200 [contain-intrinsic-size:auto_68px] [content-visibility:auto] data-[disabled]:opacity-40 data-[disabled]:hover:bg-transparent"
     >
       <div className="flex items-center gap-[14px]">
         <button
