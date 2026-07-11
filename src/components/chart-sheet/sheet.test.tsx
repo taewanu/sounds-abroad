@@ -615,3 +615,46 @@ describe("ChartSheet", () => {
     expect(onSnapChange).not.toHaveBeenCalled();
   });
 });
+
+describe("ChartSheet commentary focus", () => {
+  // The focus-mode teasers carry aria-haspopup="dialog"; the gem card's accordion
+  // does not, so this selects a ranked row's commentary teaser.
+  function firstTeaser(container: HTMLElement) {
+    return container.querySelector<HTMLButtonElement>(
+      'button[aria-haspopup="dialog"]',
+    );
+  }
+
+  test("opening a teaser focuses its card and dims the other rows", () => {
+    const { container } = renderSheet("full");
+    const teaser = firstTeaser(container);
+    expect(teaser).not.toBeNull();
+
+    fireEvent.click(teaser!);
+
+    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+    expect(
+      container.querySelector("li[class*='pointer-events-none']"),
+    ).not.toBeNull();
+  });
+
+  test("Escape closes the focused card", () => {
+    const { container } = renderSheet("full");
+    fireEvent.click(firstTeaser(container)!);
+    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    expect(container.querySelector("[data-commentary-card]")).toBeNull();
+  });
+
+  test("a pointer outside the card closes it", () => {
+    const { container } = renderSheet("full");
+    fireEvent.click(firstTeaser(container)!);
+    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+
+    fireEvent.pointerDown(document.body);
+
+    expect(container.querySelector("[data-commentary-card]")).toBeNull();
+  });
+});

@@ -18,9 +18,24 @@ export interface TrackRowProps {
   // True on the first commentary-bearing row of the current country: the one
   // row eligible for the one-time discovery pulse.
   isHintTarget?: boolean;
+  // Commentary focus state, owned by the sheet. `focused` makes this row the
+  // reader card; `dimmed` recedes it while a sibling is focused. Absent for rows
+  // without commentary and for the gem card.
+  focused?: boolean;
+  dimmed?: boolean;
+  onOpenCommentary?: () => void;
+  onCloseCommentary?: () => void;
 }
 
-export function TrackRow({ track, countryCode, isHintTarget }: TrackRowProps) {
+export function TrackRow({
+  track,
+  countryCode,
+  isHintTarget,
+  focused = false,
+  dimmed = false,
+  onOpenCommentary,
+  onCloseCommentary,
+}: TrackRowProps) {
   const isCurrent = useAudioStore(
     (s) =>
       s.currentTrack?.previewUrl === track.previewUrl &&
@@ -54,18 +69,28 @@ export function TrackRow({ track, countryCode, isHintTarget }: TrackRowProps) {
 
   const commentary = track.commentary ?? null;
 
+  // content-visibility:auto skips layout/paint for rows scrolled out of view
+  // (most of the list); the focused card must fully render, so it opts out.
+  // contain-intrinsic-size seeds an off-screen row at a collapsed single-line
+  // height (~68px) and, via `auto`, reuses its real height once rendered,
+  // reducing data-rank scroll drift for taller rows.
+  const baseClass =
+    "flex flex-col rounded-[14px] px-3 py-2.5 data-[disabled]:opacity-40";
+  const stateClass = focused
+    ? "bg-atmos ring-aurora/25 relative z-10 shadow-sheet ring-1"
+    : dimmed
+      ? "pointer-events-none opacity-40 transition-opacity duration-200 motion-reduce:transition-none"
+      : "hover:bg-atmos data-[state]:bg-sunrise/[0.08] data-[state]:hover:bg-sunrise/[0.15] transition-colors duration-200 [contain-intrinsic-size:auto_68px] [content-visibility:auto] data-[disabled]:hover:bg-transparent";
+
   return (
     <li
       data-rank={track.rank}
       data-state={state}
       data-disabled={!hasPreview || undefined}
+      data-commentary-card={focused || undefined}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      // content-visibility:auto skips layout/paint for rows scrolled out of view
-      // (most of the list). contain-intrinsic-size seeds an off-screen row at a
-      // collapsed single-line height (~68px) and, via `auto`, reuses its real
-      // height once rendered, reducing data-rank scroll drift for taller rows.
-      className="hover:bg-atmos data-[state]:bg-sunrise/[0.08] data-[state]:hover:bg-sunrise/[0.15] flex flex-col rounded-[14px] px-3 py-2.5 transition-colors duration-200 [contain-intrinsic-size:auto_68px] [content-visibility:auto] data-[disabled]:opacity-40 data-[disabled]:hover:bg-transparent"
+      className={`${baseClass} ${stateClass}`}
     >
       <div className="flex items-center gap-[14px]">
         <button
@@ -153,7 +178,19 @@ export function TrackRow({ track, countryCode, isHintTarget }: TrackRowProps) {
         </div>
       </div>
       {commentary ? (
-        <TrackCommentary commentary={commentary} isHintTarget={isHintTarget} />
+        <TrackCommentary
+          commentary={commentary}
+          isHintTarget={isHintTarget}
+          focus={
+            onOpenCommentary && onCloseCommentary
+              ? {
+                  active: focused,
+                  onOpen: onOpenCommentary,
+                  onClose: onCloseCommentary,
+                }
+              : undefined
+          }
+        />
       ) : null}
     </li>
   );

@@ -150,6 +150,35 @@ export function ChartSheet({
   // dragged; only toggled at gesture start/end, never per frame.
   const [isDragging, setIsDragging] = useState(false);
 
+  // A commentary track opened into its focused reader card. Scoped to the country
+  // it opened in, so `focusedRank` derives to null when the country changes
+  // (no reset effect); one at a time.
+  const [focused, setFocused] = useState<{ cc: string; rank: number } | null>(
+    null,
+  );
+  const focusedRank = focused?.cc === countryCode ? focused.rank : null;
+
+  // While a card is focused, dismiss on Escape or a pointer outside it (a dimmed
+  // sibling, the sheet chrome). The opening teaser and the card's own controls
+  // sit inside the card, so this never fights them; capture-phase so a dimmed
+  // sibling's own (pointer-events-none) handlers can't swallow it first.
+  useEffect(() => {
+    if (focusedRank === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFocused(null);
+    };
+    const onDown = (e: PointerEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target?.closest("[data-commentary-card]")) setFocused(null);
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("pointerdown", onDown, true);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("pointerdown", onDown, true);
+    };
+  }, [focusedRank]);
+
   // Mount-time snap, captured once. React writes this transform for SSR/first
   // paint and never reconciles it (it never changes across renders), so the
   // gesture and settle code own the transform imperatively from then on. Do not
@@ -578,6 +607,12 @@ export function ChartSheet({
             track={track}
             countryCode={countryCode}
             isHintTarget={track.rank === hintRank}
+            focused={track.rank === focusedRank}
+            dimmed={focusedRank !== null && track.rank !== focusedRank}
+            onOpenCommentary={() =>
+              setFocused({ cc: countryCode, rank: track.rank })
+            }
+            onCloseCommentary={() => setFocused(null)}
           />
         ))}
       </ol>
