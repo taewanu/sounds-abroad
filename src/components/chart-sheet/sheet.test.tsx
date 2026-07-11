@@ -638,14 +638,27 @@ describe("ChartSheet commentary focus", () => {
     ).not.toBeNull();
   });
 
-  test("Escape closes the focused card", () => {
-    const { container } = renderSheet("full");
+  test("Escape closes the focused card without collapsing the sheet", () => {
+    const { container, onSnapChange } = renderSheet("full");
     fireEvent.click(firstTeaser(container)!);
     expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
 
     fireEvent.keyDown(window, { key: "Escape" });
 
     expect(container.querySelector("[data-commentary-card]")).toBeNull();
+    // The card owns the first Escape; the sheet-collapse handler stands down.
+    expect(onSnapChange).not.toHaveBeenCalled();
+  });
+
+  test("a second Escape, after the card closes, collapses the sheet", () => {
+    const { container, onSnapChange } = renderSheet("full");
+    fireEvent.click(firstTeaser(container)!);
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(onSnapChange).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(onSnapChange).toHaveBeenCalledWith("closed");
   });
 
   test("a pointer outside the card closes it", () => {

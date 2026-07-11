@@ -183,6 +183,15 @@ export function ChartSheet({
     };
   }, [focusedRank]);
 
+  // The sheet's own long-lived Escape-collapse listener reads focus via this ref
+  // (the file's ref-for-listeners pattern), so an Escape that closes a focused
+  // card doesn't also collapse the sheet: the card takes the first Escape, a
+  // second collapses.
+  const focusedRankRef = useRef(focusedRank);
+  useEffect(() => {
+    focusedRankRef.current = focusedRank;
+  }, [focusedRank]);
+
   // Mount-time snap, captured once. React writes this transform for SSR/first
   // paint and never reconciles it (it never changes across renders), so the
   // gesture and settle code own the transform imperatively from then on. Do not
@@ -499,6 +508,9 @@ export function ChartSheet({
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      // A focused commentary card owns Escape first; only once it's closed does
+      // Escape collapse the sheet.
+      if (focusedRankRef.current !== null) return;
       // Already collapsed or off-screen: nothing to close, so skip the write.
       const currentSnap = snapRef.current;
       if (currentSnap === "closed" || currentSnap === "hidden") return;
