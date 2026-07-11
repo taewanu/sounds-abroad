@@ -181,7 +181,7 @@ export function TrackRow({
         <TrackCommentary
           commentary={commentary}
           isHintTarget={isHintTarget}
-          focus={
+          focusCard={
             onOpenCommentary && onCloseCommentary
               ? {
                   active: focused,

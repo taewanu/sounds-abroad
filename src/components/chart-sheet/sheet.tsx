@@ -150,13 +150,17 @@ export function ChartSheet({
   // dragged; only toggled at gesture start/end, never per frame.
   const [isDragging, setIsDragging] = useState(false);
 
-  // A commentary track opened into its focused reader card. Scoped to the country
-  // it opened in, so `focusedRank` derives to null when the country changes
-  // (no reset effect); one at a time.
-  const [focused, setFocused] = useState<{ cc: string; rank: number } | null>(
-    null,
-  );
-  const focusedRank = focused?.cc === countryCode ? focused.rank : null;
+  // A commentary track opened into its focused reader card, by rank; one at a
+  // time. A focus is scoped to the country it opened in: reset it when the
+  // country changes by adjusting state during render, not in an effect (which
+  // would flag a cascading setState, and would leave the focus latent to re-open
+  // on return to that country).
+  const [focusedRank, setFocusedRank] = useState<number | null>(null);
+  const [focusCountry, setFocusCountry] = useState(countryCode);
+  if (focusCountry !== countryCode) {
+    setFocusCountry(countryCode);
+    setFocusedRank(null);
+  }
 
   // While a card is focused, dismiss on Escape or a pointer outside it (a dimmed
   // sibling, the sheet chrome). The opening teaser and the card's own controls
@@ -165,11 +169,11 @@ export function ChartSheet({
   useEffect(() => {
     if (focusedRank === null) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setFocused(null);
+      if (e.key === "Escape") setFocusedRank(null);
     };
     const onDown = (e: PointerEvent) => {
       const target = e.target as HTMLElement | null;
-      if (!target?.closest("[data-commentary-card]")) setFocused(null);
+      if (!target?.closest("[data-commentary-card]")) setFocusedRank(null);
     };
     window.addEventListener("keydown", onKey);
     window.addEventListener("pointerdown", onDown, true);
@@ -609,10 +613,8 @@ export function ChartSheet({
             isHintTarget={track.rank === hintRank}
             focused={track.rank === focusedRank}
             dimmed={focusedRank !== null && track.rank !== focusedRank}
-            onOpenCommentary={() =>
-              setFocused({ cc: countryCode, rank: track.rank })
-            }
-            onCloseCommentary={() => setFocused(null)}
+            onOpenCommentary={() => setFocusedRank(track.rank)}
+            onCloseCommentary={() => setFocusedRank(null)}
           />
         ))}
       </ol>

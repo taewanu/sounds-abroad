@@ -101,7 +101,7 @@ export interface TrackCommentaryProps {
   // focused reader card (the lead un-clamps, detail/sources show, a close control
   // appears) instead of expanding inline; the gem card omits it and keeps the
   // inline accordion.
-  focus?: {
+  focusCard?: {
     active: boolean;
     onOpen: () => void;
     onClose: () => void;
@@ -109,27 +109,27 @@ export interface TrackCommentaryProps {
 }
 
 // The tag/lead teaser plus its depth. Two shells over one body:
-// - gem card (no `focus`): an inline accordion that expands the detail in place.
-// - chart row (`focus`): a teaser that opens the row's focused reader card, so
-//   the "why it's here" reads with room instead of fighting the cramped row.
+// - gem card (no `focusCard`): an inline accordion that expands the detail here.
+// - chart row (`focusCard`): a teaser that opens the row's focused reader card,
+//   so the "why it's here" reads with room instead of fighting the cramped row.
 export function TrackCommentary({
   commentary,
   isHintTarget,
-  focus,
+  focusCard,
 }: TrackCommentaryProps) {
   const [expanded, setExpanded] = useState(false);
   const panelId = useId();
 
   const Glyph = isHintTarget ? HintedGlyph : PlainGlyph;
 
-  if (focus) {
-    const { active, onOpen, onClose } = focus;
+  if (focusCard) {
+    const { active, onOpen, onClose } = focusCard;
     return (
       <div className="border-fg-1/10 mt-2.5 border-t pt-2.5">
         <button
           type="button"
           onClick={active ? onClose : onOpen}
-          aria-haspopup="dialog"
+          data-commentary-teaser
           aria-expanded={active}
           className="focus-visible:outline-aurora flex w-full items-center gap-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2"
         >
