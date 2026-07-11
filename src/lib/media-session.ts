@@ -38,7 +38,7 @@ export function setNowPlaying(
   mediaSession.metadata = new metadataCtor({
     title: track.name,
     artist: track.artist,
-    artwork: [{ src: track.artworkUrl, sizes: "600x600", type: "image/jpeg" }],
+    artwork: [{ src: track.artworkUrl }],
   });
 }
 
