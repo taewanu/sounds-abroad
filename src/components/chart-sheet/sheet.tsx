@@ -150,6 +150,79 @@ export function ChartSheet({
   // dragged; only toggled at gesture start/end, never per frame.
   const [isDragging, setIsDragging] = useState(false);
 
+  // A commentary track opened into its focused reader card, by rank; one at a
+  // time. A focus is scoped to the country it opened in: reset it when the
+  // country changes by adjusting state during render, not in an effect (which
+  // would flag a cascading setState, and would leave the focus latent to re-open
+  // on return to that country).
+  const [focusedRank, setFocusedRank] = useState<number | null>(null);
+  const [focusCountry, setFocusCountry] = useState(countryCode);
+  if (focusCountry !== countryCode) {
+    setFocusCountry(countryCode);
+    setFocusedRank(null);
+  }
+
+  // While a card is focused, dismiss on Escape or a click outside it (a dimmed
+  // sibling, the sheet chrome). Dismiss on click, not pointerdown: closing
+  // un-dims the siblings, so a pointerdown-close would restore a sibling's
+  // pointer-events before its click landed and play that track. A dimmed
+  // sibling stays pointer-events-none through the whole click, so the click
+  // targets the list behind it (never the row's play button) and only closes.
+  useEffect(() => {
+    if (focusedRank === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFocusedRank(null);
+    };
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      // Keep the card open for clicks on the card itself, and for anything
+      // outside the sheet (the mini-player and other persistent chrome): only a
+      // click on the sheet's own dimmed area collapses it.
+      if (target?.closest("[data-commentary-card]")) return;
+      if (!sheetRef.current?.contains(target)) return;
+      setFocusedRank(null);
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("click", onClick, true);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("click", onClick, true);
+    };
+  }, [focusedRank]);
+
+  // The sheet's own long-lived Escape-collapse listener reads focus via this ref
+  // (the file's ref-for-listeners pattern), so an Escape that closes a focused
+  // card doesn't also collapse the sheet: the card takes the first Escape, a
+  // second collapses.
+  const focusedRankRef = useRef(focusedRank);
+  useEffect(() => {
+    focusedRankRef.current = focusedRank;
+  }, [focusedRank]);
+
+  // When a card opens, its grown height can push its own top above the list
+  // viewport; nudge it into view so the read starts at the top, not mid-card.
+  // Only when clipped (so an already-visible card never yanks); rAF so the grown
+  // card is measured, not the pre-open row.
+  useEffect(() => {
+    if (focusedRank === null) return;
+    const id = requestAnimationFrame(() => {
+      const ol = olRef.current;
+      const row = ol?.querySelector<HTMLElement>(
+        `[data-rank="${focusedRank}"]`,
+      );
+      if (!ol || !row) return;
+      // Leave a small margin above the card so its top outline clears the
+      // viewport edge instead of sitting flush against it (clipped on mobile).
+      const MARGIN_PX = 12;
+      const delta =
+        row.getBoundingClientRect().top -
+        ol.getBoundingClientRect().top -
+        MARGIN_PX;
+      if (delta < 0) ol.scrollBy({ top: delta, behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [focusedRank]);
+
   // Mount-time snap, captured once. React writes this transform for SSR/first
   // paint and never reconciles it (it never changes across renders), so the
   // gesture and settle code own the transform imperatively from then on. Do not
@@ -466,6 +539,9 @@ export function ChartSheet({
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      // A focused commentary card owns Escape first; only once it's closed does
+      // Escape collapse the sheet.
+      if (focusedRankRef.current !== null) return;
       // Already collapsed or off-screen: nothing to close, so skip the write.
       const currentSnap = snapRef.current;
       if (currentSnap === "closed" || currentSnap === "hidden") return;
@@ -578,6 +654,10 @@ export function ChartSheet({
             track={track}
             countryCode={countryCode}
             isHintTarget={track.rank === hintRank}
+            focused={track.rank === focusedRank}
+            dimmed={focusedRank !== null && track.rank !== focusedRank}
+            onOpenCommentary={() => setFocusedRank(track.rank)}
+            onCloseCommentary={() => setFocusedRank(null)}
           />
         ))}
       </ol>

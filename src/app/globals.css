@@ -257,6 +257,42 @@
   }
 }
 
+/* Commentary focus card open/close: the detail + sources grow and shrink on a
+   grid-rows track (height on ease-out so it never jiggles) while the content
+   rises in with a slight spring; the sources trail by a beat. Both directions
+   animate off the single data-open toggle. */
+.commentary-reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 300ms var(--ease-out);
+}
+.commentary-reveal[data-open] {
+  grid-template-rows: 1fr;
+}
+.commentary-reveal-inner {
+  overflow: hidden;
+}
+.commentary-rise {
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 300ms var(--ease-out),
+    transform 300ms var(--ease-spring);
+}
+.commentary-reveal[data-open] .commentary-rise {
+  opacity: 1;
+  transform: translateY(0);
+}
+.commentary-reveal[data-open] .commentary-rise-late {
+  transition-delay: 80ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .commentary-reveal,
+  .commentary-rise {
+    transition: none;
+  }
+}
+
 /* Shared plain fade-in, used by the edge-tap hint (and any other one-shot cue). */
 @keyframes tour-fade {
   from {

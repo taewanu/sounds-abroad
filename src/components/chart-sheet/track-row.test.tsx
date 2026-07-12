@@ -318,3 +318,74 @@ describe("TrackRow commentary card", () => {
     expect(screen.getByRole("link", { name: "npr.org" })).toBeDefined();
   });
 });
+
+describe("TrackRow commentary focus card", () => {
+  const COMMENTARY = {
+    lead: "A drill-inflected breakout dominating the charts for three weeks.",
+    detail: "It crossed over from underground clubs after a viral challenge.",
+    tag: "why it's here",
+    claim: "why-charting",
+    sources: ["https://www.billboard.com/charts"],
+    generatedAt: "2026-04-25T03:00:00Z",
+  } satisfies Commentary;
+
+  function renderFocusRow(over: { focused?: boolean; dimmed?: boolean } = {}) {
+    const store = createAudioStore(() => makeMockAudio());
+    const onOpenCommentary = vi.fn();
+    const onCloseCommentary = vi.fn();
+    const utils = render(
+      <AudioStoreContext.Provider value={store}>
+        <ul>
+          <TrackRow
+            track={makeTrack({ commentary: COMMENTARY })}
+            countryCode="kr"
+            focused={over.focused ?? false}
+            dimmed={over.dimmed ?? false}
+            onOpenCommentary={onOpenCommentary}
+            onCloseCommentary={onCloseCommentary}
+          />
+        </ul>
+      </AudioStoreContext.Provider>,
+    );
+    return { ...utils, onOpenCommentary, onCloseCommentary };
+  }
+
+  test("closed: the teaser opens the card; the reveal stays collapsed", () => {
+    const { container, onOpenCommentary } = renderFocusRow({ focused: false });
+
+    const teaser = screen.getByRole("button", { expanded: false });
+    expect(teaser.textContent).toContain(COMMENTARY.lead);
+    // The reveal is always mounted (so it can animate closed too), but is not
+    // opened while the teaser is closed.
+    expect(container.querySelector(".commentary-reveal[data-open]")).toBeNull();
+
+    fireEvent.click(teaser);
+
+    expect(onOpenCommentary).toHaveBeenCalledTimes(1);
+  });
+
+  test("focused: shows the detail and sources, and the teaser closes it", () => {
+    const { onCloseCommentary } = renderFocusRow({ focused: true });
+
+    expect(screen.getByText(COMMENTARY.detail)).toBeDefined();
+    expect(screen.getByRole("link", { name: "billboard.com" })).toBeDefined();
+
+    fireEvent.click(screen.getByRole("button", { expanded: true }));
+
+    expect(onCloseCommentary).toHaveBeenCalledTimes(1);
+  });
+
+  test("focused: the row is tagged as the commentary card for outside-click", () => {
+    const { container } = renderFocusRow({ focused: true });
+
+    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+  });
+
+  test("dimmed: the row recedes and is inert to pointers", () => {
+    const { container } = renderFocusRow({ dimmed: true });
+
+    const li = container.querySelector("li");
+    expect(li?.className).toContain("opacity-40");
+    expect(li?.className).toContain("pointer-events-none");
+  });
+});

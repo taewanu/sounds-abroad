@@ -615,3 +615,96 @@ describe("ChartSheet", () => {
     expect(onSnapChange).not.toHaveBeenCalled();
   });
 });
+
+describe("ChartSheet commentary focus", () => {
+  // The focus-mode teasers carry data-commentary-teaser; the gem card's accordion
+  // does not, so this selects a ranked row's commentary teaser.
+  function firstTeaser(container: HTMLElement) {
+    return container.querySelector<HTMLButtonElement>(
+      "[data-commentary-teaser]",
+    );
+  }
+
+  test("opening a teaser focuses its card and dims the other rows", () => {
+    const { container } = renderSheet("full");
+    const teaser = firstTeaser(container);
+    expect(teaser).not.toBeNull();
+
+    fireEvent.click(teaser!);
+
+    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+    expect(
+      container.querySelector("li[class*='pointer-events-none']"),
+    ).not.toBeNull();
+  });
+
+  test("Escape closes the focused card without collapsing the sheet", () => {
+    const { container, onSnapChange } = renderSheet("full");
+    fireEvent.click(firstTeaser(container)!);
+    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    expect(container.querySelector("[data-commentary-card]")).toBeNull();
+    // The card owns the first Escape; the sheet-collapse handler stands down.
+    expect(onSnapChange).not.toHaveBeenCalled();
+  });
+
+  test("a second Escape, after the card closes, collapses the sheet", () => {
+    const { container, onSnapChange } = renderSheet("full");
+    fireEvent.click(firstTeaser(container)!);
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(onSnapChange).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(onSnapChange).toHaveBeenCalledWith("closed");
+  });
+
+  test("a click on the sheet outside the card (a dimmed sibling) closes it", () => {
+    const { container } = renderSheet("full");
+    fireEvent.click(firstTeaser(container)!);
+    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+
+    const sibling = container.querySelector(
+      "li[data-rank]:not([data-commentary-card])",
+    );
+    fireEvent.click(sibling!);
+
+    expect(container.querySelector("[data-commentary-card]")).toBeNull();
+  });
+
+  test("a click outside the sheet (persistent chrome) keeps the card open", () => {
+    const { container } = renderSheet("full");
+    fireEvent.click(firstTeaser(container)!);
+    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+
+    // The mini-player and other chrome live outside the sheet element; clicking
+    // them must not collapse the card.
+    fireEvent.click(document.body);
+
+    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+  });
+
+  test("switching country closes the card and does not restore it on return", () => {
+    const store = createAudioStore(() => makeMockAudio());
+    const view = (cc: string) => (
+      <AudioStoreContext.Provider value={store}>
+        <ChartSheet
+          country={COUNTRY_KR}
+          countryCode={cc}
+          snap="full"
+          onSnapChange={vi.fn()}
+        />
+      </AudioStoreContext.Provider>
+    );
+    const { container, rerender } = render(view("kr"));
+    fireEvent.click(firstTeaser(container)!);
+    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+
+    rerender(view("us"));
+    rerender(view("kr"));
+
+    expect(container.querySelector("[data-commentary-card]")).toBeNull();
+  });
+});
