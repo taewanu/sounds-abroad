@@ -32,6 +32,9 @@ const DOUBLE_TAP_MS = 280; // edge double-tap window: a 2nd side-third tap withi
 // DOUBLE_TAP_MS) so main-thread jank can't fire the select before a second
 // tap's pointerup and misclassify a skip as a select.
 const SELECT_DEFER_MS = 360;
+// Angular tolerance (rad) for "the camera sits on the settle target": ends a
+// settle, and tells a skip whether a settle was interrupted mid-glide.
+const SETTLE_EPS = 0.002;
 
 const COUNTRY_BY_CODE = new Map(COUNTRIES.map((c) => [c.code, c]));
 
@@ -256,8 +259,14 @@ export function SpinSnapControls({
     const onMove = (e: PointerEvent) => {
       if (!g.dragging || e.pointerId !== g.activePointerId) return;
       // Read mode can flip on mid-drag; onMove writes az directly, bypassing the
-      // useFrame suspend, so bail here too or the globe drifts under the sheet.
-      if (cfg.current.readMode) return;
+      // useFrame suspend, so don't rotate. Keep the pointer baseline current so
+      // a flip back off doesn't read the whole gap as one jump.
+      if (cfg.current.readMode) {
+        g.lastX = e.clientX;
+        g.lastY = e.clientY;
+        g.lastT = e.timeStamp;
+        return;
+      }
       const s = sim.current;
       const dx = e.clientX - g.lastX;
       const dy = e.clientY - g.lastY;
@@ -333,12 +342,12 @@ export function SpinSnapControls({
           clearPendingSelect();
           lastEdgeTapAt.current = null;
           // A skip moves no globe. If the press that started this tap froze a
-          // settle in flight, resume it — its targets still hold the intended
-          // landing — so the globe never strands mid-glide, possibly on ocean.
+          // settle in flight, resume it: its targets still hold the intended
+          // landing, so the globe never strands mid-glide, possibly on ocean.
           // At rest az/el already sit on the targets, so return to idle instead.
           const atTarget =
-            Math.abs(shortestAngle(s.settleAz - s.az)) < 0.002 &&
-            Math.abs(s.settleEl - s.el) < 0.002;
+            Math.abs(shortestAngle(s.settleAz - s.az)) < SETTLE_EPS &&
+            Math.abs(s.settleEl - s.el) < SETTLE_EPS;
           s.mode = atTarget ? "idle" : "settle";
           // Raise a skip-intent; the chart runs the skip and flashes on a real
           // change. The globe emits data and learns no outcome.
@@ -452,8 +461,8 @@ export function SpinSnapControls({
       s.az += s.vAz * dtc;
       s.el += s.vEl * dtc;
       if (
-        Math.abs(shortestAngle(s.settleAz - s.az)) < 0.002 &&
-        Math.abs(s.settleEl - s.el) < 0.002 &&
+        Math.abs(shortestAngle(s.settleAz - s.az)) < SETTLE_EPS &&
+        Math.abs(s.settleEl - s.el) < SETTLE_EPS &&
         Math.hypot(s.vAz, s.vEl) < 0.02
       ) {
         s.az = s.settleAz;
