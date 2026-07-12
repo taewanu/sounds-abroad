@@ -74,13 +74,16 @@ export function TrackRow({
   // contain-intrinsic-size seeds an off-screen row at a collapsed single-line
   // height (~68px) and, via `auto`, reuses its real height once rendered,
   // reducing data-rank scroll drift for taller rows.
+  // The chrome transition (background, ring/shadow, opacity) lives on the base so
+  // the card fades its surface in and the siblings dim/undim both when opening
+  // and when closing, off the same class change.
   const baseClass =
-    "flex flex-col rounded-[14px] px-3 py-2.5 data-[disabled]:opacity-40";
+    "flex flex-col rounded-[14px] px-3 py-2.5 transition-[background-color,box-shadow,opacity] duration-[240ms] ease-[var(--ease-out)] data-[disabled]:opacity-40 motion-reduce:transition-none";
   const stateClass = focused
     ? "bg-atmos ring-aurora/25 relative z-10 shadow-sheet ring-1"
     : dimmed
-      ? "pointer-events-none opacity-40 transition-opacity duration-200 motion-reduce:transition-none"
-      : "hover:bg-atmos data-[state]:bg-sunrise/[0.08] data-[state]:hover:bg-sunrise/[0.15] transition-colors duration-200 [contain-intrinsic-size:auto_68px] [content-visibility:auto] data-[disabled]:hover:bg-transparent";
+      ? "pointer-events-none opacity-40"
+      : "hover:bg-atmos data-[state]:bg-sunrise/[0.08] data-[state]:hover:bg-sunrise/[0.15] [contain-intrinsic-size:auto_68px] [content-visibility:auto] data-[disabled]:hover:bg-transparent";
 
   return (
     <li

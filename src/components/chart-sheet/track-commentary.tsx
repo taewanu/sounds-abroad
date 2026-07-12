@@ -4,6 +4,7 @@ import { Fragment, useId, useState } from "react";
 
 import { ChevronDownIcon } from "@/components/icons/chevron-down";
 import { ExpandIcon } from "@/components/icons/expand";
+import { MinimizeIcon } from "@/components/icons/minimize";
 import type { Commentary } from "@/lib/chart-schema";
 
 import { useCommentaryHintPulse } from "./use-commentary-hint-pulse";
@@ -18,35 +19,45 @@ function sourceLabel(url: string): string {
   }
 }
 
-// The detail paragraph plus cited sources, shared by the accordion (gem card)
-// and the focused card (chart row) so both render identical commentary depth.
+// The detail paragraph and the cited sources, split so the focused card can rise
+// them in as two staggered beats; the gem accordion composes them via
+// CommentaryDetail. Both surfaces render identical commentary depth.
+function CommentaryText({ commentary }: { commentary: Commentary }) {
+  if (!commentary.detail) return null;
+  return (
+    <p className="text-fg-2 text-small leading-relaxed">{commentary.detail}</p>
+  );
+}
+
+function CommentarySources({ commentary }: { commentary: Commentary }) {
+  return (
+    <div className="text-fg-3 text-micro flex flex-wrap items-center gap-y-1">
+      {commentary.sources.map((url, i) => (
+        <Fragment key={`${url}-${i}`}>
+          {i > 0 ? (
+            <span aria-hidden className="text-fg-4 mx-2">
+              ·
+            </span>
+          ) : null}
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-fg-1 focus-visible:outline-aurora underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
+          >
+            {sourceLabel(url)}
+          </a>
+        </Fragment>
+      ))}
+    </div>
+  );
+}
+
 function CommentaryDetail({ commentary }: { commentary: Commentary }) {
   return (
     <div className="flex flex-col gap-2 pt-2">
-      {commentary.detail ? (
-        <p className="text-fg-2 text-small leading-relaxed">
-          {commentary.detail}
-        </p>
-      ) : null}
-      <div className="text-fg-3 text-micro flex flex-wrap items-center gap-y-1">
-        {commentary.sources.map((url, i) => (
-          <Fragment key={`${url}-${i}`}>
-            {i > 0 ? (
-              <span aria-hidden className="text-fg-4 mx-2">
-                ·
-              </span>
-            ) : null}
-            <a
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-fg-1 focus-visible:outline-aurora underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
-            >
-              {sourceLabel(url)}
-            </a>
-          </Fragment>
-        ))}
-      </div>
+      <CommentaryText commentary={commentary} />
+      <CommentarySources commentary={commentary} />
     </div>
   );
 }
@@ -124,30 +135,69 @@ export function TrackCommentary({
 
   if (focusCard) {
     const { active, onOpen, onClose } = focusCard;
+    // The detail + sources live in an always-mounted reveal so opening AND
+    // closing animate (grid-rows height + a springy rise); inert while closed.
     return (
       <div className="border-fg-1/10 mt-2.5 border-t pt-2.5">
-        <button
-          type="button"
-          onClick={active ? onClose : onOpen}
-          data-commentary-teaser
-          aria-expanded={active}
-          className="focus-visible:outline-aurora flex w-full items-center gap-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2"
-        >
-          <TagPill tag={commentary.tag} />
-          <span
-            className={`text-fg-2 text-small min-w-0 flex-1 ${active ? "" : "line-clamp-2"}`}
+        {active ? (
+          // Open: the badge sits on its own top row (a flex row, so extra tags
+          // would wrap if the schema ever carries more than one) with the
+          // collapse cue, above a full-width lead. The whole button toggles
+          // closed (tap the card again), so there's no separate close control.
+          <button
+            type="button"
+            onClick={onClose}
+            aria-expanded
+            aria-label="Collapse commentary"
+            className="focus-visible:outline-aurora block w-full text-left focus-visible:outline-2 focus-visible:outline-offset-2"
           >
-            {commentary.lead}
-          </span>
-          <Glyph>
-            {active ? (
-              <ChevronGlyph expanded />
-            ) : (
+            <div className="flex items-center gap-2">
+              <div className="flex flex-1 flex-wrap items-center gap-2">
+                <TagPill tag={commentary.tag} />
+              </div>
+              <MinimizeIcon className="text-fg-3 h-4 w-4 shrink-0" />
+            </div>
+            <p className="text-fg-2 text-small mt-2 leading-relaxed">
+              {commentary.lead}
+            </p>
+          </button>
+        ) : (
+          // Teaser: the compact hook. Pill + clamped lead + an "open into a
+          // larger view" icon (a chevron would imply an in-place fold).
+          <button
+            type="button"
+            onClick={onOpen}
+            data-commentary-teaser
+            aria-expanded={false}
+            className="focus-visible:outline-aurora flex w-full items-center gap-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2"
+          >
+            <TagPill tag={commentary.tag} />
+            <span className="text-fg-2 text-small line-clamp-2 min-w-0 flex-1">
+              {commentary.lead}
+            </span>
+            <Glyph>
               <ExpandIcon className="text-fg-3 h-4 w-4" />
-            )}
-          </Glyph>
-        </button>
-        {active ? <CommentaryDetail commentary={commentary} /> : null}
+            </Glyph>
+          </button>
+        )}
+        <div
+          className="commentary-reveal"
+          data-open={active || undefined}
+          inert={!active}
+        >
+          <div className="commentary-reveal-inner">
+            <div className="flex flex-col gap-2 pt-2">
+              {commentary.detail ? (
+                <div className="commentary-rise">
+                  <CommentaryText commentary={commentary} />
+                </div>
+              ) : null}
+              <div className="commentary-rise commentary-rise-late">
+                <CommentarySources commentary={commentary} />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

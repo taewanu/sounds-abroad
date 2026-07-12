@@ -350,12 +350,14 @@ describe("TrackRow commentary focus card", () => {
     return { ...utils, onOpenCommentary, onCloseCommentary };
   }
 
-  test("closed: the teaser opens the card rather than expanding detail inline", () => {
-    const { onOpenCommentary } = renderFocusRow({ focused: false });
+  test("closed: the teaser opens the card; the reveal stays collapsed", () => {
+    const { container, onOpenCommentary } = renderFocusRow({ focused: false });
 
     const teaser = screen.getByRole("button", { expanded: false });
     expect(teaser.textContent).toContain(COMMENTARY.lead);
-    expect(screen.queryByText(COMMENTARY.detail)).toBeNull();
+    // The reveal is always mounted (so it can animate closed too), but is not
+    // opened while the teaser is closed.
+    expect(container.querySelector(".commentary-reveal[data-open]")).toBeNull();
 
     fireEvent.click(teaser);
 

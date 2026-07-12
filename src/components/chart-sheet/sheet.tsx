@@ -162,24 +162,31 @@ export function ChartSheet({
     setFocusedRank(null);
   }
 
-  // While a card is focused, dismiss on Escape or a pointer outside it (a dimmed
-  // sibling, the sheet chrome). The opening teaser and the card's own controls
-  // sit inside the card, so this never fights them; capture-phase so a dimmed
-  // sibling's own (pointer-events-none) handlers can't swallow it first.
+  // While a card is focused, dismiss on Escape or a click outside it (a dimmed
+  // sibling, the sheet chrome). Dismiss on click, not pointerdown: closing
+  // un-dims the siblings, so a pointerdown-close would restore a sibling's
+  // pointer-events before its click landed and play that track. A dimmed
+  // sibling stays pointer-events-none through the whole click, so the click
+  // targets the list behind it (never the row's play button) and only closes.
   useEffect(() => {
     if (focusedRank === null) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setFocusedRank(null);
     };
-    const onDown = (e: PointerEvent) => {
+    const onClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
-      if (!target?.closest("[data-commentary-card]")) setFocusedRank(null);
+      // Keep the card open for clicks on the card itself, and for anything
+      // outside the sheet (the mini-player and other persistent chrome): only a
+      // click on the sheet's own dimmed area collapses it.
+      if (target?.closest("[data-commentary-card]")) return;
+      if (!sheetRef.current?.contains(target)) return;
+      setFocusedRank(null);
     };
     window.addEventListener("keydown", onKey);
-    window.addEventListener("pointerdown", onDown, true);
+    window.addEventListener("click", onClick, true);
     return () => {
       window.removeEventListener("keydown", onKey);
-      window.removeEventListener("pointerdown", onDown, true);
+      window.removeEventListener("click", onClick, true);
     };
   }, [focusedRank]);
 
@@ -190,6 +197,30 @@ export function ChartSheet({
   const focusedRankRef = useRef(focusedRank);
   useEffect(() => {
     focusedRankRef.current = focusedRank;
+  }, [focusedRank]);
+
+  // When a card opens, its grown height can push its own top above the list
+  // viewport; nudge it into view so the read starts at the top, not mid-card.
+  // Only when clipped (so an already-visible card never yanks); rAF so the grown
+  // card is measured, not the pre-open row.
+  useEffect(() => {
+    if (focusedRank === null) return;
+    const id = requestAnimationFrame(() => {
+      const ol = olRef.current;
+      const row = ol?.querySelector<HTMLElement>(
+        `[data-rank="${focusedRank}"]`,
+      );
+      if (!ol || !row) return;
+      // Leave a small margin above the card so its top outline clears the
+      // viewport edge instead of sitting flush against it (clipped on mobile).
+      const MARGIN_PX = 12;
+      const delta =
+        row.getBoundingClientRect().top -
+        ol.getBoundingClientRect().top -
+        MARGIN_PX;
+      if (delta < 0) ol.scrollBy({ top: delta, behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(id);
   }, [focusedRank]);
 
   // Mount-time snap, captured once. React writes this transform for SSR/first

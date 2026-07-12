@@ -661,14 +661,29 @@ describe("ChartSheet commentary focus", () => {
     expect(onSnapChange).toHaveBeenCalledWith("closed");
   });
 
-  test("a pointer outside the card closes it", () => {
+  test("a click on the sheet outside the card (a dimmed sibling) closes it", () => {
     const { container } = renderSheet("full");
     fireEvent.click(firstTeaser(container)!);
     expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
 
-    fireEvent.pointerDown(document.body);
+    const sibling = container.querySelector(
+      "li[data-rank]:not([data-commentary-card])",
+    );
+    fireEvent.click(sibling!);
 
     expect(container.querySelector("[data-commentary-card]")).toBeNull();
+  });
+
+  test("a click outside the sheet (persistent chrome) keeps the card open", () => {
+    const { container } = renderSheet("full");
+    fireEvent.click(firstTeaser(container)!);
+    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+
+    // The mini-player and other chrome live outside the sheet element; clicking
+    // them must not collapse the card.
+    fireEvent.click(document.body);
+
+    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
   });
 
   test("switching country closes the card and does not restore it on return", () => {
