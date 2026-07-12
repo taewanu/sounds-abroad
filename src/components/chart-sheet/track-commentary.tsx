@@ -140,22 +140,20 @@ export function TrackCommentary({
     return (
       <div className="border-fg-1/10 mt-2.5 border-t pt-2.5">
         {active ? (
-          // Open: the badge sits on its own top row (a flex row, so extra tags
-          // would wrap if the schema ever carries more than one) with the
-          // collapse cue, above a full-width lead. The whole button toggles
-          // closed (tap the card again), so there's no separate close control.
+          // Open: the badge sits on its own top row with the collapse cue, above
+          // a full-width lead. The whole button toggles closed (tap the card
+          // again), so there's no separate close control.
           <button
             type="button"
             onClick={onClose}
             aria-expanded
+            aria-controls={panelId}
             aria-label="Collapse commentary"
             className="focus-visible:outline-aurora block w-full text-left focus-visible:outline-2 focus-visible:outline-offset-2"
           >
             <div className="flex items-center gap-2">
-              <div className="flex flex-1 flex-wrap items-center gap-2">
-                <TagPill tag={commentary.tag} />
-              </div>
-              <MinimizeIcon className="text-fg-3 h-4 w-4 shrink-0" />
+              <TagPill tag={commentary.tag} />
+              <MinimizeIcon className="text-fg-3 ml-auto h-4 w-4 shrink-0" />
             </div>
             <p className="text-fg-2 text-small mt-2 leading-relaxed">
               {commentary.lead}
@@ -169,6 +167,7 @@ export function TrackCommentary({
             onClick={onOpen}
             data-commentary-teaser
             aria-expanded={false}
+            aria-controls={panelId}
             className="focus-visible:outline-aurora flex w-full items-center gap-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2"
           >
             <TagPill tag={commentary.tag} />
@@ -181,6 +180,7 @@ export function TrackCommentary({
           </button>
         )}
         <div
+          id={panelId}
           className="commentary-reveal"
           data-open={active || undefined}
           inert={!active}

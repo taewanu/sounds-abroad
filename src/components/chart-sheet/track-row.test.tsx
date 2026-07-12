@@ -387,5 +387,6 @@ describe("TrackRow commentary focus card", () => {
     const li = container.querySelector("li");
     expect(li?.className).toContain("opacity-40");
     expect(li?.className).toContain("pointer-events-none");
+    expect(li?.hasAttribute("inert")).toBe(true);
   });
 });
