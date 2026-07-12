@@ -130,14 +130,19 @@ export function SpinSnapControls({
   const sim = useRef(
     (() => {
       const start = COUNTRY_BY_CODE.get(initialCode);
+      const startAz = start ? start.lon * DEG : 0;
+      const startEl = start ? start.lat * DEG : 0;
+      // Seed the settle targets to the resting position so "az/el are at the
+      // settle targets" reads true from the first frame. The skip-during-settle
+      // resume relies on that invariant to tell a stranded glide from rest.
       return {
-        az: start ? start.lon * DEG : 0,
-        el: start ? start.lat * DEG : 0,
+        az: startAz,
+        el: startEl,
         vAz: 0,
         vEl: 0,
         mode: "idle" as "idle" | "drag" | "fling" | "settle",
-        settleAz: 0,
-        settleEl: 0,
+        settleAz: startAz,
+        settleEl: startEl,
         settledCode: initialCode,
       };
     })(),
@@ -217,11 +222,18 @@ export function SpinSnapControls({
       vx: 0,
       vy: 0,
       dragging: false,
+      // The one pointer that owns the active gesture. touchAction:"none" routes
+      // every touch here, so a second finger's move/up must not steer or end the
+      // first finger's drag.
+      activePointerId: null as number | null,
     };
 
     const onDown = (e: PointerEvent) => {
       // Read mode covers the globe; ignore presses so reading never grabs it.
       if (cfg.current.readMode) return;
+      // A gesture already owns a pointer: ignore a second finger rather than let
+      // it reset the drag anchor and hurl the globe on the next move.
+      if (g.dragging) return;
       // Cancel a deferred edge-tap select so it can't fire mid-gesture; the
       // armed window survives this press so a second tap can still skip.
       clearPendingSelect();
@@ -230,6 +242,7 @@ export function SpinSnapControls({
       s.vAz = 0;
       s.vEl = 0;
       g.dragging = true;
+      g.activePointerId = e.pointerId;
       g.downX = e.clientX;
       g.downY = e.clientY;
       g.lastX = e.clientX;
@@ -241,7 +254,10 @@ export function SpinSnapControls({
     };
 
     const onMove = (e: PointerEvent) => {
-      if (!g.dragging) return;
+      if (!g.dragging || e.pointerId !== g.activePointerId) return;
+      // Read mode can flip on mid-drag; onMove writes az directly, bypassing the
+      // useFrame suspend, so bail here too or the globe drifts under the sheet.
+      if (cfg.current.readMode) return;
       const s = sim.current;
       const dx = e.clientX - g.lastX;
       const dy = e.clientY - g.lastY;
@@ -260,8 +276,9 @@ export function SpinSnapControls({
     };
 
     const onUp = (e: PointerEvent) => {
-      if (!g.dragging) return;
+      if (!g.dragging || e.pointerId !== g.activePointerId) return;
       g.dragging = false;
+      g.activePointerId = null;
       el.releasePointerCapture?.(e.pointerId);
       const s = sim.current;
 
@@ -315,9 +332,14 @@ export function SpinSnapControls({
           // pending select and skip instead.
           clearPendingSelect();
           lastEdgeTapAt.current = null;
-          // A skip moves no globe, so return the machine to rest instead of
-          // leaving it at "drag" from the press.
-          s.mode = "idle";
+          // A skip moves no globe. If the press that started this tap froze a
+          // settle in flight, resume it — its targets still hold the intended
+          // landing — so the globe never strands mid-glide, possibly on ocean.
+          // At rest az/el already sit on the targets, so return to idle instead.
+          const atTarget =
+            Math.abs(shortestAngle(s.settleAz - s.az)) < 0.002 &&
+            Math.abs(s.settleEl - s.el) < 0.002;
+          s.mode = atTarget ? "idle" : "settle";
           // Raise a skip-intent; the chart runs the skip and flashes on a real
           // change. The globe emits data and learns no outcome.
           globeChartStore.getState().signalSkip(action.dir);
@@ -352,8 +374,9 @@ export function SpinSnapControls({
     // not pointerup. Without this the drag never ends and the globe freezes.
     // Snap to the nearest country so it still never rests on open ocean.
     const onCancel = (e: PointerEvent) => {
-      if (!g.dragging) return;
+      if (!g.dragging || e.pointerId !== g.activePointerId) return;
       g.dragging = false;
+      g.activePointerId = null;
       el.releasePointerCapture?.(e.pointerId);
       // An abandoned gesture ends any armed double-tap window too.
       clearPendingSelect();
