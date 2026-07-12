@@ -166,11 +166,7 @@ function ChartScreenInner({
       if (currentTrack === null || currentCountryCode === null) return false;
       const source = charts.countries[currentCountryCode];
       if (!source) return false;
-      const adj = findAdjacentPlayable(
-        source.tracks,
-        currentTrack.previewUrl,
-        dir,
-      );
+      const adj = findAdjacentPlayable(source.tracks, currentTrack, dir);
       if (!adj) return false;
       toggle(adj, currentCountryCode);
       return true;
@@ -196,15 +192,14 @@ function ChartScreenInner({
     if (currentTrack === null || currentCountryCode === null) return false;
     const source = charts.countries[currentCountryCode];
     return source
-      ? findAdjacentPlayable(source.tracks, currentTrack.previewUrl, -1) !==
-          null
+      ? findAdjacentPlayable(source.tracks, currentTrack, -1) !== null
       : false;
   }, [currentTrack, currentCountryCode, charts.countries]);
   const canNext = useMemo(() => {
     if (currentTrack === null || currentCountryCode === null) return false;
     const source = charts.countries[currentCountryCode];
     return source
-      ? findAdjacentPlayable(source.tracks, currentTrack.previewUrl, 1) !== null
+      ? findAdjacentPlayable(source.tracks, currentTrack, 1) !== null
       : false;
   }, [currentTrack, currentCountryCode, charts.countries]);
 

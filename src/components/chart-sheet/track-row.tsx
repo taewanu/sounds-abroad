@@ -8,6 +8,7 @@ import { PlayIcon } from "@/components/icons/play";
 import { SpotifyIcon } from "@/components/icons/spotify";
 import { useOverflowMarquee } from "@/components/use-overflow-marquee";
 import type { Track } from "@/lib/chart-schema";
+import { sameTrack } from "@/lib/track-identity";
 import { useAudioStore } from "@/providers/audio-store-provider";
 
 import { TrackCommentary } from "./track-commentary";
@@ -38,13 +39,12 @@ export function TrackRow({
 }: TrackRowProps) {
   const isCurrent = useAudioStore(
     (s) =>
-      s.currentTrack?.previewUrl === track.previewUrl &&
-      s.currentCountryCode === countryCode,
+      sameTrack(s.currentTrack, track) && s.currentCountryCode === countryCode,
   );
   const isPlaying = useAudioStore(
     (s) =>
       s.isPlaying &&
-      s.currentTrack?.previewUrl === track.previewUrl &&
+      sameTrack(s.currentTrack, track) &&
       s.currentCountryCode === countryCode,
   );
   const hasError = useAudioStore(
