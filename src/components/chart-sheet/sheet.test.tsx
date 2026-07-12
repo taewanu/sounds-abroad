@@ -638,6 +638,21 @@ describe("ChartSheet commentary focus", () => {
     ).not.toBeNull();
   });
 
+  test("dimmed siblings and the gem card recede and go inert", () => {
+    const { container } = renderSheet("full");
+    fireEvent.click(firstTeaser(container)!);
+
+    const sibling = container.querySelector(
+      "li[data-rank]:not([data-commentary-card])",
+    );
+    expect(sibling?.hasAttribute("inert")).toBe(true);
+
+    // The gem card is the one ranked-list <li> without a data-rank.
+    const gemLi = container.querySelector("ol > li:not([data-rank])");
+    expect(gemLi?.className).toContain("opacity-40");
+    expect(gemLi?.hasAttribute("inert")).toBe(true);
+  });
+
   test("Escape closes the focused card without collapsing the sheet", () => {
     const { container, onSnapChange } = renderSheet("full");
     fireEvent.click(firstTeaser(container)!);

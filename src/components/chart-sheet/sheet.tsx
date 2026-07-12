@@ -640,7 +640,17 @@ export function ChartSheet({
         className="min-h-0 flex-1 touch-none overflow-y-auto overscroll-y-contain px-4 pb-12 transition-[max-height] duration-300 ease-out [-ms-overflow-style:none] [scrollbar-width:none] group-data-[snap=full]:touch-pan-y data-[peek]:max-h-[calc(35dvh-62px)] [&::-webkit-scrollbar]:hidden"
       >
         {gemSelection ? (
-          <li>
+          <li
+            // Recede with the rest of the list while a track's card is focused,
+            // and go inert so its play / commentary can't fire (or, being outside
+            // the card, collapse it) mid-read.
+            className={
+              focusedRank !== null
+                ? "pointer-events-none opacity-40 transition-opacity duration-[240ms] ease-[var(--ease-out)] motion-reduce:transition-none"
+                : undefined
+            }
+            inert={focusedRank !== null}
+          >
             <GemCard
               track={gemSelection.gem}
               tier={gemSelection.tier}

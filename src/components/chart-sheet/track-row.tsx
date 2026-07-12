@@ -91,6 +91,10 @@ export function TrackRow({
       data-state={state}
       data-disabled={!hasPreview || undefined}
       data-commentary-card={focused || undefined}
+      // A dimmed sibling is inert as well as pointer-dead, so keyboard and
+      // screen-reader users can't tab into a receded row and fire its controls
+      // when a mouse user can't.
+      inert={dimmed}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       className={`${baseClass} ${stateClass}`}
