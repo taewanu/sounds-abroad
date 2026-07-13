@@ -44,7 +44,7 @@ interface SpinSnapControlsProps {
 // momentum, and on coming to rest snap to the nearest country. A tap jumps
 // straight to the nearest country. There is no free-rotate; it never rests on
 // open ocean. The gesture machine itself lives in the pure `spin-gesture`
-// reducer; this component owns only the impure edges — DOM pointer events in,
+// reducer; this component owns only the impure edges: DOM pointer events in,
 // commands and the camera draw out.
 export function SpinSnapControls({
   initialCode,
@@ -236,6 +236,9 @@ export function SpinSnapControls({
 
   useFrame((_, dt) => {
     dispatch({ type: "frame", dt, rng: Math.random });
+    // Read mode suspends the sim (the frame event leaves az/el frozen); leave
+    // the camera untouched too rather than re-pin it every hidden frame.
+    if (cfg.current.readMode) return;
     applyCamera();
   });
 

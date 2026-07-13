@@ -212,6 +212,40 @@ test("an ocean tap re-centres the current country instead of jumping away", () =
   });
 });
 
+test("a tap landing during an in-flight settle redirects to the tapped country", () => {
+  const settling: GestureState = {
+    ...initGestureState(START),
+    mode: "settle",
+    az: azOf("ca"),
+    el: elOf("ca"),
+    settleAz: azOf("ca"),
+    settleEl: elOf("ca"),
+  };
+  // The press freezes the glide to "drag"; the release taps a new country, so
+  // runSelect's mode-"settle" guard is past and the settle redirects.
+  const { state, commands } = run(settling, [
+    down(1, 100, 100),
+    {
+      type: "pointerUp",
+      id: 1,
+      x: 100,
+      y: 100,
+      t: 5,
+      region: "center",
+      hitCode: "mx",
+      listening: true,
+    },
+  ]);
+
+  expect(state.settleAz).toBeCloseTo(azOf("mx"));
+  expect(commands).toContainEqual({
+    kind: "settle",
+    code: "mx",
+    changed: true,
+    viaTap: true,
+  });
+});
+
 test("a first side-third tap while listening defers its select", () => {
   const { state, commands } = run(initGestureState(START), [
     down(1, 20, 100),
@@ -278,6 +312,22 @@ test("pointerCancel snaps to a country so it never rests on open ocean", () => {
 
   expect(commands.some((c) => c.kind === "settle")).toBe(true);
   expect(commands).toContainEqual({ kind: "releasePointer", id: 1 });
+});
+
+test("pointerCancel wipes an armed deferred select as it snaps", () => {
+  const armedDrag: GestureState = {
+    ...initGestureState(START),
+    mode: "drag",
+    activePointerId: 1,
+    lastEdgeTapAt: 100,
+    pendingSelectCode: "ca",
+  };
+  const { state, commands } = run(armedDrag, [
+    { type: "pointerCancel", id: 1, rng: half },
+  ]);
+
+  expect(commands).toContainEqual({ kind: "clearDefer" });
+  expect(state.lastEdgeTapAt).toBeNull();
 });
 
 test("externalSelect settles to a new ?cc= country", () => {
@@ -373,10 +423,9 @@ test("reduced motion cuts straight to the target with no settle glide", () => {
   expect(state.az).toBeCloseTo(azOf("ca"));
 });
 
-// The skip-during-settle resume (spin-gesture.ts TODO(human)). A second
-// side-third tap within the window is a skip: it moves no globe of its own, but
-// the press that began it froze whatever settle was gliding. These two lock the
-// judgment the resume must make.
+// The skip-during-settle resume. A second side-third tap within the window is a
+// skip: it moves no globe of its own, but the press that began it froze whatever
+// settle was gliding. These two lock the judgment the resume must make.
 
 test("a skip signals its direction and drops the pending select", () => {
   const armed: GestureState = {

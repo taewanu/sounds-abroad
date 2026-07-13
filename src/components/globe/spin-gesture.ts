@@ -212,7 +212,7 @@ function settleTo(
 
 // Select the tapped country, re-centring the current one on an ocean miss so a
 // tap never jumps away. Shared by the immediate-select path and the deferred
-// timer; bails when the situation changed while a deferred select was armed —
+// timer; bails when the situation changed while a deferred select was armed:
 // read mode forbids moving the globe under the reader, and mode "settle" means
 // an external ?cc= already landed during the window.
 function runSelect(
@@ -378,7 +378,7 @@ export function reduce(
     case "externalSelect": {
       // Follow ?cc=: settle to it like a gesture would when we aren't there. A
       // gesture's own settle wrote ?cc= first, so code === settledCode by the
-      // time this runs and it no-ops — no feedback loop. Cancel any armed
+      // time this runs and it no-ops, no feedback loop. Cancel any armed
       // edge-tap select so a following tap isn't misread as a second tap.
       if (event.code && event.code !== s.settledCode) {
         commands.push({ kind: "clearDefer" });
