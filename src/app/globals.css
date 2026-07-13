@@ -1043,6 +1043,40 @@
   animation: edge-chevron-breathe 2600ms ease-in-out infinite;
 }
 
+/* Track-change cue: the incoming now-playing content slides in from the skip
+   direction and cross-fades, so the player registers which way it moved.
+   Enter-only: the outgoing content is dropped with its keyed node, so rapid
+   skips restart the cue cleanly instead of queueing. Fade and slide split for
+   the same one-smooth-ease reason as the skip cue above. */
+@keyframes track-change-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes track-change-slide {
+  from {
+    transform: translateX(var(--track-change-from));
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+[data-track-change] {
+  --track-change-from: 14px;
+  animation:
+    track-change-fade 200ms linear both,
+    track-change-slide 200ms var(--ease-out) both;
+}
+
+[data-track-change="prev"] {
+  --track-change-from: -14px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .eq,
   .eq span {
@@ -1056,6 +1090,10 @@
   /* Skip cue keeps the opacity flash but drops the directional slide. */
   .skip-flash {
     animation: skip-fade var(--skip-flash-dur) linear forwards;
+  }
+  /* Track-change cue keeps the cross-fade but drops the directional slide. */
+  [data-track-change] {
+    animation: track-change-fade 200ms linear both;
   }
   .eq span {
     transform: scaleY(0.7);

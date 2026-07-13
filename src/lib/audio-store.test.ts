@@ -83,6 +83,41 @@ describe("createAudioStore", () => {
     expect(store.getState().volume).toBe(1);
   });
 
+  test("lastStep starts null so a mounting surface never sees a direction", () => {
+    const store = createAudioStore(() => makeMockAudio());
+
+    expect(store.getState().lastStep).toBeNull();
+  });
+
+  test("signalStep records the direction and bumps the nonce per call", () => {
+    const store = createAudioStore(() => makeMockAudio());
+
+    store.getState().signalStep(1);
+    const first = store.getState().lastStep;
+    store.getState().signalStep(1);
+    const second = store.getState().lastStep;
+
+    expect(first).toEqual({ dir: 1, nonce: 1 });
+    expect(second).toEqual({ dir: 1, nonce: 2 });
+  });
+
+  test("signalStep keeps the nonce monotonic across a direction flip", () => {
+    const store = createAudioStore(() => makeMockAudio());
+    store.getState().signalStep(1);
+
+    store.getState().signalStep(-1);
+
+    expect(store.getState().lastStep).toEqual({ dir: -1, nonce: 2 });
+  });
+
+  test("a plain toggle never records a step direction", () => {
+    const store = createAudioStore(() => makeMockAudio());
+
+    store.getState().toggle(makeTrack());
+
+    expect(store.getState().lastStep).toBeNull();
+  });
+
   test("setVolume updates the volume state", () => {
     const store = createAudioStore(() => makeMockAudio());
 

@@ -220,14 +220,18 @@ function ChartScreenInner({
   // through here, so all of them inherit the roll.
   const step = useCallback(
     (dir: 1 | -1): "adjacent" | "rolled" | "backRolled" | null => {
-      const { currentTrack, currentCountryCode, toggle } =
+      const { currentTrack, currentCountryCode, toggle, signalStep } =
         audioStore.getState();
       if (currentTrack === null || currentCountryCode === null) return null;
       const source = charts.countries[currentCountryCode];
       if (!source) return null;
       const adj = findAdjacentPlayable(source.tracks, currentTrack, dir);
+      // Publish the direction after each real change, so every surface that
+      // steps (buttons, swipe, media keys, edge-tap, auto-advance, and a roll)
+      // feeds the one directional mini-player cue with no per-surface wiring.
       if (adj) {
         toggle(adj, currentCountryCode);
+        signalStep(dir);
         return "adjacent";
       }
       if (dir === 1) {
@@ -257,6 +261,7 @@ function ChartScreenInner({
           suppressResurfaceRef.current = true;
         setSelectedCountry(landing.code);
         window.history.replaceState(null, "", `?cc=${landing.code}`);
+        signalStep(dir);
         flashSkip(1);
         return "rolled";
       }
@@ -274,6 +279,7 @@ function ChartScreenInner({
         suppressResurfaceRef.current = true;
       store.setSelectedCountry(back.countryCode);
       window.history.replaceState(null, "", `?cc=${back.countryCode}`);
+      signalStep(dir);
       flashSkip(-1);
       return "backRolled";
     },

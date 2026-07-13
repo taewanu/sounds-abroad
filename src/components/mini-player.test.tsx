@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 
 import type { AudioEngine } from "@/lib/audio-engine";
@@ -234,6 +234,83 @@ describe("MiniPlayer", () => {
 
     expect(onCommentary).toHaveBeenCalledTimes(1);
     expect(onTap).not.toHaveBeenCalled();
+  });
+
+  test("a forward skip marks the incoming content with the forward cue", () => {
+    const outgoing = makeTrack({
+      appleUrl: "https://music.apple.com/x/album?i=101",
+    });
+    const incoming = makeTrack({
+      rank: 2,
+      appleUrl: "https://music.apple.com/x/album?i=102",
+    });
+    const { container, store } = renderMiniPlayer(
+      {},
+      { currentTrack: outgoing },
+    );
+
+    act(() => {
+      store.setState({ currentTrack: incoming });
+      store.getState().signalStep(1);
+    });
+
+    const cue = container.querySelector("[data-track-change]");
+    expect(cue?.getAttribute("data-track-change")).toBe("next");
+  });
+
+  test("a backward skip marks the incoming content with the backward cue", () => {
+    const outgoing = makeTrack({
+      rank: 2,
+      appleUrl: "https://music.apple.com/x/album?i=102",
+    });
+    const incoming = makeTrack({
+      appleUrl: "https://music.apple.com/x/album?i=101",
+    });
+    const { container, store } = renderMiniPlayer(
+      {},
+      { currentTrack: outgoing },
+    );
+
+    act(() => {
+      store.setState({ currentTrack: incoming });
+      store.getState().signalStep(-1);
+    });
+
+    const cue = container.querySelector("[data-track-change]");
+    expect(cue?.getAttribute("data-track-change")).toBe("prev");
+  });
+
+  test("a track change without a step stays cue-free", () => {
+    const outgoing = makeTrack({
+      appleUrl: "https://music.apple.com/x/album?i=101",
+    });
+    const incoming = makeTrack({
+      rank: 2,
+      appleUrl: "https://music.apple.com/x/album?i=102",
+    });
+    const { container, store } = renderMiniPlayer(
+      {},
+      { currentTrack: outgoing },
+    );
+
+    act(() => {
+      store.setState({ currentTrack: incoming });
+    });
+
+    expect(container.querySelector("[data-track-change]")).toBeNull();
+  });
+
+  test("mounting with a step already recorded never animates", () => {
+    const track = makeTrack({
+      appleUrl: "https://music.apple.com/x/album?i=101",
+    });
+
+    const { container } = renderMiniPlayer(
+      {},
+      { currentTrack: track, lastStep: { dir: 1, nonce: 5 } },
+    );
+
+    expect(container.querySelector("[data-track-change]")).toBeNull();
   });
 
   test("a short press below the swipe threshold still taps", () => {
