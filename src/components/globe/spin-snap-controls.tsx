@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 
 import { globeChartStore } from "@/lib/globe-chart-store";
@@ -9,7 +9,6 @@ import {
   type GestureCommand,
   type GestureConfig,
   type GestureEvent,
-  type GestureState,
   initGestureState,
   reduce,
 } from "./spin-gesture";
@@ -93,14 +92,14 @@ export function SpinSnapControls({
     onSettleRef.current = onSettle;
   });
 
-  // Lazily seed the sim once, not on every render: passing the value to useRef
-  // would rebuild and discard it each time the argument is evaluated. Non-null
-  // for the rest of the component's life once this guard has run.
-  const sim = useRef<GestureState | null>(null);
-  if (sim.current === null) sim.current = initGestureState(initialCode);
+  // Seed the sim once at mount. useState's lazy initializer runs the build a
+  // single time (passing it straight to useRef would rebuild and discard it
+  // every render), and holding it in a ref keeps writes out of the render pass.
+  const [initialSim] = useState(() => initGestureState(initialCode));
+  const sim = useRef(initialSim);
 
   const applyCamera = () => {
-    const s = sim.current!;
+    const s = sim.current;
     camera.position.set(
       RADIUS * Math.cos(s.el) * Math.sin(s.az),
       RADIUS * Math.sin(s.el),
@@ -153,7 +152,7 @@ export function SpinSnapControls({
   const dispatch = useCallback(
     (event: GestureEvent) => {
       const el = gl.domElement;
-      const { state, commands } = reduce(sim.current!, event, cfg.current);
+      const { state, commands } = reduce(sim.current, event, cfg.current);
       sim.current = state;
       for (const command of commands) {
         runCommand(command, el);
