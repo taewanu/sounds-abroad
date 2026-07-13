@@ -160,9 +160,12 @@ export function SpinSnapControls({
     },
     [gl, runCommand],
   );
+  // Keep the timer re-entry pointed at the latest dispatch. Its only trigger is
+  // a dispatch identity change, so the deferred-select callback never fires a
+  // stale closure.
   useEffect(() => {
     dispatchRef.current = dispatch;
-  });
+  }, [dispatch]);
 
   // Follow external selection: when ?cc= changes (the a11y country list, a
   // shared link) settle to it like a gesture would. A gesture's own settle
