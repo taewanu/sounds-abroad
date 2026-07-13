@@ -298,6 +298,58 @@ describe("ChartScreen globe coupling", () => {
   });
 });
 
+describe("ChartScreen commentary badge", () => {
+  const commentaryTrack = COUNTRY_US.tracks.find((t) => t.commentary)!;
+  const plainTrack = COUNTRY_US.tracks.find(
+    (t) => !t.commentary && t.previewUrl,
+  )!;
+
+  beforeEach(() => {
+    mockSearchParams.value = new URLSearchParams(`cc=${CODE_US}`);
+    audioEngine.reset();
+    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  test("no badge renders while the playing track has no commentary", () => {
+    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_US} />);
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: `Play preview of ${plainTrack.name} by ${plainTrack.artist}`,
+      }),
+    );
+
+    expect(
+      screen.queryByRole("button", { name: /why this track is trending/i }),
+    ).toBeNull();
+  });
+
+  test("the badge reopens the sheet and expands the now-playing row's commentary card", () => {
+    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_US} />);
+    const sheet = screen.getByTestId("chart-sheet");
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: `Play preview of ${commentaryTrack.name} by ${commentaryTrack.artist}`,
+      }),
+    );
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(sheet.dataset.snap).toBe("closed");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /why this track is trending/i }),
+    );
+
+    expect(sheet.dataset.snap).toBe("peek");
+    expect(
+      screen.getByRole("button", { name: "Collapse commentary" }),
+    ).toBeDefined();
+  });
+});
+
 describe("ChartScreen auto-advance", () => {
   beforeEach(() => {
     mockSearchParams.value = new URLSearchParams(`cc=${ADJ_CODE}`);
