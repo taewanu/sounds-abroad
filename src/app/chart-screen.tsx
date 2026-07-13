@@ -326,6 +326,20 @@ function ChartScreenInner({
   // no-ops, so the button need not predict the draw.
   const canNext = hasCurrentTrack && currentCountryCode !== null;
 
+  // The plain adjacent tracks, for the mini-player's swipe rail preview. Null at
+  // a chart end, where the step rolls to another country rather than a neighbour
+  // (the roll target isn't previewed — it's a bigger context change on commit).
+  const [prevTrack, nextTrack] = useMemo(() => {
+    if (currentTrack === null || currentCountryCode === null)
+      return [null, null] as const;
+    const source = charts.countries[currentCountryCode];
+    if (!source) return [null, null] as const;
+    return [
+      findAdjacentPlayable(source.tracks, currentTrack, -1),
+      findAdjacentPlayable(source.tracks, currentTrack, 1),
+    ] as const;
+  }, [currentTrack, currentCountryCode, charts.countries]);
+
   // Skip lives here, not in the audio store: routing prev/next needs the chart
   // data to find the adjacent playable track, which the store doesn't hold.
   useEffect(() => {
@@ -390,6 +404,8 @@ function ChartScreenInner({
         onNext={goNext}
         canPrev={canPrev}
         canNext={canNext}
+        prevTrack={prevTrack}
+        nextTrack={nextTrack}
       />
       {/* Only while the globe is visible: at full the sheet covers it, so
           showing the hint there would burn one of its capped displays unseen. */}

@@ -57,6 +57,8 @@ function renderMiniPlayer(
     onNext: vi.fn(),
     canPrev: true,
     canNext: true,
+    prevTrack: null,
+    nextTrack: null,
     ...props,
   };
   const utils = render(
@@ -100,8 +102,12 @@ describe("MiniPlayer", () => {
 
     expect(screen.getByText("Hot Track")).toBeDefined();
     expect(screen.getByText("Hot Artist")).toBeDefined();
-    const artwork = container.querySelector('[aria-hidden="true"]');
-    expect(artwork?.getAttribute("style")).toContain(track.artworkUrl);
+    // The current card's artwork, found among the rail's aria-hidden nodes by
+    // its background image (the empty prev/next preview slots carry none).
+    const artwork = [
+      ...container.querySelectorAll('[aria-hidden="true"]'),
+    ].find((el) => el.getAttribute("style")?.includes(track.artworkUrl));
+    expect(artwork).toBeDefined();
   });
 
   test("tap on main area fires onTap callback", () => {
