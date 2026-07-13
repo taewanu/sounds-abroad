@@ -3,22 +3,38 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { globeChartStore } from "@/lib/globe-chart-store";
 
+import { readRecord, writeRecord } from "./edge-hint-record";
 import { EdgeTapHint } from "./edge-tap-hint";
-import { edgeTapSeen } from "./seen-edge-tap-hint";
 
 function renderHint(active = true) {
   return render(<EdgeTapHint active={active} snap="peek" />);
 }
 
+function stubPointer(coarse: boolean) {
+  vi.spyOn(window, "matchMedia").mockImplementation(
+    (query: string) =>
+      ({
+        matches: query.includes("coarse") ? coarse : false,
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }) as unknown as MediaQueryList,
+  );
+}
+
 beforeEach(() => {
   localStorage.clear();
   globeChartStore.setState({ skipIntent: { dir: 1, nonce: 0 } });
+  stubPointer(true);
 });
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 describe("EdgeTapHint", () => {
-  test("shows the wordless skip cue only when active and unseen", () => {
+  test("shows the wordless skip cue only when active and scheduled", () => {
     expect(renderHint(false).queryByTestId("edge-tap-badge")).toBeNull();
     cleanup();
 
@@ -29,16 +45,51 @@ describe("EdgeTapHint", () => {
     expect(getByTestId("edge-tap-backdrop")).toBeTruthy();
   });
 
-  test("does not show again once the flag is already set", () => {
-    edgeTapSeen.markSeen();
+  test("stays hidden on a fine pointer, where the buttons are the skip path", () => {
+    stubPointer(false);
 
     expect(renderHint(true).queryByTestId("edge-tap-badge")).toBeNull();
   });
 
-  test("marks itself seen on show", () => {
+  test("does not consume a scheduled show on a fine pointer", () => {
+    stubPointer(false);
+
     renderHint(true);
 
-    expect(edgeTapSeen.hasSeen()).toBe(true);
+    expect(readRecord()).toEqual({ shows: 0, used: false });
+  });
+
+  test("does not show once the gesture has been used", () => {
+    writeRecord({ shows: 0, used: true });
+
+    expect(renderHint(true).queryByTestId("edge-tap-badge")).toBeNull();
+  });
+
+  test("shows again on a later visit while under the show cap", () => {
+    writeRecord({ shows: 2, used: false });
+
+    expect(renderHint(true).queryByTestId("edge-tap-badge")).toBeTruthy();
+  });
+
+  test("stops for good at the show cap even when never used", () => {
+    writeRecord({ shows: 3, used: false });
+
+    expect(renderHint(true).queryByTestId("edge-tap-badge")).toBeNull();
+  });
+
+  test("records the appearance on show without latching used", () => {
+    renderHint(true);
+
+    expect(readRecord()).toEqual({ shows: 1, used: false });
+  });
+
+  test("counts one appearance per visit even when the cue toggles away and back", () => {
+    const { rerender } = renderHint(true);
+
+    rerender(<EdgeTapHint active={false} snap="peek" />);
+    rerender(<EdgeTapHint active={true} snap="peek" />);
+
+    expect(readRecord().shows).toBe(1);
   });
 
   test("dismisses when the user performs a real skip", () => {

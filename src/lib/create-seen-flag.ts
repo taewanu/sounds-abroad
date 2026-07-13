@@ -1,8 +1,8 @@
 // A one-time "seen" flag persisted in localStorage: the shared machinery behind
-// the commentary-hint and edge-tap cues, each of which gates a cue that should
-// fire once and stay dismissed across sessions. One call per flag, keyed by its
-// storage key; bump the key's :v1 suffix to re-trigger everyone with no migration
-// code. Private-mode resilience (the in-memory mirror) comes from the shared
+// cues that should fire once and stay dismissed across sessions (currently the
+// commentary hint). One call per flag, keyed by its storage key; bump the key's
+// :v1 suffix to re-trigger everyone with no migration code. Private-mode
+// resilience (the in-memory mirror) comes from the shared
 // createMirroredStorage; injected storages (tests) bypass it, staying isolated.
 
 import { createMirroredStorage } from "./mirrored-storage";

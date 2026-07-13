@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
+import { readRecord } from "@/components/globe/edge-hint-record";
 import { CHARTS, CODE_BR, CODE_US, COUNTRY_US } from "@/lib/__fixtures__";
 import type { AudioEngine } from "@/lib/audio-engine";
 import type { ChartFile, Country, Track } from "@/lib/chart-schema";
@@ -346,6 +347,20 @@ describe("ChartScreen globe coupling", () => {
 
     unmount();
     expect(globeChartStore.getState().readMode).toBe(false);
+  });
+
+  test("an edge-skip gesture latches the hint record's used flag", () => {
+    localStorage.clear();
+    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
+    expect(readRecord().used).toBe(false);
+
+    act(() => {
+      globeChartStore.getState().signalSkip(1);
+    });
+
+    // The gesture alone latches it: no track is playing, so step declines the
+    // skip, yet the teaching affordances still retire.
+    expect(readRecord().used).toBe(true);
   });
 
   test("a settle never starts audio on its own", () => {

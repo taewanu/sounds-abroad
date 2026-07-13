@@ -11,6 +11,8 @@ import {
 import { useSearchParams } from "next/navigation";
 
 import { ChartSheet, type SnapState } from "@/components/chart-sheet/sheet";
+import { EdgeChevrons } from "@/components/globe/edge-chevrons";
+import { markUsed } from "@/components/globe/edge-hint-record";
 import { EdgeTapHint } from "@/components/globe/edge-tap-hint";
 import { SkipFlash } from "@/components/globe/skip-flash";
 import { MiniPlayer } from "@/components/mini-player";
@@ -345,6 +347,10 @@ function ChartScreenInner({
   const onGlobeSignal = useEffectEvent(
     (state: GlobeChartState, prev: GlobeChartState) => {
       if (state.skipIntent.nonce !== prev.skipIntent.nonce) {
+        // The gesture itself proves the edge skip is learned, so the teaching
+        // affordances retire even when step clamps at the end of the chart,
+        // matching the hint's own dismiss-on-gesture rule.
+        markUsed();
         if (step(state.skipIntent.dir) === "adjacent") {
           flashSkip(state.skipIntent.dir);
         }
@@ -380,8 +386,12 @@ function ChartScreenInner({
         canNext={canNext}
       />
       {/* Only while the globe is visible: at full the sheet covers it, so
-          showing the hint there would burn its one-time display unseen. */}
+          showing the hint there would burn one of its capped displays unseen. */}
       <EdgeTapHint active={hasCurrentTrack && snap !== "full"} snap={snap} />
+      <EdgeChevrons
+        active={hasCurrentTrack && snap !== "full"}
+        sheetSnap={snap}
+      />
       <SkipFlash skip={skipFlash} sheetSnap={snap} />
       <TourHost
         snap={snap}
