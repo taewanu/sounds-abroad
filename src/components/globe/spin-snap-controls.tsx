@@ -73,9 +73,6 @@ export function SpinSnapControls({
   });
   const onSettleRef = useRef(onSettle);
 
-  // The pending deferred edge-tap select timer (armDefer/clearDefer commands).
-  const deferTimer = useRef<number | null>(null);
-
   // Keep the long-lived pointer handlers and per-frame loop reading the latest
   // props without re-subscribing. Written in an effect, never during render.
   useEffect(() => {
@@ -109,10 +106,7 @@ export function SpinSnapControls({
   };
 
   // Run one command: the impure work the reducer can only name (notify, skip,
-  // arm/clear the deferred-select timer, capture/release the pointer). A fired
-  // timer re-enters the machine via dispatchRef, since useFrame (not an effect)
-  // must drive dispatch and so it can't be a useEffectEvent.
-  const dispatchRef = useRef<(event: GestureEvent) => void>(() => {});
+  // capture/release the pointer).
   const runCommand = useCallback(
     (command: GestureCommand, el: HTMLCanvasElement) => {
       switch (command.kind) {
@@ -121,20 +115,6 @@ export function SpinSnapControls({
           break;
         case "signalSkip":
           globeChartStore.getState().signalSkip(command.dir);
-          break;
-        case "armDefer":
-          if (deferTimer.current !== null)
-            window.clearTimeout(deferTimer.current);
-          deferTimer.current = window.setTimeout(() => {
-            deferTimer.current = null;
-            dispatchRef.current({ type: "deferFire" });
-          }, command.delayMs);
-          break;
-        case "clearDefer":
-          if (deferTimer.current !== null) {
-            window.clearTimeout(deferTimer.current);
-            deferTimer.current = null;
-          }
           break;
         case "capturePointer":
           el.setPointerCapture?.(command.id);
@@ -160,12 +140,6 @@ export function SpinSnapControls({
     },
     [gl, runCommand],
   );
-  // Keep the timer re-entry pointed at the latest dispatch. Its only trigger is
-  // a dispatch identity change, so the deferred-select callback never fires a
-  // stale closure.
-  useEffect(() => {
-    dispatchRef.current = dispatch;
-  }, [dispatch]);
 
   // Follow external selection: when ?cc= changes (the a11y country list, a
   // shared link) settle to it like a gesture would. A gesture's own settle
@@ -231,10 +205,6 @@ export function SpinSnapControls({
     el.addEventListener("pointerup", onUp);
     el.addEventListener("pointercancel", onCancel);
     return () => {
-      if (deferTimer.current !== null) {
-        window.clearTimeout(deferTimer.current);
-        deferTimer.current = null;
-      }
       el.removeEventListener("pointerdown", onDown);
       el.removeEventListener("pointermove", onMove);
       el.removeEventListener("pointerup", onUp);
