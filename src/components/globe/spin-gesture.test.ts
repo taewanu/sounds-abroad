@@ -400,6 +400,23 @@ test("a settle converges to idle once the camera sits on the target", () => {
   expect(state.mode).toBe("idle");
 });
 
+test("a settle step clamps elevation to the pole guard despite outward velocity", () => {
+  const EL_LIMIT = 75 * DEG;
+  const settling: GestureState = {
+    ...initGestureState(START),
+    mode: "settle",
+    az: azOf(START),
+    el: EL_LIMIT,
+    settleAz: azOf(START),
+    settleEl: elOf(START), // a real target, safely below the guard
+    vAz: 0,
+    vEl: 10, // strong outward velocity carried from a fling
+  };
+  const { state } = run(settling, [{ type: "frame", dt: 0.016, rng: half }]);
+
+  expect(state.el).toBeLessThanOrEqual(EL_LIMIT);
+});
+
 test("reduced motion cuts straight to the target with no settle glide", () => {
   const { state } = run(
     initGestureState(START),

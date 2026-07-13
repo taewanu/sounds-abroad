@@ -438,7 +438,10 @@ export function reduce(
           s.vEl *= k;
         }
         s.az += s.vAz * dtc;
-        s.el += s.vEl * dtc;
+        // Clamp like the fling branch: residual velocity or a high-bounce
+        // overshoot toward a near-limit latitude can step el past the pole
+        // guard for a frame even though every settle target sits below it.
+        s.el = clamp(s.el + s.vEl * dtc, -EL_LIMIT, EL_LIMIT);
         if (
           Math.abs(shortestAngle(s.settleAz - s.az)) < SETTLE_EPS &&
           Math.abs(s.settleEl - s.el) < SETTLE_EPS &&
