@@ -1,6 +1,10 @@
 "use client";
 
-import { type PointerEvent as ReactPointerEvent, useRef } from "react";
+import {
+  type PointerEvent as ReactPointerEvent,
+  useRef,
+  useState,
+} from "react";
 
 import { ExpandIcon } from "@/components/icons/expand";
 import { PauseIcon } from "@/components/icons/pause";
@@ -9,6 +13,7 @@ import { SkipBackIcon } from "@/components/icons/skip-back";
 import { SkipForwardIcon } from "@/components/icons/skip-forward";
 import { useOverflowMarquee } from "@/components/use-overflow-marquee";
 import { VolumeControl } from "@/components/volume-control";
+import { trackKey } from "@/lib/track-identity";
 import { useAudioStore } from "@/providers/audio-store-provider";
 
 export interface MiniPlayerProps {
@@ -38,6 +43,34 @@ export function MiniPlayer({
   const currentTrack = useAudioStore((s) => s.currentTrack);
   const isPlaying = useAudioStore((s) => s.isPlaying);
   const toggle = useAudioStore((s) => s.toggle);
+  const lastStep = useAudioStore((s) => s.lastStep);
+
+  // A track change caused by a skip arrives with a fresh step nonce, and the
+  // incoming content should slide in from the skip direction; a change without
+  // one (a direct row tap) stays cue-free. Derived by adjusting state during
+  // render (the same idiom as the sheet's country reset): an effect would both
+  // flag a cascading setState and start the cue one frame after the remount.
+  const contentKey = currentTrack === null ? null : trackKey(currentTrack);
+  const [stepCue, setStepCue] = useState<{
+    key: string | null;
+    nonce: number;
+    dir: "next" | "prev" | null;
+  }>({ key: contentKey, nonce: lastStep?.nonce ?? 0, dir: null });
+  if (
+    stepCue.key !== contentKey ||
+    (lastStep !== null && lastStep.nonce !== stepCue.nonce)
+  ) {
+    setStepCue({
+      key: contentKey,
+      nonce: lastStep?.nonce ?? 0,
+      dir:
+        lastStep !== null && lastStep.nonce !== stepCue.nonce
+          ? lastStep.dir === 1
+            ? "next"
+            : "prev"
+          : null,
+    });
+  }
 
   // The now-playing title is always the current track, so it always scrolls.
   const {
@@ -110,38 +143,49 @@ export function MiniPlayer({
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerCancel}
           aria-label="Reopen chart"
-          className="focus-visible:outline-aurora flex min-w-0 flex-1 touch-pan-y items-center gap-[14px] text-left transition-transform duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.98]"
+          className="focus-visible:outline-aurora flex min-w-0 flex-1 touch-pan-y overflow-hidden text-left transition-transform duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.98]"
         >
+          {/* Keyed on the stable song id so a track change remounts the content
+              and restarts the cue from zero: a rapid skip drops the outgoing
+              node instead of queueing, and the marquee re-measures the new
+              title. The button's overflow-hidden keeps the slide from pushing
+              layout. */}
           <div
-            aria-hidden="true"
-            style={{ backgroundImage: `url(${currentTrack.artworkUrl})` }}
-            className="bg-fg-1/5 h-12 w-12 shrink-0 rounded-lg bg-cover bg-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-          />
-          <div className="min-w-0 flex-1">
-            <p className="text-sunrise text-body flex min-w-0 items-center gap-2 font-medium">
-              <span className="block min-w-0 overflow-hidden">
-                <span
-                  ref={titleRef}
-                  className="marquee-track"
-                  data-marquee={titleScrolling || undefined}
-                  style={titleStyle}
-                >
-                  {currentTrack.name}
+            key={contentKey}
+            data-track-change={stepCue.dir ?? undefined}
+            className="flex min-w-0 flex-1 items-center gap-[14px]"
+          >
+            <div
+              aria-hidden="true"
+              style={{ backgroundImage: `url(${currentTrack.artworkUrl})` }}
+              className="bg-fg-1/5 h-12 w-12 shrink-0 rounded-lg bg-cover bg-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-sunrise text-body flex min-w-0 items-center gap-2 font-medium">
+                <span className="block min-w-0 overflow-hidden">
+                  <span
+                    ref={titleRef}
+                    className="marquee-track"
+                    data-marquee={titleScrolling || undefined}
+                    style={titleStyle}
+                  >
+                    {currentTrack.name}
+                  </span>
                 </span>
-              </span>
-              <span
-                className="eq shrink-0"
-                data-paused={!isPlaying || undefined}
-                aria-hidden
-              >
-                <span />
-                <span />
-                <span />
-              </span>
-            </p>
-            <p className="text-fg-2 text-small truncate">
-              {currentTrack.artist}
-            </p>
+                <span
+                  className="eq shrink-0"
+                  data-paused={!isPlaying || undefined}
+                  aria-hidden
+                >
+                  <span />
+                  <span />
+                  <span />
+                </span>
+              </p>
+              <p className="text-fg-2 text-small truncate">
+                {currentTrack.artist}
+              </p>
+            </div>
           </div>
         </button>
         {/* A sibling of the strip button, never inside it: nested buttons are

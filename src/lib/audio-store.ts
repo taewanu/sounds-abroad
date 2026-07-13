@@ -26,7 +26,12 @@ export interface AudioState {
   volume: number;
   lastError: AudioError | null;
   endedSignal: number;
+  // The most recent skip's direction, nonced so a repeated direction still
+  // reads as a fresh change. Null until the first skip, so a mount or a
+  // non-skip track change never carries a direction.
+  lastStep: { dir: 1 | -1; nonce: number } | null;
   toggle: (track: Track, countryCode?: string) => void;
+  signalStep: (dir: 1 | -1) => void;
   setVolume: (value: number) => void;
   pause: () => void;
   stop: () => void;
@@ -118,6 +123,11 @@ export function createAudioStore(
       volume: 1,
       lastError: null,
       endedSignal: 0,
+      lastStep: null,
+      signalStep: (dir) =>
+        set((state) => ({
+          lastStep: { dir, nonce: (state.lastStep?.nonce ?? 0) + 1 },
+        })),
       toggle: (track, countryCode) => {
         const state = get();
         const a = getEngine();

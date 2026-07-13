@@ -428,6 +428,123 @@ describe("ChartScreen commentary badge", () => {
   });
 });
 
+describe("ChartScreen directional cue", () => {
+  function cueDir(container: HTMLElement): string | null {
+    return (
+      container
+        .querySelector("[data-track-change]")
+        ?.getAttribute("data-track-change") ?? null
+    );
+  }
+
+  beforeEach(() => {
+    mockSearchParams.value = new URLSearchParams(`cc=${ADJ_CODE}`);
+    audioEngine.reset();
+    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  test("starting playback carries no directional cue", () => {
+    const { container } = render(
+      <ChartScreen charts={ADJACENCY_CHARTS} defaultCountryCode={ADJ_CODE} />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Play preview of Playable head by Head artist",
+      }),
+    );
+
+    expect(cueDir(container)).toBeNull();
+  });
+
+  test("the next button publishes the forward direction", () => {
+    const { container } = render(
+      <ChartScreen charts={ADJACENCY_CHARTS} defaultCountryCode={ADJ_CODE} />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Play preview of Playable head by Head artist",
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Next track" }));
+
+    expect(cueDir(container)).toBe("next");
+  });
+
+  test("the prev button publishes the backward direction", () => {
+    const { container } = render(
+      <ChartScreen charts={ADJACENCY_CHARTS} defaultCountryCode={ADJ_CODE} />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Play preview of Playable tail by Tail artist",
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Previous track" }));
+
+    expect(cueDir(container)).toBe("prev");
+  });
+
+  test("auto-advance publishes the forward direction through the same step", () => {
+    const { container } = render(
+      <ChartScreen charts={ADJACENCY_CHARTS} defaultCountryCode={ADJ_CODE} />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Play preview of Playable head by Head artist",
+      }),
+    );
+
+    act(() => {
+      audioEngine.end();
+    });
+
+    expect(cueDir(container)).toBe("next");
+  });
+
+  test("a globe skip-intent publishes its direction through the same step", () => {
+    const { container } = render(
+      <ChartScreen charts={ADJACENCY_CHARTS} defaultCountryCode={ADJ_CODE} />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Play preview of Playable head by Head artist",
+      }),
+    );
+
+    act(() => {
+      globeChartStore.getState().signalSkip(1);
+    });
+
+    expect(cueDir(container)).toBe("next");
+  });
+
+  test("a direct row tap changes the track without a directional cue", () => {
+    const { container } = render(
+      <ChartScreen charts={ADJACENCY_CHARTS} defaultCountryCode={ADJ_CODE} />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Play preview of Playable head by Head artist",
+      }),
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Play preview of Playable tail by Tail artist",
+      }),
+    );
+
+    expect(cueDir(container)).toBeNull();
+  });
+});
+
 describe("ChartScreen auto-advance", () => {
   beforeEach(() => {
     mockSearchParams.value = new URLSearchParams(`cc=${ADJ_CODE}`);
