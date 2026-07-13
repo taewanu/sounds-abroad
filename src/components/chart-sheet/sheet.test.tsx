@@ -405,6 +405,46 @@ describe("ChartSheet", () => {
     expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
   });
 
+  test("does not scroll on a direct tap: a rank change with no step", async () => {
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
+    // Off-screen row: a skip would pull it in, but a direct tap must not.
+    stubRects(rect(0, 100), rect(200, 240));
+    const first = COUNTRY_KR.tracks[0].rank;
+    const other = COUNTRY_KR.tracks[2].rank;
+
+    const { rerender } = render(
+      <AudioStoreProvider>
+        <ChartSheet
+          country={COUNTRY_KR}
+          countryCode="kr"
+          snap="peek"
+          onSnapChange={vi.fn()}
+          currentTrackRank={first}
+          stepSignal={0}
+        />
+      </AudioStoreProvider>,
+    );
+    scrollIntoViewMock.mockClear();
+
+    // A tap: the rank changes but the step signal does not.
+    rerender(
+      <AudioStoreProvider>
+        <ChartSheet
+          country={COUNTRY_KR}
+          countryCode="kr"
+          snap="peek"
+          onSnapChange={vi.fn()}
+          currentTrackRank={other}
+          stepSignal={0}
+        />
+      </AudioStoreProvider>,
+    );
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+    expect(scrollIntoViewMock).not.toHaveBeenCalled();
+  });
+
   test("does not scroll when currentTrackRank is null", async () => {
     const scrollIntoViewMock = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoViewMock;
@@ -438,7 +478,7 @@ describe("ChartSheet", () => {
     expect(scrollIntoViewMock).not.toHaveBeenCalled();
   });
 
-  test("scrolls the now-playing row into view when the track changes while open and the row is off-screen", async () => {
+  test("scrolls the now-playing row into view on a skip while open when the row is off-screen", async () => {
     const scrollIntoViewMock = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoViewMock;
     // Row sits below the peek viewport, so reveal-only must pull it in.
@@ -454,11 +494,13 @@ describe("ChartSheet", () => {
           snap="peek"
           onSnapChange={vi.fn()}
           currentTrackRank={first}
+          stepSignal={0}
         />
       </AudioStoreProvider>,
     );
     scrollIntoViewMock.mockClear();
 
+    // A skip: the rank changes and the step signal bumps.
     rerender(
       <AudioStoreProvider>
         <ChartSheet
@@ -467,6 +509,7 @@ describe("ChartSheet", () => {
           snap="peek"
           onSnapChange={vi.fn()}
           currentTrackRank={next}
+          stepSignal={1}
         />
       </AudioStoreProvider>,
     );

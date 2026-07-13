@@ -121,6 +121,7 @@ function ChartScreenInner({
   const selectedCountry = useGlobeChart((s) => s.selectedCountry);
   const currentTrack = useAudioStore((s) => s.currentTrack);
   const currentCountryCode = useAudioStore((s) => s.currentCountryCode);
+  const lastStep = useAudioStore((s) => s.lastStep);
   const hasCurrentTrack = currentTrack !== null;
   const currentTrackRank = currentTrack?.rank ?? null;
   const audioStore = useAudioStoreApi();
@@ -381,6 +382,7 @@ function ChartScreenInner({
         currentCountryCode={currentCountryCode}
         hasMiniPlayer={hasCurrentTrack}
         scrollSignal={scrollSignal}
+        stepSignal={lastStep?.nonce ?? 0}
         focusIntent={focusIntent}
       />
       <MiniPlayer

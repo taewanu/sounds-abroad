@@ -27,6 +27,11 @@ export interface ChartSheetProps {
   currentCountryCode?: string | null;
   hasMiniPlayer?: boolean;
   scrollSignal?: number;
+  // Bumped on a skip / auto-advance (the step nonce). The auto-scroll follows an
+  // indirect track change (a skip reveals the new row) but not a direct tap (the
+  // tapped item is already under the finger), so it gates on this, not the raw
+  // rank change, which can't tell the two apart.
+  stepSignal?: number;
   // An outside ask (the mini-player's commentary badge) to open a row's focused
   // reader card; the nonce marks each ask so dep-only re-runs never re-focus.
   focusIntent?: { rank: number; nonce: number } | null;
@@ -128,6 +133,7 @@ export function ChartSheet({
   currentCountryCode = null,
   hasMiniPlayer = false,
   scrollSignal = 0,
+  stepSignal = 0,
   focusIntent = null,
 }: ChartSheetProps) {
   const sheetRef = useRef<HTMLDivElement | null>(null);
@@ -572,16 +578,16 @@ export function ChartSheet({
 
   const prevSnapRef = useRef(snap);
   const prevSignalRef = useRef(scrollSignal);
-  const prevRankRef = useRef(currentTrackRank);
+  const prevStepRef = useRef(stepSignal);
 
   useEffect(() => {
     const wasMin =
       prevSnapRef.current === "closed" || prevSnapRef.current === "hidden";
     const signalChanged = prevSignalRef.current !== scrollSignal;
-    const rankChanged = prevRankRef.current !== currentTrackRank;
+    const stepChanged = prevStepRef.current !== stepSignal;
     prevSnapRef.current = snap;
     prevSignalRef.current = scrollSignal;
-    prevRankRef.current = currentTrackRank;
+    prevStepRef.current = stepSignal;
     if (snap === "closed" || snap === "hidden") return;
     if (currentTrackRank === null) return;
     // The now-playing row only exists in the displayed list when the playing
@@ -590,13 +596,14 @@ export function ChartSheet({
     // until they align (null = nothing playing, already handled above).
     if (currentCountryCode !== null && currentCountryCode !== countryCode)
       return;
-    // A reopen (raised from minimized, or a mini-player tap that bumped the
-    // signal) always reveals the row. An in-place track change while the sheet
-    // is already open only follows it when the row would otherwise be hidden,
-    // so a row that's already visible (an adjacent step, or one the user tapped)
-    // never yanks the list.
+    // Reveal the row on an INDIRECT change only: a reopen (raised from
+    // minimized, or a mini-player tap that bumped the signal), or a skip /
+    // auto-advance (a bumped step). A DIRECT tap changes the rank with no step,
+    // and the tapped item is already under the finger, so the list never yanks
+    // to it (which for the gem hero would scroll to its ranked-row duplicate).
+    // A step to an already-visible neighbour still holds, gated below.
     const isReopen = wasMin || signalChanged;
-    if (!isReopen && !rankChanged) return;
+    if (!isReopen && !stepChanged) return;
     // Defer one frame so the new snap/country is in the DOM before query.
     const id = requestAnimationFrame(() => {
       const ol = olRef.current;
@@ -611,7 +618,14 @@ export function ChartSheet({
       });
     });
     return () => cancelAnimationFrame(id);
-  }, [snap, currentTrackRank, scrollSignal, countryCode, currentCountryCode]);
+  }, [
+    snap,
+    currentTrackRank,
+    scrollSignal,
+    stepSignal,
+    countryCode,
+    currentCountryCode,
+  ]);
 
   return (
     // Rendered in place, not portaled: the sheet must be in the server HTML so
