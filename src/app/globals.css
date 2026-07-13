@@ -1024,6 +1024,25 @@
     skip-slide var(--skip-flash-dur) var(--ease-out) forwards;
 }
 
+/* Ambient skip affordance: faint aurora chevrons resting at both globe margins
+   while a track plays, until the first edge skip retires them. A slow breath
+   between barely-there and readable keeps them ambient, never competing with
+   the skip flash's confirmation glow. */
+@keyframes edge-chevron-breathe {
+  0%,
+  100% {
+    opacity: 0.14;
+  }
+  50% {
+    opacity: 0.38;
+  }
+}
+
+.edge-chevron {
+  color: var(--color-aurora);
+  animation: edge-chevron-breathe 2600ms ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .eq,
   .eq span {
@@ -1088,5 +1107,11 @@
   .tour-rail {
     animation: none;
     opacity: 0.6;
+  }
+  /* The ambient chevrons keep marking the edges; drop the breath, rest at a
+     steady faint level. */
+  .edge-chevron {
+    animation: none;
+    opacity: 0.26;
   }
 }

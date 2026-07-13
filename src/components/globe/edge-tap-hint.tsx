@@ -1,13 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { SnapState } from "@/components/chart-sheet/sheet";
 import { PointerIcon } from "@/components/icons/pointer";
 import { useTourAnchor } from "@/components/tour/use-tour-anchor";
+import { useCoarsePointer } from "@/components/use-coarse-pointer";
 import { globeChartStore } from "@/lib/globe-chart-store";
 
-import { edgeTapSeen } from "./seen-edge-tap-hint";
+import {
+  decideShow,
+  readRecord,
+  recordShown,
+  writeRecord,
+} from "./edge-hint-record";
 
 // If the user never performs the skip, retire the cue rather than let it linger
 // over their listening.
@@ -18,14 +24,16 @@ const FALLBACK_MS = 6000;
 const HAND_EDGE_PCT = 83.5;
 const ECHO_EDGE_PCT = 100 - HAND_EDGE_PCT;
 
-// Contextual first-encounter cue for the double-tap-either-edge skip. Unlike the
-// linear onboarding tour, this waits for the moment the gesture first becomes
-// usable (a track plays and the sheet is below full, so the globe edges are
-// tappable), then teaches it in place. Shown once per device; the seen flag
-// persists. Pointer-transparent throughout so it never intercepts the taps it
-// teaches. Wordless chrome: a globe-dim / sheet-dim sandwich, two aurora edge
-// rails behind the sheet, one right-edge double-tap hand with a synced left-edge
-// ripple echo, and a "Double-tap either edge to skip" badge.
+// Contextual cue for the double-tap-either-edge skip. Unlike the linear
+// onboarding tour, this waits for the moment the gesture first becomes usable
+// (a track plays and the sheet is below full, so the globe edges are tappable),
+// then teaches it in place. Repeats until used: at most once per visit, across
+// a capped number of visits, stopping permanently once the user performs an
+// edge skip (the edge-hint record holds the schedule). Pointer-transparent
+// throughout so it never intercepts the taps it teaches. Wordless chrome: a
+// globe-dim / sheet-dim sandwich, two aurora edge rails behind the sheet, one
+// right-edge double-tap hand with a synced left-edge ripple echo, and a
+// "Double-tap either edge to skip" badge.
 export function EdgeTapHint({
   active,
   snap,
@@ -33,13 +41,20 @@ export function EdgeTapHint({
   active: boolean;
   snap: SnapState;
 }) {
-  // Read the persisted flag once at mount, before any track plays, so it holds
-  // the true prior-session value. Visibility is derived from `active`, not
-  // latched in an effect.
-  const [seenAtMount] = useState(() => edgeTapSeen.hasSeen());
+  // Decide from the persisted record once at mount, before any track plays, so
+  // this visit's own show can't feed back into the decision. Visibility is
+  // derived from `active`, not latched in an effect.
+  const [showThisVisit] = useState(() => decideShow(readRecord()));
   const [dismissed, setDismissed] = useState(false);
+  const countedRef = useRef(false);
 
-  const visible = active && !seenAtMount && !dismissed;
+  // Touch-primary devices only: the edge double-tap this teaches has no pointer
+  // equivalent, and desktop's skip path is the visible prev/next buttons. SSR
+  // assumes fine, so the hint can only appear post-hydration, never flash on
+  // desktop; gating here also keeps a desktop mount from consuming a show.
+  const coarsePointer = useCoarsePointer();
+
+  const visible = active && showThisVisit && coarsePointer && !dismissed;
 
   // Measure the sheet so the sheet-dim covers exactly it, matching its rounded
   // corners. `snap` is the watch signal: the sheet slides between snaps via
@@ -49,15 +64,19 @@ export function EdgeTapHint({
     snap,
   );
 
-  // Mark the cue seen and retire it once its lesson lands: dismiss the instant
-  // the user performs a real skip (a fresh skipIntent nonce during the show), or
-  // after FALLBACK_MS if they never do. Mirrors the tour's "complete only on a
-  // fresh gesture performed during the beat" rule.
+  // Count the appearance and retire the cue once its lesson lands: dismiss the
+  // instant the user performs a real skip (a fresh skipIntent nonce during the
+  // show), or after FALLBACK_MS if they never do. The permanent used latch is
+  // the chart's, written at its skip seam, so it also catches skips performed
+  // while no cue is showing.
   useEffect(() => {
     if (!visible) return;
-    // Mark seen on show, like the prior cue: one appearance per device even if
-    // the user leaves without skipping.
-    edgeTapSeen.markSeen();
+    // Count at show time, once per visit even if `active` toggles the cue away
+    // and back, so the cap survives a mid-show exit.
+    if (!countedRef.current) {
+      countedRef.current = true;
+      writeRecord(recordShown(readRecord()));
+    }
     const unsubscribe = globeChartStore.subscribe((state, prev) => {
       // Only a nonce change after this subscription is a fresh skip performed
       // during the show; a skip from before the cue appeared never counts.
