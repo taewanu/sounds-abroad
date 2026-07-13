@@ -93,10 +93,14 @@ export function SpinSnapControls({
     onSettleRef.current = onSettle;
   });
 
-  const sim = useRef<GestureState>(initGestureState(initialCode));
+  // Lazily seed the sim once, not on every render: passing the value to useRef
+  // would rebuild and discard it each time the argument is evaluated. Non-null
+  // for the rest of the component's life once this guard has run.
+  const sim = useRef<GestureState | null>(null);
+  if (sim.current === null) sim.current = initGestureState(initialCode);
 
   const applyCamera = () => {
-    const s = sim.current;
+    const s = sim.current!;
     camera.position.set(
       RADIUS * Math.cos(s.el) * Math.sin(s.az),
       RADIUS * Math.sin(s.el),
@@ -107,7 +111,8 @@ export function SpinSnapControls({
 
   // Run one command: the impure work the reducer can only name (notify, skip,
   // arm/clear the deferred-select timer, capture/release the pointer). A fired
-  // timer re-enters the machine via dispatchRef so this stays a stable callback.
+  // timer re-enters the machine via dispatchRef, since useFrame (not an effect)
+  // must drive dispatch and so it can't be a useEffectEvent.
   const dispatchRef = useRef<(event: GestureEvent) => void>(() => {});
   const runCommand = useCallback(
     (command: GestureCommand, el: HTMLCanvasElement) => {
@@ -143,11 +148,12 @@ export function SpinSnapControls({
     [],
   );
 
-  // Fold an event into the sim, then run its commands.
+  // Fold an event into the sim, then run its commands. Stable across renders
+  // (gl and runCommand are), so the listener effect subscribes once.
   const dispatch = useCallback(
     (event: GestureEvent) => {
       const el = gl.domElement;
-      const { state, commands } = reduce(sim.current, event, cfg.current);
+      const { state, commands } = reduce(sim.current!, event, cfg.current);
       sim.current = state;
       for (const command of commands) {
         runCommand(command, el);
