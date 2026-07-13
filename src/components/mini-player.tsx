@@ -2,6 +2,7 @@
 
 import {
   type PointerEvent as ReactPointerEvent,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -16,6 +17,8 @@ import { VolumeControl } from "@/components/volume-control";
 import { trackKey } from "@/lib/track-identity";
 import { useAudioStore } from "@/providers/audio-store-provider";
 
+import { type SwipeCommitConfig, decideSwipeCommit } from "./swipe-commit";
+
 export interface MiniPlayerProps {
   onTap: () => void;
   onCommentary: () => void;
@@ -25,9 +28,25 @@ export interface MiniPlayerProps {
   canNext: boolean;
 }
 
-// Horizontal pointer travel (px) that turns a press on the now-playing area into
-// a skip swipe instead of a tap that reopens the chart.
-const SWIPE_THRESHOLD_PX = 40;
+// Horizontal travel (px) past which a press is a drag, not a tap: suppresses the
+// reopen-chart click and lets the now-playing content follow the finger.
+const DRAG_ENGAGE_PX = 8;
+// Swipe feel, tuned by eye. Left = next; a release commits past a third of the
+// width or on a fast flick, else springs back.
+const SWIPE_CFG: SwipeCommitConfig = {
+  commitThresholdPct: 33,
+  flickToCommit: true,
+  flickVelPxPerMs: 0.5,
+};
+// Commit slide: the content leaves in the swipe direction (ease-out, no
+// overshoot). The incoming track slides in via the existing data-track-change
+// cue, so the audio skip is deferred one commit so the two read as one motion.
+const COMMIT_MS = 260;
+const COMMIT_EASE = "cubic-bezier(0.22, 0.61, 0.36, 1)";
+// Spring-back on a release that didn't commit: a light overshoot gives it life
+// without wobbling a small element.
+const RETURN_MS = 232;
+const RETURN_EASE = "cubic-bezier(0.34, 1.3, 0.64, 1)";
 
 const SKIP_BUTTON_CLASS =
   "text-fg-2 hover:bg-orbit hover:text-fg-1 focus-visible:outline-aurora flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-30";
@@ -82,20 +101,49 @@ export function MiniPlayer({
     text: currentTrack?.name,
   });
 
-  // Transient swipe state in refs so tracking the pointer never re-renders.
-  // touch-pan-y (below) hands horizontal drags to JS but can't cancel Safari's
-  // system edge-swipe, so a prev-swipe begun at the very screen edge may still
-  // navigate back.
+  // Transient swipe state in refs so following the pointer never re-renders; the
+  // content transform is written straight to the DOM node (cardRef). touch-pan-y
+  // (below) hands horizontal drags to JS but can't cancel Safari's system
+  // edge-swipe, so a prev-swipe begun at the very screen edge may still navigate
+  // back.
   const startXRef = useRef(0);
   const startYRef = useRef(0);
+  const lastXRef = useRef(0);
+  const lastTRef = useRef(0);
+  const velRef = useRef(0);
   const trackingRef = useRef(false);
+  const engagedRef = useRef(false);
   const swipedRef = useRef(false);
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const commitTimerRef = useRef<number | null>(null);
+
+  const clearCommitTimer = () => {
+    if (commitTimerRef.current !== null) {
+      window.clearTimeout(commitTimerRef.current);
+      commitTimerRef.current = null;
+    }
+  };
+
+  // A committed skip fires after the slide; drop it if the player unmounts first.
+  useEffect(
+    () => () => {
+      if (commitTimerRef.current !== null)
+        window.clearTimeout(commitTimerRef.current);
+    },
+    [],
+  );
 
   const handlePointerDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
-    startXRef.current = e.clientX;
+    clearCommitTimer();
+    startXRef.current = lastXRef.current = e.clientX;
     startYRef.current = e.clientY;
+    lastTRef.current = e.timeStamp;
+    velRef.current = 0;
     trackingRef.current = true;
+    engagedRef.current = false;
     swipedRef.current = false;
+    // Drag is 1:1, so drop any leftover spring transition before following.
+    if (cardRef.current) cardRef.current.style.transition = "none";
     // Capture so a swipe that drifts off the button still delivers its pointerup
     // here; the browser releases the capture on pointerup/cancel.
     try {
@@ -105,22 +153,73 @@ export function MiniPlayer({
     }
   };
 
+  const handlePointerMove = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    if (!trackingRef.current) return;
+    const dx = e.clientX - startXRef.current;
+    const dy = e.clientY - startYRef.current;
+    // Engage once the travel is decisively horizontal; from then on the content
+    // follows the finger and the trailing click is a swipe, not a reopen tap.
+    if (!engagedRef.current) {
+      if (Math.abs(dx) <= DRAG_ENGAGE_PX || Math.abs(dx) <= Math.abs(dy))
+        return;
+      engagedRef.current = true;
+      swipedRef.current = true;
+    }
+    if (cardRef.current)
+      cardRef.current.style.transform = `translateX(${dx}px)`;
+    const dt = Math.max(1, e.timeStamp - lastTRef.current);
+    velRef.current = (e.clientX - lastXRef.current) / dt;
+    lastXRef.current = e.clientX;
+    lastTRef.current = e.timeStamp;
+  };
+
+  const settleCard = (transform: string, ms: number, ease: string) => {
+    const card = cardRef.current;
+    if (!card) return;
+    card.style.transition = `transform ${ms}ms ${ease}`;
+    card.style.transform = transform;
+  };
+
   const handlePointerUp = (e: ReactPointerEvent<HTMLButtonElement>) => {
     if (!trackingRef.current) return;
     trackingRef.current = false;
-    const dx = e.clientX - startXRef.current;
-    const dy = e.clientY - startYRef.current;
-    if (Math.abs(dx) <= SWIPE_THRESHOLD_PX || Math.abs(dx) <= Math.abs(dy)) {
+    if (!engagedRef.current) return;
+
+    const outcome = decideSwipeCommit(
+      {
+        dx: e.clientX - startXRef.current,
+        vx: velRef.current,
+        width: e.currentTarget.clientWidth,
+        canPrev,
+        canNext,
+      },
+      SWIPE_CFG,
+    );
+
+    if (outcome === "cancel") {
+      settleCard("translateX(0)", RETURN_MS, RETURN_EASE);
       return;
     }
-    // A swipe fired: flag it so the click that follows doesn't also reopen.
-    swipedRef.current = true;
-    if (dx < 0) onNext();
-    else onPrev();
+
+    // Slide the outgoing content off, then skip: the remount's data-track-change
+    // cue slides the new track in from the same side, so the two read as one
+    // continuous motion.
+    settleCard(
+      `translateX(${outcome === "next" ? -100 : 100}%)`,
+      COMMIT_MS,
+      COMMIT_EASE,
+    );
+    commitTimerRef.current = window.setTimeout(() => {
+      commitTimerRef.current = null;
+      if (outcome === "next") onNext();
+      else onPrev();
+    }, COMMIT_MS);
   };
 
   const handlePointerCancel = () => {
+    if (!trackingRef.current) return;
     trackingRef.current = false;
+    if (engagedRef.current) settleCard("translateX(0)", RETURN_MS, RETURN_EASE);
   };
 
   const handleTap = () => {
@@ -140,6 +239,7 @@ export function MiniPlayer({
           type="button"
           onClick={handleTap}
           onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerCancel}
           aria-label="Reopen chart"
@@ -152,6 +252,7 @@ export function MiniPlayer({
               layout. */}
           <div
             key={contentKey}
+            ref={cardRef}
             data-track-change={stepCue.dir ?? undefined}
             className="flex min-w-0 flex-1 items-center gap-[14px]"
           >
