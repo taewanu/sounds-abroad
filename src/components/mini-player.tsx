@@ -2,6 +2,7 @@
 
 import { type PointerEvent as ReactPointerEvent, useRef } from "react";
 
+import { ExpandIcon } from "@/components/icons/expand";
 import { PauseIcon } from "@/components/icons/pause";
 import { PlayIcon } from "@/components/icons/play";
 import { SkipBackIcon } from "@/components/icons/skip-back";
@@ -12,6 +13,7 @@ import { useAudioStore } from "@/providers/audio-store-provider";
 
 export interface MiniPlayerProps {
   onTap: () => void;
+  onCommentary: () => void;
   onPrev: () => void;
   onNext: () => void;
   canPrev: boolean;
@@ -27,6 +29,7 @@ const SKIP_BUTTON_CLASS =
 
 export function MiniPlayer({
   onTap,
+  onCommentary,
   onPrev,
   onNext,
   canPrev,
@@ -141,6 +144,20 @@ export function MiniPlayer({
             </p>
           </div>
         </button>
+        {/* A sibling of the strip button, never inside it: nested buttons are
+            invalid HTML and would tangle the strip's tap/swipe tracking.
+            Commentary is gated per track, so the affordance renders only when
+            the playing track actually carries it. */}
+        {currentTrack.commentary ? (
+          <button
+            type="button"
+            onClick={onCommentary}
+            aria-label="Read why this track is trending"
+            className={SKIP_BUTTON_CLASS}
+          >
+            <ExpandIcon className="h-4 w-4" />
+          </button>
+        ) : null}
         <VolumeControl />
         <button
           type="button"

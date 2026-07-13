@@ -3,7 +3,7 @@ import { describe, expect, test, vi } from "vitest";
 
 import type { AudioEngine } from "@/lib/audio-engine";
 import { type AudioState, createAudioStore } from "@/lib/audio-store";
-import type { Track } from "@/lib/chart-schema";
+import type { Commentary, Track } from "@/lib/chart-schema";
 import { AudioStoreContext } from "@/providers/audio-store-provider";
 
 import { MiniPlayer, type MiniPlayerProps } from "./mini-player";
@@ -32,6 +32,16 @@ function makeTrack(overrides: Partial<Track> = {}): Track {
   };
 }
 
+function makeCommentary(): Commentary {
+  return {
+    lead: "Test lead",
+    tag: "test-tag",
+    claim: "what-it-is",
+    sources: ["https://example.com/source"],
+    generatedAt: "2026-04-25T03:00:00Z",
+  };
+}
+
 function renderMiniPlayer(
   props: Partial<MiniPlayerProps> = {},
   init?: Partial<AudioState>,
@@ -42,6 +52,7 @@ function renderMiniPlayer(
   }
   const fullProps: MiniPlayerProps = {
     onTap: vi.fn(),
+    onCommentary: vi.fn(),
     onPrev: vi.fn(),
     onNext: vi.fn(),
     canPrev: true,
@@ -191,6 +202,37 @@ describe("MiniPlayer", () => {
     fireEvent.click(area);
 
     expect(onPrev).toHaveBeenCalledTimes(1);
+    expect(onTap).not.toHaveBeenCalled();
+  });
+
+  test("commentary badge is absent when the track carries no commentary", () => {
+    renderMiniPlayer({}, { currentTrack: makeTrack() });
+
+    expect(
+      screen.queryByRole("button", { name: /why this track is trending/i }),
+    ).toBeNull();
+  });
+
+  test("commentary badge is absent when commentary is explicitly null", () => {
+    renderMiniPlayer({}, { currentTrack: makeTrack({ commentary: null }) });
+
+    expect(
+      screen.queryByRole("button", { name: /why this track is trending/i }),
+    ).toBeNull();
+  });
+
+  test("commentary badge fires onCommentary, not onTap", () => {
+    const onCommentary = vi.fn();
+    const onTap = vi.fn();
+    const track = makeTrack({ commentary: makeCommentary() });
+
+    renderMiniPlayer({ onCommentary, onTap }, { currentTrack: track });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /why this track is trending/i }),
+    );
+
+    expect(onCommentary).toHaveBeenCalledTimes(1);
     expect(onTap).not.toHaveBeenCalled();
   });
 

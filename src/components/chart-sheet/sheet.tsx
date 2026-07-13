@@ -27,6 +27,9 @@ export interface ChartSheetProps {
   currentCountryCode?: string | null;
   hasMiniPlayer?: boolean;
   scrollSignal?: number;
+  // An outside ask (the mini-player's commentary badge) to open a row's focused
+  // reader card; the nonce marks each ask so dep-only re-runs never re-focus.
+  focusIntent?: { rank: number; nonce: number } | null;
 }
 
 // translateY as a fraction of the sheet's own height at each snap: full shows
@@ -125,6 +128,7 @@ export function ChartSheet({
   currentCountryCode = null,
   hasMiniPlayer = false,
   scrollSignal = 0,
+  focusIntent = null,
 }: ChartSheetProps) {
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const olRef = useRef<HTMLOListElement | null>(null);
@@ -160,6 +164,21 @@ export function ChartSheet({
   if (focusCountry !== countryCode) {
     setFocusCountry(countryCode);
     setFocusedRank(null);
+  }
+
+  // Apply an outside focus ask during render (the same idiom as the reset
+  // above, placed after it so it wins on the same pass). Ranks repeat across
+  // countries, so the intent targets its row only once the displayed country
+  // is the playing one; until then the nonce stays unconsumed, so the focus
+  // lands after the country change instead of being clobbered by its reset.
+  const [consumedFocusNonce, setConsumedFocusNonce] = useState(0);
+  if (
+    focusIntent !== null &&
+    focusIntent.nonce !== consumedFocusNonce &&
+    (currentCountryCode === null || currentCountryCode === countryCode)
+  ) {
+    setConsumedFocusNonce(focusIntent.nonce);
+    setFocusedRank(focusIntent.rank);
   }
 
   // While a card is focused, dismiss on Escape or a click outside it (a dimmed

@@ -75,6 +75,10 @@ function ChartScreenInner({
 }) {
   const [snap, setSnap] = useState<SnapState>("peek");
   const [scrollSignal, setScrollSignal] = useState(0);
+  const [focusIntent, setFocusIntent] = useState<{
+    rank: number;
+    nonce: number;
+  } | null>(null);
   const [skipFlash, setSkipFlash] = useState<{
     dir: 1 | -1;
     nonce: number;
@@ -156,6 +160,20 @@ function ChartScreenInner({
     setSnap((s) => (s === "hidden" || s === "closed" ? "peek" : s));
     setScrollSignal((n) => n + 1);
   }, [audioStore, countryCode]);
+
+  // The badge rides the same reopen path as a strip tap, then asks the sheet to
+  // expand the now-playing row's commentary card. The rank is the playing
+  // track's rank in its source country, which is the country the reopen lands
+  // on.
+  const handleCommentaryTap = useCallback(() => {
+    const { currentTrack } = audioStore.getState();
+    if (currentTrack === null) return;
+    handleMiniTap();
+    setFocusIntent((prev) => ({
+      rank: currentTrack.rank,
+      nonce: (prev?.nonce ?? 0) + 1,
+    }));
+  }, [audioStore, handleMiniTap]);
 
   // Step within the source country, not the visible one. Reads live store state
   // so the callbacks stay stable across track changes.
@@ -241,9 +259,11 @@ function ChartScreenInner({
         currentCountryCode={currentCountryCode}
         hasMiniPlayer={hasCurrentTrack}
         scrollSignal={scrollSignal}
+        focusIntent={focusIntent}
       />
       <MiniPlayer
         onTap={handleMiniTap}
+        onCommentary={handleCommentaryTap}
         onPrev={goPrev}
         onNext={goNext}
         canPrev={canPrev}
