@@ -1,50 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 
-import { COUNTRIES } from "@/lib/countries";
 import { globeChartStore } from "@/lib/globe-chart-store";
 
-import { flickToSpin } from "./spin-feel";
 import {
-  pickNearestToPoint,
-  pickSnapCountry,
-  projectFrontCountries,
-} from "./spin-select";
-import { classifyTap, horizontalThird, isTap } from "./tap-detect";
+  type GestureCommand,
+  type GestureConfig,
+  type GestureEvent,
+  initGestureState,
+  reduce,
+} from "./spin-gesture";
+import { pickNearestToPoint, projectFrontCountries } from "./spin-select";
+import { horizontalThird } from "./tap-detect";
 
-const DEG = Math.PI / 180;
 const RADIUS = 3.5;
-const DRAG_RAD_PER_PX = 0.005; // base drag gain, scaled by the sensitivity slider
-const EL_LIMIT = 75 * DEG; // stop short of the poles so the view never flips
-const SETTLE_VEL = 2; // rad/s under which a fling hands off to the snap spring
-const SNAP_OMEGA = 17; // snap spring frequency: higher settles faster
-// rad/s ceiling on a settle. A far external pick (shuffle / a11y list) would
-// otherwise ride the spring's amplitude-scaled peak velocity and strobe across
-// the globe; the cap turns that into a steady glide. Small post-fling snaps
-// stay under it, so their feel is untouched.
-const MAX_SETTLE_VEL = 7;
-const TAP_MAX_PX = 8; // press-to-release drift under which a gesture is a tap
 const TAP_HIT_PX = 44; // a tap beyond this from every country pin selects nothing
-const DOUBLE_TAP_MS = 280; // edge double-tap window: a 2nd side-third tap within this skips
-// Deferred-select delay: waits past the double-tap window (longer than
-// DOUBLE_TAP_MS) so main-thread jank can't fire the select before a second
-// tap's pointerup and misclassify a skip as a select.
-const SELECT_DEFER_MS = 360;
-// Angular tolerance (rad) for "the camera sits on the settle target": ends a
-// settle, and tells a skip whether a settle was interrupted mid-glide.
-const SETTLE_EPS = 0.002;
-
-const COUNTRY_BY_CODE = new Map(COUNTRIES.map((c) => [c.code, c]));
-
-const clamp = (v: number, lo: number, hi: number) =>
-  Math.max(lo, Math.min(hi, v));
-
-// Shortest signed angle to rotate `from` onto `to`, so settling never unwinds
-// the long way around the globe.
-const shortestAngle = (delta: number) =>
-  Math.atan2(Math.sin(delta), Math.cos(delta));
 
 interface SpinSnapControlsProps {
   initialCode: string;
@@ -70,7 +42,9 @@ interface SpinSnapControlsProps {
 // Drives the camera as a spun globe: drag to rotate, release to fling with
 // momentum, and on coming to rest snap to the nearest country. A tap jumps
 // straight to the nearest country. There is no free-rotate; it never rests on
-// open ocean.
+// open ocean. The gesture machine itself lives in the pure `spin-gesture`
+// reducer; this component owns only the impure edges: DOM pointer events in,
+// commands and the camera draw out.
 export function SpinSnapControls({
   initialCode,
   targetCode,
@@ -87,7 +61,7 @@ export function SpinSnapControls({
   const camera = useThree((s) => s.camera);
   const gl = useThree((s) => s.gl);
 
-  const cfg = useRef({
+  const cfg = useRef<GestureConfig>({
     sensitivity,
     friction,
     horizontalLock,
@@ -99,20 +73,8 @@ export function SpinSnapControls({
   });
   const onSettleRef = useRef(onSettle);
 
-  // A side-third tap while listening defers its select by one double-tap window
-  // so a second tap can cancel it into a skip. These hold that pending timer and
-  // the time of the tap that armed it; cleared on a new press and on unmount.
-  const pendingSelect = useRef<number | null>(null);
-  const lastEdgeTapAt = useRef<number | null>(null);
-
-  // Cancel a pending deferred edge-tap select. Shared by the pointer handlers
-  // and the external-selection effect.
-  const clearPendingSelect = useCallback(() => {
-    if (pendingSelect.current !== null) {
-      window.clearTimeout(pendingSelect.current);
-      pendingSelect.current = null;
-    }
-  }, []);
+  // The pending deferred edge-tap select timer (armDefer/clearDefer commands).
+  const deferTimer = useRef<number | null>(null);
 
   // Keep the long-lived pointer handlers and per-frame loop reading the latest
   // props without re-subscribing. Written in an effect, never during render.
@@ -130,26 +92,11 @@ export function SpinSnapControls({
     onSettleRef.current = onSettle;
   });
 
-  const sim = useRef(
-    (() => {
-      const start = COUNTRY_BY_CODE.get(initialCode);
-      const startAz = start ? start.lon * DEG : 0;
-      const startEl = start ? start.lat * DEG : 0;
-      // Seed the settle targets to the resting position so "az/el are at the
-      // settle targets" reads true from the first frame. The skip-during-settle
-      // resume relies on that invariant to tell a stranded glide from rest.
-      return {
-        az: startAz,
-        el: startEl,
-        vAz: 0,
-        vEl: 0,
-        mode: "idle" as "idle" | "drag" | "fling" | "settle",
-        settleAz: startAz,
-        settleEl: startEl,
-        settledCode: initialCode,
-      };
-    })(),
-  );
+  // Seed the sim once at mount. useState's lazy initializer runs the build a
+  // single time (passing it straight to useRef would rebuild and discard it
+  // every render), and holding it in a ref keeps writes out of the render pass.
+  const [initialSim] = useState(() => initGestureState(initialCode));
+  const sim = useRef(initialSim);
 
   const applyCamera = () => {
     const s = sim.current;
@@ -161,239 +108,122 @@ export function SpinSnapControls({
     camera.lookAt(0, 0, 0);
   };
 
-  // Aim the camera at a country. Records the landing and notifies once via
-  // onSettle no matter how we got here (fling, tap, or an external ?cc=
-  // change), then either cuts instantly (reduced motion) or hands off to the
-  // snap spring in useFrame.
-  const settleTo = (code: string | null, viaTap = false) => {
-    const s = sim.current;
-    const country = code ? COUNTRY_BY_CODE.get(code) : null;
-    if (!country) {
-      s.mode = "idle";
-      return;
-    }
-    s.settleAz = country.lon * DEG;
-    s.settleEl = country.lat * DEG;
-    // Notify on every settle, even re-landing the same country, so the chart
-    // resurfaces and the tour re-arms its hint; the `changed` flag lets the
-    // caller gate the country-change side effects (?cc=, visited, haptic).
-    const changed = s.settledCode !== country.code;
-    s.settledCode = country.code;
-    onSettleRef.current(country.code, changed, viaTap);
+  // Run one command: the impure work the reducer can only name (notify, skip,
+  // arm/clear the deferred-select timer, capture/release the pointer). A fired
+  // timer re-enters the machine via dispatchRef, since useFrame (not an effect)
+  // must drive dispatch and so it can't be a useEffectEvent.
+  const dispatchRef = useRef<(event: GestureEvent) => void>(() => {});
+  const runCommand = useCallback(
+    (command: GestureCommand, el: HTMLCanvasElement) => {
+      switch (command.kind) {
+        case "settle":
+          onSettleRef.current(command.code, command.changed, command.viaTap);
+          break;
+        case "signalSkip":
+          globeChartStore.getState().signalSkip(command.dir);
+          break;
+        case "armDefer":
+          if (deferTimer.current !== null)
+            window.clearTimeout(deferTimer.current);
+          deferTimer.current = window.setTimeout(() => {
+            deferTimer.current = null;
+            dispatchRef.current({ type: "deferFire" });
+          }, command.delayMs);
+          break;
+        case "clearDefer":
+          if (deferTimer.current !== null) {
+            window.clearTimeout(deferTimer.current);
+            deferTimer.current = null;
+          }
+          break;
+        case "capturePointer":
+          el.setPointerCapture?.(command.id);
+          break;
+        case "releasePointer":
+          el.releasePointerCapture?.(command.id);
+          break;
+      }
+    },
+    [],
+  );
 
-    if (cfg.current.reducedMotion) {
-      // Instant cut: jump straight to the spring's end state so the next
-      // applyCamera draws the target country with no in-between frames.
-      s.az = s.settleAz;
-      s.el = s.settleEl;
-      s.vAz = 0;
-      s.vEl = 0;
-      s.mode = "idle";
-    } else {
-      s.mode = "settle";
-    }
-  };
+  // Fold an event into the sim, then run its commands. Stable across renders
+  // (gl and runCommand are), so the listener effect subscribes once.
+  const dispatch = useCallback(
+    (event: GestureEvent) => {
+      const el = gl.domElement;
+      const { state, commands } = reduce(sim.current, event, cfg.current);
+      sim.current = state;
+      for (const command of commands) {
+        runCommand(command, el);
+      }
+    },
+    [gl, runCommand],
+  );
+  // Keep the timer re-entry pointed at the latest dispatch. Its only trigger is
+  // a dispatch identity change, so the deferred-select callback never fires a
+  // stale closure.
+  useEffect(() => {
+    dispatchRef.current = dispatch;
+  }, [dispatch]);
 
   // Follow external selection: when ?cc= changes (the a11y country list, a
-  // shared link) and we aren't already there, settle to it like a gesture
-  // would. A gesture's own settle writes ?cc=, so targetCode === settledCode by
-  // the time this runs — it no-ops, no feedback loop.
+  // shared link) settle to it like a gesture would. A gesture's own settle
+  // writes ?cc= first, so the reducer no-ops when it already matches.
   useEffect(() => {
-    if (targetCode && targetCode !== sim.current.settledCode) {
-      // An external ?cc= selection cancels any armed edge-tap select, clearing
-      // both the timer and the arm window (matching onCancel / the skip branch)
-      // so a following tap isn't misread as a double-tap's second tap.
-      clearPendingSelect();
-      lastEdgeTapAt.current = null;
-      settleTo(targetCode);
-    }
-  }, [targetCode, clearPendingSelect]);
+    dispatch({ type: "externalSelect", code: targetCode });
+  }, [targetCode, dispatch]);
 
   useEffect(() => {
     const el = gl.domElement;
 
-    // Gesture tracking held on one mutable object (not reassigned render-scope
-    // locals): press-down point, last pointer position, release velocity, drag
-    // state. The down point anchors tap-vs-spin: we compare it to the release
-    // point, so a jitter that returns near the start stays a tap.
-    const g = {
-      downX: 0,
-      downY: 0,
-      lastX: 0,
-      lastY: 0,
-      lastT: 0,
-      vx: 0,
-      vy: 0,
-      dragging: false,
-      // The one pointer that owns the active gesture. touchAction:"none" routes
-      // every touch here, so a second finger's move/up must not steer or end the
-      // first finger's drag.
-      activePointerId: null as number | null,
-    };
-
     const onDown = (e: PointerEvent) => {
-      // Read mode covers the globe; ignore presses so reading never grabs it.
-      if (cfg.current.readMode) return;
-      // A gesture already owns a pointer: ignore a second finger rather than let
-      // it reset the drag anchor and hurl the globe on the next move.
-      if (g.dragging) return;
-      // Cancel a deferred edge-tap select so it can't fire mid-gesture; the
-      // armed window survives this press so a second tap can still skip.
-      clearPendingSelect();
-      const s = sim.current;
-      s.mode = "drag";
-      s.vAz = 0;
-      s.vEl = 0;
-      g.dragging = true;
-      g.activePointerId = e.pointerId;
-      g.downX = e.clientX;
-      g.downY = e.clientY;
-      g.lastX = e.clientX;
-      g.lastY = e.clientY;
-      g.lastT = e.timeStamp;
-      g.vx = 0;
-      g.vy = 0;
-      el.setPointerCapture?.(e.pointerId);
+      dispatch({
+        type: "pointerDown",
+        id: e.pointerId,
+        x: e.clientX,
+        y: e.clientY,
+        t: e.timeStamp,
+      });
     };
 
     const onMove = (e: PointerEvent) => {
-      if (!g.dragging || e.pointerId !== g.activePointerId) return;
-      // Read mode can flip on mid-drag; onMove writes az directly, bypassing the
-      // useFrame suspend, so don't rotate. Keep the pointer baseline current so
-      // a flip back off doesn't read the whole gap as one jump.
-      if (cfg.current.readMode) {
-        g.lastX = e.clientX;
-        g.lastY = e.clientY;
-        g.lastT = e.timeStamp;
-        return;
-      }
-      const s = sim.current;
-      const dx = e.clientX - g.lastX;
-      const dy = e.clientY - g.lastY;
-      const dt = Math.max(1, e.timeStamp - g.lastT);
-      const gain = DRAG_RAD_PER_PX * cfg.current.sensitivity;
-
-      s.az -= dx * gain;
-      if (!cfg.current.horizontalLock) {
-        s.el = clamp(s.el + dy * gain, -EL_LIMIT, EL_LIMIT);
-      }
-      g.vx = dx / dt;
-      g.vy = dy / dt;
-      g.lastX = e.clientX;
-      g.lastY = e.clientY;
-      g.lastT = e.timeStamp;
+      dispatch({
+        type: "pointerMove",
+        id: e.pointerId,
+        x: e.clientX,
+        y: e.clientY,
+        t: e.timeStamp,
+      });
     };
 
     const onUp = (e: PointerEvent) => {
-      if (!g.dragging || e.pointerId !== g.activePointerId) return;
-      g.dragging = false;
-      g.activePointerId = null;
-      el.releasePointerCapture?.(e.pointerId);
-      const s = sim.current;
-
-      if (
-        isTap(
-          { x: g.downX, y: g.downY },
-          { x: e.clientX, y: e.clientY },
-          TAP_MAX_PX,
-        )
-      ) {
-        const rect = el.getBoundingClientRect();
-        const cx = e.clientX;
-        const cy = e.clientY;
-        const region = horizontalThird(cx - rect.left, rect.width);
-
-        // Select the nearest country, re-centring the current one on a miss so a
-        // tap on open ocean never jumps away. Coordinates are captured now, not
-        // read in the timer, so a deferred run still aims at the tap point.
-        const runSelect = () => {
-          // Bail if the situation changed while armed: read mode forbids moving
-          // the globe under the reader, and mode "settle" means an external ?cc=
-          // already landed the globe during the window.
-          if (cfg.current.readMode || sim.current.mode === "settle") return;
-          lastEdgeTapAt.current = null;
-          const candidates = projectFrontCountries(
-            camera,
-            rect.width,
-            rect.height,
-          );
-          const hit = pickNearestToPoint(
-            candidates,
-            cx - rect.left,
-            cy - rect.top,
-            TAP_HIT_PX,
-          );
-          // viaTap: a bare tap-select, so the tour's gesture beat can ignore it
-          // rather than treat an accidental tap as the flick it teaches.
-          settleTo(hit ?? sim.current.settledCode, true);
-        };
-
-        const action = classifyTap({
-          listening: globeChartStore.getState().listening,
-          region,
-          now: e.timeStamp,
-          lastEdgeTapAt: lastEdgeTapAt.current,
-          windowMs: DOUBLE_TAP_MS,
-        });
-
-        if (action.kind === "skip") {
-          // A second side-third tap within the window: drop the first tap's
-          // pending select and skip instead.
-          clearPendingSelect();
-          lastEdgeTapAt.current = null;
-          // A skip moves no globe. If the press that started this tap froze a
-          // settle in flight, resume it: its targets still hold the intended
-          // landing, so the globe never strands mid-glide, possibly on ocean.
-          // At rest az/el already sit on the targets, so return to idle instead.
-          const atTarget =
-            Math.abs(shortestAngle(s.settleAz - s.az)) < SETTLE_EPS &&
-            Math.abs(s.settleEl - s.el) < SETTLE_EPS;
-          s.mode = atTarget ? "idle" : "settle";
-          // Raise a skip-intent; the chart runs the skip and flashes on a real
-          // change. The globe emits data and learns no outcome.
-          globeChartStore.getState().signalSkip(action.dir);
-          return;
-        }
-
-        if (action.kind === "deferSelect") {
-          // First side-third tap while listening: defer the select past the
-          // double-tap window so a second tap can turn it into a skip; select if
-          // none comes.
-          clearPendingSelect();
-          lastEdgeTapAt.current = e.timeStamp;
-          pendingSelect.current = window.setTimeout(runSelect, SELECT_DEFER_MS);
-          return;
-        }
-
-        // Center third or no preview: a double-tap has no skip meaning, so
-        // select with no delay and arm no window.
-        runSelect();
-        return;
-      }
-
-      // A fling is a fresh intent: drop any armed double-tap window.
-      lastEdgeTapAt.current = null;
-      const sens = cfg.current.sensitivity;
-      s.vAz = -flickToSpin(g.vx) * sens;
-      s.vEl = cfg.current.horizontalLock ? 0 : flickToSpin(g.vy) * sens;
-      s.mode = "fling";
+      // Resolve the DOM-dependent tap payload up front so the reducer stays
+      // camera-free: which third the release fell in, and the nearest front
+      // country to it (null on an ocean tap). Only the tap branch consults them.
+      const rect = el.getBoundingClientRect();
+      const region = horizontalThird(e.clientX - rect.left, rect.width);
+      const candidates = projectFrontCountries(camera, rect.width, rect.height);
+      const hitCode = pickNearestToPoint(
+        candidates,
+        e.clientX - rect.left,
+        e.clientY - rect.top,
+        TAP_HIT_PX,
+      );
+      dispatch({
+        type: "pointerUp",
+        id: e.pointerId,
+        x: e.clientX,
+        y: e.clientY,
+        t: e.timeStamp,
+        region,
+        hitCode,
+        listening: globeChartStore.getState().listening,
+      });
     };
 
-    // An interrupted touch (system gesture, multi-touch) fires pointercancel,
-    // not pointerup. Without this the drag never ends and the globe freezes.
-    // Snap to the nearest country so it still never rests on open ocean.
     const onCancel = (e: PointerEvent) => {
-      if (!g.dragging || e.pointerId !== g.activePointerId) return;
-      g.dragging = false;
-      g.activePointerId = null;
-      el.releasePointerCapture?.(e.pointerId);
-      // An abandoned gesture ends any armed double-tap window too.
-      clearPendingSelect();
-      lastEdgeTapAt.current = null;
-      const s = sim.current;
-      settleTo(
-        pickSnapCountry(s.el, s.az, cfg.current.visited, cfg.current.fair),
-      );
+      dispatch({ type: "pointerCancel", id: e.pointerId, rng: Math.random });
     };
 
     el.addEventListener("pointerdown", onDown);
@@ -401,77 +231,22 @@ export function SpinSnapControls({
     el.addEventListener("pointerup", onUp);
     el.addEventListener("pointercancel", onCancel);
     return () => {
-      clearPendingSelect();
-      lastEdgeTapAt.current = null;
+      if (deferTimer.current !== null) {
+        window.clearTimeout(deferTimer.current);
+        deferTimer.current = null;
+      }
       el.removeEventListener("pointerdown", onDown);
       el.removeEventListener("pointermove", onMove);
       el.removeEventListener("pointerup", onUp);
       el.removeEventListener("pointercancel", onCancel);
     };
-  }, [gl, camera, clearPendingSelect]);
+  }, [gl, camera, dispatch]);
 
   useFrame((_, dt) => {
-    const s = sim.current;
-
-    // Read mode (sheet at full) hides the globe. Suspend the sim so a leftover
-    // fling can't drift and settle a new country under the reader. Park an
-    // in-flight fling outright (drop its momentum so it doesn't resume on
-    // collapse), but leave a settle in progress alone: a settle is an
-    // intentional landing (a gesture, or an external ?cc= pick from the a11y
-    // selector), so let it resume and land when the sheet collapses. A fling
-    // can't reach settle while reading, so mode === "settle" here is always a
-    // real selection, never stray momentum.
-    if (cfg.current.readMode) {
-      if (s.mode === "fling") {
-        s.vAz = 0;
-        s.vEl = 0;
-        s.mode = "idle";
-      }
-      return;
-    }
-
-    if (s.mode === "fling") {
-      s.az += s.vAz * dt;
-      s.el = clamp(s.el + s.vEl * dt, -EL_LIMIT, EL_LIMIT);
-      const decay = Math.exp(-cfg.current.friction * dt);
-      s.vAz *= decay;
-      s.vEl *= decay;
-      if (Math.hypot(s.vAz, s.vEl) < SETTLE_VEL) {
-        settleTo(
-          pickSnapCountry(s.el, s.az, cfg.current.visited, cfg.current.fair),
-        );
-      }
-    } else if (s.mode === "settle") {
-      // Under-damped spring: the view glides past the target country and
-      // springs back. Bounce lowers the damping ratio for more overshoot.
-      const dtc = Math.min(dt, 0.05);
-      const zeta = clamp(1 - 0.7 * cfg.current.bounce, 0.2, 1);
-      const dAz = shortestAngle(s.settleAz - s.az);
-      const dEl = s.settleEl - s.el;
-      s.vAz +=
-        (SNAP_OMEGA * SNAP_OMEGA * dAz - 2 * zeta * SNAP_OMEGA * s.vAz) * dtc;
-      s.vEl +=
-        (SNAP_OMEGA * SNAP_OMEGA * dEl - 2 * zeta * SNAP_OMEGA * s.vEl) * dtc;
-      const speed = Math.hypot(s.vAz, s.vEl);
-      if (speed > MAX_SETTLE_VEL) {
-        const k = MAX_SETTLE_VEL / speed;
-        s.vAz *= k;
-        s.vEl *= k;
-      }
-      s.az += s.vAz * dtc;
-      s.el += s.vEl * dtc;
-      if (
-        Math.abs(shortestAngle(s.settleAz - s.az)) < SETTLE_EPS &&
-        Math.abs(s.settleEl - s.el) < SETTLE_EPS &&
-        Math.hypot(s.vAz, s.vEl) < 0.02
-      ) {
-        s.az = s.settleAz;
-        s.el = s.settleEl;
-        s.vAz = 0;
-        s.vEl = 0;
-        s.mode = "idle";
-      }
-    }
+    dispatch({ type: "frame", dt, rng: Math.random });
+    // Read mode suspends the sim (the frame event leaves az/el frozen); leave
+    // the camera untouched too rather than re-pin it every hidden frame.
+    if (cfg.current.readMode) return;
     applyCamera();
   });
 
