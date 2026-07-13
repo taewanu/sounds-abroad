@@ -44,10 +44,11 @@ test("horizontalThird leans the right boundary into the right zone", () => {
 
 const WINDOW = 280;
 
-test("classifyTap selects immediately for a center tap while listening", () => {
+test("classifyTap selects immediately for an empty center tap while listening", () => {
   const action = classifyTap({
     listening: true,
     region: "center",
+    hit: false,
     now: 1000,
     lastEdgeTapAt: null,
     windowMs: WINDOW,
@@ -56,10 +57,11 @@ test("classifyTap selects immediately for a center tap while listening", () => {
   expect(action).toEqual({ kind: "select" });
 });
 
-test("classifyTap selects immediately for a side tap when not listening", () => {
+test("classifyTap selects immediately for an empty side tap when not listening", () => {
   const action = classifyTap({
     listening: false,
     region: "left",
+    hit: false,
     now: 1000,
     lastEdgeTapAt: 900,
     windowMs: WINDOW,
@@ -68,23 +70,52 @@ test("classifyTap selects immediately for a side tap when not listening", () => 
   expect(action).toEqual({ kind: "select" });
 });
 
-test("classifyTap defers a first side tap while listening", () => {
+test("classifyTap selects immediately for a pin hit in a side third while listening", () => {
   const action = classifyTap({
     listening: true,
     region: "right",
+    hit: true,
     now: 1000,
     lastEdgeTapAt: null,
     windowMs: WINDOW,
   });
 
-  expect(action).toEqual({ kind: "deferSelect" });
+  expect(action).toEqual({ kind: "select" });
 });
 
-test("classifyTap skips back on a second left tap within the window", () => {
+test("classifyTap selects, not skips, when the second side tap lands on a pin", () => {
   const first = 1000;
   const action = classifyTap({
     listening: true,
     region: "left",
+    hit: true,
+    now: first + WINDOW - 1,
+    lastEdgeTapAt: first,
+    windowMs: WINDOW,
+  });
+
+  expect(action).toEqual({ kind: "select" });
+});
+
+test("classifyTap arms the skip window on a first empty side tap while listening", () => {
+  const action = classifyTap({
+    listening: true,
+    region: "right",
+    hit: false,
+    now: 1000,
+    lastEdgeTapAt: null,
+    windowMs: WINDOW,
+  });
+
+  expect(action).toEqual({ kind: "armSkip" });
+});
+
+test("classifyTap skips back on a second empty left tap within the window", () => {
+  const first = 1000;
+  const action = classifyTap({
+    listening: true,
+    region: "left",
+    hit: false,
     now: first + WINDOW - 1,
     lastEdgeTapAt: first,
     windowMs: WINDOW,
@@ -93,11 +124,12 @@ test("classifyTap skips back on a second left tap within the window", () => {
   expect(action).toEqual({ kind: "skip", dir: -1 });
 });
 
-test("classifyTap skips forward on a second right tap within the window", () => {
+test("classifyTap skips forward on a second empty right tap within the window", () => {
   const first = 1000;
   const action = classifyTap({
     listening: true,
     region: "right",
+    hit: false,
     now: first + WINDOW - 1,
     lastEdgeTapAt: first,
     windowMs: WINDOW,
@@ -106,11 +138,12 @@ test("classifyTap skips forward on a second right tap within the window", () => 
   expect(action).toEqual({ kind: "skip", dir: 1 });
 });
 
-test("classifyTap counts a second tap exactly at the window edge as a skip", () => {
+test("classifyTap counts a second empty tap exactly at the window edge as a skip", () => {
   const first = 1000;
   const action = classifyTap({
     listening: true,
     region: "right",
+    hit: false,
     now: first + WINDOW,
     lastEdgeTapAt: first,
     windowMs: WINDOW,
@@ -119,15 +152,16 @@ test("classifyTap counts a second tap exactly at the window edge as a skip", () 
   expect(action).toEqual({ kind: "skip", dir: 1 });
 });
 
-test("classifyTap defers again once the window has elapsed", () => {
+test("classifyTap re-arms once the window has elapsed", () => {
   const first = 1000;
   const action = classifyTap({
     listening: true,
     region: "left",
+    hit: false,
     now: first + WINDOW + 1,
     lastEdgeTapAt: first,
     windowMs: WINDOW,
   });
 
-  expect(action).toEqual({ kind: "deferSelect" });
+  expect(action).toEqual({ kind: "armSkip" });
 });

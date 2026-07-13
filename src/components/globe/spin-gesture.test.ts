@@ -4,7 +4,6 @@ import { COUNTRIES } from "@/lib/countries";
 
 import {
   DOUBLE_TAP_MS,
-  SELECT_DEFER_MS,
   type GestureConfig,
   type GestureEvent,
   type GestureState,
@@ -77,7 +76,6 @@ test("pointerDown starts a drag and captures the pointer", () => {
   expect(state.mode).toBe("drag");
   expect(state.activePointerId).toBe(1);
   expect(commands).toContainEqual({ kind: "capturePointer", id: 1 });
-  expect(commands).toContainEqual({ kind: "clearDefer" });
 });
 
 test("pointerDown is ignored in read mode so reading never grabs the globe", () => {
@@ -246,7 +244,27 @@ test("a tap landing during an in-flight settle redirects to the tapped country",
   });
 });
 
-test("a first side-third tap while listening defers its select", () => {
+test("a lone empty side-third tap while listening arms the window and does nothing else", () => {
+  const { state, commands } = run(initGestureState(START), [
+    down(1, 20, 100),
+    {
+      type: "pointerUp",
+      id: 1,
+      x: 20,
+      y: 100,
+      t: 5,
+      region: "left",
+      hitCode: null,
+      listening: true,
+    },
+  ]);
+
+  expect(state.lastEdgeTapAt).toBe(5);
+  expect(commands.some((c) => c.kind === "settle")).toBe(false);
+  expect(commands.some((c) => c.kind === "signalSkip")).toBe(false);
+});
+
+test("a side-third tap on a pin selects immediately instead of arming a skip", () => {
   const { state, commands } = run(initGestureState(START), [
     down(1, 20, 100),
     {
@@ -261,23 +279,8 @@ test("a first side-third tap while listening defers its select", () => {
     },
   ]);
 
-  expect(state.lastEdgeTapAt).toBe(5);
-  expect(state.pendingSelectCode).toBe("ca");
-  expect(commands).toContainEqual({
-    kind: "armDefer",
-    delayMs: SELECT_DEFER_MS,
-  });
-  expect(commands.some((c) => c.kind === "settle")).toBe(false);
-});
-
-test("a fired deferred timer selects the pending country", () => {
-  const armed: GestureState = {
-    ...initGestureState(START),
-    mode: "drag",
-    pendingSelectCode: "ca",
-  };
-  const { commands } = run(armed, [{ type: "deferFire" }]);
-
+  expect(state.lastEdgeTapAt).toBeNull();
+  expect(state.settleAz).toBeCloseTo(azOf("ca"));
   expect(commands).toContainEqual({
     kind: "settle",
     code: "ca",
@@ -286,14 +289,64 @@ test("a fired deferred timer selects the pending country", () => {
   });
 });
 
-test("a fired deferred timer bails when an external pick already settled", () => {
+test("a second side tap landing on a pin selects rather than skips", () => {
   const armed: GestureState = {
     ...initGestureState(START),
-    mode: "settle",
-    pendingSelectCode: "ca",
+    mode: "drag",
+    activePointerId: 1,
+    lastEdgeTapAt: 100,
+    downX: 20,
+    downY: 100,
   };
-  const { commands } = run(armed, [{ type: "deferFire" }]);
+  const { commands } = run(armed, [
+    {
+      type: "pointerUp",
+      id: 1,
+      x: 20,
+      y: 100,
+      t: 100 + DOUBLE_TAP_MS - 1,
+      region: "left",
+      hitCode: "ca",
+      listening: true,
+    },
+  ]);
 
+  expect(commands).toContainEqual({
+    kind: "settle",
+    code: "ca",
+    changed: true,
+    viaTap: true,
+  });
+  expect(commands.some((c) => c.kind === "signalSkip")).toBe(false);
+});
+
+test("two empty side taps within the window skip in the second tap's direction", () => {
+  const { commands } = run(initGestureState(START), [
+    down(1, 20, 100),
+    {
+      type: "pointerUp",
+      id: 1,
+      x: 20,
+      y: 100,
+      t: 5,
+      region: "left",
+      hitCode: null,
+      listening: true,
+    },
+    down(1, 20, 100, 5 + DOUBLE_TAP_MS - 1),
+    {
+      type: "pointerUp",
+      id: 1,
+      x: 20,
+      y: 100,
+      t: 5 + DOUBLE_TAP_MS - 1,
+      region: "left",
+      hitCode: null,
+      listening: true,
+    },
+  ]);
+
+  expect(commands).toContainEqual({ kind: "signalSkip", dir: -1 });
   expect(commands.some((c) => c.kind === "settle")).toBe(false);
 });
 
@@ -314,19 +367,18 @@ test("pointerCancel snaps to a country so it never rests on open ocean", () => {
   expect(commands).toContainEqual({ kind: "releasePointer", id: 1 });
 });
 
-test("pointerCancel wipes an armed deferred select as it snaps", () => {
+test("pointerCancel wipes an armed skip window as it snaps", () => {
   const armedDrag: GestureState = {
     ...initGestureState(START),
     mode: "drag",
     activePointerId: 1,
     lastEdgeTapAt: 100,
-    pendingSelectCode: "ca",
   };
   const { state, commands } = run(armedDrag, [
     { type: "pointerCancel", id: 1, rng: half },
   ]);
 
-  expect(commands).toContainEqual({ kind: "clearDefer" });
+  expect(commands.some((c) => c.kind === "settle")).toBe(true);
   expect(state.lastEdgeTapAt).toBeNull();
 });
 
@@ -440,11 +492,11 @@ test("reduced motion cuts straight to the target with no settle glide", () => {
   expect(state.az).toBeCloseTo(azOf("ca"));
 });
 
-// The skip-during-settle resume. A second side-third tap within the window is a
-// skip: it moves no globe of its own, but the press that began it froze whatever
-// settle was gliding. These two lock the judgment the resume must make.
+// The skip-during-settle resume. A second empty side-third tap within the window
+// is a skip: it moves no globe of its own, but the press that began it froze
+// whatever settle was gliding. These lock the judgment the resume must make.
 
-test("a skip signals its direction and drops the pending select", () => {
+test("a skip signals its direction and settles nothing of its own", () => {
   const armed: GestureState = {
     ...initGestureState(START),
     mode: "drag",
@@ -453,7 +505,7 @@ test("a skip signals its direction and drops the pending select", () => {
     downX: 20,
     downY: 100,
   };
-  const { commands } = run(armed, [
+  const { state, commands } = run(armed, [
     {
       type: "pointerUp",
       id: 1,
@@ -461,13 +513,14 @@ test("a skip signals its direction and drops the pending select", () => {
       y: 100,
       t: 100 + DOUBLE_TAP_MS - 1,
       region: "left",
-      hitCode: "ca",
+      hitCode: null,
       listening: true,
     },
   ]);
 
   expect(commands).toContainEqual({ kind: "signalSkip", dir: -1 });
-  expect(commands).toContainEqual({ kind: "clearDefer" });
+  expect(commands.some((c) => c.kind === "settle")).toBe(false);
+  expect(state.lastEdgeTapAt).toBeNull();
 });
 
 test("a skip mid-glide resumes the interrupted settle, never stranding the globe", () => {

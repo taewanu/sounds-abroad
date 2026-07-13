@@ -27,33 +27,36 @@ export function horizontalThird(x: number, width: number): HorizontalThird {
   return "center";
 }
 
-// What a settled tap should do: skip a track, select immediately, or hold the
-// select for one double-tap window. A skip needs a preview playing and two taps
-// in a side third within `windowMs`; the second tap's side picks the direction.
+// What a settled tap should do: skip a track, select immediately, or arm the
+// double-tap skip window. A skip needs a preview playing and two empty taps in
+// a side third within `windowMs`; the second tap's side picks the direction.
 export type TapAction =
   | { kind: "skip"; dir: 1 | -1 }
   | { kind: "select" }
-  | { kind: "deferSelect" };
+  | { kind: "armSkip" };
 
-// Single-tap selects everywhere, so the side thirds keep no dead zone. The skip
-// gesture is a layer on top: a side-third tap while listening defers, and a
-// second side-third tap within the window turns the pair into a skip. A center
-// tap or a tap with no preview has no skip meaning, so it selects with no delay.
-// `lastEdgeTapAt` is the time of the prior deferred side tap, or null.
+// A tap that resolves to a country pin (`hit`) selects with no delay wherever
+// it lands, so a country rendered in a side third is never second-class. The
+// skip gesture lives only over empty globe: an empty side-third tap while
+// listening arms the window, and a second one within it turns the pair into a
+// skip. An empty center tap or a tap with no preview has no skip meaning, so
+// it selects with no delay. `lastEdgeTapAt` is the time of the prior arming
+// tap, or null.
 export function classifyTap(args: {
   listening: boolean;
   region: HorizontalThird;
+  hit: boolean;
   now: number;
   lastEdgeTapAt: number | null;
   windowMs: number;
 }): TapAction {
-  const { listening, region, now, lastEdgeTapAt, windowMs } = args;
+  const { listening, region, hit, now, lastEdgeTapAt, windowMs } = args;
 
-  if (!listening || region === "center") return { kind: "select" };
+  if (hit || !listening || region === "center") return { kind: "select" };
 
   if (lastEdgeTapAt !== null && now - lastEdgeTapAt <= windowMs) {
     return { kind: "skip", dir: region === "left" ? -1 : 1 };
   }
 
-  return { kind: "deferSelect" };
+  return { kind: "armSkip" };
 }
