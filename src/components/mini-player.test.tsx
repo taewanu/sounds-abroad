@@ -243,6 +243,26 @@ describe("MiniPlayer", () => {
     expect(onTap).toHaveBeenCalledTimes(1);
   });
 
+  test("a swipe that starts on a control still skips: the whole bar is the surface", () => {
+    vi.useFakeTimers();
+    try {
+      const onNext = vi.fn();
+      renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
+
+      const play = screen.getByRole("button", { name: /play preview/i });
+      fireEvent.pointerDown(play, { clientX: 200, clientY: 10 });
+      fireEvent.pointerMove(play, { clientX: 40, clientY: 10 });
+      fireEvent.pointerUp(play, { clientX: 40, clientY: 10 });
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+
+      expect(onNext).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   test("commentary badge is absent when the track carries no commentary", () => {
     renderMiniPlayer({}, { currentTrack: makeTrack() });
 

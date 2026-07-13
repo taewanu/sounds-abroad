@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   useEffect,
   useRef,
@@ -133,7 +134,7 @@ export function MiniPlayer({
     [],
   );
 
-  const handlePointerDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
+  const handlePointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     clearCommitTimer();
     startXRef.current = lastXRef.current = e.clientX;
     startYRef.current = e.clientY;
@@ -159,7 +160,7 @@ export function MiniPlayer({
     }
   };
 
-  const handlePointerMove = (e: ReactPointerEvent<HTMLButtonElement>) => {
+  const handlePointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (!trackingRef.current) return;
     const dx = e.clientX - startXRef.current;
     const dy = e.clientY - startYRef.current;
@@ -186,7 +187,7 @@ export function MiniPlayer({
     card.style.transform = transform;
   };
 
-  const handlePointerUp = (e: ReactPointerEvent<HTMLButtonElement>) => {
+  const handlePointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (!trackingRef.current) return;
     trackingRef.current = false;
     if (!engagedRef.current) return;
@@ -228,28 +229,39 @@ export function MiniPlayer({
     if (engagedRef.current) settleCard("translateX(0)", RETURN_MS, RETURN_EASE);
   };
 
-  const handleTap = () => {
+  // The swipe surface is the whole bar, so a completed swipe must swallow the
+  // trailing click no matter which control it lands on (strip reopen, skip, play,
+  // volume). Caught on the row in the capture phase, it never reaches the target.
+  const handleBarClickCapture = (e: ReactMouseEvent<HTMLDivElement>) => {
     if (swipedRef.current) {
       swipedRef.current = false;
-      return;
+      e.stopPropagation();
+      e.preventDefault();
     }
-    onTap();
   };
 
   if (currentTrack === null) return null;
 
   return (
     <div className="bg-void border-fg-1/10 shadow-sheet fixed inset-x-0 bottom-0 z-50 border-t">
-      <div className="flex items-center gap-[14px] px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)]">
+      {/* The whole bar is the swipe surface (grab anywhere to skip); only the
+          now-playing strip translates, since the controls don't change per
+          track. touch-pan-y hands horizontal drags to JS and lets vertical
+          scrolls through; the capture-phase click guard swallows the click a
+          swipe leaves behind before it reaches any control. */}
+      <div
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
+        onClickCapture={handleBarClickCapture}
+        className="flex touch-pan-y items-center gap-[14px] px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)]"
+      >
         <button
           type="button"
-          onClick={handleTap}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerCancel}
+          onClick={onTap}
           aria-label="Reopen chart"
-          className="focus-visible:outline-aurora flex min-w-0 flex-1 touch-pan-y overflow-hidden text-left transition-transform duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.98]"
+          className="focus-visible:outline-aurora flex min-w-0 flex-1 overflow-hidden text-left transition-transform duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.98]"
         >
           {/* Keyed on the stable song id so a track change remounts the content
               and restarts the cue from zero: a rapid skip drops the outgoing
