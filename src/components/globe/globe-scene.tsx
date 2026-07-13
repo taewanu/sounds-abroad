@@ -5,6 +5,7 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { PerspectiveCamera } from "three";
 
 import { COUNTRIES } from "@/lib/countries";
+import { addVisited, pickShuffleCountry } from "@/lib/fairness-draw";
 import { globeChartStore, useGlobeChart } from "@/lib/globe-chart-store";
 import { getCountryOutlinesPromise } from "@/lib/topo-loader";
 import { tourBridge } from "@/lib/tour-bridge";
@@ -16,7 +17,6 @@ import { CountryFill } from "./country-fill";
 import { CountryOutlinesLayer } from "./country-outlines";
 import { CountryPins } from "./country-pins";
 import { triggerLandingHaptic } from "./landing-haptic";
-import { addVisited, pickShuffleCountry } from "./spin-select";
 import { SpinSnapControls } from "./spin-snap-controls";
 import { StarBackdrop } from "./star-backdrop";
 
@@ -71,12 +71,17 @@ function SceneContent() {
   const selectedIsoNum =
     selectedCode !== null ? (ISO_BY_CODE.get(selectedCode) ?? null) : null;
 
-  // Per-session anti-repeat memory for the fairness-weighted fling; resets on
-  // reload. Seeded once with whatever the globe first centered on.
+  // The anti-repeat memory lives in the globe-chart store (the chart draws
+  // from it too); the globe owns the writes. Seed it once with whatever the
+  // globe first centered on, in a lazy initializer so the write runs exactly
+  // once at mount rather than in an effect that a later re-render could re-fire;
+  // addVisited is idempotent, so a Strict-Mode double-invoke is harmless.
   const [initialCode] = useState(() => selectedCode ?? FALLBACK_CODE);
-  const [visited, setVisited] = useState<ReadonlySet<string>>(
-    () => new Set([initialCode]),
-  );
+  useState(() => {
+    const store = globeChartStore.getState();
+    store.setVisited(addVisited(store.visited, initialCode));
+  });
+  const visited = useGlobeChart((s) => s.visited);
 
   // A landing is a selection: buzz where supported, write ?cc= (replaceState,
   // so rapid flinging doesn't flood history), record the country as visited,
@@ -89,9 +94,11 @@ function SceneContent() {
       globeChartStore.getState().signalSettle(viaTap);
       if (!changed) return;
       triggerLandingHaptic();
-      globeChartStore.getState().setSelectedCountry(code);
+      const { setSelectedCountry, visited, setVisited } =
+        globeChartStore.getState();
+      setSelectedCountry(code);
       window.history.replaceState(null, "", `?cc=${code}`);
-      setVisited((prev) => addVisited(prev, code));
+      setVisited(addVisited(visited, code));
     },
     [],
   );
@@ -108,7 +115,7 @@ function SceneContent() {
   useEffect(() => {
     if (shuffleSignal === prevShuffleRef.current) return;
     prevShuffleRef.current = shuffleSignal;
-    const code = pickShuffleCountry(visited, selectedCode ?? initialCode);
+    const code = pickShuffleCountry(visited, [selectedCode ?? initialCode]);
     globeChartStore.getState().shuffleTo(code);
   }, [shuffleSignal, visited, selectedCode, initialCode]);
 

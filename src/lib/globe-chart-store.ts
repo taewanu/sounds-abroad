@@ -43,6 +43,12 @@ export interface GlobeChartState {
   // set does), so the button can't run it directly; it signals across this seam
   // and the globe draws and settles like any other landing.
   shuffleSignal: number;
+  // Per-session anti-repeat memory behind every fairness draw (fling snap,
+  // shuffle, end-of-chart roll); resets on reload. The globe writes it on each
+  // landing. It lives here rather than in the globe tree because the chart
+  // draws from it too: an end-of-chart roll picks its country with the same
+  // visited-weighting a shuffle uses.
+  visited: ReadonlySet<string>;
   // The country a shuffle just drew, set by the globe when it lands one. The
   // screen-reader announcement keys on this rather than the next selectedCountry
   // change, so a selection from another source (a fling settling, a list pick)
@@ -50,6 +56,7 @@ export interface GlobeChartState {
   // even if a later shuffle repeats the country.
   shuffleLanded: { code: string; nonce: number } | null;
   setSelectedCountry: (code: string | null) => void;
+  setVisited: (visited: ReadonlySet<string>) => void;
   setReadMode: (readMode: boolean) => void;
   signalSettle: (viaTap?: boolean) => void;
   setListening: (listening: boolean) => void;
@@ -66,9 +73,11 @@ export const globeChartStore = createStore<GlobeChartState>()((set) => ({
   lastSettleViaTap: false,
   listening: false,
   skipIntent: { dir: 1, nonce: 0 },
+  visited: new Set<string>(),
   shuffleSignal: 0,
   shuffleLanded: null,
   setSelectedCountry: (selectedCountry) => set({ selectedCountry }),
+  setVisited: (visited) => set({ visited }),
   setReadMode: (readMode) => set({ readMode }),
   signalSettle: (viaTap = false) =>
     set((state) => ({
