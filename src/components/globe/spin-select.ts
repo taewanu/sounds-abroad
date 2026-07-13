@@ -2,6 +2,7 @@ import type { Camera } from "three";
 import { Vector3 } from "three";
 
 import { COUNTRIES, type CountryEntry } from "@/lib/countries";
+import { weightedDraw } from "@/lib/fairness-draw";
 import { latLonToVec3 } from "@/lib/lat-lon-to-vec3";
 
 const DEG = Math.PI / 180;
@@ -94,39 +95,6 @@ export function rankNearest(el: number, az: number, n: number): PoolEntry[] {
     .slice(0, n);
 }
 
-const VISITED_WEIGHT = 0.08; // how strongly an already-seen country is avoided
-
-// Weighted random draw from `pool`, biased away from already-visited countries
-// so the same few do not repeat. `r` (in [0, 1)) is the injected draw position,
-// so the bias stays testable without stubbing Math.random.
-export function weightedDraw(
-  pool: readonly string[],
-  visited: ReadonlySet<string>,
-  r: number,
-): string {
-  const weights = pool.map((code) => (visited.has(code) ? VISITED_WEIGHT : 1));
-  const total = weights.reduce((sum, w) => sum + w, 0);
-  let position = r * total;
-  for (let i = 0; i < pool.length; i++) {
-    position -= weights[i];
-    if (position <= 0) return pool[i];
-  }
-  return pool[pool.length - 1];
-}
-
-// The visited set with `code` added. Returns the input set unchanged when the
-// code is already present, so settling on the same country does not force a
-// re-render through a functional setState.
-export function addVisited(
-  visited: ReadonlySet<string>,
-  code: string,
-): ReadonlySet<string> {
-  if (visited.has(code)) return visited;
-  const next = new Set(visited);
-  next.add(code);
-  return next;
-}
-
 const SNAP_POOL = 10; // candidate countries near the rest point for a fair snap
 // Past this angle (radians) from the rest direction a country is across open
 // water, not a near neighbour. Beyond it fairness has no genuine cluster to
@@ -159,24 +127,4 @@ export function pickSnapCountry(
     visited,
     rng(),
   );
-}
-
-const ALL_CODES = COUNTRIES.map((c) => c.code);
-
-// Shuffle target: a fair random country from anywhere on the globe, never the
-// one already shown so "surprise me" always lands somewhere new. Unlike
-// pickSnapCountry there is no rest direction — geography doesn't narrow the pool,
-// every country is a candidate — but the draw reuses the same visited-weighting,
-// so a run of shuffles spreads across the map instead of repeating. Randomness
-// enters via `rng` (defaults to Math.random), injected so the draw stays
-// testable.
-export function pickShuffleCountry(
-  visited: ReadonlySet<string>,
-  current: string | null,
-  rng: () => number = Math.random,
-): string {
-  const pool = current
-    ? ALL_CODES.filter((code) => code !== current)
-    : ALL_CODES;
-  return weightedDraw(pool, visited, rng());
 }

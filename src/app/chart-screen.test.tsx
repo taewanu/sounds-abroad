@@ -3,7 +3,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { CHARTS, CODE_BR, CODE_US, COUNTRY_US } from "@/lib/__fixtures__";
 import type { AudioEngine } from "@/lib/audio-engine";
-import type { ChartFile } from "@/lib/chart-schema";
+import type { ChartFile, Country, Track } from "@/lib/chart-schema";
+import { COUNTRIES } from "@/lib/countries";
 import { globeChartStore } from "@/lib/globe-chart-store";
 
 const mockSearchParams = vi.hoisted(() => ({
@@ -121,6 +122,68 @@ const ADJACENCY_CHARTS: ChartFile = {
         },
       ],
     },
+  },
+};
+
+// The end-of-chart roll draws from the full country universe, so a roll target
+// must be keyed by a real country code. With no visits every pool weight is 1
+// and r=0 draws the first non-excluded pool entry, so pinning Math.random to 0
+// makes each landing deterministic: the first universe entry, then (once it is
+// excluded by a failed attempt) the next, and so on.
+const DRAW_1 = COUNTRIES[0].code;
+const DRAW_2 = COUNTRIES[1].code;
+const DRAW_3 = COUNTRIES[2].code;
+
+// No `i=` id on appleUrl, so track identity falls back to artist+name; unique
+// names keep every fixture track distinct across countries.
+function rollTrack(
+  rank: number,
+  name: string,
+  previewUrl: string | null,
+): Track {
+  return {
+    rank,
+    name,
+    artist: `${name} artist`,
+    previewUrl,
+    artworkUrl: "https://example.com/roll.jpg",
+    appleUrl: "https://music.apple.com/x/roll",
+    spotifyUrl: "https://open.spotify.com/x/roll",
+  };
+}
+
+function rollCountry(tracks: Track[]): Country {
+  return { name: "Roll fixture chart", valid: true, tracks };
+}
+
+// A leading preview-less track, so a roll must land on the first *playable*
+// track, not row one.
+const LANDING_START = "Landing start";
+const ROLL_CHARTS: ChartFile = {
+  ...ADJACENCY_CHARTS,
+  countries: {
+    ...ADJACENCY_CHARTS.countries,
+    [DRAW_1]: rollCountry([
+      rollTrack(1, "Landing gap", null),
+      rollTrack(2, LANDING_START, "https://example.com/landing-2.m4a"),
+      rollTrack(3, "Landing follow-up", "https://example.com/landing-3.m4a"),
+    ]),
+  },
+};
+
+// The first draw has no playable track, so the roll must redraw past it.
+const REDRAW_START = "Redraw start";
+const REDRAW_CHARTS: ChartFile = {
+  ...ADJACENCY_CHARTS,
+  countries: {
+    ...ADJACENCY_CHARTS.countries,
+    [DRAW_1]: rollCountry([
+      rollTrack(1, "Silent one", null),
+      rollTrack(2, "Silent two", null),
+    ]),
+    [DRAW_2]: rollCountry([
+      rollTrack(1, REDRAW_START, "https://example.com/redraw-1.m4a"),
+    ]),
   },
 };
 
@@ -433,8 +496,215 @@ describe("ChartScreen auto-advance", () => {
       audioEngine.end();
     });
 
-    // step(1) finds no track past the tail, returns false, and advances nothing,
-    // so the chart ends in silence rather than wrapping back to the head.
+    // With no other playable chart in the file the roll dead-stops, so the
+    // chart ends in silence rather than wrapping back to the head.
     expect(playingRank(container)).toBeNull();
+  });
+});
+
+describe("ChartScreen end-of-chart roll", () => {
+  let replaceState: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    mockSearchParams.value = new URLSearchParams(`cc=${ADJ_CODE}`);
+    audioEngine.reset();
+    globeChartStore.setState({
+      selectedCountry: null,
+      readMode: false,
+      settleSignal: 0,
+      skipIntent: { dir: 1, nonce: 0 },
+      visited: new Set(),
+    });
+    replaceState = vi
+      .spyOn(window.history, "replaceState")
+      .mockImplementation(() => {});
+    vi.spyOn(Math, "random").mockReturnValue(0);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  // Render the chart and start its last playable track, the seat every roll
+  // begins from.
+  function playLastPlayable(charts: ChartFile) {
+    const rendered = render(
+      <ChartScreen charts={charts} defaultCountryCode={ADJ_CODE} />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Play preview of Playable tail by Tail artist",
+      }),
+    );
+    return rendered;
+  }
+
+  function flashIcon(container: HTMLElement): Element | null {
+    return container.querySelector(".skip-flash svg");
+  }
+
+  test("ending the last playable track rolls into a drawn country and plays its first playable", () => {
+    const { container } = playLastPlayable(ROLL_CHARTS);
+
+    act(() => {
+      audioEngine.end();
+    });
+
+    expect(screen.getByText(LANDING_START)).toBeTruthy();
+    expect(globeChartStore.getState().selectedCountry).toBe(DRAW_1);
+    expect(replaceState).toHaveBeenCalledWith(null, "", `?cc=${DRAW_1}`);
+    const icon = flashIcon(container);
+    expect(icon).not.toBeNull();
+    expect(icon!.getAttribute("class") ?? "").not.toContain("-scale-x-100");
+  });
+
+  test("pressing next at the last playable rolls the same way the ended signal does", () => {
+    playLastPlayable(ROLL_CHARTS);
+    const next = screen.getByRole("button", {
+      name: "Next track",
+    }) as HTMLButtonElement;
+
+    expect(next.disabled).toBe(false);
+    fireEvent.click(next);
+
+    expect(screen.getByText(LANDING_START)).toBeTruthy();
+    expect(globeChartStore.getState().selectedCountry).toBe(DRAW_1);
+  });
+
+  test("a roll leaves a dismissed sheet closed, unlike a plain settle", () => {
+    playLastPlayable(ROLL_CHARTS);
+    const sheet = screen.getByTestId("chart-sheet");
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(sheet.dataset.snap).toBe("closed");
+
+    act(() => {
+      audioEngine.end();
+    });
+    act(() => {
+      globeChartStore.getState().signalSettle();
+    });
+
+    expect(screen.getByText(LANDING_START)).toBeTruthy();
+    expect(sheet.dataset.snap).toBe("closed");
+  });
+
+  test("the roll's resurface guard is one-shot: a later settle raises again", () => {
+    playLastPlayable(ROLL_CHARTS);
+    const sheet = screen.getByTestId("chart-sheet");
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    act(() => {
+      audioEngine.end();
+    });
+    act(() => {
+      globeChartStore.getState().signalSettle();
+    });
+    expect(sheet.dataset.snap).toBe("closed");
+
+    act(() => {
+      globeChartStore.getState().signalSettle();
+    });
+    expect(sheet.dataset.snap).toBe("peek");
+  });
+
+  test("an edge-tap skip intent at the last playable rolls with a single forward cue", () => {
+    const { container } = playLastPlayable(ROLL_CHARTS);
+
+    act(() => {
+      globeChartStore.getState().signalSkip(1);
+    });
+
+    expect(screen.getByText(LANDING_START)).toBeTruthy();
+    expect(container.querySelectorAll(".skip-flash")).toHaveLength(1);
+  });
+
+  test("an edge-tap skip intent mid-chart still advances and flashes", () => {
+    const { container } = render(
+      <ChartScreen charts={ROLL_CHARTS} defaultCountryCode={ADJ_CODE} />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Play preview of Playable head by Head artist",
+      }),
+    );
+
+    act(() => {
+      globeChartStore.getState().signalSkip(1);
+    });
+
+    expect(playingRank(container)).toBe("3");
+    expect(container.querySelectorAll(".skip-flash")).toHaveLength(1);
+  });
+
+  test("a drawn chart with no playable track is redrawn until one can play", () => {
+    playLastPlayable(REDRAW_CHARTS);
+
+    act(() => {
+      audioEngine.end();
+    });
+
+    expect(screen.getByText(REDRAW_START)).toBeTruthy();
+    expect(globeChartStore.getState().selectedCountry).toBe(DRAW_2);
+  });
+
+  test("when every redraw fails the chart dead-stops as before", () => {
+    const { container } = playLastPlayable(ADJACENCY_CHARTS);
+
+    act(() => {
+      audioEngine.end();
+    });
+
+    expect(playingRank(container)).toBeNull();
+    expect(globeChartStore.getState().selectedCountry).toBe(ADJ_CODE);
+    expect(replaceState).not.toHaveBeenCalled();
+    expect(container.querySelector(".skip-flash")).toBeNull();
+  });
+
+  test("prev at the rolled-in first playable returns to the origin's last playable with a reverse cue", () => {
+    const { container } = playLastPlayable(ROLL_CHARTS);
+    act(() => {
+      audioEngine.end();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Previous track" }));
+
+    expect(playingRank(container)).toBe("3");
+    expect(globeChartStore.getState().selectedCountry).toBe(ADJ_CODE);
+    expect(replaceState).toHaveBeenCalledWith(null, "", `?cc=${ADJ_CODE}`);
+    expect(flashIcon(container)!.getAttribute("class") ?? "").toContain(
+      "-scale-x-100",
+    );
+  });
+
+  test("rolling forward again after a back-roll performs a fresh draw", () => {
+    playLastPlayable(ROLL_CHARTS);
+    act(() => {
+      audioEngine.end();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Previous track" }));
+
+    act(() => {
+      audioEngine.end();
+    });
+
+    expect(screen.getByText(LANDING_START)).toBeTruthy();
+    expect(globeChartStore.getState().selectedCountry).toBe(DRAW_1);
+  });
+
+  test("a manual country selection discards the back-roll return path", () => {
+    playLastPlayable(ROLL_CHARTS);
+    act(() => {
+      audioEngine.end();
+    });
+
+    act(() => {
+      globeChartStore.getState().setSelectedCountry(DRAW_3);
+    });
+
+    const prev = screen.getByRole("button", {
+      name: "Previous track",
+    }) as HTMLButtonElement;
+    expect(prev.disabled).toBe(true);
   });
 });

@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useSearchParams } from "next/navigation";
 
 import { ChartSheet, type SnapState } from "@/components/chart-sheet/sheet";
@@ -10,7 +17,18 @@ import { MiniPlayer } from "@/components/mini-player";
 import { TourHost } from "@/components/tour/tour-host";
 import { findAdjacentPlayable } from "@/lib/adjacent-playable";
 import type { ChartFile, Country } from "@/lib/chart-schema";
-import { globeChartStore, useGlobeChart } from "@/lib/globe-chart-store";
+import {
+  backRollTarget,
+  planRoll,
+  recordAfterSelection,
+  type RollRecord,
+} from "@/lib/end-of-chart-roll";
+import { pickShuffleCountry } from "@/lib/fairness-draw";
+import {
+  type GlobeChartState,
+  globeChartStore,
+  useGlobeChart,
+} from "@/lib/globe-chart-store";
 import { setSkipHandlers } from "@/lib/media-session";
 import {
   AudioStoreProvider,
@@ -83,6 +101,17 @@ function ChartScreenInner({
     dir: 1 | -1;
     nonce: number;
   } | null>(null);
+  // One counter for every skip cue (edge-tap, roll, back-roll): two counters
+  // could collide on a nonce and swallow a flash, since SkipFlash replays only
+  // on a nonce it hasn't seen.
+  const flashNonceRef = useRef(0);
+  const flashSkip = useCallback((dir: 1 | -1) => {
+    flashNonceRef.current += 1;
+    setSkipFlash({ dir, nonce: flashNonceRef.current });
+  }, []);
+  // The pending back-roll origin, or null when prev keeps its end-of-chart
+  // clamp. State, not a ref: it drives the prev button's enabled state.
+  const [rollRecord, setRollRecord] = useState<RollRecord | null>(null);
   const settleSignal = useGlobeChart((s) => s.settleSignal);
   // The gesture-driven selection (the tour's beat-1 signal). Not the countryCode
   // prop: that resolves from useSearchParams, which a replaceState-only globe
@@ -92,7 +121,6 @@ function ChartScreenInner({
   const currentCountryCode = useAudioStore((s) => s.currentCountryCode);
   const hasCurrentTrack = currentTrack !== null;
   const currentTrackRank = currentTrack?.rank ?? null;
-  const endedSignal = useAudioStore((s) => s.endedSignal);
   const audioStore = useAudioStoreApi();
 
   useEffect(() => {
@@ -144,11 +172,18 @@ function ChartScreenInner({
 
   // A globe landing resurfaces the result: raise a dismissed sheet to peek.
   // Ref-gated so only an actual settle (a bumped signal) triggers it, never a
-  // dep-only re-run, and so the mount value never force-raises.
+  // dep-only re-run, and so the mount value never force-raises. An end-of-chart
+  // roll arms suppressResurfaceRef first, so its own settle continues playback
+  // without reopening a sheet the listener closed.
   const prevSettleRef = useRef(settleSignal);
+  const suppressResurfaceRef = useRef(false);
   useEffect(() => {
     if (settleSignal === prevSettleRef.current) return;
     prevSettleRef.current = settleSignal;
+    if (suppressResurfaceRef.current) {
+      suppressResurfaceRef.current = false;
+      return;
+    }
     setSnap((s) => (s === "hidden" || s === "closed" ? "peek" : s));
   }, [settleSignal]);
 
@@ -175,51 +210,113 @@ function ChartScreenInner({
     }));
   }, [audioStore, handleMiniTap]);
 
-  // Step within the source country, not the visible one. Reads live store state
-  // so the callbacks stay stable across track changes.
+  // Step within the source country, not the visible one. Reads live audio
+  // state so the callback survives track changes; it re-forms only when the
+  // roll record turns over. Past the last playable, next rolls into a fresh
+  // fairness-drawn country instead of clamping; prev at a rolled-in chart's
+  // first playable rolls back to the origin. Every next/prev surface routes
+  // through here, so all of them inherit the roll.
   const step = useCallback(
-    (dir: 1 | -1): boolean => {
+    (dir: 1 | -1): "adjacent" | "rolled" | "backRolled" | null => {
       const { currentTrack, currentCountryCode, toggle } =
         audioStore.getState();
-      if (currentTrack === null || currentCountryCode === null) return false;
+      if (currentTrack === null || currentCountryCode === null) return null;
       const source = charts.countries[currentCountryCode];
-      if (!source) return false;
+      if (!source) return null;
       const adj = findAdjacentPlayable(source.tracks, currentTrack, dir);
-      if (!adj) return false;
-      toggle(adj, currentCountryCode);
-      return true;
+      if (adj) {
+        toggle(adj, currentCountryCode);
+        return "adjacent";
+      }
+      if (dir === 1) {
+        const { visited, selectedCountry, setSelectedCountry } =
+          globeChartStore.getState();
+        const landing = planRoll(
+          charts.countries,
+          currentCountryCode,
+          (exclude) => pickShuffleCountry(visited, exclude),
+        );
+        if (!landing) return null;
+        // Playback first (same task as the triggering gesture or ended event),
+        // then the record, then the landing side effects. The record must be
+        // queued before setSelectedCountry so the selection subscription reads
+        // the landing as the roll's own, not a manual pick to clear on. Arm the
+        // resurface guard before the selection so the roll's settle continues
+        // playback without reopening a dismissed sheet, but only when the code
+        // actually changes: a no-op selection produces no settle, so an armed
+        // flag would linger and swallow a later unrelated resurface.
+        toggle(landing.track, landing.code);
+        setRollRecord({
+          originCountryCode: currentCountryCode,
+          originTrack: currentTrack,
+          rolledToCode: landing.code,
+        });
+        if (landing.code !== selectedCountry)
+          suppressResurfaceRef.current = true;
+        setSelectedCountry(landing.code);
+        window.history.replaceState(null, "", `?cc=${landing.code}`);
+        flashSkip(1);
+        return "rolled";
+      }
+      const back = backRollTarget(
+        rollRecord,
+        charts.countries,
+        currentTrack,
+        currentCountryCode,
+      );
+      if (!back) return null;
+      toggle(back.track, back.countryCode);
+      setRollRecord(null);
+      const store = globeChartStore.getState();
+      if (back.countryCode !== store.selectedCountry)
+        suppressResurfaceRef.current = true;
+      store.setSelectedCountry(back.countryCode);
+      window.history.replaceState(null, "", `?cc=${back.countryCode}`);
+      flashSkip(-1);
+      return "backRolled";
     },
-    [audioStore, charts.countries],
+    [audioStore, charts.countries, rollRecord, flashSkip],
   );
   const goPrev = useCallback(() => step(-1), [step]);
   const goNext = useCallback(() => step(1), [step]);
 
   // A track ending advances through the same step as the buttons, swipe, media
-  // keys, and edge-tap, so every "next track" shares one adjacency rule. Step
-  // no-ops past the last playable track, so the chart still ends in silence.
-  // Ref-gated so only an actual ended event advances, never a dep-only re-run.
-  const prevEndedRef = useRef(endedSignal);
+  // keys, and edge-tap, so every "next track" shares one adjacency rule and,
+  // past the last playable, the same roll into a fresh country. A direct store
+  // subscription (not a selector + effect) because the ended signal is an
+  // external event to react to, not state this screen renders; the signal diff
+  // means only an actual ended event advances, never a resubscribe. step is an
+  // Effect Event so its dep churn (it re-forms on every rollRecord change) never
+  // tears down and re-subscribes the store listener.
+  const advanceOnEnded = useEffectEvent(() => step(1));
   useEffect(() => {
-    if (endedSignal === prevEndedRef.current) return;
-    prevEndedRef.current = endedSignal;
-    if (endedSignal === 0) return;
-    step(1);
-  }, [endedSignal, step]);
+    return audioStore.subscribe((state, prev) => {
+      if (state.endedSignal !== prev.endedSignal) advanceOnEnded();
+    });
+  }, [audioStore]);
 
   const canPrev = useMemo(() => {
     if (currentTrack === null || currentCountryCode === null) return false;
     const source = charts.countries[currentCountryCode];
-    return source
-      ? findAdjacentPlayable(source.tracks, currentTrack, -1) !== null
-      : false;
-  }, [currentTrack, currentCountryCode, charts.countries]);
-  const canNext = useMemo(() => {
-    if (currentTrack === null || currentCountryCode === null) return false;
-    const source = charts.countries[currentCountryCode];
-    return source
-      ? findAdjacentPlayable(source.tracks, currentTrack, 1) !== null
-      : false;
-  }, [currentTrack, currentCountryCode, charts.countries]);
+    if (
+      source &&
+      findAdjacentPlayable(source.tracks, currentTrack, -1) !== null
+    ) {
+      return true;
+    }
+    return (
+      backRollTarget(
+        rollRecord,
+        charts.countries,
+        currentTrack,
+        currentCountryCode,
+      ) !== null
+    );
+  }, [currentTrack, currentCountryCode, charts.countries, rollRecord]);
+  // Next never dead-ends while listening: past the last playable the step
+  // rolls into a fresh country, and if even the bounded redraws fail it
+  // no-ops, so the button need not predict the draw.
+  const canNext = hasCurrentTrack && currentCountryCode !== null;
 
   // Skip lives here, not in the audio store: routing prev/next needs the chart
   // data to find the adjacent playable track, which the store doesn't hold.
@@ -237,16 +334,29 @@ function ChartScreenInner({
   }, [hasCurrentTrack]);
 
   // A globe edge-tap raises a skip-intent; the chart owns adjacency, so it runs
-  // the shared step and flashes only on a real track change. Subscribing to the
-  // store sets flash state inside the change callback (the pattern for reacting
-  // to an external system) and spares the screen a re-render per skip. The nonce
-  // diff drops dep-only re-runs; step's own return gates the clamped end-of-list.
-  useEffect(() => {
-    return globeChartStore.subscribe((state, prev) => {
-      if (state.skipIntent.nonce === prev.skipIntent.nonce) return;
-      if (step(state.skipIntent.dir)) setSkipFlash(state.skipIntent);
-    });
-  }, [step]);
+  // the shared step and flashes only on a real track change. Reacting inside the
+  // change callback (the pattern for an external system) spares the screen a
+  // re-render per skip. A roll or back-roll fires its own cue inside step, so
+  // only a plain adjacent move flashes here. The same signal watches
+  // selectedCountry: any selection that isn't the roll's own landing discards
+  // the back-roll record, which is how a manual country pick clears it. An
+  // Effect Event captures the latest step/flashSkip so the store listener
+  // subscribes once for the screen's life, never re-subscribing on their churn.
+  const onGlobeSignal = useEffectEvent(
+    (state: GlobeChartState, prev: GlobeChartState) => {
+      if (state.skipIntent.nonce !== prev.skipIntent.nonce) {
+        if (step(state.skipIntent.dir) === "adjacent") {
+          flashSkip(state.skipIntent.dir);
+        }
+      }
+      if (state.selectedCountry !== prev.selectedCountry) {
+        setRollRecord((record) =>
+          recordAfterSelection(record, state.selectedCountry),
+        );
+      }
+    },
+  );
+  useEffect(() => globeChartStore.subscribe(onGlobeSignal), []);
 
   return (
     <>
