@@ -5,6 +5,7 @@ import { PauseIcon } from "@/components/icons/pause";
 import { PlayIcon } from "@/components/icons/play";
 import type { Track } from "@/lib/chart-schema";
 import { GEM_TIER_STRENGTH, type GemTier } from "@/lib/select-gem";
+import { sameTrack } from "@/lib/track-identity";
 import { useAudioStore } from "@/providers/audio-store-provider";
 
 import { TrackCommentary } from "./track-commentary";
@@ -38,13 +39,12 @@ function TierDots({ tier }: { tier: GemTier }) {
 export function GemCard({ track, tier, countryCode }: GemCardProps) {
   const isCurrent = useAudioStore(
     (s) =>
-      s.currentTrack?.previewUrl === track.previewUrl &&
-      s.currentCountryCode === countryCode,
+      sameTrack(s.currentTrack, track) && s.currentCountryCode === countryCode,
   );
   const isPlaying = useAudioStore(
     (s) =>
       s.isPlaying &&
-      s.currentTrack?.previewUrl === track.previewUrl &&
+      sameTrack(s.currentTrack, track) &&
       s.currentCountryCode === countryCode,
   );
   const hasError = useAudioStore(

@@ -5,7 +5,7 @@ import {
   type CommentaryStore,
 } from "../../src/lib/commentary-store";
 import type { CountryEntry } from "../../src/lib/countries";
-import { trackSpreadKey } from "../../src/lib/track-spread";
+import { trackKey } from "../../src/lib/track-identity";
 
 import { AppleRssError, type AppleRssTrack } from "./apple-rss";
 import { ItunesLookupError, type LookupResult } from "./itunes-lookup";
@@ -214,7 +214,7 @@ export function bakeCommentary(
 export function bakeSpread(countries: ChartFile["countries"]): void {
   const countryCountByKey = new Map<string, number>();
   for (const country of Object.values(countries)) {
-    const keysInCountry = new Set(country.tracks.map(trackSpreadKey));
+    const keysInCountry = new Set(country.tracks.map(trackKey));
     for (const key of keysInCountry) {
       countryCountByKey.set(key, (countryCountByKey.get(key) ?? 0) + 1);
     }
@@ -222,7 +222,7 @@ export function bakeSpread(countries: ChartFile["countries"]): void {
 
   for (const country of Object.values(countries)) {
     for (const track of country.tracks) {
-      track.spread = countryCountByKey.get(trackSpreadKey(track));
+      track.spread = countryCountByKey.get(trackKey(track));
     }
   }
 }

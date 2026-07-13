@@ -140,8 +140,14 @@ describe("createAudioStore", () => {
   test("toggle on different track while playing switches", () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
-    const trackA = makeTrack({ previewUrl: "https://example.com/a.m4a" });
-    const trackB = makeTrack({ previewUrl: "https://example.com/b.m4a" });
+    const trackA = makeTrack({
+      appleUrl: "https://music.apple.com/x?i=a",
+      previewUrl: "https://example.com/a.m4a",
+    });
+    const trackB = makeTrack({
+      appleUrl: "https://music.apple.com/x?i=b",
+      previewUrl: "https://example.com/b.m4a",
+    });
     store.getState().toggle(trackA);
 
     store.getState().toggle(trackB);
@@ -149,6 +155,43 @@ describe("createAudioStore", () => {
     expect(audio.src).toBe(trackB.previewUrl);
     expect(store.getState().currentTrack).toBe(trackB);
     expect(store.getState().isPlaying).toBe(true);
+  });
+
+  test("toggle of the current song from another country adopts the new context", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    // One song charting in two countries: same id, one shared preview asset.
+    const inA = makeTrack({
+      rank: 3,
+      appleUrl: "https://music.apple.com/kr/album/x/1?i=42",
+      previewUrl: "https://example.com/shared.m4a",
+    });
+    const inB = makeTrack({
+      rank: 7,
+      appleUrl: "https://music.apple.com/us/album/x/1?i=42",
+      previewUrl: "https://example.com/shared.m4a",
+    });
+    store.getState().toggle(inA, "kr");
+
+    store.getState().toggle(inB, "us");
+
+    expect(store.getState().currentCountryCode).toBe("us");
+    expect(store.getState().currentTrack).toBe(inB);
+    expect(store.getState().isPlaying).toBe(true);
+    expect(audio.pause).not.toHaveBeenCalled();
+  });
+
+  test("toggle of the current song in the same country pauses, not switches", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    const track = makeTrack({ appleUrl: "https://music.apple.com/x?i=42" });
+    store.getState().toggle(track, "kr");
+
+    store.getState().toggle(track, "kr");
+
+    expect(audio.pause).toHaveBeenCalledOnce();
+    expect(store.getState().isPlaying).toBe(false);
+    expect(store.getState().currentCountryCode).toBe("kr");
   });
 
   test("toggle on new track stores countryCode when provided", () => {
@@ -254,7 +297,10 @@ describe("createAudioStore", () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     const trackA = makeTrack();
-    const trackB = makeTrack({ previewUrl: "https://example.com/b.m4a" });
+    const trackB = makeTrack({
+      appleUrl: "https://music.apple.com/x?i=b",
+      previewUrl: "https://example.com/b.m4a",
+    });
     store.getState().toggle(trackA);
     audio._trigger("ended");
     store.getState().toggle(trackB);
@@ -292,8 +338,14 @@ describe("createAudioStore", () => {
   test("toggle clears lastError when switching tracks", () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
-    const errored = makeTrack({ previewUrl: "https://example.com/broken.m4a" });
-    const next = makeTrack({ previewUrl: "https://example.com/working.m4a" });
+    const errored = makeTrack({
+      appleUrl: "https://music.apple.com/x?i=broken",
+      previewUrl: "https://example.com/broken.m4a",
+    });
+    const next = makeTrack({
+      appleUrl: "https://music.apple.com/x?i=working",
+      previewUrl: "https://example.com/working.m4a",
+    });
     store.getState().toggle(errored);
     audio._trigger("error");
     assert(
@@ -357,8 +409,14 @@ describe("createAudioStore", () => {
   test("a stale play rejection does not clobber a newer track's state", async () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
-    const trackA = makeTrack({ previewUrl: "https://example.com/a.m4a" });
-    const trackB = makeTrack({ previewUrl: "https://example.com/b.m4a" });
+    const trackA = makeTrack({
+      appleUrl: "https://music.apple.com/x?i=a",
+      previewUrl: "https://example.com/a.m4a",
+    });
+    const trackB = makeTrack({
+      appleUrl: "https://music.apple.com/x?i=b",
+      previewUrl: "https://example.com/b.m4a",
+    });
     vi.mocked(audio.play).mockRejectedValueOnce(
       new DOMException("autoplay blocked", "NotAllowedError"),
     );
@@ -375,8 +433,14 @@ describe("createAudioStore", () => {
   test("a stale rejection sharing the live track's previewUrl does not clobber it", async () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
-    const trackA = makeTrack({ previewUrl: "https://example.com/a.m4a" });
-    const trackB = makeTrack({ previewUrl: "https://example.com/b.m4a" });
+    const trackA = makeTrack({
+      appleUrl: "https://music.apple.com/x?i=a",
+      previewUrl: "https://example.com/a.m4a",
+    });
+    const trackB = makeTrack({
+      appleUrl: "https://music.apple.com/x?i=b",
+      previewUrl: "https://example.com/b.m4a",
+    });
     // Only the first attempt rejects; re-selecting trackA succeeds. The stale
     // rejection shares trackA's previewUrl, so a value-keyed guard would let it
     // through and mark the live re-attempt as errored.

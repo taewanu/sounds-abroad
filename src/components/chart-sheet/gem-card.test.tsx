@@ -135,7 +135,10 @@ describe("GemCard", () => {
 
   test("shows no now-playing badge when a different track is current", () => {
     const track = makeTrack();
-    const other = makeTrack({ previewUrl: "https://example.com/other.m4a" });
+    const other = makeTrack({
+      appleUrl: "https://music.apple.com/track/2?i=2",
+      previewUrl: "https://example.com/other.m4a",
+    });
     const { container } = renderGemCard(track, "entirely their own", {
       currentTrack: other,
       isPlaying: true,

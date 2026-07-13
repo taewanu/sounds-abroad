@@ -55,6 +55,12 @@ import { ChartScreen } from "./chart-screen";
 // A chart whose middle track has no preview, so the correct next track from #1
 // is #3. Any "next" that walks a bare index would land on the unplayable #2.
 const ADJ_CODE = "zz";
+// A second country whose head and tail share one preview asset (distinct songs,
+// distinct Apple ids). Adjacency must locate the current track by identity: a
+// previewUrl-keyed walk would find the head's index for the tail and step from
+// the wrong row.
+const SHARED_CODE = "zx";
+const SHARED_PREVIEW = "https://example.com/shared.m4a";
 const ADJACENCY_CHARTS: ChartFile = {
   lastUpdated: "2026-04-25T03:00:00Z",
   countries: {
@@ -88,6 +94,30 @@ const ADJACENCY_CHARTS: ChartFile = {
           artworkUrl: "https://example.com/tail.jpg",
           appleUrl: "https://music.apple.com/x/tail",
           spotifyUrl: "https://open.spotify.com/x/tail",
+        },
+      ],
+    },
+    [SHARED_CODE]: {
+      name: "Shared-preview chart",
+      valid: true,
+      tracks: [
+        {
+          rank: 1,
+          name: "Shared head",
+          artist: "Shared head artist",
+          previewUrl: SHARED_PREVIEW,
+          artworkUrl: "https://example.com/sh-head.jpg",
+          appleUrl: "https://music.apple.com/x/album?i=201",
+          spotifyUrl: "https://open.spotify.com/x/sh-head",
+        },
+        {
+          rank: 2,
+          name: "Shared tail",
+          artist: "Shared tail artist",
+          previewUrl: SHARED_PREVIEW,
+          artworkUrl: "https://example.com/sh-tail.jpg",
+          appleUrl: "https://music.apple.com/x/album?i=202",
+          spotifyUrl: "https://open.spotify.com/x/sh-tail",
         },
       ],
     },
@@ -309,6 +339,31 @@ describe("ChartScreen auto-advance", () => {
 
     expect(viaEnded).toBe("3");
     expect(viaEnded).toBe(viaNext);
+  });
+
+  test("auto-advance keys on identity when two rows share one preview asset", () => {
+    mockSearchParams.value = new URLSearchParams(`cc=${SHARED_CODE}`);
+    const { container } = render(
+      <ChartScreen
+        charts={ADJACENCY_CHARTS}
+        defaultCountryCode={SHARED_CODE}
+      />,
+    );
+    // Play the tail, whose preview asset also belongs to the head. A
+    // previewUrl-keyed walk would resolve the current track to the head and
+    // wrongly re-advance; identity resolves it to the tail, which has no next.
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Play preview of Shared tail by Shared tail artist",
+      }),
+    );
+    expect(playingRank(container)).toBe("2");
+
+    act(() => {
+      audioEngine.end();
+    });
+
+    expect(playingRank(container)).toBeNull();
   });
 
   test("ending the last playable track falls silent instead of wrapping to the head", () => {

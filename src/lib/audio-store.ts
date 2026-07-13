@@ -13,6 +13,7 @@ import {
   setNowPlaying,
   setPlaybackState,
 } from "@/lib/media-session";
+import { sameTrack } from "@/lib/track-identity";
 
 export interface AudioError {
   previewUrl: string | null;
@@ -120,7 +121,13 @@ export function createAudioStore(
       toggle: (track, countryCode) => {
         const state = get();
         const a = getEngine();
-        const isCurrent = state.currentTrack?.previewUrl === track.previewUrl;
+        // Same song in a different country is a context switch, not a resume:
+        // identity is the stable song key, and the country must match too. An
+        // omitted countryCode (OS transport resume) keeps the stored context.
+        const isCurrent =
+          sameTrack(state.currentTrack, track) &&
+          (countryCode === undefined ||
+            state.currentCountryCode === countryCode);
         if (isCurrent && state.isPlaying) {
           a.pause();
           set({ isPlaying: false });

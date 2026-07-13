@@ -87,6 +87,7 @@ describe("TrackRow", () => {
     const track = makeTrack();
     const otherTrack = makeTrack({
       rank: 2,
+      appleUrl: "https://music.apple.com/track/2?i=2",
       previewUrl: "https://example.com/other.m4a",
     });
 
