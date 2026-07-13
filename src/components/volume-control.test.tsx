@@ -82,9 +82,27 @@ describe("VolumeControl", () => {
     renderVolumeControl();
     fireEvent.click(screen.getByRole("button", { name: /volume/i }));
 
-    fireEvent.pointerDown(document.body);
+    fireEvent.click(document.body);
 
     expect(screen.queryByRole("slider")).toBeNull();
+  });
+
+  test("the dismissing tap is swallowed, so the control it lands on doesn't fire", () => {
+    renderVolumeControl();
+    fireEvent.click(screen.getByRole("button", { name: /volume/i }));
+
+    // A control outside the popover that would fire if the dismissing click
+    // reached it; the capture-phase guard must cancel it before its own listener.
+    const outside = document.createElement("button");
+    const onClick = vi.fn();
+    outside.addEventListener("click", onClick);
+    document.body.appendChild(outside);
+
+    fireEvent.click(outside);
+
+    expect(screen.queryByRole("slider")).toBeNull();
+    expect(onClick).not.toHaveBeenCalled();
+    outside.remove();
   });
 
   test("a second trigger tap closes the popover", () => {

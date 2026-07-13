@@ -16,14 +16,20 @@ export function VolumeControl() {
   // The level to come back to on unmute; tracks the last audible volume.
   const lastAudibleRef = useRef(volume || 1);
 
-  // While open, dismiss on an outside tap or Escape; Escape returns focus to the
-  // trigger. Opening focuses the slider so arrow keys adjust it immediately.
+  // While open, dismiss on an outside click or Escape; Escape returns focus to
+  // the trigger. Opening focuses the slider so arrow keys adjust it immediately.
   useEffect(() => {
     if (!open) return;
     sliderRef.current?.focus();
 
-    function handlePointerDown(event: PointerEvent) {
-      if (!wrapperRef.current?.contains(event.target as Node)) setOpen(false);
+    function handleClickOutside(event: MouseEvent) {
+      if (wrapperRef.current?.contains(event.target as Node)) return;
+      // Dismiss-first: the tap that closes the popover must not also fire the
+      // control it landed on. Caught in the capture phase, it's swallowed before
+      // it reaches any onClick.
+      event.stopPropagation();
+      event.preventDefault();
+      setOpen(false);
     }
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -31,10 +37,10 @@ export function VolumeControl() {
         buttonRef.current?.focus();
       }
     }
-    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("click", handleClickOutside, true);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("click", handleClickOutside, true);
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [open]);
