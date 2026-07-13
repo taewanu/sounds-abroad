@@ -142,8 +142,14 @@ export function MiniPlayer({
     trackingRef.current = true;
     engagedRef.current = false;
     swipedRef.current = false;
-    // Drag is 1:1, so drop any leftover spring transition before following.
-    if (cardRef.current) cardRef.current.style.transition = "none";
+    // Drag is 1:1, so the content must be the drag's alone: drop any leftover
+    // spring transition AND the incoming data-track-change cue, whose `both`
+    // fill-mode otherwise keeps overriding the inline transform (a CSS animation
+    // outranks inline style), freezing every drag after the first skip.
+    if (cardRef.current) {
+      cardRef.current.style.transition = "none";
+      cardRef.current.style.animation = "none";
+    }
     // Capture so a swipe that drifts off the button still delivers its pointerup
     // here; the browser releases the capture on pointerup/cancel.
     try {
