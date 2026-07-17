@@ -681,6 +681,33 @@ describe("ChartSheet commentary focus", () => {
     ).not.toBeNull();
   });
 
+  test("the commentary badge toggles: a repeat focus ask for the open row closes it", () => {
+    const store = createAudioStore(() => makeMockAudio());
+    const rank = COUNTRY_KR.tracks[0].rank;
+    const view = (nonce: number) => (
+      <AudioStoreContext.Provider value={store}>
+        <ChartSheet
+          country={COUNTRY_KR}
+          countryCode="kr"
+          snap="full"
+          onSnapChange={vi.fn()}
+          focusIntent={{ rank, nonce }}
+        />
+      </AudioStoreContext.Provider>
+    );
+
+    const { container, rerender } = render(view(1));
+    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+
+    // The same badge pressed again: a fresh nonce for the open row closes it.
+    rerender(view(2));
+    expect(container.querySelector("[data-commentary-card]")).toBeNull();
+
+    // Pressed once more: it opens again.
+    rerender(view(3));
+    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+  });
+
   test("dimmed siblings and the gem card recede and go inert", () => {
     const { container } = renderSheet("full");
     fireEvent.click(firstTeaser(container)!);
