@@ -24,6 +24,14 @@ function makeMockAudio(): AudioEngine {
   };
 }
 
+// The scroll is deferred by rAF: one frame to let the DOM catch up, a second
+// when the list remounted onto a new country.
+async function frames(count: number) {
+  for (let i = 0; i < count; i++) {
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+  }
+}
+
 function setScrollTop(el: Element, value: number) {
   Object.defineProperty(el, "scrollTop", { value, configurable: true });
 }
@@ -609,7 +617,8 @@ describe("ChartSheet", () => {
         />
       </AudioStoreProvider>,
     );
-    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+    // The swapped list takes the extra frame it waits for its layout on.
+    await frames(2);
 
     expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
   });

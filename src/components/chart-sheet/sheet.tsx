@@ -583,6 +583,7 @@ export function ChartSheet({
   const prevSnapRef = useRef(snap);
   const prevSignalRef = useRef(scrollSignal);
   const prevStepRef = useRef(stepSignal);
+  const prevCountryRef = useRef(countryCode);
 
   useEffect(() => {
     const wasMin =
@@ -591,8 +592,11 @@ export function ChartSheet({
     const stepChanged = prevStepRef.current !== stepSignal;
     const otherCountryPlaying =
       currentCountryCode !== null && currentCountryCode !== countryCode;
+    // The <ol> is keyed by country, so a country change remounts the whole list.
+    const listSwapped = prevCountryRef.current !== countryCode;
     prevSnapRef.current = snap;
     prevStepRef.current = stepSignal;
+    prevCountryRef.current = countryCode;
     // Hold the signal only while another country's track plays, the same idiom
     // as the focus nonce above: a reopen asked from there bumps the signal a
     // render before the route swaps the displayed country over, so consuming it
@@ -616,8 +620,8 @@ export function ChartSheet({
     // A step to an already-visible neighbour still holds, gated below.
     const isReopen = wasMin || signalChanged;
     if (!isReopen && !stepChanged) return;
-    // Defer one frame so the new snap/country is in the DOM before query.
-    const id = requestAnimationFrame(() => {
+
+    const scrollToRow = () => {
       const ol = olRef.current;
       const el = ol?.querySelector<HTMLElement>(
         `[data-rank="${currentTrackRank}"]`,
@@ -628,8 +632,19 @@ export function ChartSheet({
         block: snap === "peek" ? "start" : "center",
         behavior: "smooth",
       });
-    });
-    return () => cancelAnimationFrame(id);
+    };
+
+    // One frame so the new snap/country is in the DOM before the query; a second
+    // when the list remounted, because the row exists a frame before the
+    // remounted list's layout settles and measuring there lands wrong.
+    let frame = 0;
+    const waitFrames = (n: number, run: () => void) => {
+      frame = requestAnimationFrame(
+        n <= 1 ? run : () => waitFrames(n - 1, run),
+      );
+    };
+    waitFrames(listSwapped ? 2 : 1, scrollToRow);
+    return () => cancelAnimationFrame(frame);
   }, [
     snap,
     currentTrackRank,
