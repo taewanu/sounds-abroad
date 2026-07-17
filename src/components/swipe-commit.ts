@@ -26,7 +26,7 @@ export interface SwipeSample {
   canNext: boolean;
 }
 
-// Swipe left (dx < 0) skips to the next track, swipe right to the previous —
+// Swipe left (dx < 0) skips to the next track, swipe right to the previous:
 // the carousel convention. A release commits when it clears the distance
 // threshold OR flicks fast enough (when enabled); otherwise it springs back.
 // A commit toward a side with no track (chart end, before the roll logic in the

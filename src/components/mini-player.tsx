@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  type MouseEvent as ReactMouseEvent,
-  type PointerEvent as ReactPointerEvent,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { useState } from "react";
 
 import { ExpandIcon } from "@/components/icons/expand";
 import { PauseIcon } from "@/components/icons/pause";
@@ -20,7 +13,7 @@ import type { Track } from "@/lib/chart-schema";
 import { trackKey } from "@/lib/track-identity";
 import { useAudioStore } from "@/providers/audio-store-provider";
 
-import { type SwipeCommitConfig, decideSwipeCommit } from "./swipe-commit";
+import { RAIL_REST, useSwipeRail } from "./use-swipe-rail";
 
 export interface MiniPlayerProps {
   onTap: () => void;
@@ -36,31 +29,21 @@ export interface MiniPlayerProps {
   nextTrack: Track | null;
 }
 
-// Horizontal travel (px) past which a press is a drag, not a tap: suppresses the
-// reopen-chart click and lets the rail follow the finger.
-const DRAG_ENGAGE_PX = 8;
-// Swipe feel, tuned by eye. Left = next; a release commits past a third of the
-// width or on a fast flick, else springs back.
-const SWIPE_CFG: SwipeCommitConfig = {
-  commitThresholdPct: 33,
-  flickToCommit: true,
-  flickVelPxPerMs: 0.5,
-};
-// Commit slide (ease-out, no overshoot) and the spring-back on a release that
-// didn't commit (a light overshoot gives it life without wobbling).
-const COMMIT_MS = 260;
-const COMMIT_EASE = "cubic-bezier(0.22, 0.61, 0.36, 1)";
-const RETURN_MS = 232;
-const RETURN_EASE = "cubic-bezier(0.34, 1.3, 0.64, 1)";
-// The rail lays out prev | current | next, each the strip's full width, and
-// rests shifted one card left so the current sits in the window. A commit slides
-// the committed neighbour into the window as the current slides out.
-const RAIL_REST = "translateX(-100%)";
-const RAIL_NEXT = "translateX(-200%)";
-const RAIL_PREV = "translateX(0%)";
-
 const SKIP_BUTTON_CLASS =
   "text-fg-2 hover:bg-orbit hover:text-fg-1 focus-visible:outline-aurora flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-30";
+
+// The 48px cover thumbnail, shared by the current card and the rail's preview
+// cards so a style change stays in one place. Decorative (the a11y track text
+// lives on the current card's title), so always aria-hidden.
+function TrackArtwork({ url }: { url: string }) {
+  return (
+    <div
+      aria-hidden="true"
+      style={{ backgroundImage: `url(${url})` }}
+      className="bg-fg-1/5 h-12 w-12 shrink-0 rounded-lg bg-cover bg-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+    />
+  );
+}
 
 // A non-interactive preview of an adjacent track for the rail: only the current
 // card carries the marquee, EQ, and a11y text, so the neighbours stay plain and
@@ -73,10 +56,7 @@ function PreviewCard({ track }: { track: Track | null }) {
       aria-hidden="true"
       className="flex w-full shrink-0 items-center gap-[14px]"
     >
-      <div
-        style={{ backgroundImage: `url(${track.artworkUrl})` }}
-        className="bg-fg-1/5 h-12 w-12 shrink-0 rounded-lg bg-cover bg-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-      />
+      <TrackArtwork url={track.artworkUrl} />
       <div className="min-w-0 flex-1">
         <p className="text-sunrise text-body truncate font-medium">
           {track.name}
@@ -104,7 +84,6 @@ export function MiniPlayer({
 
   const contentKey = currentTrack === null ? null : trackKey(currentTrack);
 
-  const railRef = useRef<HTMLDivElement | null>(null);
   // A swipe already slid the rail, so it suppresses the one-shot directional cue
   // the swap would otherwise fire, to avoid a double motion. State, not a ref, so
   // the render-time cue derivation can read it without touching a ref.
@@ -148,147 +127,14 @@ export function MiniPlayer({
     text: currentTrack?.name,
   });
 
-  // Transient swipe state in refs so following the pointer never re-renders; the
-  // rail transform is written straight to the DOM node. touch-pan-y (below) hands
-  // horizontal drags to JS and lets vertical scrolls through.
-  const startXRef = useRef(0);
-  const startYRef = useRef(0);
-  const lastXRef = useRef(0);
-  const lastTRef = useRef(0);
-  const velRef = useRef(0);
-  const trackingRef = useRef(false);
-  const engagedRef = useRef(false);
-  const swipedRef = useRef(false);
-  const commitTimerRef = useRef<number | null>(null);
-
-  // A committed skip fires after the slide; drop it if the player unmounts first.
-  useEffect(
-    () => () => {
-      if (commitTimerRef.current !== null)
-        window.clearTimeout(commitTimerRef.current);
-    },
-    [],
-  );
-
-  // Snap the rail back to rest the moment the committed neighbour becomes the
-  // current card. Runs before paint, so the reset from the commit's end position
-  // is seamless and there's no flash of an off-centre rail on mount.
-  useLayoutEffect(() => {
-    const rail = railRef.current;
-    if (rail) {
-      rail.style.transition = "none";
-      rail.style.transform = RAIL_REST;
-    }
-  }, [contentKey]);
-
-  const clearCommitTimer = () => {
-    if (commitTimerRef.current !== null) {
-      window.clearTimeout(commitTimerRef.current);
-      commitTimerRef.current = null;
-    }
-  };
-
-  const settleRail = (transform: string, ms: number, ease: string) => {
-    const rail = railRef.current;
-    if (!rail) return;
-    rail.style.transition = `transform ${ms}ms ${ease}`;
-    rail.style.transform = transform;
-  };
-
-  const handlePointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
-    clearCommitTimer();
-    startXRef.current = lastXRef.current = e.clientX;
-    startYRef.current = e.clientY;
-    lastTRef.current = e.timeStamp;
-    velRef.current = 0;
-    trackingRef.current = true;
-    engagedRef.current = false;
-    swipedRef.current = false;
-    // Drag is 1:1: drop any leftover settle transition before following.
-    if (railRef.current) railRef.current.style.transition = "none";
-    // Capture so a swipe that drifts off the bar still delivers its pointerup
-    // here; the browser releases the capture on pointerup/cancel.
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {
-      /* setPointerCapture is unsupported under jsdom; capture is best-effort */
-    }
-  };
-
-  const handlePointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
-    if (!trackingRef.current) return;
-    const dx = e.clientX - startXRef.current;
-    const dy = e.clientY - startYRef.current;
-    // Engage once the travel is decisively horizontal; from then on the rail
-    // follows the finger and the trailing click is a swipe, not a reopen tap.
-    if (!engagedRef.current) {
-      if (Math.abs(dx) <= DRAG_ENGAGE_PX || Math.abs(dx) <= Math.abs(dy))
-        return;
-      engagedRef.current = true;
-      swipedRef.current = true;
-    }
-    if (railRef.current)
-      railRef.current.style.transform = `translateX(calc(-100% + ${dx}px))`;
-    const dt = Math.max(1, e.timeStamp - lastTRef.current);
-    velRef.current = (e.clientX - lastXRef.current) / dt;
-    lastXRef.current = e.clientX;
-    lastTRef.current = e.timeStamp;
-  };
-
-  const handlePointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
-    if (!trackingRef.current) return;
-    trackingRef.current = false;
-    if (!engagedRef.current) return;
-
-    const outcome = decideSwipeCommit(
-      {
-        dx: e.clientX - startXRef.current,
-        vx: velRef.current,
-        width: e.currentTarget.clientWidth,
-        canPrev,
-        canNext,
-      },
-      SWIPE_CFG,
-    );
-
-    if (outcome === "cancel") {
-      settleRail(RAIL_REST, RETURN_MS, RETURN_EASE);
-      return;
-    }
-
-    // Slide the committed neighbour into the window as the current leaves, then
-    // skip: onNext/onPrev swaps the store, the neighbour becomes the current
-    // card, and the layout effect snaps the rail back to rest seamlessly. The
-    // cue is suppressed so the swap doesn't re-animate what the rail just did.
-    settleRail(
-      outcome === "next" ? RAIL_NEXT : RAIL_PREV,
-      COMMIT_MS,
-      COMMIT_EASE,
-    );
-    setSuppressCue(true);
-    commitTimerRef.current = window.setTimeout(() => {
-      commitTimerRef.current = null;
-      if (outcome === "next") onNext();
-      else onPrev();
-    }, COMMIT_MS);
-  };
-
-  const handlePointerCancel = () => {
-    if (!trackingRef.current) return;
-    trackingRef.current = false;
-    if (engagedRef.current) settleRail(RAIL_REST, RETURN_MS, RETURN_EASE);
-  };
-
-  // The swipe surface is the whole bar, so a completed swipe must swallow the
-  // trailing click no matter which control it lands on (strip reopen, skip, play,
-  // volume). Caught on the row in the capture phase, it never reaches the target.
-  const handleBarClickCapture = (e: ReactMouseEvent<HTMLDivElement>) => {
-    if (swipedRef.current) {
-      swipedRef.current = false;
-      e.stopPropagation();
-      e.preventDefault();
-    }
-  };
+  const { railRef, swipeHandlers } = useSwipeRail({
+    contentKey,
+    canPrev,
+    canNext,
+    onPrev,
+    onNext,
+    onCommitStart: () => setSuppressCue(true),
+  });
 
   if (currentTrack === null) return null;
 
@@ -300,11 +146,7 @@ export function MiniPlayer({
           scrolls through; the capture-phase click guard swallows the click a
           swipe leaves behind before it reaches any control. */}
       <div
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerCancel}
-        onClickCapture={handleBarClickCapture}
+        {...swipeHandlers}
         className="flex touch-pan-y items-center gap-[14px] px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)]"
       >
         <button
@@ -324,11 +166,7 @@ export function MiniPlayer({
               data-track-change={stepCue.dir ?? undefined}
               className="flex w-full shrink-0 items-center gap-[14px]"
             >
-              <div
-                aria-hidden="true"
-                style={{ backgroundImage: `url(${currentTrack.artworkUrl})` }}
-                className="bg-fg-1/5 h-12 w-12 shrink-0 rounded-lg bg-cover bg-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-              />
+              <TrackArtwork url={currentTrack.artworkUrl} />
               <div className="min-w-0 flex-1">
                 <p className="text-sunrise text-body flex min-w-0 items-center gap-2 font-medium">
                   <span className="block min-w-0 overflow-hidden">

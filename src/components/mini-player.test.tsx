@@ -269,6 +269,33 @@ describe("MiniPlayer", () => {
     }
   });
 
+  test("re-grabbing during the commit slide flushes the pending skip once", () => {
+    vi.useFakeTimers();
+    try {
+      const onNext = vi.fn();
+      renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
+
+      const area = screen.getByRole("button", { name: /reopen chart/i });
+      fireEvent.pointerDown(area, { clientX: 200, clientY: 10 });
+      fireEvent.pointerMove(area, { clientX: 40, clientY: 10 });
+      fireEvent.pointerUp(area, { clientX: 40, clientY: 10 });
+      // Grab again before the slide's timer fires: the interrupted skip lands now.
+      act(() => {
+        vi.advanceTimersByTime(100);
+      });
+      expect(onNext).not.toHaveBeenCalled();
+      fireEvent.pointerDown(area, { clientX: 150, clientY: 10 });
+      expect(onNext).toHaveBeenCalledTimes(1);
+      // The elapsed timer must not fire it a second time.
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+      expect(onNext).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   test("commentary badge is absent when the track carries no commentary", () => {
     renderMiniPlayer({}, { currentTrack: makeTrack() });
 
