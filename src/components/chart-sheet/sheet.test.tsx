@@ -623,6 +623,64 @@ describe("ChartSheet", () => {
     expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
   });
 
+  test("a step that lands in another country reveals its row once the displayed country catches up", async () => {
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
+    // A roll lands deep in the new chart while its list remounts at the top, so
+    // the row needs revealing rather than already sitting in view.
+    stubRects(rect(0, 100), rect(200, 240));
+    const landed = COUNTRY_KR.tracks[2].rank;
+    const base = { snap: "peek" as const, onSnapChange: vi.fn() };
+
+    const { rerender } = render(
+      <AudioStoreProvider>
+        <ChartSheet
+          {...base}
+          country={COUNTRY_US}
+          countryCode="us"
+          currentTrackRank={COUNTRY_US.tracks[0].rank}
+          currentCountryCode="us"
+          stepSignal={0}
+        />
+      </AudioStoreProvider>,
+    );
+    scrollIntoViewMock.mockClear();
+
+    // The roll steps into another country's track a render before the route
+    // swaps the displayed chart over.
+    rerender(
+      <AudioStoreProvider>
+        <ChartSheet
+          {...base}
+          country={COUNTRY_US}
+          countryCode="us"
+          currentTrackRank={landed}
+          currentCountryCode="kr"
+          stepSignal={1}
+        />
+      </AudioStoreProvider>,
+    );
+    await frames(2);
+
+    expect(scrollIntoViewMock).not.toHaveBeenCalled();
+
+    rerender(
+      <AudioStoreProvider>
+        <ChartSheet
+          {...base}
+          country={COUNTRY_KR}
+          countryCode="kr"
+          currentTrackRank={landed}
+          currentCountryCode="kr"
+          stepSignal={1}
+        />
+      </AudioStoreProvider>,
+    );
+    await frames(2);
+
+    expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+  });
+
   test("drops a held reopen ask once nothing is playing, rather than firing it at the next track", async () => {
     const scrollIntoViewMock = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoViewMock;

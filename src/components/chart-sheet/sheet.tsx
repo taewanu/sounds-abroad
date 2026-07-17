@@ -595,16 +595,19 @@ export function ChartSheet({
     // The <ol> is keyed by country, so a country change remounts the whole list.
     const listSwapped = prevCountryRef.current !== countryCode;
     prevSnapRef.current = snap;
-    prevStepRef.current = stepSignal;
     prevCountryRef.current = countryCode;
-    // Hold the signal only while another country's track plays, the same idiom
-    // as the focus nonce above: a reopen asked from there bumps the signal a
-    // render before the route swaps the displayed country over, so consuming it
-    // now would swallow the ask and leave the pass where the two finally align
-    // with nothing to act on. Only a second ask would scroll. Every other bail
-    // still consumes, so a held signal can't outlive its ask and fire as a
-    // reopen against some later, unrelated change.
-    if (!otherCountryPlaying) prevSignalRef.current = scrollSignal;
+    // Hold both asks while another country's track plays, the same idiom as the
+    // focus nonce above: a reopen tap and an end-of-chart roll each land their
+    // signal a render before the route swaps the displayed country over, so
+    // consuming one now would leave the pass where the two finally align with
+    // nothing to act on. The reopen would need a second tap; the roll would
+    // never reveal the row it just landed on. Every other bail still consumes
+    // both, so a held ask can't outlive its own change and fire against a later
+    // unrelated one.
+    if (!otherCountryPlaying) {
+      prevSignalRef.current = scrollSignal;
+      prevStepRef.current = stepSignal;
+    }
     if (snap === "closed" || snap === "hidden") return;
     if (currentTrackRank === null) return;
     // The now-playing row only exists in the displayed list when the playing
