@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { readRecord } from "@/components/globe/edge-hint-record";
+import { writeRecord as writeTourRecord } from "@/components/tour/tour-record-store";
 import { CHARTS, CODE_BR, CODE_US, COUNTRY_US } from "@/lib/__fixtures__";
 import type { AudioEngine } from "@/lib/audio-engine";
 import type { ChartFile, Country, Track } from "@/lib/chart-schema";
@@ -425,6 +426,67 @@ describe("ChartScreen commentary badge", () => {
     expect(
       screen.getByRole("button", { name: "Collapse commentary" }),
     ).toBeDefined();
+  });
+});
+
+describe("ChartScreen edge-skip cues", () => {
+  const playable = COUNTRY_US.tracks.find((t) => t.previewUrl)!;
+
+  function playFromTheChart() {
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: `Play preview of ${playable.name} by ${playable.artist}`,
+      }),
+    );
+  }
+
+  beforeEach(() => {
+    mockSearchParams.value = new URLSearchParams(`cc=${CODE_US}`);
+    localStorage.clear();
+    audioEngine.reset();
+    // The cues are touch-only; without a coarse pointer they'd stay hidden for
+    // that reason instead of the one under test.
+    vi.spyOn(window, "matchMedia").mockImplementation(
+      (query: string) =>
+        ({
+          matches: query.includes("coarse"),
+          media: query,
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+        }) as unknown as MediaQueryList,
+    );
+    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  test("playing a track while the tour still has gestures to teach surfaces no cue", () => {
+    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_US} />);
+
+    playFromTheChart();
+
+    expect(screen.queryByTestId("edge-tap-badge")).toBeNull();
+    expect(screen.queryByTestId("edge-chevrons")).toBeNull();
+  });
+
+  test("a track played mid-tour spends none of the hint's capped shows", () => {
+    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_US} />);
+
+    playFromTheChart();
+
+    expect(readRecord().shows).toBe(0);
+  });
+
+  test("the cues surface once the tour has concluded", () => {
+    writeTourRecord({ learned: [], shows: 0, dismissed: true });
+
+    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_US} />);
+    playFromTheChart();
+
+    expect(screen.getByTestId("edge-tap-badge")).toBeTruthy();
+    expect(screen.getByTestId("edge-chevrons")).toBeTruthy();
   });
 });
 

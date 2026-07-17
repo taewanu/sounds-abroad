@@ -17,6 +17,7 @@ import { EdgeTapHint } from "@/components/globe/edge-tap-hint";
 import { SkipFlash } from "@/components/globe/skip-flash";
 import { MiniPlayer } from "@/components/mini-player";
 import { TourHost } from "@/components/tour/tour-host";
+import { useTourGateOpen } from "@/components/tour/use-tour-gate-open";
 import { findAdjacentPlayable } from "@/lib/adjacent-playable";
 import type { ChartFile, Country } from "@/lib/chart-schema";
 import {
@@ -125,6 +126,13 @@ function ChartScreenInner({
   const hasCurrentTrack = currentTrack !== null;
   const currentTrackRank = currentTrack?.rank ?? null;
   const audioStore = useAudioStoreApi();
+  const tourGateOpen = useTourGateOpen();
+
+  // Only while the globe is visible: at full the sheet covers it, so a cue there
+  // would burn one of the hint's capped displays unseen. The tour gate is the
+  // third term because playback can start from a row tap the tour never asked
+  // for, which would otherwise teach the edge skip over the tour's own lesson.
+  const edgeCuesActive = hasCurrentTrack && snap !== "full" && tourGateOpen;
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -409,13 +417,8 @@ function ChartScreenInner({
         prevTrack={prevTrack}
         nextTrack={nextTrack}
       />
-      {/* Only while the globe is visible: at full the sheet covers it, so
-          showing the hint there would burn one of its capped displays unseen. */}
-      <EdgeTapHint active={hasCurrentTrack && snap !== "full"} snap={snap} />
-      <EdgeChevrons
-        active={hasCurrentTrack && snap !== "full"}
-        sheetSnap={snap}
-      />
+      <EdgeTapHint active={edgeCuesActive} snap={snap} />
+      <EdgeChevrons active={edgeCuesActive} sheetSnap={snap} />
       <SkipFlash skip={skipFlash} sheetSnap={snap} />
       <TourHost
         snap={snap}

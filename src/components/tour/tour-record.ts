@@ -57,7 +57,7 @@ export function recordLearned(
 }
 
 // The tour will never show again: dismissed, capped, or everything learned. The
-// commentary hint arms off this, so it waits only while the tour still might run.
+// post-tour cues arm off this, so they wait only while the tour still might run.
 export function hasConcluded(record: TourRecord): boolean {
   return !decideShow(record).show;
 }
