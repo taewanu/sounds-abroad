@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  type PointerEvent as ReactPointerEvent,
-  useRef,
-  useState,
-} from "react";
+import { useState } from "react";
 
 import { ExpandIcon } from "@/components/icons/expand";
 import { PauseIcon } from "@/components/icons/pause";
@@ -13,8 +9,11 @@ import { SkipBackIcon } from "@/components/icons/skip-back";
 import { SkipForwardIcon } from "@/components/icons/skip-forward";
 import { useOverflowMarquee } from "@/components/use-overflow-marquee";
 import { VolumeControl } from "@/components/volume-control";
+import type { Track } from "@/lib/chart-schema";
 import { trackKey } from "@/lib/track-identity";
 import { useAudioStore } from "@/providers/audio-store-provider";
+
+import { RAIL_REST, useSwipeRail } from "./use-swipe-rail";
 
 export interface MiniPlayerProps {
   onTap: () => void;
@@ -23,14 +22,50 @@ export interface MiniPlayerProps {
   onNext: () => void;
   canPrev: boolean;
   canNext: boolean;
+  // The adjacent playable tracks, previewed in the swipe rail so a drag shows
+  // where it's heading. Null at a chart end, where the skip rolls to another
+  // country instead of a plain neighbour.
+  prevTrack: Track | null;
+  nextTrack: Track | null;
 }
-
-// Horizontal pointer travel (px) that turns a press on the now-playing area into
-// a skip swipe instead of a tap that reopens the chart.
-const SWIPE_THRESHOLD_PX = 40;
 
 const SKIP_BUTTON_CLASS =
   "text-fg-2 hover:bg-orbit hover:text-fg-1 focus-visible:outline-aurora flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-30";
+
+// The 48px cover thumbnail, shared by the current card and the rail's preview
+// cards so a style change stays in one place. Decorative (the a11y track text
+// lives on the current card's title), so always aria-hidden.
+function TrackArtwork({ url }: { url: string }) {
+  return (
+    <div
+      aria-hidden="true"
+      style={{ backgroundImage: `url(${url})` }}
+      className="bg-fg-1/5 h-12 w-12 shrink-0 rounded-lg bg-cover bg-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+    />
+  );
+}
+
+// A non-interactive preview of an adjacent track for the rail: only the current
+// card carries the marquee, EQ, and a11y text, so the neighbours stay plain and
+// hidden from assistive tech. Null (a chart end) renders an empty slot.
+function PreviewCard({ track }: { track: Track | null }) {
+  if (track === null)
+    return <div className="w-full shrink-0" aria-hidden="true" />;
+  return (
+    <div
+      aria-hidden="true"
+      className="flex w-full shrink-0 items-center gap-[14px]"
+    >
+      <TrackArtwork url={track.artworkUrl} />
+      <div className="min-w-0 flex-1">
+        <p className="text-sunrise text-body truncate font-medium">
+          {track.name}
+        </p>
+        <p className="text-fg-2 text-small truncate">{track.artist}</p>
+      </div>
+    </div>
+  );
+}
 
 export function MiniPlayer({
   onTap,
@@ -39,18 +74,26 @@ export function MiniPlayer({
   onNext,
   canPrev,
   canNext,
+  prevTrack,
+  nextTrack,
 }: MiniPlayerProps) {
   const currentTrack = useAudioStore((s) => s.currentTrack);
   const isPlaying = useAudioStore((s) => s.isPlaying);
   const toggle = useAudioStore((s) => s.toggle);
   const lastStep = useAudioStore((s) => s.lastStep);
 
-  // A track change caused by a skip arrives with a fresh step nonce, and the
-  // incoming content should slide in from the skip direction; a change without
-  // one (a direct row tap) stays cue-free. Derived by adjusting state during
-  // render (the same idiom as the sheet's country reset): an effect would both
-  // flag a cascading setState and start the cue one frame after the remount.
   const contentKey = currentTrack === null ? null : trackKey(currentTrack);
+
+  // A swipe already slid the rail, so it suppresses the one-shot directional cue
+  // the swap would otherwise fire, to avoid a double motion. State, not a ref, so
+  // the render-time cue derivation can read it without touching a ref.
+  const [suppressCue, setSuppressCue] = useState(false);
+
+  // The 14px directional cue is for changes the rail does NOT animate itself: a
+  // skip button, media keys, auto-advance. A change with a fresh step nonce that
+  // wasn't a swipe slides the incoming content in from that side; a direct tap,
+  // or a swipe (which already animated), stays cue-free. Derived by adjusting
+  // state during render, the same idiom as the sheet's country reset.
   const [stepCue, setStepCue] = useState<{
     key: string | null;
     nonce: number;
@@ -60,11 +103,13 @@ export function MiniPlayer({
     stepCue.key !== contentKey ||
     (lastStep !== null && lastStep.nonce !== stepCue.nonce)
   ) {
+    const fromStep = lastStep !== null && lastStep.nonce !== stepCue.nonce;
+    if (suppressCue) setSuppressCue(false);
     setStepCue({
       key: contentKey,
       nonce: lastStep?.nonce ?? 0,
       dir:
-        lastStep !== null && lastStep.nonce !== stepCue.nonce
+        fromStep && !suppressCue
           ? lastStep.dir === 1
             ? "next"
             : "prev"
@@ -82,110 +127,74 @@ export function MiniPlayer({
     text: currentTrack?.name,
   });
 
-  // Transient swipe state in refs so tracking the pointer never re-renders.
-  // touch-pan-y (below) hands horizontal drags to JS but can't cancel Safari's
-  // system edge-swipe, so a prev-swipe begun at the very screen edge may still
-  // navigate back.
-  const startXRef = useRef(0);
-  const startYRef = useRef(0);
-  const trackingRef = useRef(false);
-  const swipedRef = useRef(false);
-
-  const handlePointerDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
-    startXRef.current = e.clientX;
-    startYRef.current = e.clientY;
-    trackingRef.current = true;
-    swipedRef.current = false;
-    // Capture so a swipe that drifts off the button still delivers its pointerup
-    // here; the browser releases the capture on pointerup/cancel.
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {
-      /* setPointerCapture is unsupported under jsdom; capture is best-effort */
-    }
-  };
-
-  const handlePointerUp = (e: ReactPointerEvent<HTMLButtonElement>) => {
-    if (!trackingRef.current) return;
-    trackingRef.current = false;
-    const dx = e.clientX - startXRef.current;
-    const dy = e.clientY - startYRef.current;
-    if (Math.abs(dx) <= SWIPE_THRESHOLD_PX || Math.abs(dx) <= Math.abs(dy)) {
-      return;
-    }
-    // A swipe fired: flag it so the click that follows doesn't also reopen.
-    swipedRef.current = true;
-    if (dx < 0) onNext();
-    else onPrev();
-  };
-
-  const handlePointerCancel = () => {
-    trackingRef.current = false;
-  };
-
-  const handleTap = () => {
-    if (swipedRef.current) {
-      swipedRef.current = false;
-      return;
-    }
-    onTap();
-  };
+  const { railRef, swipeHandlers } = useSwipeRail({
+    contentKey,
+    canPrev,
+    canNext,
+    onPrev,
+    onNext,
+    onCommitStart: () => setSuppressCue(true),
+  });
 
   if (currentTrack === null) return null;
 
   return (
     <div className="bg-void border-fg-1/10 shadow-sheet fixed inset-x-0 bottom-0 z-50 border-t">
-      <div className="flex items-center gap-[14px] px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)]">
+      {/* The whole bar is the swipe surface (grab anywhere to skip); only the
+          now-playing strip translates, since the controls don't change per
+          track. touch-pan-y hands horizontal drags to JS and lets vertical
+          scrolls through; the capture-phase click guard swallows the click a
+          swipe leaves behind before it reaches any control. */}
+      <div
+        {...swipeHandlers}
+        className="flex touch-pan-y items-center gap-[14px] px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)]"
+      >
         <button
           type="button"
-          onClick={handleTap}
-          onPointerDown={handlePointerDown}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerCancel}
+          onClick={onTap}
           aria-label="Reopen chart"
-          className="focus-visible:outline-aurora flex min-w-0 flex-1 touch-pan-y overflow-hidden text-left transition-transform duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.98]"
+          className="focus-visible:outline-aurora min-w-0 flex-1 overflow-hidden text-left focus-visible:outline-2 focus-visible:outline-offset-2"
         >
-          {/* Keyed on the stable song id so a track change remounts the content
-              and restarts the cue from zero: a rapid skip drops the outgoing
-              node instead of queueing, and the marquee re-measures the new
-              title. The button's overflow-hidden keeps the slide from pushing
-              layout. */}
-          <div
-            key={contentKey}
-            data-track-change={stepCue.dir ?? undefined}
-            className="flex min-w-0 flex-1 items-center gap-[14px]"
-          >
+          {/* The rail: prev | current | next, each the strip's full width, so a
+              drag reveals the neighbours and a commit slides one into place. The
+              current card is keyed on the stable song id so a track change
+              remounts it (marquee re-measures; the cue restarts from zero). */}
+          <div ref={railRef} style={{ transform: RAIL_REST }} className="flex">
+            <PreviewCard track={prevTrack} />
             <div
-              aria-hidden="true"
-              style={{ backgroundImage: `url(${currentTrack.artworkUrl})` }}
-              className="bg-fg-1/5 h-12 w-12 shrink-0 rounded-lg bg-cover bg-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-            />
-            <div className="min-w-0 flex-1">
-              <p className="text-sunrise text-body flex min-w-0 items-center gap-2 font-medium">
-                <span className="block min-w-0 overflow-hidden">
-                  <span
-                    ref={titleRef}
-                    className="marquee-track"
-                    data-marquee={titleScrolling || undefined}
-                    style={titleStyle}
-                  >
-                    {currentTrack.name}
+              key={contentKey}
+              data-track-change={stepCue.dir ?? undefined}
+              className="flex w-full shrink-0 items-center gap-[14px]"
+            >
+              <TrackArtwork url={currentTrack.artworkUrl} />
+              <div className="min-w-0 flex-1">
+                <p className="text-sunrise text-body flex min-w-0 items-center gap-2 font-medium">
+                  <span className="block min-w-0 overflow-hidden">
+                    <span
+                      ref={titleRef}
+                      className="marquee-track"
+                      data-marquee={titleScrolling || undefined}
+                      style={titleStyle}
+                    >
+                      {currentTrack.name}
+                    </span>
                   </span>
-                </span>
-                <span
-                  className="eq shrink-0"
-                  data-paused={!isPlaying || undefined}
-                  aria-hidden
-                >
-                  <span />
-                  <span />
-                  <span />
-                </span>
-              </p>
-              <p className="text-fg-2 text-small truncate">
-                {currentTrack.artist}
-              </p>
+                  <span
+                    className="eq shrink-0"
+                    data-paused={!isPlaying || undefined}
+                    aria-hidden
+                  >
+                    <span />
+                    <span />
+                    <span />
+                  </span>
+                </p>
+                <p className="text-fg-2 text-small truncate">
+                  {currentTrack.artist}
+                </p>
+              </div>
             </div>
+            <PreviewCard track={nextTrack} />
           </div>
         </button>
         {/* A sibling of the strip button, never inside it: nested buttons are

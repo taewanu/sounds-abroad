@@ -57,6 +57,8 @@ function renderMiniPlayer(
     onNext: vi.fn(),
     canPrev: true,
     canNext: true,
+    prevTrack: null,
+    nextTrack: null,
     ...props,
   };
   const utils = render(
@@ -100,8 +102,12 @@ describe("MiniPlayer", () => {
 
     expect(screen.getByText("Hot Track")).toBeDefined();
     expect(screen.getByText("Hot Artist")).toBeDefined();
-    const artwork = container.querySelector('[aria-hidden="true"]');
-    expect(artwork?.getAttribute("style")).toContain(track.artworkUrl);
+    // The current card's artwork, found among the rail's aria-hidden nodes by
+    // its background image (the empty prev/next preview slots carry none).
+    const artwork = [
+      ...container.querySelectorAll('[aria-hidden="true"]'),
+    ].find((el) => el.getAttribute("style")?.includes(track.artworkUrl));
+    expect(artwork).toBeDefined();
   });
 
   test("tap on main area fires onTap callback", () => {
@@ -175,34 +181,119 @@ describe("MiniPlayer", () => {
     expect((prevButton as HTMLButtonElement).disabled).toBe(true);
   });
 
-  test("swipe left fires onNext and suppresses the tap", () => {
-    const onNext = vi.fn();
-    const onTap = vi.fn();
+  test("a left swipe fires onNext after the commit slide and suppresses the tap", () => {
+    vi.useFakeTimers();
+    try {
+      const onNext = vi.fn();
+      const onTap = vi.fn();
 
-    renderMiniPlayer({ onNext, onTap }, { currentTrack: makeTrack() });
+      renderMiniPlayer({ onNext, onTap }, { currentTrack: makeTrack() });
 
-    const area = screen.getByRole("button", { name: /reopen chart/i });
-    fireEvent.pointerDown(area, { clientX: 200, clientY: 10 });
-    fireEvent.pointerUp(area, { clientX: 40, clientY: 10 });
-    fireEvent.click(area);
+      const area = screen.getByRole("button", { name: /reopen chart/i });
+      fireEvent.pointerDown(area, { clientX: 200, clientY: 10 });
+      fireEvent.pointerMove(area, { clientX: 40, clientY: 10 });
+      fireEvent.pointerUp(area, { clientX: 40, clientY: 10 });
+      // The skip is deferred until the outgoing slide finishes.
+      expect(onNext).not.toHaveBeenCalled();
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+      fireEvent.click(area);
 
-    expect(onNext).toHaveBeenCalledTimes(1);
-    expect(onTap).not.toHaveBeenCalled();
+      expect(onNext).toHaveBeenCalledTimes(1);
+      expect(onTap).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
-  test("swipe right fires onPrev and suppresses the tap", () => {
+  test("a right swipe fires onPrev after the commit slide and suppresses the tap", () => {
+    vi.useFakeTimers();
+    try {
+      const onPrev = vi.fn();
+      const onTap = vi.fn();
+
+      renderMiniPlayer({ onPrev, onTap }, { currentTrack: makeTrack() });
+
+      const area = screen.getByRole("button", { name: /reopen chart/i });
+      fireEvent.pointerDown(area, { clientX: 40, clientY: 10 });
+      fireEvent.pointerMove(area, { clientX: 200, clientY: 10 });
+      fireEvent.pointerUp(area, { clientX: 200, clientY: 10 });
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+      fireEvent.click(area);
+
+      expect(onPrev).toHaveBeenCalledTimes(1);
+      expect(onTap).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("a vertical drag does not skip and still reopens on tap", () => {
+    const onNext = vi.fn();
     const onPrev = vi.fn();
     const onTap = vi.fn();
 
-    renderMiniPlayer({ onPrev, onTap }, { currentTrack: makeTrack() });
+    renderMiniPlayer({ onNext, onPrev, onTap }, { currentTrack: makeTrack() });
 
     const area = screen.getByRole("button", { name: /reopen chart/i });
-    fireEvent.pointerDown(area, { clientX: 40, clientY: 10 });
-    fireEvent.pointerUp(area, { clientX: 200, clientY: 10 });
+    fireEvent.pointerDown(area, { clientX: 100, clientY: 10 });
+    fireEvent.pointerMove(area, { clientX: 104, clientY: 90 });
+    fireEvent.pointerUp(area, { clientX: 104, clientY: 90 });
     fireEvent.click(area);
 
-    expect(onPrev).toHaveBeenCalledTimes(1);
-    expect(onTap).not.toHaveBeenCalled();
+    expect(onNext).not.toHaveBeenCalled();
+    expect(onPrev).not.toHaveBeenCalled();
+    expect(onTap).toHaveBeenCalledTimes(1);
+  });
+
+  test("a swipe that starts on a control still skips: the whole bar is the surface", () => {
+    vi.useFakeTimers();
+    try {
+      const onNext = vi.fn();
+      renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
+
+      const play = screen.getByRole("button", { name: /play preview/i });
+      fireEvent.pointerDown(play, { clientX: 200, clientY: 10 });
+      fireEvent.pointerMove(play, { clientX: 40, clientY: 10 });
+      fireEvent.pointerUp(play, { clientX: 40, clientY: 10 });
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+
+      expect(onNext).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("re-grabbing during the commit slide flushes the pending skip once", () => {
+    vi.useFakeTimers();
+    try {
+      const onNext = vi.fn();
+      renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
+
+      const area = screen.getByRole("button", { name: /reopen chart/i });
+      fireEvent.pointerDown(area, { clientX: 200, clientY: 10 });
+      fireEvent.pointerMove(area, { clientX: 40, clientY: 10 });
+      fireEvent.pointerUp(area, { clientX: 40, clientY: 10 });
+      // Grab again before the slide's timer fires: the interrupted skip lands now.
+      act(() => {
+        vi.advanceTimersByTime(100);
+      });
+      expect(onNext).not.toHaveBeenCalled();
+      fireEvent.pointerDown(area, { clientX: 150, clientY: 10 });
+      expect(onNext).toHaveBeenCalledTimes(1);
+      // The elapsed timer must not fire it a second time.
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+      expect(onNext).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   test("commentary badge is absent when the track carries no commentary", () => {
