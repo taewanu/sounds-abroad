@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { COUNTRY_KR } from "@/lib/__fixtures__";
+import { COUNTRY_KR, COUNTRY_US } from "@/lib/__fixtures__";
 import type { AudioEngine } from "@/lib/audio-engine";
 import { createAudioStore } from "@/lib/audio-store";
 import type { Country } from "@/lib/chart-schema";
@@ -22,6 +22,14 @@ function makeMockAudio(): AudioEngine {
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
   };
+}
+
+// The scroll is deferred by rAF: one frame to let the DOM catch up, a second
+// when the list remounted onto a new country.
+async function frames(count: number) {
+  for (let i = 0; i < count; i++) {
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+  }
 }
 
 function setScrollTop(el: Element, value: number) {
@@ -550,6 +558,191 @@ describe("ChartSheet", () => {
           onSnapChange={vi.fn()}
           currentTrackRank={next}
           currentCountryCode="us"
+        />
+      </AudioStoreProvider>,
+    );
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+    expect(scrollIntoViewMock).not.toHaveBeenCalled();
+  });
+
+  test("a reopen asked from another country scrolls on the first ask, once the displayed country catches up", async () => {
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
+    // A rank the browsed country also has, so a scroll during the mismatch would
+    // land on its unrelated row.
+    const rank = COUNTRY_KR.tracks[2].rank;
+    const props = {
+      snap: "peek" as const,
+      onSnapChange: vi.fn(),
+      currentTrackRank: rank,
+      currentCountryCode: "kr",
+    };
+
+    // Browsing one country while another's track plays. The reopen bumps the
+    // signal a render before the route swaps the displayed country over.
+    const { rerender } = render(
+      <AudioStoreProvider>
+        <ChartSheet
+          {...props}
+          country={COUNTRY_US}
+          countryCode="us"
+          scrollSignal={0}
+        />
+      </AudioStoreProvider>,
+    );
+    scrollIntoViewMock.mockClear();
+
+    rerender(
+      <AudioStoreProvider>
+        <ChartSheet
+          {...props}
+          country={COUNTRY_US}
+          countryCode="us"
+          scrollSignal={1}
+        />
+      </AudioStoreProvider>,
+    );
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+    expect(scrollIntoViewMock).not.toHaveBeenCalled();
+
+    rerender(
+      <AudioStoreProvider>
+        <ChartSheet
+          {...props}
+          country={COUNTRY_KR}
+          countryCode="kr"
+          scrollSignal={1}
+        />
+      </AudioStoreProvider>,
+    );
+    // The swapped list takes the extra frame it waits for its layout on.
+    await frames(2);
+
+    expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("a step that lands in another country reveals its row once the displayed country catches up", async () => {
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
+    // A roll lands deep in the new chart while its list remounts at the top, so
+    // the row needs revealing rather than already sitting in view.
+    stubRects(rect(0, 100), rect(200, 240));
+    const landed = COUNTRY_KR.tracks[2].rank;
+    const base = { snap: "peek" as const, onSnapChange: vi.fn() };
+
+    const { rerender } = render(
+      <AudioStoreProvider>
+        <ChartSheet
+          {...base}
+          country={COUNTRY_US}
+          countryCode="us"
+          currentTrackRank={COUNTRY_US.tracks[0].rank}
+          currentCountryCode="us"
+          stepSignal={0}
+        />
+      </AudioStoreProvider>,
+    );
+    scrollIntoViewMock.mockClear();
+
+    // The roll steps into another country's track a render before the route
+    // swaps the displayed chart over.
+    rerender(
+      <AudioStoreProvider>
+        <ChartSheet
+          {...base}
+          country={COUNTRY_US}
+          countryCode="us"
+          currentTrackRank={landed}
+          currentCountryCode="kr"
+          stepSignal={1}
+        />
+      </AudioStoreProvider>,
+    );
+    await frames(2);
+
+    expect(scrollIntoViewMock).not.toHaveBeenCalled();
+
+    rerender(
+      <AudioStoreProvider>
+        <ChartSheet
+          {...base}
+          country={COUNTRY_KR}
+          countryCode="kr"
+          currentTrackRank={landed}
+          currentCountryCode="kr"
+          stepSignal={1}
+        />
+      </AudioStoreProvider>,
+    );
+    await frames(2);
+
+    expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("drops a held reopen ask once nothing is playing, rather than firing it at the next track", async () => {
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
+    // The row the user goes on to tap is off-screen, so only a stale reopen
+    // surviving the silence could pull the list to it: a direct tap carries no
+    // step, and so must never scroll on its own.
+    stubRects(rect(0, 100), rect(200, 240));
+    const rank = COUNTRY_KR.tracks[2].rank;
+    const base = { snap: "peek" as const, onSnapChange: vi.fn() };
+
+    const { rerender } = render(
+      <AudioStoreProvider>
+        <ChartSheet
+          {...base}
+          country={COUNTRY_KR}
+          countryCode="kr"
+          currentTrackRank={COUNTRY_KR.tracks[0].rank}
+          currentCountryCode="us"
+          scrollSignal={0}
+        />
+      </AudioStoreProvider>,
+    );
+    scrollIntoViewMock.mockClear();
+
+    // An ask raised while another country's track plays, so it goes unanswered.
+    rerender(
+      <AudioStoreProvider>
+        <ChartSheet
+          {...base}
+          country={COUNTRY_KR}
+          countryCode="kr"
+          currentTrackRank={COUNTRY_KR.tracks[0].rank}
+          currentCountryCode="us"
+          scrollSignal={1}
+        />
+      </AudioStoreProvider>,
+    );
+
+    // That track ends and the chart falls silent.
+    rerender(
+      <AudioStoreProvider>
+        <ChartSheet
+          {...base}
+          country={COUNTRY_KR}
+          countryCode="kr"
+          currentTrackRank={null}
+          currentCountryCode={null}
+          scrollSignal={1}
+        />
+      </AudioStoreProvider>,
+    );
+
+    // The user taps a row of the displayed country.
+    rerender(
+      <AudioStoreProvider>
+        <ChartSheet
+          {...base}
+          country={COUNTRY_KR}
+          countryCode="kr"
+          currentTrackRank={rank}
+          currentCountryCode="kr"
+          scrollSignal={1}
         />
       </AudioStoreProvider>,
     );

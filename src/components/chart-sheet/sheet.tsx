@@ -583,23 +583,38 @@ export function ChartSheet({
   const prevSnapRef = useRef(snap);
   const prevSignalRef = useRef(scrollSignal);
   const prevStepRef = useRef(stepSignal);
+  const prevCountryRef = useRef(countryCode);
 
   useEffect(() => {
     const wasMin =
       prevSnapRef.current === "closed" || prevSnapRef.current === "hidden";
     const signalChanged = prevSignalRef.current !== scrollSignal;
     const stepChanged = prevStepRef.current !== stepSignal;
+    const otherCountryPlaying =
+      currentCountryCode !== null && currentCountryCode !== countryCode;
+    // The <ol> is keyed by country, so a country change remounts the whole list.
+    const listSwapped = prevCountryRef.current !== countryCode;
     prevSnapRef.current = snap;
-    prevSignalRef.current = scrollSignal;
-    prevStepRef.current = stepSignal;
+    prevCountryRef.current = countryCode;
+    // Hold both asks while another country's track plays, the same idiom as the
+    // focus nonce above: a reopen tap and an end-of-chart roll each land their
+    // signal a render before the route swaps the displayed country over, so
+    // consuming one now would leave the pass where the two finally align with
+    // nothing to act on. The reopen would need a second tap; the roll would
+    // never reveal the row it just landed on. Every other bail still consumes
+    // both, so a held ask can't outlive its own change and fire against a later
+    // unrelated one.
+    if (!otherCountryPlaying) {
+      prevSignalRef.current = scrollSignal;
+      prevStepRef.current = stepSignal;
+    }
     if (snap === "closed" || snap === "hidden") return;
     if (currentTrackRank === null) return;
     // The now-playing row only exists in the displayed list when the playing
     // country is the one on screen. Ranks repeat across countries, so a
     // mismatch would scroll to an unrelated row of the browsed country; skip
     // until they align (null = nothing playing, already handled above).
-    if (currentCountryCode !== null && currentCountryCode !== countryCode)
-      return;
+    if (otherCountryPlaying) return;
     // Reveal the row on an INDIRECT change only: a reopen (raised from
     // minimized, or a mini-player tap that bumped the signal), or a skip /
     // auto-advance (a bumped step). A DIRECT tap changes the rank with no step,
@@ -608,8 +623,8 @@ export function ChartSheet({
     // A step to an already-visible neighbour still holds, gated below.
     const isReopen = wasMin || signalChanged;
     if (!isReopen && !stepChanged) return;
-    // Defer one frame so the new snap/country is in the DOM before query.
-    const id = requestAnimationFrame(() => {
+
+    const scrollToRow = () => {
       const ol = olRef.current;
       const el = ol?.querySelector<HTMLElement>(
         `[data-rank="${currentTrackRank}"]`,
@@ -620,8 +635,19 @@ export function ChartSheet({
         block: snap === "peek" ? "start" : "center",
         behavior: "smooth",
       });
-    });
-    return () => cancelAnimationFrame(id);
+    };
+
+    // One frame so the new snap/country is in the DOM before the query; a second
+    // when the list remounted, because the row exists a frame before the
+    // remounted list's layout settles and measuring there lands wrong.
+    let frame = 0;
+    const waitFrames = (n: number, run: () => void) => {
+      frame = requestAnimationFrame(
+        n <= 1 ? run : () => waitFrames(n - 1, run),
+      );
+    };
+    waitFrames(listSwapped ? 2 : 1, scrollToRow);
+    return () => cancelAnimationFrame(frame);
   }, [
     snap,
     currentTrackRank,
