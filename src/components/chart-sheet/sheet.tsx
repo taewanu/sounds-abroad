@@ -177,6 +177,8 @@ export function ChartSheet({
   // countries, so the intent targets its row only once the displayed country
   // is the playing one; until then the nonce stays unconsumed, so the focus
   // lands after the country change instead of being clobbered by its reset.
+  // The badge toggles: a fresh ask for the row already focused closes it, so
+  // the mini-player button both opens and dismisses its own card.
   const [consumedFocusNonce, setConsumedFocusNonce] = useState(0);
   if (
     focusIntent !== null &&
@@ -184,7 +186,9 @@ export function ChartSheet({
     (currentCountryCode === null || currentCountryCode === countryCode)
   ) {
     setConsumedFocusNonce(focusIntent.nonce);
-    setFocusedRank(focusIntent.rank);
+    setFocusedRank((cur) =>
+      cur === focusIntent.rank ? null : focusIntent.rank,
+    );
   }
 
   // While a card is focused, dismiss on Escape or a click outside it (a dimmed
