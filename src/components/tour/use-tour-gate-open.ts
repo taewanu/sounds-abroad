@@ -10,7 +10,12 @@ import { tourConcluded } from "./tour-concluded";
 // Reactive read of the tour-done gate. Unlike useSeenFlag's no-op subscribe, the
 // cues that wait on this outlive the tour, so they must re-render when the flag
 // flips mid-session, not just read it once at mount.
-const serverSnapshot = (): boolean | null => null;
+//
+// The server can't read the record, and a closed gate is the honest answer for
+// an unknown one, so it renders the same markup the client hydrates to. False,
+// not null: the pair only re-renders when the snapshots differ, and a null the
+// client never returns would spend that render on every visit.
+const serverSnapshot = (): boolean => false;
 
 // Whether a cue that must not compete with the tour may show: the tour will
 // never run again, and it isn't on screen right now. Both terms are needed,
@@ -25,5 +30,5 @@ export function useTourGateOpen(): boolean {
     serverSnapshot,
   );
   const tourActive = useStore(tourBridge, (s) => s.tourActive);
-  return tourDone === true && !tourActive;
+  return tourDone && !tourActive;
 }
