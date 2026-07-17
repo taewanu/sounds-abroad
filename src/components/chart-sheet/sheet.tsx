@@ -589,17 +589,25 @@ export function ChartSheet({
       prevSnapRef.current === "closed" || prevSnapRef.current === "hidden";
     const signalChanged = prevSignalRef.current !== scrollSignal;
     const stepChanged = prevStepRef.current !== stepSignal;
+    const otherCountryPlaying =
+      currentCountryCode !== null && currentCountryCode !== countryCode;
     prevSnapRef.current = snap;
-    prevSignalRef.current = scrollSignal;
     prevStepRef.current = stepSignal;
+    // Hold the signal only while another country's track plays, the same idiom
+    // as the focus nonce above: a reopen asked from there bumps the signal a
+    // render before the route swaps the displayed country over, so consuming it
+    // now would swallow the ask and leave the pass where the two finally align
+    // with nothing to act on. Only a second ask would scroll. Every other bail
+    // still consumes, so a held signal can't outlive its ask and fire as a
+    // reopen against some later, unrelated change.
+    if (!otherCountryPlaying) prevSignalRef.current = scrollSignal;
     if (snap === "closed" || snap === "hidden") return;
     if (currentTrackRank === null) return;
     // The now-playing row only exists in the displayed list when the playing
     // country is the one on screen. Ranks repeat across countries, so a
     // mismatch would scroll to an unrelated row of the browsed country; skip
     // until they align (null = nothing playing, already handled above).
-    if (currentCountryCode !== null && currentCountryCode !== countryCode)
-      return;
+    if (otherCountryPlaying) return;
     // Reveal the row on an INDIRECT change only: a reopen (raised from
     // minimized, or a mini-player tap that bumped the signal), or a skip /
     // auto-advance (a bumped step). A DIRECT tap changes the rank with no step,
