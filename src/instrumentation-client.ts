@@ -79,8 +79,8 @@ if (typeof window !== "undefined") {
 // noise, and it can't see the WebGL globe gestures anyway): product events fire
 // by hand via track() (src/lib/analytics.ts). capture_pageview is on as
 // 'history_change' so Web Analytics (source, geo, sessions) works across SPA
-// routes. Session replay IS on to watch how people handle the globe gestures,
-// with inputs masked (there is no login/PII, so nothing else needs masking).
+// routes. Session recording stays off: Sentry already replays sessions, sampled,
+// and a second recorder doubles what visitors have captured for no added answer.
 // identified_only skips person profiles for anonymous visitors. Off entirely
 // when the key is unset, so the app runs identically before the project exists.
 const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
@@ -90,8 +90,7 @@ if (posthogKey) {
       process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com",
     autocapture: false,
     capture_pageview: "history_change",
-    disable_session_recording: false,
-    session_recording: { maskAllInputs: true },
+    disable_session_recording: true,
     person_profiles: "identified_only",
   });
   // Tag every event with the deploy env so dev/preview traffic is filterable.
