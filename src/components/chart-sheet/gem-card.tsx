@@ -33,7 +33,7 @@ function TierDots({ tier }: { tier: GemTier }) {
   );
 }
 
-// The "today's gem" hero card: the play row mirrors TrackRow's (same store
+// The "local gem" hero card: the play row mirrors TrackRow's (same store
 // reads, same toggle call) so a tap here behaves identically to tapping a
 // ranked row, with the tier label standing in for the rank number.
 export function GemCard({ track, tier, countryCode }: GemCardProps) {
@@ -57,14 +57,14 @@ export function GemCard({ track, tier, countryCode }: GemCardProps) {
 
   return (
     <section
-      aria-label="Today's gem"
+      aria-label="Local Gem"
       className="border-fg-1/10 bg-atmos mb-3 flex flex-col rounded-lg border px-3 py-2.5"
     >
       <button
         type="button"
         disabled={!hasPreview}
         onClick={() => toggle(track, countryCode)}
-        aria-label={`${isPlaying ? "Pause" : "Play"} today's gem, ${track.name} by ${track.artist}`}
+        aria-label={`${isPlaying ? "Pause" : "Play"} the Local Gem, ${track.name} by ${track.artist}`}
         className="focus-visible:outline-aurora flex min-w-0 items-center gap-[14px] text-left transition-transform duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none"
       >
         <span className="text-fg-3 text-body flex w-7 shrink-0 items-center justify-center">
@@ -84,7 +84,7 @@ export function GemCard({ track, tier, countryCode }: GemCardProps) {
         <div className="min-w-0 flex-1">
           <p className="text-gold text-micro mb-0.5 flex items-center gap-1.5 font-medium tracking-wide uppercase">
             <GemIcon className="h-3.5 w-3.5 shrink-0" />
-            {"Today's gem"}
+            Local Gem
           </p>
           <p className="text-fg-2 text-small mb-0.5 flex min-w-0 items-center gap-1.5">
             <TierDots tier={tier} />
