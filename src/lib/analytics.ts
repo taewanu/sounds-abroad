@@ -12,30 +12,61 @@ import posthog from "posthog-js";
  * discovered weeks later.
  */
 export interface AnalyticsEvent {
-  // Which discovery surface produced a play — the core "what earns plays" metric.
+  // A track started from a fresh selection (not an advance — those are
+  // next_executed). `source` is which surface the user picked it from.
   track_played: {
     country: string;
-    source: "globe_tap" | "autoplay_on_select" | "mini_player_next" | "tour";
+    source: "track_row" | "gem_card";
   };
 
-  // How the user reached the next track, and how deep they were when they did.
-  // `method` separates the advance surfaces; `from_rank` measures per-country
-  // consumption depth (do they get deep into the 25 or bail near the top?).
+  // The user advanced to another track. Every next/prev surface routes through
+  // one seam, so `direction` and `outcome` come from there; `outcome: "rolled"`
+  // means they exhausted the country and rolled into a new one. `from_rank` is
+  // the rank they left, measuring per-country consumption depth.
   next_executed: {
     country: string;
-    method: "edge_tap" | "mini_player" | "auto_advance" | "chart_roll";
+    direction: "next" | "prev";
+    outcome: "adjacent" | "rolled" | "back_rolled";
     from_rank: number;
   };
 
-  // A preview failed to play. `reason` splits the causes so the iOS silent-audio
-  // bug (#148) becomes a measured rate distinct from an outright missing preview.
+  // A preview failed to play. `reason` splits the detectable causes; `errorName`
+  // carries the DOMException name when present, to tell the iOS silent-audio bug
+  // (#148, a rejected play) apart from a plain load failure.
   preview_playback_failed: {
     country: string;
-    reason:
-      | "audiocontext_interrupted"
-      | "empty_preview_url"
-      | "autoplay_blocked"
-      | "load_error";
+    reason: "load_error" | "play_rejected" | "empty_preview_url";
+    errorName?: string;
+  };
+
+  // A 30-second preview played to the end instead of being skipped. The core
+  // music engagement signal: which countries' tracks hold attention to the end.
+  preview_completed: {
+    country: string;
+    rank: number;
+  };
+
+  // The user deliberately paused (tapped pause), the third listen-end state
+  // beside completed and skipped: they stopped without finishing or advancing.
+  // Only the intentional pause, not background-tab / device / handoff pauses.
+  preview_paused: {
+    country: string;
+    rank: number;
+  };
+
+  // The why-trending commentary card was opened, measuring whether this
+  // discovery surface gets used. Fires on open, not close.
+  commentary_opened: {
+    country: string;
+    rank: number;
+  };
+
+  // The user followed a track out to Apple Music or Spotify for full playback,
+  // a conversion signal that the preview created real interest.
+  deeplink_out: {
+    country: string;
+    platform: "apple" | "spotify";
+    rank: number;
   };
 }
 
