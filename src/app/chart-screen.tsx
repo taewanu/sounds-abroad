@@ -46,7 +46,7 @@ function validateUrlCode(
 ): string | null {
   if (raw === null) return null;
   const lower = raw.toLowerCase();
-  return countries[lower] ? lower : null;
+  return Object.hasOwn(countries, lower) ? lower : null;
 }
 
 export interface ChartScreenProps {
