@@ -193,7 +193,7 @@ describe("ChartSheet", () => {
 
     renderSheet("peek");
 
-    const region = screen.getByRole("region", { name: /today's gem/i });
+    const region = screen.getByRole("region", { name: /local gem/i });
     expect(region.textContent).toContain(selection.gem.name);
     expect(region.textContent).toContain(selection.tier);
   });
@@ -206,7 +206,7 @@ describe("ChartSheet", () => {
 
     // Scoped to the region: the gem also renders as an ordinary row further
     // down the list, which has its own same-named play button.
-    const region = screen.getByRole("region", { name: /today's gem/i });
+    const region = screen.getByRole("region", { name: /local gem/i });
     fireEvent.click(within(region).getByRole("button", { name: /play/i }));
 
     expect(store.getState().currentTrack).toEqual(gem);
@@ -230,7 +230,7 @@ describe("ChartSheet", () => {
       ),
     ).not.toThrow();
 
-    expect(screen.queryByRole("region", { name: /today's gem/i })).toBeNull();
+    expect(screen.queryByRole("region", { name: /local gem/i })).toBeNull();
   });
 
   test("exposes data-snap='peek' when snap prop is peek", () => {
