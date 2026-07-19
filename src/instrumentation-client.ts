@@ -3,6 +3,7 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs";
+import posthog from "posthog-js";
 
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
@@ -72,6 +73,31 @@ if (typeof window !== "undefined") {
       saveData: conn.saveData,
     });
   }
+}
+
+// Product analytics (PostHog), tuned for #250. autocapture stays off (no click
+// noise, and it can't see the WebGL globe gestures anyway): product events fire
+// by hand via track() (src/lib/analytics.ts). capture_pageview is on as
+// 'history_change' so Web Analytics (source, geo, sessions) works across SPA
+// routes. Session replay IS on to watch how people handle the globe gestures,
+// with inputs masked (there is no login/PII, so nothing else needs masking).
+// identified_only skips person profiles for anonymous visitors. Off entirely
+// when the key is unset, so the app runs identically before the project exists.
+const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+if (posthogKey) {
+  posthog.init(posthogKey, {
+    api_host:
+      process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com",
+    autocapture: false,
+    capture_pageview: "history_change",
+    disable_session_recording: false,
+    session_recording: { maskAllInputs: true },
+    person_profiles: "identified_only",
+  });
+  // Tag every event with the deploy env so dev/preview traffic is filterable.
+  posthog.register({
+    app_env: process.env.NEXT_PUBLIC_VERCEL_ENV ?? "development",
+  });
 }
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
