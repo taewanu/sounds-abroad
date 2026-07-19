@@ -20,7 +20,7 @@ export const GEM_TIER_STRENGTH: Record<GemTier, number> = {
 };
 
 /**
- * Picks a country's "today's gem" from its baked spread counts (ADR-0013):
+ * Picks a country's Local Gem from its baked spread counts (ADR-0013):
  * a spread-1 top track is "entirely their own"; a spread-1 track further
  * down the chart, or a top track with spread 2-3, is "a local favorite";
  * otherwise the lowest-spread, best-ranked track stands in as "their most

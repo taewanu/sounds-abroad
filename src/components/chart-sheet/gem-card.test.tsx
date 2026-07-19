@@ -53,10 +53,10 @@ function renderGemCard(
 }
 
 describe("GemCard", () => {
-  test("renders as an accessible region labeled today's gem", () => {
+  test("renders as an accessible region labeled Local Gem", () => {
     renderGemCard(makeTrack());
 
-    expect(screen.getByRole("region", { name: /today's gem/i })).toBeDefined();
+    expect(screen.getByRole("region", { name: /local gem/i })).toBeDefined();
   });
 
   test("renders the track name, artist, and tier label", () => {
