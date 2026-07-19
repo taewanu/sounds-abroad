@@ -7,6 +7,7 @@ import { PauseIcon } from "@/components/icons/pause";
 import { PlayIcon } from "@/components/icons/play";
 import { SpotifyIcon } from "@/components/icons/spotify";
 import { useOverflowMarquee } from "@/components/use-overflow-marquee";
+import { track as trackEvent } from "@/lib/analytics";
 import type { Track } from "@/lib/chart-schema";
 import { sameTrack } from "@/lib/track-identity";
 import { useAudioStore } from "@/providers/audio-store-provider";
@@ -103,7 +104,7 @@ export function TrackRow({
         <button
           type="button"
           disabled={!hasPreview}
-          onClick={() => toggle(track, countryCode)}
+          onClick={() => toggle(track, countryCode, "track_row")}
           aria-label={`${isPlaying ? "Pause" : "Play"} preview of ${track.name} by ${track.artist}`}
           className="focus-visible:outline-aurora flex min-w-0 flex-1 items-center gap-[14px] text-left transition-transform duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none"
         >
@@ -166,7 +167,14 @@ export function TrackRow({
             href={track.appleUrl}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() => pause()}
+            onClick={() => {
+              pause();
+              trackEvent("deeplink_out", {
+                country: countryCode,
+                platform: "apple",
+                rank: track.rank,
+              });
+            }}
             aria-label={`Open ${track.name} in Apple Music`}
             className="hover:bg-orbit focus-visible:outline-aurora flex h-8 w-8 items-center justify-center rounded-full transition-all duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]"
           >
@@ -176,7 +184,14 @@ export function TrackRow({
             href={track.spotifyUrl}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() => pause()}
+            onClick={() => {
+              pause();
+              trackEvent("deeplink_out", {
+                country: countryCode,
+                platform: "spotify",
+                rank: track.rank,
+              });
+            }}
             aria-label={`Open ${track.name} on Spotify`}
             className="hover:bg-orbit focus-visible:outline-aurora flex h-8 w-8 items-center justify-center rounded-full transition-all duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]"
           >

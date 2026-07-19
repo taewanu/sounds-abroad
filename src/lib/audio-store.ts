@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { createStore } from "zustand/vanilla";
 
+import { type AnalyticsEvent, track as trackEvent } from "@/lib/analytics";
 import {
   type AudioEngine,
   type AudioEngineFactory,
@@ -30,7 +31,14 @@ export interface AudioState {
   // reads as a fresh change. Null until the first skip, so a mount or a
   // non-skip track change never carries a direction.
   lastStep: { dir: 1 | -1; nonce: number } | null;
-  toggle: (track: Track, countryCode?: string) => void;
+  // `source` marks a fresh user selection (track row, gem card) so a
+  // track_played event fires only for those, not for skips (which route through
+  // step() with no source and are covered by next_executed) or pause/resume.
+  toggle: (
+    track: Track,
+    countryCode?: string,
+    source?: AnalyticsEvent["track_played"]["source"],
+  ) => void;
   signalStep: (dir: 1 | -1) => void;
   setVolume: (value: number) => void;
   pause: () => void;
@@ -65,11 +73,18 @@ export function createAudioStore(
         setPlaybackState("paused");
       });
       engine.addEventListener("ended", () => {
+        const finished = get().currentTrack;
         set((state) => ({
           isPlaying: false,
           endedSignal: state.endedSignal + 1,
         }));
         setPlaybackState("none");
+        if (finished) {
+          trackEvent("preview_completed", {
+            country: get().currentCountryCode ?? "unknown",
+            rank: finished.rank,
+          });
+        }
       });
       engine.addEventListener("error", () => {
         const previewUrl = get().currentTrack?.previewUrl ?? null;
@@ -79,6 +94,10 @@ export function createAudioStore(
           level: "warning",
           message: "preview audio error",
           data: { previewUrl },
+        });
+        trackEvent("preview_playback_failed", {
+          country: get().currentCountryCode ?? "unknown",
+          reason: previewUrl ? "load_error" : "empty_preview_url",
         });
       });
       // OS transport buttons (lock screen / Dynamic Island) drive the same
@@ -113,6 +132,11 @@ export function createAudioStore(
           message: "preview audio play rejected",
           data: { previewUrl },
         });
+        trackEvent("preview_playback_failed", {
+          country: get().currentCountryCode ?? "unknown",
+          reason: previewUrl ? "play_rejected" : "empty_preview_url",
+          errorName: error instanceof DOMException ? error.name : undefined,
+        });
       };
     }
 
@@ -128,7 +152,7 @@ export function createAudioStore(
         set((state) => ({
           lastStep: { dir, nonce: (state.lastStep?.nonce ?? 0) + 1 },
         })),
-      toggle: (track, countryCode) => {
+      toggle: (track, countryCode, source) => {
         const state = get();
         const a = getEngine();
         // Same song in a different country is a context switch, not a resume:
@@ -141,6 +165,10 @@ export function createAudioStore(
         if (isCurrent && state.isPlaying) {
           a.pause();
           set({ isPlaying: false });
+          trackEvent("preview_paused", {
+            country: state.currentCountryCode ?? "unknown",
+            rank: track.rank,
+          });
           return;
         }
         if (isCurrent) {
@@ -159,6 +187,12 @@ export function createAudioStore(
           isPlaying: true,
           lastError: null,
         });
+        if (source) {
+          trackEvent("track_played", {
+            country: countryCode ?? "unknown",
+            source,
+          });
+        }
       },
       setVolume: (value) => {
         getEngine().setVolume(value);

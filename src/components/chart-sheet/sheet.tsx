@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 
+import { track as trackEvent } from "@/lib/analytics";
 import type { Country } from "@/lib/chart-schema";
 import { selectGem } from "@/lib/select-gem";
 
@@ -167,6 +168,18 @@ export function ChartSheet({
   // on return to that country).
   const [focusedRank, setFocusedRank] = useState<number | null>(null);
   const [focusCountry, setFocusCountry] = useState(countryCode);
+  // Fire commentary_opened when a card opens or switches, never on close.
+  const prevFocusedRef = useRef<number | null>(null);
+  useEffect(() => {
+    const prev = prevFocusedRef.current;
+    prevFocusedRef.current = focusedRank;
+    if (focusedRank !== null && focusedRank !== prev) {
+      trackEvent("commentary_opened", {
+        country: countryCode,
+        rank: focusedRank,
+      });
+    }
+  }, [focusedRank, countryCode]);
   if (focusCountry !== countryCode) {
     setFocusCountry(countryCode);
     setFocusedRank(null);

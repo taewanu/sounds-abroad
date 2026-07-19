@@ -63,7 +63,7 @@ export function GemCard({ track, tier, countryCode }: GemCardProps) {
       <button
         type="button"
         disabled={!hasPreview}
-        onClick={() => toggle(track, countryCode)}
+        onClick={() => toggle(track, countryCode, "gem_card")}
         aria-label={`${isPlaying ? "Pause" : "Play"} the Local Gem, ${track.name} by ${track.artist}`}
         className="focus-visible:outline-aurora flex min-w-0 items-center gap-[14px] text-left transition-transform duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none"
       >

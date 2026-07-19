@@ -19,6 +19,7 @@ import { MiniPlayer } from "@/components/mini-player";
 import { TourHost } from "@/components/tour/tour-host";
 import { useTourGateOpen } from "@/components/tour/use-tour-gate-open";
 import { findAdjacentPlayable } from "@/lib/adjacent-playable";
+import { track as trackEvent } from "@/lib/analytics";
 import type { ChartFile, Country } from "@/lib/chart-schema";
 import {
   backRollTarget,
@@ -45,7 +46,7 @@ function validateUrlCode(
 ): string | null {
   if (raw === null) return null;
   const lower = raw.toLowerCase();
-  return countries[lower] ? lower : null;
+  return Object.hasOwn(countries, lower) ? lower : null;
 }
 
 export interface ChartScreenProps {
@@ -241,6 +242,12 @@ function ChartScreenInner({
       if (adj) {
         toggle(adj, currentCountryCode);
         signalStep(dir);
+        trackEvent("next_executed", {
+          country: currentCountryCode,
+          direction: dir === 1 ? "next" : "prev",
+          outcome: "adjacent",
+          from_rank: currentTrack.rank,
+        });
         return "adjacent";
       }
       if (dir === 1) {
@@ -272,6 +279,12 @@ function ChartScreenInner({
         window.history.replaceState(null, "", `?cc=${landing.code}`);
         signalStep(dir);
         flashSkip(1);
+        trackEvent("next_executed", {
+          country: currentCountryCode,
+          direction: "next",
+          outcome: "rolled",
+          from_rank: currentTrack.rank,
+        });
         return "rolled";
       }
       const back = backRollTarget(
@@ -290,6 +303,12 @@ function ChartScreenInner({
       window.history.replaceState(null, "", `?cc=${back.countryCode}`);
       signalStep(dir);
       flashSkip(-1);
+      trackEvent("next_executed", {
+        country: currentCountryCode,
+        direction: "prev",
+        outcome: "back_rolled",
+        from_rank: currentTrack.rank,
+      });
       return "backRolled";
     },
     [audioStore, charts.countries, rollRecord, flashSkip],
