@@ -5,10 +5,16 @@ import type {
 } from "../../src/lib/chart-schema";
 
 import type { ApplePlaylist } from "./apple-playlists";
-import { batchIds, ItunesLookupError, type LookupTally } from "./itunes-lookup";
+import {
+  batchIds,
+  ItunesLookupError,
+  type LookupResult,
+  type LookupTally,
+} from "./itunes-lookup";
 import type { BatchLookup } from "./lookup-retry";
 import { PlaylistPageError, type PlaylistTrack } from "./playlist-page";
 import { genreHistogram } from "./playlist-selection";
+import { spotifySearchUrl } from "./spotify-resolve";
 
 /**
  * Share of a country's page fetches that may fail before the run stops treating
@@ -57,16 +63,16 @@ export function isContractBroken(
   return pageFailures / pagesAttempted > share;
 }
 
-async function previewsFor(
+type ResolvedTrack = Pick<LookupResult, "previewUrl" | "genre">;
+
+/** Resolves a set of track ids to their preview URL and genre. */
+async function resolveTracks(
   ids: readonly string[],
   cc: string,
   lookupTracks: BatchLookup,
   tally: LookupTally,
-): Promise<Map<string, { previewUrl: string; genre: string | null }>> {
-  const resolved = new Map<
-    string,
-    { previewUrl: string; genre: string | null }
-  >();
+): Promise<Map<string, ResolvedTrack>> {
+  const resolved = new Map<string, ResolvedTrack>();
   tally.requested += ids.length;
 
   for (const batch of batchIds(ids)) {
@@ -108,33 +114,40 @@ export async function crawlCountryPlaylists(
   const failedIds: string[] = [];
   const lookups: LookupTally = { requested: 0, resolved: 0 };
 
+  const scraped: { playlist: ApplePlaylist; tracks: PlaylistTrack[] }[] = [];
   for (const playlist of selected) {
-    let scraped: PlaylistTrack[];
     try {
-      scraped = await deps.fetchPlaylistPage(playlist.id, playlist.appleUrl);
+      const tracks = await deps.fetchPlaylistPage(
+        playlist.id,
+        playlist.appleUrl,
+      );
+      scraped.push({ playlist, tracks });
     } catch (err) {
       if (!(err instanceof PlaylistPageError)) throw err;
       failedIds.push(playlist.id);
       console.warn(
         `[crawl ${cc}] playlist page ${err.kind} for ${playlist.id}: ${err.message}`,
       );
-      continue;
     }
+  }
 
-    const resolved = await previewsFor(
-      scraped.map((track) => track.id),
-      cc,
-      deps.lookupTracks,
-      lookups,
-    );
+  const ids = new Set(scraped.flatMap((s) => s.tracks.map((t) => t.id)));
+  const resolved = await resolveTracks(
+    [...ids],
+    cc,
+    deps.lookupTracks,
+    lookups,
+  );
 
-    const tracks: ChartPlaylistTrack[] = scraped.map((track) => ({
+  for (const { playlist, tracks: pageTracks } of scraped) {
+    const tracks: ChartPlaylistTrack[] = pageTracks.map((track) => ({
       rank: track.rank,
       name: track.name,
       artist: track.artist,
       previewUrl: resolved.get(track.id)?.previewUrl ?? null,
       artworkUrl: track.artworkUrl,
       appleUrl: track.appleUrl,
+      spotifyUrl: spotifySearchUrl(track.name, track.artist),
     }));
 
     byId.set(playlist.id, {
@@ -143,7 +156,7 @@ export async function crawlCountryPlaylists(
       appleUrl: playlist.appleUrl,
       artworkUrl: playlist.artworkUrl,
       genres: genreHistogram(
-        scraped.map((track) => resolved.get(track.id)?.genre ?? null),
+        pageTracks.map((track) => resolved.get(track.id)?.genre ?? null),
       ),
       trackCount: tracks.length,
     });

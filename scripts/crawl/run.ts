@@ -28,7 +28,11 @@ import {
   countPlaylistSpread,
   selectLocalPlaylists,
 } from "./playlist-selection";
-import { SpotifyResolveError, type SpotifyResolver } from "./spotify-resolve";
+import {
+  SpotifyResolveError,
+  spotifySearchUrl,
+  type SpotifyResolver,
+} from "./spotify-resolve";
 import type { Throttle } from "./throttle";
 
 // Optional Spotify resolution: present only when crawl credentials are wired.
@@ -143,10 +147,6 @@ export function summarizeValidity(chartFile: ChartFile): ValiditySummary {
     validCount: entries.length - invalidCodes.length,
     invalidCodes,
   };
-}
-
-function spotifySearchUrl(name: string, artist: string): string {
-  return `https://open.spotify.com/search/${encodeURIComponent(`${name} ${artist}`)}`;
 }
 
 /**
