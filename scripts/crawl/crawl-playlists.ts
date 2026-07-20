@@ -8,7 +8,7 @@ import type { ApplePlaylist } from "./apple-playlists";
 import { batchIds, ItunesLookupError, type LookupTally } from "./itunes-lookup";
 import type { BatchLookup } from "./lookup-retry";
 import { PlaylistPageError, type PlaylistTrack } from "./playlist-page";
-import { genreHistogram, selectLocalPlaylists } from "./playlist-selection";
+import { genreHistogram } from "./playlist-selection";
 
 /**
  * Share of a country's page fetches that may fail before the run stops treating
@@ -164,16 +164,21 @@ export async function crawlCountryPlaylists(
   };
 }
 
-/** Back-fills each playlist's spread onto the metadata the country carries. */
+/**
+ * Back-fills each playlist's spread onto the metadata the country carries.
+ *
+ * Leaves an unscored playlist alone rather than clearing it: a carried entry
+ * can be absent from every feed this run, and its last known count is better
+ * than none.
+ */
 export function bakePlaylistSpread(
   byCountry: ReadonlyMap<string, Playlist[]>,
   spread: ReadonlyMap<string, number>,
 ): void {
   for (const playlists of byCountry.values()) {
     for (const playlist of playlists) {
-      playlist.spread = spread.get(playlist.id);
+      const count = spread.get(playlist.id);
+      if (count !== undefined) playlist.spread = count;
     }
   }
 }
-
-export { selectLocalPlaylists };

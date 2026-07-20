@@ -146,6 +146,7 @@ try {
           valid_count: summary.validCount,
           carried_codes: result.carriedCodes,
           carried_playlist_codes: result.carriedPlaylistCodes,
+          invalid_playlist_codes: result.invalidPlaylistCodes,
           // Unthresholded on purpose; see LookupTally.
           lookups_requested: result.lookups.requested,
           lookups_resolved: result.lookups.resolved,
@@ -160,7 +161,8 @@ try {
       const degraded =
         summary.invalidCodes.length > 0 ||
         result.carriedCodes.length > 0 ||
-        result.carriedPlaylistCodes.length > 0;
+        result.carriedPlaylistCodes.length > 0 ||
+        result.invalidPlaylistCodes.length > 0;
       if (degraded) {
         Sentry.captureMessage("charts:degraded", {
           level: "warning",
@@ -169,6 +171,7 @@ try {
             invalid_codes: summary.invalidCodes,
             carried_codes: result.carriedCodes,
             carried_playlist_codes: result.carriedPlaylistCodes,
+            invalid_playlist_codes: result.invalidPlaylistCodes,
             valid_count: summary.validCount,
             country_count: summary.total,
           },
@@ -184,7 +187,7 @@ try {
       checkinMargin: 150,
       // Clocks from the in-progress check-in, not the slot, so dispatch
       // delay never eats into it. Sized to the throttled crawl runtime
-      // (~26 requests/country at the 3s gap, ~80min at current coverage),
+      // (both axes batched, projected ~35min at current coverage),
       // kept under the 300min tightest slot gap with checkinMargin.
       maxRuntime: 120,
     },

@@ -124,6 +124,9 @@ export interface CrawlAllResult {
   // Countries whose playlist axis was republished from the previous payload.
   // Separate from carriedCodes: the two axes go stale independently.
   carriedPlaylistCodes: string[];
+  // Countries publishing no playlists at all this run. Distinct from a carry:
+  // nothing stale is being served because there is nothing to serve.
+  invalidPlaylistCodes: string[];
 }
 
 export interface ValiditySummary {
@@ -323,26 +326,16 @@ export interface PlaylistAttempt {
 
 /**
  * Decides what a country publishes on the playlist axis, per playlist rather
- * than per country.
+ * than per country (ADR-0015).
  *
- * A page that failed did so for a playlist today's feed just listed, so the
- * playlist exists and only the fetch broke. Republishing the previous run's
- * entry keeps that chart on the shelf for a day rather than making it blink
- * out and return; its track blob was never overwritten, so it still opens and
- * plays. A playlist Apple actually deleted never reaches here, because it left
- * the feed and selection never picked it.
+ * A failed page belongs to a playlist today's feed just listed, so the fetch
+ * broke but the playlist did not: republishing yesterday's entry keeps the
+ * chart on the shelf instead of blinking it out, and its track blob was never
+ * overwritten. Carried entries keep `playlistsValid: true`, mirroring the songs
+ * axis, so both degrade by one rule.
  *
- * Kept apart from the songs axis on purpose: `valid` and its carry-forward
- * govern the songs chart, and letting a playlist failure reach them would roll
- * back a fresh songs chart to protect the secondary axis (ADR-0015).
- *
- * Carried entries keep `playlistsValid: true`, mirroring the songs axis, so
- * both degrade by one rule rather than two. `carriedPlaylistCodes` is the
- * signal that anything on this axis is stale.
- *
- * `attempt` is null when the country's feed itself failed, which is the one
- * case with nothing to merge against: nothing was selected, so the whole
- * previous set carries or none of it does.
+ * `attempt` is null when the feed itself failed, the one case with nothing to
+ * merge against.
  */
 export function resolvePlaylistAxis(
   cc: string,
@@ -360,7 +353,9 @@ export function resolvePlaylistAxis(
       `[crawl ${cc}] playlist feed failed, carried forward last-good (${priorPlaylists.length} playlists)`,
     );
     return {
-      playlists: priorPlaylists,
+      // Copies: bakePlaylistSpread writes through what it is handed, and these
+      // objects still belong to the previous payload the snapshot republishes.
+      playlists: priorPlaylists.map((playlist) => ({ ...playlist })),
       playlistsValid: true,
       carriedIds: priorPlaylists.map((playlist) => playlist.id),
     };
@@ -380,7 +375,7 @@ export function resolvePlaylistAxis(
     }
     const stale = priorById.get(selected.id);
     if (stale) {
-      playlists.push(stale);
+      playlists.push({ ...stale });
       carriedIds.push(selected.id);
     }
   }
@@ -470,7 +465,7 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
 
   bakeSpread(countriesMap);
 
-  const carriedPlaylistCodes = deps.playlistAxis
+  const playlistAxisRun = deps.playlistAxis
     ? await crawlPlaylistAxis({
         axis: deps.playlistAxis,
         countries,
@@ -481,7 +476,9 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
         lookups,
         now,
       })
-    : [];
+    : { carried: [], invalid: [], contractBreak: null };
+  const { carried: carriedPlaylistCodes, invalid: invalidPlaylistCodes } =
+    playlistAxisRun;
 
   const commentary = deps.fetchCommentary ? await deps.fetchCommentary() : null;
   if (commentary) {
@@ -506,7 +503,25 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
   );
   await triggerRevalidate();
 
-  return { url, chartFile, lookups, carriedCodes, carriedPlaylistCodes };
+  // Strictly after publishing. A broken page contract has to fail the run
+  // loudly, but failing it before the upload would keep today's songs charts
+  // off the site to signal a fault on the secondary axis, which is the trade
+  // ADR-0015 exists to refuse.
+  if (playlistAxisRun.contractBreak) {
+    throw new PlaylistContractError(
+      playlistAxisRun.contractBreak.pagesAttempted,
+      playlistAxisRun.contractBreak.pageFailures,
+    );
+  }
+
+  return {
+    url,
+    chartFile,
+    lookups,
+    carriedCodes,
+    carriedPlaylistCodes,
+    invalidPlaylistCodes,
+  };
 }
 
 interface PlaylistAxisRun {
@@ -526,11 +541,20 @@ interface PlaylistAxisRun {
  * publishes and uploads the track files, returning the countries whose axis
  * came from the previous payload.
  */
-async function crawlPlaylistAxis(run: PlaylistAxisRun): Promise<string[]> {
+interface PlaylistAxisReport {
+  carried: string[];
+  invalid: string[];
+  contractBreak: { pagesAttempted: number; pageFailures: number } | null;
+}
+
+async function crawlPlaylistAxis(
+  run: PlaylistAxisRun,
+): Promise<PlaylistAxisReport> {
   const { axis, countries, countriesMap, feeds, previous, now } = run;
 
   const spread = countPlaylistSpread(feeds);
   const carried: string[] = [];
+  const invalid: string[] = [];
   const publishedByCountry = new Map<string, Playlist[]>();
   let pagesAttempted = 0;
   let pageFailures = 0;
@@ -560,6 +584,7 @@ async function crawlPlaylistAxis(run: PlaylistAxisRun): Promise<string[]> {
 
     const outcome = resolvePlaylistAxis(cc, attempt, previous?.countries[cc]);
     if (outcome.carriedIds.length > 0) carried.push(cc);
+    if (!outcome.playlistsValid) invalid.push(cc);
 
     // Copy before attaching: a country carried forward on the songs axis is the
     // previous payload's own object, and writing through it would edit the
@@ -587,12 +612,15 @@ async function crawlPlaylistAxis(run: PlaylistAxisRun): Promise<string[]> {
 
   bakePlaylistSpread(publishedByCountry, spread);
 
-  if (isContractBroken(pagesAttempted, pageFailures)) {
-    throw new PlaylistContractError(pagesAttempted, pageFailures);
-  }
-
   console.log(
-    `[crawl] playlist axis: ${pagesAttempted - pageFailures}/${pagesAttempted} pages parsed, ${carried.length} countries carried`,
+    `[crawl] playlist axis: ${pagesAttempted - pageFailures}/${pagesAttempted} pages parsed, ${carried.length} countries carried, ${invalid.length} empty`,
   );
-  return carried;
+
+  return {
+    carried,
+    invalid,
+    contractBreak: isContractBroken(pagesAttempted, pageFailures)
+      ? { pagesAttempted, pageFailures }
+      : null,
+  };
 }

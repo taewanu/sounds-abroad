@@ -12,7 +12,7 @@ import { ApplePlaylistsError, type ApplePlaylist } from "./apple-playlists";
 import type { AppleRssTrack } from "./apple-rss";
 import type { LookupResult } from "./itunes-lookup";
 import type { BatchLookup } from "./lookup-retry";
-import type { PlaylistTrack } from "./playlist-page";
+import { PlaylistPageError, type PlaylistTrack } from "./playlist-page";
 import {
   crawlAll,
   PlaylistContractError,
@@ -337,11 +337,119 @@ test("leaves the songs axis untouched when the playlist axis fails", async () =>
   expect(result.carriedCodes).toEqual([]);
 });
 
+test("publishes the songs charts before failing on a broken contract", async () => {
+  const { deps } = makeDeps({
+    feedsByCc: { kr: [applePlaylist("pl.kr")], ng: [applePlaylist("pl.ng")] },
+    fetchPlaylistPage: vi.fn(async (playlistId: string) => {
+      throw new PlaylistPageError(playlistId, "shape", "block gone");
+    }),
+  });
+
+  await expect(crawlAll(deps)).rejects.toBeInstanceOf(PlaylistContractError);
+
+  // The songs axis is the primary one; a fault on the secondary axis must not
+  // keep today's charts off the site.
+  expect(deps.uploadCharts).toHaveBeenCalledTimes(1);
+});
+
+test("reports a country left with no playlists as degraded, not healthy", async () => {
+  const { deps } = makeDeps({ feedsByCc: { ng: [applePlaylist("pl.ng")] } });
+
+  const result = await crawlAll(deps);
+
+  expect(result.invalidPlaylistCodes).toEqual(["kr"]);
+  expect(result.carriedPlaylistCodes).toEqual([]);
+});
+
+test("leaves the previous payload untouched when carrying a playlist", async () => {
+  // The carried playlist is also live in another storefront, so this run scores
+  // it and bakes a value. Sharing the object would write that score back into
+  // the payload uploadPrevious republishes.
+  const shared = "pl.shared";
+  const stale = { ...playlistMeta(shared), spread: 9 };
+  const previous: ChartFile = {
+    lastUpdated: "2026-07-19T00:00:00.000Z",
+    countries: {
+      kr: {
+        name: KR.name,
+        valid: true,
+        tracks: [],
+        playlists: [stale],
+        playlistsValid: true,
+      },
+    },
+  };
+  const { deps } = makeDeps({
+    feedsByCc: { ng: [applePlaylist(shared)] },
+    fetchPrevious: vi.fn(async () => previous),
+  });
+
+  await crawlAll(deps);
+
+  expect(previous.countries.kr.playlists?.[0].spread).toBe(9);
+});
+
+test("leaves the previous payload untouched when carrying one failed page", async () => {
+  const local = "pl.kronly";
+  const stale = { ...playlistMeta(local), spread: 9 };
+  const previous: ChartFile = {
+    lastUpdated: "2026-07-19T00:00:00.000Z",
+    countries: {
+      kr: {
+        name: KR.name,
+        valid: true,
+        tracks: [],
+        playlists: [stale],
+        playlistsValid: true,
+      },
+    },
+  };
+  const { deps } = makeDeps({
+    // kr's feed is fine and lists the playlist; only its page fails, so this
+    // takes the per-playlist carry rather than the whole-country one. This run
+    // scores the playlist at 1, so sharing the object would overwrite the 9.
+    feedsByCc: { kr: [applePlaylist(local)], ng: [applePlaylist("pl.ng")] },
+    fetchPlaylistPage: vi.fn(async (playlistId: string) => {
+      if (playlistId === local)
+        throw new PlaylistPageError(playlistId, "http", "503");
+      return scrapedTracks();
+    }),
+    fetchPrevious: vi.fn(async () => previous),
+  });
+
+  await crawlAll(deps);
+
+  expect(previous.countries.kr.playlists?.[0].spread).toBe(9);
+});
+
+test("keeps a carried playlist's last known spread when this run cannot score it", async () => {
+  const stale = { ...playlistMeta("pl.stale"), spread: 4 };
+  const previous: ChartFile = {
+    lastUpdated: "2026-07-19T00:00:00.000Z",
+    countries: {
+      kr: {
+        name: KR.name,
+        valid: true,
+        tracks: [],
+        playlists: [stale],
+        playlistsValid: true,
+      },
+    },
+  };
+  const { deps } = makeDeps({
+    feedsByCc: { ng: [applePlaylist("pl.ng")] },
+    fetchPrevious: vi.fn(async () => previous),
+  });
+
+  const result = await crawlAll(deps);
+
+  expect(result.chartFile.countries.kr.playlists?.[0].spread).toBe(4);
+});
+
 test("throws when playlist pages stop parsing across the run", async () => {
   const { deps } = makeDeps({
     feedsByCc: { kr: [applePlaylist("pl.kr")], ng: [applePlaylist("pl.ng")] },
     fetchPlaylistPage: vi.fn(async (playlistId: string) => {
-      const { PlaylistPageError } = await import("./playlist-page");
       throw new PlaylistPageError(playlistId, "shape", "block gone");
     }),
   });

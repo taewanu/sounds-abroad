@@ -23,7 +23,9 @@ Two properties follow from that framing and neither is available on the alternat
 - **A playlist carries a locally-authored name.** "Pagode 2026", "邦楽ヒッツ", "African Gospel" name the scene in the local vocabulary. A ranked list of song ids cannot say what kind of music a place has; a chart title can.
 - **A playlist is already an editorial grouping.** Apple's local editors decided what belongs together, which is curation the crawl gets for free and could not synthesize from chart positions.
 
-**Global copy-paste playlists are excluded by spread.** The same cross-country counting that powers the Local Gem applies unchanged: a playlist appearing in most storefronts is not that country's, and drops out. Following ADR-0013, the crawl bakes the raw counts and the selection threshold lives at read time, so it is tunable without a re-crawl.
+**Global copy-paste playlists are excluded by spread.** The same cross-country counting that powers the Local Gem applies unchanged: a playlist appearing in most storefronts is not that country's, and drops out.
+
+This is where the axis departs from ADR-0013. Spread for a track is baked and judged at read time, because every track is in the payload either way. A playlist that fails the spread filter is never fetched at all, so the threshold has to run at crawl time and read time can only tighten it, never loosen it. The count still ships on every published playlist, so the display side can raise the bar without a re-crawl; lowering it needs one.
 
 **A playlist's genre is derived, not read.** The RSS feed's `genres` field is empty on every record sampled (500 across five storefronts), so the genre shown on a chart must be aggregated from its member tracks' `primaryGenreName` via Lookup. Passing `lang=en_us` normalizes the genre vocabulary to one language across all 63 storefronts while leaving track and artist names in their original script. Consistent with ADR-0013, the crawl bakes the full genre histogram and the displayed label is derived at read time, because the top genre's share of a playlist varies widely (measured 40% to 88%) and any labelling rule will need tuning.
 

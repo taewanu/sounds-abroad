@@ -5,11 +5,10 @@ import type { ApplePlaylist } from "./apple-playlists";
 /**
  * Share of storefronts above which a playlist reads as global rather than local.
  *
- * A fraction, not a count, because the threshold has to survive the country list
- * changing size. Measured over ten storefronts, the global tail ("Today's Hits",
- * "Michael Jackson Essentials", "A-List Pop") sat at 60% and up while every
- * regional playlist sat at 40% and below, so a quarter falls inside the gap with
- * room on both sides.
+ * A fraction, not a count, so the threshold survives the country list changing
+ * size. Measured over ten storefronts, the globally-repeated tail sat at 60% of
+ * them and up while every regional playlist sat at 40% and below; a quarter
+ * falls inside that gap with room on both sides.
  */
 const GLOBAL_SPREAD_SHARE = 0.25;
 
@@ -25,9 +24,8 @@ const PLAYLISTS_PER_COUNTRY = 15;
  * Counts the storefronts carrying each playlist.
  *
  * Keyed by id and never by name: a storefront localizes the title while the id
- * holds still, so the one feed entry that is `Today's Hits` in Turkey is
- * `오늘의 히트곡` in Korea under the same `pl.` id. Counting names would read
- * those as two different local playlists.
+ * holds still, so counting names would read one global playlist as several
+ * local ones.
  */
 export function countPlaylistSpread(
   feeds: ReadonlyMap<string, readonly ApplePlaylist[]>,
