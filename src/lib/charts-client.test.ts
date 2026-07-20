@@ -8,8 +8,7 @@ import {
   fetchCharts,
 } from "./charts-client";
 
-const FIXTURE_URL =
-  "https://store.public.blob.vercel-storage.com/charts/v1/charts.json";
+const FIXTURE_URL = "https://data.example.com/charts/v1/charts.json";
 
 afterEach(() => {
   vi.restoreAllMocks();

@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 
 import type { Commentary } from "../../src/lib/chart-schema";
+import { assertObjectStoreEnv } from "../lib/object-store";
 
 import { createClaudeJudge, fetchSourceText, groundEntry } from "./ground";
 import { parseCandidateStore } from "./parse-store";
@@ -11,11 +12,7 @@ import { backupCommentary, uploadCommentary } from "./upload-commentary";
 // blurb through the gate: an entry that clears every check publishes, any
 // failure drops that one card (ADR-0009). See docs/commentary-playbook.md.
 
-if (!process.env.BLOB_READ_WRITE_TOKEN) {
-  throw new Error(
-    "BLOB_READ_WRITE_TOKEN missing. Run via: pnpm commentary:publish <file>.",
-  );
-}
+assertObjectStoreEnv("Run via: pnpm commentary:publish <file>.");
 
 const file = process.argv[2];
 if (!file) {
@@ -54,10 +51,7 @@ if (publishedCount === 0) {
 // Absent on the first publish (nothing to back up yet).
 const previousUrl = process.env.COMMENTARY_BLOB_URL;
 if (previousUrl) {
-  const backupUrl = await backupCommentary(
-    previousUrl,
-    new Date().toISOString(),
-  );
+  const backupUrl = await backupCommentary(new Date().toISOString());
   console.log(`Backed up current store -> ${backupUrl}`);
 }
 

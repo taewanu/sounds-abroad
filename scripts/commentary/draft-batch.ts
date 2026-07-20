@@ -1,6 +1,7 @@
 import type { Commentary } from "../../src/lib/chart-schema";
 import type { CommentaryStore } from "../../src/lib/commentary-store";
 import { fetchPublishedCharts } from "../crawl/published-charts";
+import { assertObjectStoreEnv } from "../lib/object-store";
 
 import { createClaudeDrafter, draftEntry } from "./draft";
 import { dropsUrlFrom, recordAttempts } from "./drops";
@@ -21,11 +22,7 @@ import { computeWorklist, type WorklistItem } from "./worklist";
 // both spend the subscription, so the batch is bounded by --limit and runs on
 // the laptop. See docs/commentary-playbook.md.
 
-if (!process.env.BLOB_READ_WRITE_TOKEN) {
-  throw new Error(
-    "BLOB_READ_WRITE_TOKEN missing. Run via: pnpm commentary:draft.",
-  );
-}
+assertObjectStoreEnv("Run via: pnpm commentary:draft.");
 
 const chartsUrl = process.env.CHARTS_BLOB_URL;
 if (!chartsUrl) {
@@ -189,7 +186,7 @@ if (Object.keys(merged).length < Object.keys(existing).length) {
 // Snapshot the live store before overwriting, so a bad batch can be undone.
 // Absent only if commentary has never been published.
 if (commentaryUrl) {
-  const backupUrl = await backupCommentary(commentaryUrl, generatedAt);
+  const backupUrl = await backupCommentary(generatedAt);
   console.log(`Backed up current store -> ${backupUrl}`);
 }
 

@@ -1,40 +1,23 @@
-import { copy, put } from "@vercel/blob";
-
 import type { CommentaryStore } from "../../src/lib/commentary-store";
+import { copyObject, putJson } from "../lib/object-store";
 
 export const COMMENTARY_PATHNAME = "commentary/v1/commentary.json";
 
 export async function uploadCommentary(
   store: CommentaryStore,
 ): Promise<string> {
-  const body = JSON.stringify(store, null, 2);
-  const result = await put(COMMENTARY_PATHNAME, body, {
-    access: "public",
-    addRandomSuffix: false,
-    allowOverwrite: true,
-    contentType: "application/json",
-    cacheControlMaxAge: 60,
-  });
-  return result.url;
+  return putJson(COMMENTARY_PATHNAME, JSON.stringify(store, null, 2));
 }
 
 /**
  * Snapshots the live store to a timestamped path before an overwrite, so a bad
- * publish can be rolled back by reading the backup.
+ * publish can be rolled back by reading the backup. The source is always the
+ * live store, so callers pass only when the snapshot is taken.
  */
-export async function backupCommentary(
-  fromUrl: string,
-  timestamp: string,
-): Promise<string> {
+export async function backupCommentary(timestamp: string): Promise<string> {
   const safe = timestamp.replace(/[:.]/g, "-");
-  const result = await copy(
-    fromUrl,
+  return copyObject(
+    COMMENTARY_PATHNAME,
     `commentary/v1/backups/commentary-${safe}.json`,
-    {
-      access: "public",
-      addRandomSuffix: false,
-      contentType: "application/json",
-    },
   );
-  return result.url;
 }

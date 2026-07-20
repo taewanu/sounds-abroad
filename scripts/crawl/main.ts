@@ -1,4 +1,5 @@
 import { COUNTRIES } from "../../src/lib/countries";
+import { assertObjectStoreEnv } from "../lib/object-store";
 
 import { fetchPlaylists } from "./apple-playlists";
 import { fetchAppleRss } from "./apple-rss";
@@ -70,11 +71,9 @@ async function runSingleCountry(cc: string): Promise<void> {
 }
 
 async function runAllCountries(): Promise<void> {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    throw new Error(
-      "BLOB_READ_WRITE_TOKEN missing. Run with: pnpm crawl (loads .env.local via tsx --env-file).",
-    );
-  }
+  assertObjectStoreEnv(
+    "Run with: pnpm crawl (loads .env.local via tsx --env-file).",
+  );
   // This run publishes to the live pathname, so it must keep the same
   // read/snapshot pair as cron: without them a local run overwrites the
   // outgoing charts unsnapshotted and skips carry-forward.

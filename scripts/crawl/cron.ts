@@ -6,6 +6,7 @@ import {
   fetchCommentaryStore,
   withCommentaryDegradationSignal,
 } from "../commentary/fetch-commentary";
+import { assertObjectStoreEnv } from "../lib/object-store";
 
 import { fetchPlaylists } from "./apple-playlists";
 import { fetchAppleRss } from "./apple-rss";
@@ -27,9 +28,7 @@ import {
   uploadPreviousCharts,
 } from "./upload-blob";
 
-if (!process.env.BLOB_READ_WRITE_TOKEN) {
-  throw new Error("BLOB_READ_WRITE_TOKEN missing.");
-}
+assertObjectStoreEnv("Set them as workflow secrets.");
 
 const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));

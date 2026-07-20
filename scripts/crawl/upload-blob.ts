@@ -1,28 +1,12 @@
-import { put } from "@vercel/blob";
-
 import type { ChartFile, PlaylistFile } from "../../src/lib/chart-schema";
+import { putJson } from "../lib/object-store";
 
 const BLOB_PATHNAME = "charts/v1/charts.json";
 const PREV_BLOB_PATHNAME = "charts/v1/charts-prev.json";
 const PLAYLIST_BLOB_PREFIX = "charts/v1/playlists";
 
-async function putCharts(
-  pathname: string,
-  chartFile: ChartFile,
-): Promise<string> {
-  const body = JSON.stringify(chartFile, null, 2);
-  const result = await put(pathname, body, {
-    access: "public",
-    addRandomSuffix: false,
-    allowOverwrite: true,
-    contentType: "application/json",
-    cacheControlMaxAge: 60,
-  });
-  return result.url;
-}
-
 export async function uploadCharts(chartFile: ChartFile): Promise<string> {
-  return putCharts(BLOB_PATHNAME, chartFile);
+  return putJson(BLOB_PATHNAME, JSON.stringify(chartFile, null, 2));
 }
 
 /**
@@ -33,7 +17,7 @@ export async function uploadCharts(chartFile: ChartFile): Promise<string> {
 export async function uploadPreviousCharts(
   chartFile: ChartFile,
 ): Promise<string> {
-  return putCharts(PREV_BLOB_PATHNAME, chartFile);
+  return putJson(PREV_BLOB_PATHNAME, JSON.stringify(chartFile, null, 2));
 }
 
 /**
@@ -42,16 +26,8 @@ export async function uploadPreviousCharts(
  * stored and cached once.
  */
 export async function uploadPlaylistFile(file: PlaylistFile): Promise<string> {
-  const result = await put(
+  return putJson(
     `${PLAYLIST_BLOB_PREFIX}/${file.id}.json`,
     JSON.stringify(file),
-    {
-      access: "public",
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      contentType: "application/json",
-      cacheControlMaxAge: 60,
-    },
   );
-  return result.url;
 }
