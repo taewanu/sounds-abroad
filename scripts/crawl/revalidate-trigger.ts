@@ -1,15 +1,14 @@
-// 2× Vercel Blob s-maxage (60s, see upload-blob.ts) — gives edge propagation
-// headroom so revalidate doesn't re-cache stale Blob.
-const PROPAGATION_MS = 120_000;
-
 export async function triggerRevalidate(): Promise<void> {
   const url = process.env.SITE_URL;
   const secret = process.env.REVALIDATE_SECRET;
   if (!url) throw new Error("SITE_URL missing");
   if (!secret) throw new Error("REVALIDATE_SECRET missing");
 
-  await new Promise((r) => setTimeout(r, PROPAGATION_MS));
-
+  // Fires immediately: R2 is read-after-write consistent, and the published
+  // objects are JSON, which Cloudflare's default rules leave uncached
+  // (cf-cache-status: DYNAMIC), so nothing stale sits between the upload and
+  // this call. A cache rule on the data domain would reintroduce that window,
+  // and would need a purge here rather than a wait.
   const res = await fetch(`${url}/api/revalidate`, {
     method: "POST",
     headers: { Authorization: `Bearer ${secret}` },
