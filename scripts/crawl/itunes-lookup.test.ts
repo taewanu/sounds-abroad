@@ -194,6 +194,12 @@ test("is an instance of ItunesLookupError on errors", async () => {
   ).rejects.toBeInstanceOf(ItunesLookupError);
 });
 
+test("rejects a set larger than one request can carry", async () => {
+  const ids = Array.from({ length: LOOKUP_BATCH_MAX + 1 }, (_, i) => String(i));
+
+  await expect(lookupTracks(ids, "kr")).rejects.toBeInstanceOf(RangeError);
+});
+
 test("batchIds splits into request-sized groups, preserving order", () => {
   const ids = ["1", "2", "3", "4", "5"];
 

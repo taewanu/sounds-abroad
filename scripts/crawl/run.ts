@@ -169,29 +169,40 @@ export async function crawlCountry(
     };
   }
 
-  const { previews, lookups } = await previewUrlsFor(
-    rssTracks.map((rss) => rss.id),
-    cc,
-    lookupTracks,
-  );
+  // Both resolutions start together: they draw on separate throttles, so the
+  // Spotify calls run inside the gaps the iTunes batch spends waiting rather
+  // than adding their own wall-clock after it.
+  const [{ previews, lookups }, spotifyUrls] = await Promise.all([
+    previewUrlsFor(
+      rssTracks.map((rss) => rss.id),
+      cc,
+      lookupTracks,
+    ),
+    Promise.all(
+      rssTracks.map((rss) => spotifyUrlFor(rss.name, rss.artist, cc, spotify)),
+    ),
+  ]);
 
-  const tracks: Track[] = [];
-  for (const rss of rssTracks) {
-    tracks.push({
-      rank: rss.rank,
-      name: rss.name,
-      artist: rss.artist,
-      previewUrl: previews.get(rss.id) ?? null,
-      artworkUrl: rss.artworkUrl,
-      appleUrl: rss.appleUrl,
-      spotifyUrl: await spotifyUrlFor(rss.name, rss.artist, cc, spotify),
-    });
-  }
+  const tracks: Track[] = rssTracks.map((rss, index) => ({
+    rank: rss.rank,
+    name: rss.name,
+    artist: rss.artist,
+    previewUrl: previews.get(rss.id) ?? null,
+    artworkUrl: rss.artworkUrl,
+    appleUrl: rss.appleUrl,
+    spotifyUrl: spotifyUrls[index],
+  }));
 
   // A successful lookup always carries a preview URL, so zero playable tracks
-  // means every lookup failed: a lookup-host outage, not a real chart. Marked
+  // means the lookup failed: a lookup-host outage, not a real chart. Marked
   // invalid so carry-forward keeps the last playable data instead of letting
   // an unplayable chart overwrite it while telemetry reports healthy.
+  //
+  // Batching made that outcome likelier per country, not rarer. A chart now
+  // rides one request instead of twenty-five, so a transport failure surviving
+  // its retries takes the whole country rather than a single track. Carry-
+  // forward is the right answer to having no previews either way; what changed
+  // is how often a country reaches that state.
   const playable = tracks.some((t) => t.previewUrl !== null);
   if (tracks.length > 0 && !playable) {
     console.warn(

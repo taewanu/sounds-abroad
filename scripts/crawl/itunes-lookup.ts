@@ -20,16 +20,9 @@ export class ItunesLookupError extends Error {
 }
 
 /**
- * How many ids a run asked about against how many came back with a preview.
- *
- * Reported as counts rather than a pass/fail judgement on purpose. A shortfall
- * has two very different causes that no single threshold separates: ids that
- * genuinely have no preview in that storefront, and a batch silently truncated
- * because the endpoint's undocumented ceiling moved below LOOKUP_BATCH_MAX.
- * Truncation returns HTTP 200 with honest-looking JSON, so the only signal it
- * ever produces is this ratio drifting. Picking the line where drift becomes
- * alarming needs history the crawl does not have; publishing the counts lets
- * that line be drawn later, and moved, without a deploy.
+ * Counts, not a verdict: a shortfall is either ids with no preview in that
+ * storefront or a silently truncated batch, and no threshold drawn here
+ * separates them. The ratio drifting across runs does.
  */
 export interface LookupTally {
   requested: number;
@@ -41,15 +34,9 @@ export interface LookupTracksOptions {
 }
 
 /**
- * Ids per request. The endpoint accepts comma-separated ids, and measurement
- * (2026-07-20, distinct ids, one storefront) puts its ceiling at exactly 210:
- * 200 and 210 return in full, 220 and above return 210 and drop the remainder.
- *
- * The overflow is why this constant matters more than a tuning knob would. Past
- * 210 the response is still HTTP 200 with well-formed JSON whose `resultCount`
- * matches the results it does carry, so nothing downstream can tell the batch
- * was truncated: the dropped tracks simply resolve to null previews. 200 sits
- * below the ceiling with room for it to move.
+ * Ids per request, kept below the endpoint's measured ceiling of 210 (2026-07-20).
+ * Overflow past that returns HTTP 200 with the excess ids simply absent, which
+ * nothing downstream can tell from a genuine miss, so the margin is the defence.
  */
 export const LOOKUP_BATCH_MAX = 200;
 
@@ -99,6 +86,14 @@ export async function lookupTracks(
   options: LookupTracksOptions = {},
 ): Promise<Map<string, LookupResult>> {
   if (ids.length === 0) return new Map();
+  if (ids.length > LOOKUP_BATCH_MAX) {
+    // Silently truncated otherwise, which is the one failure this module exists
+    // to keep visible. Callers split with batchIds so each request takes its
+    // own throttle slot.
+    throw new RangeError(
+      `lookupTracks got ${ids.length} ids, over LOOKUP_BATCH_MAX (${LOOKUP_BATCH_MAX}); split with batchIds`,
+    );
+  }
 
   const doFetch = options.fetch ?? globalThis.fetch;
   const url = lookupUrl(ids, cc);

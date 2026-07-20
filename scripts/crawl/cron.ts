@@ -125,9 +125,7 @@ try {
           country_count: summary.total,
           valid_count: summary.validCount,
           carried_codes: result.carriedCodes,
-          // Counts, not a verdict: a shortfall is either ids with no preview in
-          // that storefront or a silently truncated batch, and no threshold set
-          // here could tell them apart. Watching the ratio over runs can.
+          // Unthresholded on purpose; see LookupTally.
           lookups_requested: result.lookups.requested,
           lookups_resolved: result.lookups.resolved,
           blob_url: result.url,
