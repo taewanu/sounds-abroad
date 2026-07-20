@@ -1,4 +1,10 @@
-import type { ChartFile, Country, Track } from "../../src/lib/chart-schema";
+import type {
+  ChartFile,
+  Country,
+  Playlist,
+  PlaylistFile,
+  Track,
+} from "../../src/lib/chart-schema";
 import {
   DEFAULT_LANG,
   commentaryForTrack,
@@ -7,9 +13,21 @@ import {
 import type { CountryEntry } from "../../src/lib/countries";
 import { trackKey } from "../../src/lib/track-identity";
 
+import { ApplePlaylistsError, type ApplePlaylist } from "./apple-playlists";
 import { AppleRssError, type AppleRssTrack } from "./apple-rss";
+import {
+  bakePlaylistSpread,
+  crawlCountryPlaylists,
+  isContractBroken,
+  type CountryPlaylistsResult,
+} from "./crawl-playlists";
 import { batchIds, ItunesLookupError, type LookupTally } from "./itunes-lookup";
 import type { BatchLookup } from "./lookup-retry";
+import type { PlaylistTrack } from "./playlist-page";
+import {
+  countPlaylistSpread,
+  selectLocalPlaylists,
+} from "./playlist-selection";
 import { SpotifyResolveError, type SpotifyResolver } from "./spotify-resolve";
 import type { Throttle } from "./throttle";
 
@@ -62,6 +80,36 @@ export interface CrawlAllDeps {
   // the language so others slot in later).
   lang?: string;
   now?: () => Date;
+  // The playlist axis, wired only where it is configured. Absent, the crawl
+  // publishes the songs axis exactly as it did before this axis existed.
+  playlistAxis?: PlaylistAxisWiring;
+}
+
+export interface PlaylistAxisWiring {
+  fetchPlaylists: (cc: string) => Promise<ApplePlaylist[]>;
+  fetchPlaylistPage: (
+    playlistId: string,
+    appleUrl: string,
+  ) => Promise<PlaylistTrack[]>;
+  uploadPlaylistFile: (file: PlaylistFile) => Promise<unknown>;
+}
+
+/**
+ * Raised when playlist pages stop parsing across the run as a whole. Individual
+ * playlists come and go, so only a run-wide failure rate means the undocumented
+ * page contract broke, and ADR-0015 makes noticing that a condition of relying
+ * on it at all.
+ */
+export class PlaylistContractError extends Error {
+  constructor(
+    public readonly pagesAttempted: number,
+    public readonly pageFailures: number,
+  ) {
+    super(
+      `playlist page contract looks broken: ${pageFailures}/${pagesAttempted} pages failed to parse across the run`,
+    );
+    this.name = "PlaylistContractError";
+  }
 }
 
 export interface CrawlAllResult {
@@ -73,6 +121,12 @@ export interface CrawlAllResult {
   // keep `valid: true`, so they are invisible to summarizeValidity, which
   // leaves this the only signal that data is going stale.
   carriedCodes: string[];
+  // Countries whose playlist axis was republished from the previous payload.
+  // Separate from carriedCodes: the two axes go stale independently.
+  carriedPlaylistCodes: string[];
+  // Countries publishing no playlists at all this run. Distinct from a carry:
+  // nothing stale is being served because there is nothing to serve.
+  invalidPlaylistCodes: string[];
 }
 
 export interface ValiditySummary {
@@ -257,6 +311,89 @@ export function bakeSpread(countries: ChartFile["countries"]): void {
   }
 }
 
+export interface PlaylistAxisOutcome {
+  /** Metadata to publish for this country, or undefined to publish none. */
+  playlists?: Playlist[];
+  playlistsValid: boolean;
+  /** Playlists among those above that came from the previous payload. */
+  carriedIds: string[];
+}
+
+export interface PlaylistAttempt {
+  selected: readonly ApplePlaylist[];
+  result: CountryPlaylistsResult;
+}
+
+/**
+ * Decides what a country publishes on the playlist axis, per playlist rather
+ * than per country (ADR-0015).
+ *
+ * A failed page belongs to a playlist today's feed just listed, so the fetch
+ * broke but the playlist did not: republishing yesterday's entry keeps the
+ * chart on the shelf instead of blinking it out, and its track blob was never
+ * overwritten. Carried entries keep `playlistsValid: true`, mirroring the songs
+ * axis, so both degrade by one rule.
+ *
+ * `attempt` is null when the feed itself failed, the one case with nothing to
+ * merge against.
+ */
+export function resolvePlaylistAxis(
+  cc: string,
+  attempt: PlaylistAttempt | null,
+  prior: Country | undefined,
+): PlaylistAxisOutcome {
+  const priorPlaylists = prior?.playlistsValid ? (prior.playlists ?? []) : [];
+
+  if (!attempt) {
+    if (priorPlaylists.length === 0) {
+      console.warn(`[crawl ${cc}] playlist feed failed with no prior data`);
+      return { playlistsValid: false, carriedIds: [] };
+    }
+    console.log(
+      `[crawl ${cc}] playlist feed failed, carried forward last-good (${priorPlaylists.length} playlists)`,
+    );
+    return {
+      // Copies: bakePlaylistSpread writes through what it is handed, and these
+      // objects still belong to the previous payload the snapshot republishes.
+      playlists: priorPlaylists.map((playlist) => ({ ...playlist })),
+      playlistsValid: true,
+      carriedIds: priorPlaylists.map((playlist) => playlist.id),
+    };
+  }
+
+  const priorById = new Map(priorPlaylists.map((p) => [p.id, p]));
+  const playlists: Playlist[] = [];
+  const carriedIds: string[] = [];
+
+  // Walk the selection, not the results: feed order is chart order, and a
+  // carried entry has to land in the same place it held yesterday.
+  for (const selected of attempt.selected) {
+    const fresh = attempt.result.byId.get(selected.id);
+    if (fresh) {
+      playlists.push(fresh);
+      continue;
+    }
+    const stale = priorById.get(selected.id);
+    if (stale) {
+      playlists.push({ ...stale });
+      carriedIds.push(selected.id);
+    }
+  }
+
+  if (playlists.length === 0) {
+    console.warn(`[crawl ${cc}] playlist axis produced nothing publishable`);
+    return { playlistsValid: false, carriedIds: [] };
+  }
+
+  if (carriedIds.length > 0) {
+    console.log(
+      `[crawl ${cc}] carried forward ${carriedIds.length} playlist(s) whose page failed`,
+    );
+  }
+
+  return { playlists, playlistsValid: true, carriedIds };
+}
+
 export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
   const {
     countries,
@@ -277,7 +414,24 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
   const countriesMap: ChartFile["countries"] = {};
   const carriedCodes: string[] = [];
   const lookups: LookupTally = { requested: 0, resolved: 0 };
+  // Phase 1 of the playlist axis: every storefront's feed, because spread needs
+  // all of them before it can say which playlists are worth a page fetch.
+  const feeds = new Map<string, ApplePlaylist[]>();
   for (const entry of countries) {
+    if (deps.playlistAxis) {
+      try {
+        feeds.set(
+          entry.code,
+          await deps.playlistAxis.fetchPlaylists(entry.code),
+        );
+      } catch (err) {
+        if (!(err instanceof ApplePlaylistsError)) throw err;
+        console.warn(
+          `[crawl ${entry.code}] playlist feed failed: ${err.message}`,
+        );
+      }
+    }
+
     const {
       cc,
       country,
@@ -311,6 +465,21 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
 
   bakeSpread(countriesMap);
 
+  const playlistAxisRun = deps.playlistAxis
+    ? await crawlPlaylistAxis({
+        axis: deps.playlistAxis,
+        countries,
+        countriesMap,
+        feeds,
+        previous,
+        lookupTracks,
+        lookups,
+        now,
+      })
+    : { carried: [], invalid: [], contractBreak: null };
+  const { carried: carriedPlaylistCodes, invalid: invalidPlaylistCodes } =
+    playlistAxisRun;
+
   const commentary = deps.fetchCommentary ? await deps.fetchCommentary() : null;
   if (commentary) {
     bakeCommentary(countriesMap, commentary, deps.lang ?? DEFAULT_LANG);
@@ -334,5 +503,124 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
   );
   await triggerRevalidate();
 
-  return { url, chartFile, lookups, carriedCodes };
+  // Strictly after publishing. A broken page contract has to fail the run
+  // loudly, but failing it before the upload would keep today's songs charts
+  // off the site to signal a fault on the secondary axis, which is the trade
+  // ADR-0015 exists to refuse.
+  if (playlistAxisRun.contractBreak) {
+    throw new PlaylistContractError(
+      playlistAxisRun.contractBreak.pagesAttempted,
+      playlistAxisRun.contractBreak.pageFailures,
+    );
+  }
+
+  return {
+    url,
+    chartFile,
+    lookups,
+    carriedCodes,
+    carriedPlaylistCodes,
+    invalidPlaylistCodes,
+  };
+}
+
+interface PlaylistAxisRun {
+  axis: PlaylistAxisWiring;
+  countries: readonly CountryEntry[];
+  countriesMap: ChartFile["countries"];
+  feeds: ReadonlyMap<string, ApplePlaylist[]>;
+  previous: ChartFile | null;
+  lookupTracks: BatchLookup;
+  lookups: LookupTally;
+  now: () => Date;
+}
+
+/**
+ * Phases 2 and 3 of the playlist axis: score every feed against the others,
+ * then fetch pages only for what survives. Attaches the metadata each country
+ * publishes and uploads the track files, returning the countries whose axis
+ * came from the previous payload.
+ */
+interface PlaylistAxisReport {
+  carried: string[];
+  invalid: string[];
+  contractBreak: { pagesAttempted: number; pageFailures: number } | null;
+}
+
+async function crawlPlaylistAxis(
+  run: PlaylistAxisRun,
+): Promise<PlaylistAxisReport> {
+  const { axis, countries, countriesMap, feeds, previous, now } = run;
+
+  const spread = countPlaylistSpread(feeds);
+  const carried: string[] = [];
+  const invalid: string[] = [];
+  const publishedByCountry = new Map<string, Playlist[]>();
+  let pagesAttempted = 0;
+  let pageFailures = 0;
+
+  for (const entry of countries) {
+    const cc = entry.code;
+    const feed = feeds.get(cc);
+
+    let attempt: PlaylistAttempt | null = null;
+    if (feed) {
+      const selected = selectLocalPlaylists(feed, spread, countries.length);
+      const result = await crawlCountryPlaylists(
+        cc,
+        selected,
+        {
+          fetchPlaylistPage: axis.fetchPlaylistPage,
+          lookupTracks: run.lookupTracks,
+        },
+        now,
+      );
+      attempt = { selected, result };
+      pagesAttempted += result.pagesAttempted;
+      pageFailures += result.failedIds.length;
+      run.lookups.requested += result.lookups.requested;
+      run.lookups.resolved += result.lookups.resolved;
+    }
+
+    const outcome = resolvePlaylistAxis(cc, attempt, previous?.countries[cc]);
+    if (outcome.carriedIds.length > 0) carried.push(cc);
+    if (!outcome.playlistsValid) invalid.push(cc);
+
+    // Copy before attaching: a country carried forward on the songs axis is the
+    // previous payload's own object, and writing through it would edit the
+    // snapshot the movement diff still reads.
+    const country = { ...countriesMap[cc] };
+    country.playlistsValid = outcome.playlistsValid;
+    if (outcome.playlists) {
+      country.playlists = outcome.playlists;
+      publishedByCountry.set(cc, outcome.playlists);
+    }
+    countriesMap[cc] = country;
+
+    // Only this run's own files are published. A carried axis keeps pointing at
+    // the blobs the previous run wrote, which are still there.
+    //
+    // These land before charts.json by construction, and must stay that way: a
+    // failed upload has to abort the run while the selector is still unwritten,
+    // or the published metadata advertises a chart whose blob never arrived.
+    if (attempt) {
+      for (const file of attempt.result.files) {
+        await axis.uploadPlaylistFile(file);
+      }
+    }
+  }
+
+  bakePlaylistSpread(publishedByCountry, spread);
+
+  console.log(
+    `[crawl] playlist axis: ${pagesAttempted - pageFailures}/${pagesAttempted} pages parsed, ${carried.length} countries carried, ${invalid.length} empty`,
+  );
+
+  return {
+    carried,
+    invalid,
+    contractBreak: isContractBroken(pagesAttempted, pageFailures)
+      ? { pagesAttempted, pageFailures }
+      : null,
+  };
 }

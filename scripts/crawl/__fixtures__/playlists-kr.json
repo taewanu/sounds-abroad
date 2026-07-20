@@ -1,0 +1,101 @@
+{
+  "feed": {
+    "title": "인기 플레이리스트",
+    "id": "https://rss.marketingtools.apple.com/api/v2/kr/music/most-played/100/playlists.json",
+    "author": {
+      "name": "Apple",
+      "url": "https://www.apple.com/"
+    },
+    "links": [
+      {
+        "self": "https://rss.marketingtools.apple.com/api/v2/kr/music/most-played/100/playlists.json"
+      }
+    ],
+    "copyright": "Copyright © 2026 Apple Inc. All rights reserved.",
+    "country": "kr",
+    "icon": "https://www.apple.com/favicon.ico",
+    "updated": "Sun, 19 Jul 2026 16:26:28 +0000",
+    "results": [
+      {
+        "id": "pl.48229b41bbfc47d7af39dae8e8b5276e",
+        "name": "KPOPWRLD",
+        "kind": "playlists",
+        "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Features/v4/3e/9c/71/3e9c71b0-c797-d337-9abf-8a4b6e41375b/18c721eb-57f5-434a-9f28-c8b0179776de.png/100x100SC.DN01.jpg?l=ko-KR",
+        "genres": [],
+        "url": "https://music.apple.com/kr/playlist/kpopwrld/pl.48229b41bbfc47d7af39dae8e8b5276e"
+      },
+      {
+        "id": "pl.d838905f50af4200a2ebbc614922dee9",
+        "name": "주말의 K-Pop",
+        "kind": "playlists",
+        "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Features/v4/7c/1d/bf/7c1dbf56-026c-106a-41f7-8d3cf33f5a45/773365f8-e6e7-431f-b2da-95d1e46f1177.png/100x100SC.DN01.jpg?l=ko-KR",
+        "genres": [],
+        "url": "https://music.apple.com/kr/playlist/%EC%A3%BC%EB%A7%90%EC%9D%98-k-pop/pl.d838905f50af4200a2ebbc614922dee9"
+      },
+      {
+        "id": "pl.f4d106fed2bd41149aaacabb233eb5eb",
+        "name": "오늘의 히트곡",
+        "kind": "playlists",
+        "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Features/v4/f9/a9/6f/f9a96ff8-b620-58fe-b0bc-ae17c196db19/f4be1b44-7a9f-48ed-a87f-e3a42e643000.png/100x100SC.DN01.jpg?l=ko-KR",
+        "genres": [],
+        "url": "https://music.apple.com/kr/playlist/%EC%98%A4%EB%8A%98%EC%9D%98-%ED%9E%88%ED%8A%B8%EA%B3%A1/pl.f4d106fed2bd41149aaacabb233eb5eb"
+      },
+      {
+        "id": "pl.5b7698bbcd01407a92b8457f650bebaf",
+        "name": "바이럴 히트곡: K-Pop",
+        "kind": "playlists",
+        "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Features/v4/b2/c7/48/b2c7485f-0dd6-db07-2dee-8e66fc8a6b3e/4d414772-0a02-468d-9133-7db3042cf3d5.png/100x100SC.DN01.jpg?l=ko-KR",
+        "genres": [],
+        "url": "https://music.apple.com/kr/playlist/%EB%B0%94%EC%9D%B4%EB%9F%B4-%ED%9E%88%ED%8A%B8%EA%B3%A1-k-pop/pl.5b7698bbcd01407a92b8457f650bebaf"
+      },
+      {
+        "id": "pl.a784f95d4f504d579647523ff95433be",
+        "name": "최신곡: K-Pop",
+        "kind": "playlists",
+        "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Features/v4/95/ed/bc/95edbc85-6994-6fc2-851f-5e62b2d720ec/2818a03f-9b9d-4747-8545-862deb5b14eb.png/100x100SC.DN01.jpg?l=ko-KR",
+        "genres": [],
+        "url": "https://music.apple.com/kr/playlist/%EC%B5%9C%EC%8B%A0%EA%B3%A1-k-pop/pl.a784f95d4f504d579647523ff95433be"
+      },
+      {
+        "id": "pl.34c6bf42a176492abb918edb57b565e9",
+        "name": "여름 핫 사운드",
+        "kind": "playlists",
+        "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Features125/v4/54/14/ae/5414aea9-0dd0-a686-a32f-e3e174bddfae/U0MtTVMtV1ctU29uZ3Nfb2ZfdGhlX1N1bW1lci1BREFNX0lEPTEwMzU4MjE1NzIucG5n.png/100x100SC.DN01.jpg?l=ko-KR",
+        "genres": [],
+        "url": "https://music.apple.com/kr/playlist/%EC%97%AC%EB%A6%84-%ED%95%AB-%EC%82%AC%EC%9A%B4%EB%93%9C/pl.34c6bf42a176492abb918edb57b565e9"
+      },
+      {
+        "id": "pl.c43266de1cc742f39c91d6b1f7c9fd88",
+        "name": "다시 듣는 K-Pop",
+        "kind": "playlists",
+        "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Features115/v4/65/a7/ea/65a7ea35-4c90-389d-27d6-1b3f6937cee4/U0MtTVMtV1ctSy1Qb3BfVGhyb3diYWNrLUFEQU1fSUQ9MTM3MjQxMTUyNC5wbmc.png/100x100SC.DN01.jpg?l=ko-KR",
+        "genres": [],
+        "url": "https://music.apple.com/kr/playlist/%EB%8B%A4%EC%8B%9C-%EB%93%A3%EB%8A%94-k-pop/pl.c43266de1cc742f39c91d6b1f7c9fd88"
+      },
+      {
+        "id": "pl.66c17ed5cc754856b944a9150483e375",
+        "name": "오늘의 클래식",
+        "kind": "playlists",
+        "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Features/v4/92/ad/88/92ad88c4-2eb0-e069-5a5a-bea5894e1d00/51244f45-a663-46a2-9416-2139cba9a3c7.png/100x100SC.DNC01.jpg?l=ko-KR",
+        "genres": [],
+        "url": "https://music.apple.com/kr/playlist/%EC%98%A4%EB%8A%98%EC%9D%98-%ED%81%B4%EB%9E%98%EC%8B%9D/pl.66c17ed5cc754856b944a9150483e375"
+      },
+      {
+        "id": "pl.5ee8333dbe944d9f9151e97d92d1ead9",
+        "name": "A-List: 팝",
+        "kind": "playlists",
+        "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Features/v4/4c/fc/51/4cfc51f0-29fd-9b35-bc8b-6e6fe0a8ba47/42f5b8e7-a89c-4596-ab59-3c40a5459d21.png/100x100SC.DN01.jpg?l=ko-KR",
+        "genres": [],
+        "url": "https://music.apple.com/kr/playlist/a-list-%ED%8C%9D/pl.5ee8333dbe944d9f9151e97d92d1ead9"
+      },
+      {
+        "id": "pl.cb4d1c09a2df4230a78d0395fe1f8fde",
+        "name": "편안한 피아노 음악",
+        "kind": "playlists",
+        "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Features125/v4/dc/47/7c/dc477c6f-9029-bd1c-8e89-87b04042a55b/U0MtTVMtV1ctUGlhbm9fQ2hpbGwtQURBTV9JRD0xMDcyODMxMzA0LnBuZw.png/100x100SC.DNC01.jpg?l=ko-KR",
+        "genres": [],
+        "url": "https://music.apple.com/kr/playlist/%ED%8E%B8%EC%95%88%ED%95%9C-%ED%94%BC%EC%95%84%EB%85%B8-%EC%9D%8C%EC%95%85/pl.cb4d1c09a2df4230a78d0395fe1f8fde"
+      }
+    ]
+  }
+}

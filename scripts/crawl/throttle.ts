@@ -23,3 +23,13 @@ export function createThrottle(gapMs: number = ITUNES_GAP_MS): Throttle {
 export function createSpotifyThrottle(): Throttle {
   return createThrottle(SPOTIFY_GAP_MS);
 }
+
+// Playlist pages come from music.apple.com, not the iTunes API, so they do not
+// draw on that per-IP budget. Twenty pages at four-way concurrency returned in
+// 4.4s with no rate-limiting observed; the gap here is politeness, not a
+// measured ceiling.
+const PLAYLIST_PAGE_GAP_MS = 250;
+
+export function createPlaylistPageThrottle(): Throttle {
+  return createThrottle(PLAYLIST_PAGE_GAP_MS);
+}

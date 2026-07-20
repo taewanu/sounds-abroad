@@ -13,7 +13,10 @@ function lookupError(kind: ItunesLookupErrorKind): ItunesLookupError {
 
 function resolved(ids: readonly string[]): Map<string, LookupResult> {
   return new Map(
-    ids.map((id) => [id, { id, previewUrl: `https://preview/${id}.m4a` }]),
+    ids.map((id) => [
+      id,
+      { id, previewUrl: `https://preview/${id}.m4a`, genre: null },
+    ]),
   );
 }
 

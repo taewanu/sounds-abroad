@@ -3,6 +3,7 @@ import { z } from "zod";
 export interface LookupResult {
   id: string;
   previewUrl: string;
+  genre: string | null;
 }
 
 export type ItunesLookupErrorKind = "http" | "json" | "shape" | "network";
@@ -43,6 +44,7 @@ export const LOOKUP_BATCH_MAX = 200;
 const LookupTrackSchema = z.object({
   trackId: z.number().int(),
   previewUrl: z.url(),
+  primaryGenreName: z.string().min(1).optional(),
 });
 
 const LookupResponseSchema = z.object({
@@ -55,6 +57,10 @@ function lookupUrl(ids: readonly string[], cc: string): string {
     id: ids.join(","),
     country: cc,
     entity: "song",
+    // Pinned so one playlist's genre histogram is mergeable with another's;
+    // unpinned, each storefront answers in its own language. Track and artist
+    // names are unaffected.
+    lang: "en_us",
   });
   return `https://itunes.apple.com/lookup?${params.toString()}`;
 }
@@ -150,7 +156,11 @@ export async function lookupTracks(
     const id = String(track.data.trackId);
     if (!requested.has(id)) continue;
 
-    resolved.set(id, { id, previewUrl: track.data.previewUrl });
+    resolved.set(id, {
+      id,
+      previewUrl: track.data.previewUrl,
+      genre: track.data.primaryGenreName ?? null,
+    });
   }
 
   return resolved;
