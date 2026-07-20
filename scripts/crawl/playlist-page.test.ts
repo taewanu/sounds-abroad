@@ -104,15 +104,12 @@ test("throws missing-block when the page carries no embedded state", () => {
 });
 
 test("names the playlist on the thrown error", () => {
-  try {
-    parsePlaylistPage("<html></html>", PLAYLIST_ID);
-    expect.unreachable("parse should have thrown");
-  } catch (err) {
-    expect(err).toMatchObject({
+  expect(() => parsePlaylistPage("<html></html>", PLAYLIST_ID)).toThrowError(
+    expect.objectContaining({
       playlistId: PLAYLIST_ID,
       kind: "missing-block",
-    });
-  }
+    }),
+  );
 });
 
 test("throws json when the embedded block is not JSON", () => {
