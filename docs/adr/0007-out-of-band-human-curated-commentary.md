@@ -2,6 +2,8 @@
 
 **Status:** Accepted (2026-06-15). Trust model partially superseded by [ADR-0008](0008-risk-tiered-commentary-gate.md) (2026-06-16): the primary guard moves from a uniform human read-through to a risk-tiered code gate. The rest of this record (out-of-band generation, the Blob sidecar, the crawl contract, the significance trigger, the no-lyric lint) stands. An LLM-adjudicated relaxation of the no-lyric lint's `quoted-span` rule was proposed and DEFERRED by [ADR-0010](0010-defer-quoted-span-lyric-judge.md) (2026-06-20): the rule still hard-drops, pending data on how often it false-positives on long titles.
 
+> **No human remains in the publish path.** [ADR-0008](0008-risk-tiered-commentary-gate.md) moved the primary guard from a human read-through to a risk-tiered code gate, and [ADR-0009](0009-fully-automated-commentary-gate.md) then removed the person entirely: every blurb passes or fails on code alone, and any doubt drops the card rather than routing it to review. This record's title predates both. What still stands here is the out-of-band shape (generation outside the crawl, the Blob sidecar, the read-and-bake contract, the significance trigger, the no-lyric lint), not the human curation its name describes.
+
 ## Context
 
 v1.2.0 adds a per-track song context card (#90): a short, grounded commentary on what a song is about and why it is charting. The architectural question is where that commentary is generated. The feed it attaches to is the scheduled crawl (`scripts/crawl/`), which fetches 40 countries' charts four times a day and serves them static from Vercel Blob.

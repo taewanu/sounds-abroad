@@ -212,3 +212,113 @@ test("bakes each playlist's storefront count onto its metadata", () => {
 
   expect(kr[0].spread).toBe(4);
 });
+
+test("resolves the whole country in one pass, not one per playlist", async () => {
+  const lookupTracks = vi.fn<BatchLookup>(async (ids) => {
+    const resolved = new Map<string, LookupResult>();
+    for (const id of ids) {
+      resolved.set(id, {
+        id,
+        previewUrl: `https://preview/${id}.m4a`,
+        genre: null,
+      });
+    }
+    return resolved;
+  });
+  const deps = makeDeps({
+    lookupTracks,
+    fetchPlaylistPage: vi.fn(async (playlistId: string) => [
+      scrapedTrack(`${playlistId}-a`, 1),
+      scrapedTrack(`${playlistId}-b`, 2),
+    ]),
+  });
+
+  await crawlCountryPlaylists(
+    "kr",
+    [applePlaylist("pl.a"), applePlaylist("pl.b"), applePlaylist("pl.c")],
+    deps,
+    now,
+  );
+
+  expect(lookupTracks).toHaveBeenCalledTimes(1);
+  expect(lookupTracks.mock.calls[0][0]).toHaveLength(6);
+});
+
+test("asks about a track shared by two playlists only once", async () => {
+  const shared = "t-shared";
+  const lookupTracks = vi.fn<BatchLookup>(
+    async (ids) =>
+      new Map(
+        ids.map((id) => [
+          id,
+          { id, previewUrl: `https://preview/${id}.m4a`, genre: null },
+        ]),
+      ),
+  );
+  const deps = makeDeps({
+    lookupTracks,
+    fetchPlaylistPage: vi.fn(async (playlistId: string) => [
+      scrapedTrack(shared, 1),
+      scrapedTrack(`${playlistId}-own`, 2),
+    ]),
+  });
+
+  const result = await crawlCountryPlaylists(
+    "kr",
+    [applePlaylist("pl.a"), applePlaylist("pl.b")],
+    deps,
+    now,
+  );
+
+  const asked = lookupTracks.mock.calls[0][0];
+  expect(asked.filter((id) => id === shared)).toHaveLength(1);
+  expect(asked).toHaveLength(3);
+  // Both playlists still get the shared track resolved.
+  for (const file of result.files) {
+    expect(file.tracks.find((t) => t.rank === 1)?.previewUrl).not.toBeNull();
+  }
+});
+
+test("gives every playlist track a Spotify search link", async () => {
+  const result = await crawlCountryPlaylists(
+    "kr",
+    [applePlaylist("pl.a")],
+    makeDeps(),
+    now,
+  );
+
+  const track = result.files[0].tracks[0];
+  expect(track.spotifyUrl).toBe(
+    `https://open.spotify.com/search/${encodeURIComponent(`${track.name} ${track.artist}`)}`,
+  );
+});
+
+test("still resolves the survivors when one page failed", async () => {
+  const lookupTracks = vi.fn<BatchLookup>(
+    async (ids) =>
+      new Map(
+        ids.map((id) => [
+          id,
+          { id, previewUrl: `https://preview/${id}.m4a`, genre: null },
+        ]),
+      ),
+  );
+  const deps = makeDeps({
+    lookupTracks,
+    fetchPlaylistPage: vi.fn(async (playlistId: string) => {
+      if (playlistId === "pl.a")
+        throw new PlaylistPageError(playlistId, "http", "503");
+      return [scrapedTrack("t1", 1)];
+    }),
+  });
+
+  const result = await crawlCountryPlaylists(
+    "kr",
+    [applePlaylist("pl.a"), applePlaylist("pl.b")],
+    deps,
+    now,
+  );
+
+  expect(result.failedIds).toEqual(["pl.a"]);
+  expect(lookupTracks.mock.calls[0][0]).toEqual(["t1"]);
+});
