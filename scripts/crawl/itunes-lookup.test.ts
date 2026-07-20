@@ -4,7 +4,12 @@ import { fileURLToPath } from "node:url";
 
 import { expect, test } from "vitest";
 
-import { ItunesLookupError, lookupTrack } from "./itunes-lookup";
+import {
+  batchIds,
+  ItunesLookupError,
+  LOOKUP_BATCH_MAX,
+  lookupTracks,
+} from "./itunes-lookup";
 
 const FIXTURE_PATH = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -26,105 +31,139 @@ function fakeFetch(response: {
     })) as typeof fetch;
 }
 
+function trackRecord(id: number): { trackId: number; previewUrl: string } {
+  return { trackId: id, previewUrl: `https://preview/${id}.m4a` };
+}
+
+function responseBody(records: unknown[]): string {
+  return JSON.stringify({ resultCount: records.length, results: records });
+}
+
 test("resolves previewUrl from the captured kr fixture", async () => {
   const body = await loadFixture();
   const raw = JSON.parse(body).results[0];
   const id = String(raw.trackId);
-  const result = await lookupTrack(id, "kr", {
+
+  const resolved = await lookupTracks([id], "kr", {
     fetch: fakeFetch({ ok: true, body }),
   });
 
-  expect(result.id).toBe(id);
-  expect(result.previewUrl).toBe(raw.previewUrl);
+  expect(resolved.get(id)).toEqual({ id, previewUrl: raw.previewUrl });
 });
 
-test("hits the canonical itunes.apple.com lookup endpoint with id+country", async () => {
-  const body = await loadFixture();
-  const id = String(JSON.parse(body).results[0].trackId);
+test("sends every requested id in one comma-separated request", async () => {
+  const ids = ["11", "22", "33"];
   const seen: string[] = [];
   const spyFetch: typeof fetch = (async (input: RequestInfo | URL) => {
     seen.push(typeof input === "string" ? input : input.toString());
-    return new Response(body, { status: 200 });
+    return new Response(
+      responseBody(ids.map((id) => trackRecord(Number(id)))),
+      {
+        status: 200,
+      },
+    );
   }) as typeof fetch;
 
-  await lookupTrack(id, "kr", { fetch: spyFetch });
+  await lookupTracks(ids, "kr", { fetch: spyFetch });
 
   expect(seen).toHaveLength(1);
   const url = new URL(seen[0]);
   expect(url.origin + url.pathname).toBe("https://itunes.apple.com/lookup");
-  expect(url.searchParams.get("id")).toBe(id);
+  expect(url.searchParams.get("id")).toBe(ids.join(","));
   expect(url.searchParams.get("country")).toBe("kr");
   expect(url.searchParams.get("entity")).toBe("song");
 });
 
-test("throws miss when resultCount is 0", async () => {
-  const body = JSON.stringify({ resultCount: 0, results: [] });
-  await expect(
-    lookupTrack("999", "kr", { fetch: fakeFetch({ ok: true, body }) }),
-  ).rejects.toMatchObject({
-    name: "ItunesLookupError",
-    kind: "miss",
+test("keys every returned track by its id", async () => {
+  const ids = ["11", "22", "33"];
+  const body = responseBody(ids.map((id) => trackRecord(Number(id))));
+
+  const resolved = await lookupTracks(ids, "kr", {
+    fetch: fakeFetch({ ok: true, body }),
   });
+
+  expect([...resolved.keys()]).toEqual(ids);
+});
+
+test("omits an id the response leaves out, keeping its batch-mates", async () => {
+  const ids = ["11", "22", "33"];
+  const body = responseBody([trackRecord(11), trackRecord(33)]);
+
+  const resolved = await lookupTracks(ids, "kr", {
+    fetch: fakeFetch({ ok: true, body }),
+  });
+
+  expect(resolved.has("22")).toBe(false);
+  expect([...resolved.keys()]).toEqual(["11", "33"]);
+});
+
+test("omits a record missing a preview, keeping its batch-mates", async () => {
+  const ids = ["11", "22"];
+  const body = responseBody([{ trackId: 11 }, trackRecord(22)]);
+
+  const resolved = await lookupTracks(ids, "kr", {
+    fetch: fakeFetch({ ok: true, body }),
+  });
+
+  expect(resolved.has("11")).toBe(false);
+  expect(resolved.has("22")).toBe(true);
+});
+
+test("omits a track the request never asked for", async () => {
+  const body = responseBody([trackRecord(999)]);
+
+  const resolved = await lookupTracks(["11"], "kr", {
+    fetch: fakeFetch({ ok: true, body }),
+  });
+
+  expect(resolved.size).toBe(0);
+});
+
+test("returns an empty map when the response holds no results", async () => {
+  const body = responseBody([]);
+
+  const resolved = await lookupTracks(["999"], "kr", {
+    fetch: fakeFetch({ ok: true, body }),
+  });
+
+  expect(resolved.size).toBe(0);
+});
+
+test("makes no request for an empty id set", async () => {
+  const seen: string[] = [];
+  const spyFetch: typeof fetch = (async (input: RequestInfo | URL) => {
+    seen.push(String(input));
+    return new Response(responseBody([]), { status: 200 });
+  }) as typeof fetch;
+
+  const resolved = await lookupTracks([], "kr", { fetch: spyFetch });
+
+  expect(resolved.size).toBe(0);
+  expect(seen).toHaveLength(0);
 });
 
 test("throws http on non-OK status", async () => {
   await expect(
-    lookupTrack("1", "kr", {
+    lookupTracks(["1"], "kr", {
       fetch: fakeFetch({ ok: false, status: 503, body: "" }),
     }),
-  ).rejects.toMatchObject({
-    name: "ItunesLookupError",
-    kind: "http",
-  });
+  ).rejects.toMatchObject({ name: "ItunesLookupError", kind: "http" });
 });
 
 test("throws json on invalid JSON", async () => {
   await expect(
-    lookupTrack("1", "kr", {
+    lookupTracks(["1"], "kr", {
       fetch: fakeFetch({ ok: true, body: "not json" }),
     }),
-  ).rejects.toMatchObject({
-    name: "ItunesLookupError",
-    kind: "json",
-  });
+  ).rejects.toMatchObject({ name: "ItunesLookupError", kind: "json" });
 });
 
-test("throws shape on unexpected payload shape", async () => {
+test("throws shape when the envelope is unexpected", async () => {
   await expect(
-    lookupTrack("1", "kr", {
-      fetch: fakeFetch({
-        ok: true,
-        body: JSON.stringify({
-          resultCount: 1,
-          results: [{ wrapperType: "track" }],
-        }),
-      }),
+    lookupTracks(["1"], "kr", {
+      fetch: fakeFetch({ ok: true, body: JSON.stringify({ results: "no" }) }),
     }),
-  ).rejects.toMatchObject({
-    name: "ItunesLookupError",
-    kind: "shape",
-  });
-});
-
-test("throws miss when the response trackId differs from the requested id", async () => {
-  const requestedId = "222"; // string: function arg type
-  const mismatchedResponseId = 333; // number: Apple API trackId type
-  const body = JSON.stringify({
-    resultCount: 1,
-    results: [
-      {
-        trackId: mismatchedResponseId,
-        previewUrl: `https://preview/${mismatchedResponseId}.m4a`,
-      },
-    ],
-  });
-
-  await expect(
-    lookupTrack(requestedId, "kr", { fetch: fakeFetch({ ok: true, body }) }),
-  ).rejects.toMatchObject({
-    name: "ItunesLookupError",
-    kind: "miss",
-  });
+  ).rejects.toMatchObject({ name: "ItunesLookupError", kind: "shape" });
 });
 
 test("throws network when fetch rejects", async () => {
@@ -133,17 +172,46 @@ test("throws network when fetch rejects", async () => {
   }) as typeof fetch;
 
   await expect(
-    lookupTrack("1", "kr", { fetch: failingFetch }),
-  ).rejects.toMatchObject({
-    name: "ItunesLookupError",
-    kind: "network",
-  });
+    lookupTracks(["1"], "kr", { fetch: failingFetch }),
+  ).rejects.toMatchObject({ name: "ItunesLookupError", kind: "network" });
+});
+
+test("carries every requested id on the thrown error", async () => {
+  const ids = ["11", "22"];
+
+  await expect(
+    lookupTracks(ids, "kr", {
+      fetch: fakeFetch({ ok: false, status: 503, body: "" }),
+    }),
+  ).rejects.toMatchObject({ ids, cc: "kr" });
 });
 
 test("is an instance of ItunesLookupError on errors", async () => {
   await expect(
-    lookupTrack("1", "kr", {
+    lookupTracks(["1"], "kr", {
       fetch: fakeFetch({ ok: false, status: 503, body: "" }),
     }),
   ).rejects.toBeInstanceOf(ItunesLookupError);
+});
+
+test("rejects a set larger than one request can carry", async () => {
+  const ids = Array.from({ length: LOOKUP_BATCH_MAX + 1 }, (_, i) => String(i));
+
+  await expect(lookupTracks(ids, "kr")).rejects.toBeInstanceOf(RangeError);
+});
+
+test("batchIds splits into request-sized groups, preserving order", () => {
+  const ids = ["1", "2", "3", "4", "5"];
+
+  expect(batchIds(ids, 2)).toEqual([["1", "2"], ["3", "4"], ["5"]]);
+});
+
+test("batchIds returns one group when the set fits a single request", () => {
+  const ids = Array.from({ length: LOOKUP_BATCH_MAX }, (_, i) => String(i));
+
+  expect(batchIds(ids)).toEqual([ids]);
+});
+
+test("batchIds returns nothing for an empty set", () => {
+  expect(batchIds([])).toEqual([]);
 });
