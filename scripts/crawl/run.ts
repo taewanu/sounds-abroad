@@ -312,52 +312,91 @@ export interface PlaylistAxisOutcome {
   /** Metadata to publish for this country, or undefined to publish none. */
   playlists?: Playlist[];
   playlistsValid: boolean;
-  /** True when the metadata above came from the previous payload. */
-  carried: boolean;
+  /** Playlists among those above that came from the previous payload. */
+  carriedIds: string[];
+}
+
+export interface PlaylistAttempt {
+  selected: readonly ApplePlaylist[];
+  result: CountryPlaylistsResult;
 }
 
 /**
- * Decides what a country publishes on the playlist axis when this run's attempt
- * did not fully succeed.
+ * Decides what a country publishes on the playlist axis, per playlist rather
+ * than per country.
  *
- * Reached only when the whole axis failed for the country, meaning its feed was
- * unreachable or every selected page failed. A single playlist that 404s or
- * drops off the feed needs nothing from here: selection reruns from the live
- * feed every crawl, so the next-ranked playlist simply takes its place.
+ * A page that failed did so for a playlist today's feed just listed, so the
+ * playlist exists and only the fetch broke. Republishing the previous run's
+ * entry keeps that chart on the shelf for a day rather than making it blink
+ * out and return; its track blob was never overwritten, so it still opens and
+ * plays. A playlist Apple actually deleted never reaches here, because it left
+ * the feed and selection never picked it.
  *
  * Kept apart from the songs axis on purpose: `valid` and its carry-forward
  * govern the songs chart, and letting a playlist failure reach them would roll
  * back a fresh songs chart to protect the secondary axis (ADR-0015).
  *
- * Within that separation it mirrors the songs axis exactly, including the part
- * that is arguably a flaw: a carried entry keeps `playlistsValid: true`, so the
- * published blob cannot tell you it is stale and `carriedPlaylistCodes` is the
- * only signal. Two axes degrading by two different rules would cost more than
- * that flaw does, on a path that only opens when a country's whole axis fails.
+ * Carried entries keep `playlistsValid: true`, mirroring the songs axis, so
+ * both degrade by one rule rather than two. `carriedPlaylistCodes` is the
+ * signal that anything on this axis is stale.
  *
- * `axis` is null when the country's playlist feed itself failed, so nothing was
- * selected and no page was attempted.
+ * `attempt` is null when the country's feed itself failed, which is the one
+ * case with nothing to merge against: nothing was selected, so the whole
+ * previous set carries or none of it does.
  */
 export function resolvePlaylistAxis(
   cc: string,
-  axis: CountryPlaylistsResult | null,
+  attempt: PlaylistAttempt | null,
   prior: Country | undefined,
 ): PlaylistAxisOutcome {
-  if (axis?.valid) {
-    return { playlists: axis.playlists, playlistsValid: true, carried: false };
-  }
+  const priorPlaylists = prior?.playlistsValid ? (prior.playlists ?? []) : [];
 
-  // Carry forward only genuine prior data, never an earlier empty entry.
-  const priorPlaylists = prior?.playlists;
-  if (prior?.playlistsValid && priorPlaylists && priorPlaylists.length > 0) {
+  if (!attempt) {
+    if (priorPlaylists.length === 0) {
+      console.warn(`[crawl ${cc}] playlist feed failed with no prior data`);
+      return { playlistsValid: false, carriedIds: [] };
+    }
     console.log(
-      `[crawl ${cc}] playlist axis failed, carried forward last-good (${priorPlaylists.length} playlists)`,
+      `[crawl ${cc}] playlist feed failed, carried forward last-good (${priorPlaylists.length} playlists)`,
     );
-    return { playlists: priorPlaylists, playlistsValid: true, carried: true };
+    return {
+      playlists: priorPlaylists,
+      playlistsValid: true,
+      carriedIds: priorPlaylists.map((playlist) => playlist.id),
+    };
   }
 
-  console.warn(`[crawl ${cc}] playlist axis failed with no prior data`);
-  return { playlistsValid: false, carried: false };
+  const priorById = new Map(priorPlaylists.map((p) => [p.id, p]));
+  const playlists: Playlist[] = [];
+  const carriedIds: string[] = [];
+
+  // Walk the selection, not the results: feed order is chart order, and a
+  // carried entry has to land in the same place it held yesterday.
+  for (const selected of attempt.selected) {
+    const fresh = attempt.result.byId.get(selected.id);
+    if (fresh) {
+      playlists.push(fresh);
+      continue;
+    }
+    const stale = priorById.get(selected.id);
+    if (stale) {
+      playlists.push(stale);
+      carriedIds.push(selected.id);
+    }
+  }
+
+  if (playlists.length === 0) {
+    console.warn(`[crawl ${cc}] playlist axis produced nothing publishable`);
+    return { playlistsValid: false, carriedIds: [] };
+  }
+
+  if (carriedIds.length > 0) {
+    console.log(
+      `[crawl ${cc}] carried forward ${carriedIds.length} playlist(s) whose page failed`,
+    );
+  }
+
+  return { playlists, playlistsValid: true, carriedIds };
 }
 
 export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
@@ -500,10 +539,10 @@ async function crawlPlaylistAxis(run: PlaylistAxisRun): Promise<string[]> {
     const cc = entry.code;
     const feed = feeds.get(cc);
 
-    let result: CountryPlaylistsResult | null = null;
+    let attempt: PlaylistAttempt | null = null;
     if (feed) {
       const selected = selectLocalPlaylists(feed, spread, countries.length);
-      result = await crawlCountryPlaylists(
+      const result = await crawlCountryPlaylists(
         cc,
         selected,
         {
@@ -512,14 +551,15 @@ async function crawlPlaylistAxis(run: PlaylistAxisRun): Promise<string[]> {
         },
         now,
       );
+      attempt = { selected, result };
       pagesAttempted += result.pagesAttempted;
-      pageFailures += result.pageFailures;
+      pageFailures += result.failedIds.length;
       run.lookups.requested += result.lookups.requested;
       run.lookups.resolved += result.lookups.resolved;
     }
 
-    const outcome = resolvePlaylistAxis(cc, result, previous?.countries[cc]);
-    if (outcome.carried) carried.push(cc);
+    const outcome = resolvePlaylistAxis(cc, attempt, previous?.countries[cc]);
+    if (outcome.carriedIds.length > 0) carried.push(cc);
 
     // Copy before attaching: a country carried forward on the songs axis is the
     // previous payload's own object, and writing through it would edit the
@@ -538,8 +578,8 @@ async function crawlPlaylistAxis(run: PlaylistAxisRun): Promise<string[]> {
     // These land before charts.json by construction, and must stay that way: a
     // failed upload has to abort the run while the selector is still unwritten,
     // or the published metadata advertises a chart whose blob never arrived.
-    if (result) {
-      for (const file of result.files) {
+    if (attempt) {
+      for (const file of attempt.result.files) {
         await axis.uploadPlaylistFile(file);
       }
     }

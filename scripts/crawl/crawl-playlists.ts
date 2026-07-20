@@ -27,12 +27,19 @@ export interface PlaylistAxisDeps {
 }
 
 export interface CountryPlaylistsResult {
-  playlists: Playlist[];
+  /** This run's metadata, keyed by playlist id. Ordering is the caller's. */
+  byId: Map<string, Playlist>;
   files: PlaylistFile[];
-  /** False when the axis produced nothing usable for this country. */
-  valid: boolean;
+  /**
+   * Playlists selected this run whose page did not parse.
+   *
+   * Every one of these came out of today's feed, so the playlist exists and
+   * only the fetch failed. That makes the failure transient by construction,
+   * which is what lets the caller republish the previous run's entry instead
+   * of dropping the chart for a day.
+   */
+  failedIds: string[];
   pagesAttempted: number;
-  pageFailures: number;
   lookups: LookupTally;
 }
 
@@ -96,10 +103,10 @@ export async function crawlCountryPlaylists(
   deps: PlaylistAxisDeps,
   now: () => Date,
 ): Promise<CountryPlaylistsResult> {
-  const playlists: Playlist[] = [];
+  const byId = new Map<string, Playlist>();
   const files: PlaylistFile[] = [];
+  const failedIds: string[] = [];
   const lookups: LookupTally = { requested: 0, resolved: 0 };
-  let pageFailures = 0;
 
   for (const playlist of selected) {
     let scraped: PlaylistTrack[];
@@ -107,7 +114,7 @@ export async function crawlCountryPlaylists(
       scraped = await deps.fetchPlaylistPage(playlist.id, playlist.appleUrl);
     } catch (err) {
       if (!(err instanceof PlaylistPageError)) throw err;
-      pageFailures += 1;
+      failedIds.push(playlist.id);
       console.warn(
         `[crawl ${cc}] playlist page ${err.kind} for ${playlist.id}: ${err.message}`,
       );
@@ -130,7 +137,7 @@ export async function crawlCountryPlaylists(
       appleUrl: track.appleUrl,
     }));
 
-    playlists.push({
+    byId.set(playlist.id, {
       id: playlist.id,
       name: playlist.name,
       appleUrl: playlist.appleUrl,
@@ -149,11 +156,10 @@ export async function crawlCountryPlaylists(
   }
 
   return {
-    playlists,
+    byId,
     files,
-    valid: playlists.length > 0,
+    failedIds,
     pagesAttempted: selected.length,
-    pageFailures,
     lookups,
   };
 }

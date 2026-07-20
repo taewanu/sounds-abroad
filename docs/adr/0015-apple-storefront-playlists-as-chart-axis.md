@@ -57,7 +57,9 @@ So the decision to depend on it is conditional on two mechanisms shipping with i
 - The crawl gains its first dependency on an undocumented surface, mitigated but not removed by the two mechanisms above.
 - Baking previews for every playlist track binds the number of playlists per country to the crawl's time budget. The budget, not editorial judgement, sets the ceiling today.
 - Playlist selection now feeds back into what the crawl fetches, which the single-pass per-country loop cannot express. The crawl becomes two-phase: collect every storefront's playlist feed, compute spread, then fetch pages only for the playlists that survive. Fetching first and hiding later would download the same globally-repeated playlist once per storefront.
-- Validity and carry-forward become per-axis. A country-level failure flag would translate a playlist-page failure into a rollback of that country's fresh songs chart, degrading the primary axis to protect the secondary one.
+- Validity and carry-forward become per-axis, and within the playlist axis, per playlist. A country-level failure flag would translate a playlist-page failure into a rollback of that country's fresh songs chart, degrading the primary axis to protect the secondary one. Carrying a whole country's playlists over one failed page would be the same mistake a level down.
+
+  Per-playlist is safe here only because selection reruns from the live feed every crawl. A playlist Apple deleted leaves the feed and is never selected, so anything whose page fails was listed today and exists; the failure is transient by construction and its track blob was never overwritten. Were selection sticky, the same rule would pin deleted playlists on the shelf indefinitely.
 
 **Neutral**
 

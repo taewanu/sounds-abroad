@@ -8,9 +8,8 @@ import type {
 } from "../../src/lib/chart-schema";
 import type { CountryEntry } from "../../src/lib/countries";
 
-import type { ApplePlaylist } from "./apple-playlists";
+import { ApplePlaylistsError, type ApplePlaylist } from "./apple-playlists";
 import type { AppleRssTrack } from "./apple-rss";
-import type { CountryPlaylistsResult } from "./crawl-playlists";
 import type { LookupResult } from "./itunes-lookup";
 import type { BatchLookup } from "./lookup-retry";
 import type { PlaylistTrack } from "./playlist-page";
@@ -19,6 +18,7 @@ import {
   PlaylistContractError,
   resolvePlaylistAxis,
   type CrawlAllDeps,
+  type PlaylistAttempt,
   type PlaylistAxisWiring,
 } from "./run";
 
@@ -39,17 +39,12 @@ const NG: CountryEntry = {
   isoNum: 566,
 };
 
-function axisResult(
-  overrides: Partial<CountryPlaylistsResult> = {},
-): CountryPlaylistsResult {
+function applePlaylist(id: string): ApplePlaylist {
   return {
-    playlists: [],
-    files: [],
-    valid: false,
-    pagesAttempted: 0,
-    pageFailures: 0,
-    lookups: { requested: 0, resolved: 0 },
-    ...overrides,
+    id,
+    name: `${id} name`,
+    appleUrl: `https://music.apple.com/x/playlist/${id}`,
+    artworkUrl: `https://art/${id}/600x600bb.jpg`,
   };
 }
 
@@ -64,49 +59,89 @@ function playlistMeta(id: string): Playlist {
   };
 }
 
-function priorCountry(overrides: Partial<Country> = {}): Country {
+/** An attempt where `ok` ids parsed and `failed` ids did not, in that order. */
+function attempt(ok: string[], failed: string[] = []): PlaylistAttempt {
+  const selected = [...ok, ...failed].map(applePlaylist);
   return {
-    name: "South Korea",
-    valid: true,
-    tracks: [],
-    ...overrides,
+    selected,
+    result: {
+      byId: new Map(ok.map((id) => [id, playlistMeta(id)])),
+      files: [],
+      failedIds: failed,
+      pagesAttempted: selected.length,
+      lookups: { requested: 0, resolved: 0 },
+    },
   };
 }
 
-test("publishes this run's playlists when the axis succeeded", () => {
-  const fresh = [playlistMeta("pl.a")];
+function priorCountry(overrides: Partial<Country> = {}): Country {
+  return { name: "South Korea", valid: true, tracks: [], ...overrides };
+}
+
+test("publishes this run's playlists when every page parsed", () => {
+  const outcome = resolvePlaylistAxis(
+    "kr",
+    attempt(["pl.a", "pl.b"]),
+    undefined,
+  );
+
+  expect(outcome.playlists?.map((p) => p.id)).toEqual(["pl.a", "pl.b"]);
+  expect(outcome.playlistsValid).toBe(true);
+  expect(outcome.carriedIds).toEqual([]);
+});
+
+test("carries only the playlist whose page failed, keeping the rest fresh", () => {
+  const stale = playlistMeta("pl.b");
 
   const outcome = resolvePlaylistAxis(
     "kr",
-    axisResult({ valid: true, playlists: fresh }),
-    priorCountry({ playlists: [playlistMeta("pl.old")] }),
+    attempt(["pl.a"], ["pl.b"]),
+    priorCountry({ playlists: [stale], playlistsValid: true }),
   );
 
-  expect(outcome).toEqual({
-    playlists: fresh,
-    playlistsValid: true,
-    carried: false,
-  });
+  expect(outcome.playlists?.map((p) => p.id)).toEqual(["pl.a", "pl.b"]);
+  expect(outcome.carriedIds).toEqual(["pl.b"]);
 });
 
-test("carries the previous playlists when this run's axis failed", () => {
-  const stale = [playlistMeta("pl.old")];
+test("keeps a carried playlist in the position selection gave it", () => {
+  const first = applePlaylist("pl.first");
+  const second = applePlaylist("pl.second");
+  const stale = playlistMeta("pl.first");
 
   const outcome = resolvePlaylistAxis(
     "kr",
-    axisResult({ valid: false }),
-    priorCountry({ playlists: stale, playlistsValid: true }),
+    {
+      selected: [first, second],
+      result: {
+        byId: new Map([["pl.second", playlistMeta("pl.second")]]),
+        files: [],
+        failedIds: ["pl.first"],
+        pagesAttempted: 2,
+        lookups: { requested: 0, resolved: 0 },
+      },
+    },
+    priorCountry({ playlists: [stale], playlistsValid: true }),
   );
 
-  expect(outcome).toEqual({
-    playlists: stale,
-    playlistsValid: true,
-    carried: true,
-  });
+  expect(outcome.playlists?.map((p) => p.id)).toEqual([
+    "pl.first",
+    "pl.second",
+  ]);
 });
 
-test("carries when the feed itself failed and nothing was attempted", () => {
-  const stale = [playlistMeta("pl.old")];
+test("drops a failed playlist the previous payload never carried", () => {
+  const outcome = resolvePlaylistAxis(
+    "kr",
+    attempt(["pl.a"], ["pl.b"]),
+    priorCountry({ playlists: [], playlistsValid: true }),
+  );
+
+  expect(outcome.playlists?.map((p) => p.id)).toEqual(["pl.a"]);
+  expect(outcome.carriedIds).toEqual([]);
+});
+
+test("carries the whole previous set when the feed itself failed", () => {
+  const stale = [playlistMeta("pl.a"), playlistMeta("pl.b")];
 
   const outcome = resolvePlaylistAxis(
     "kr",
@@ -114,51 +149,30 @@ test("carries when the feed itself failed and nothing was attempted", () => {
     priorCountry({ playlists: stale, playlistsValid: true }),
   );
 
-  expect(outcome.carried).toBe(true);
   expect(outcome.playlists).toEqual(stale);
+  expect(outcome.carriedIds).toEqual(["pl.a", "pl.b"]);
 });
 
-test("carries again after a run that was itself a carry", () => {
-  const stale = [playlistMeta("pl.old")];
+test("publishes nothing when the feed failed with no prior data", () => {
+  const outcome = resolvePlaylistAxis("kr", null, priorCountry());
 
-  // A carried entry keeps playlistsValid: true, mirroring the songs axis, so
-  // repeated failures keep republishing rather than dropping the axis.
-  const outcome = resolvePlaylistAxis(
-    "kr",
-    null,
-    priorCountry({ playlists: stale, playlistsValid: true }),
-  );
-
-  expect(outcome.carried).toBe(true);
+  expect(outcome).toEqual({ playlistsValid: false, carriedIds: [] });
 });
 
 test("does not carry from an entry the previous run published as failed", () => {
   const outcome = resolvePlaylistAxis(
     "kr",
-    null,
-    priorCountry({
-      playlists: [playlistMeta("pl.old")],
-      playlistsValid: false,
-    }),
+    attempt([], ["pl.b"]),
+    priorCountry({ playlists: [playlistMeta("pl.b")], playlistsValid: false }),
   );
 
-  expect(outcome).toEqual({ playlistsValid: false, carried: false });
+  expect(outcome).toEqual({ playlistsValid: false, carriedIds: [] });
 });
 
-test("publishes no playlists when the axis failed with nothing to carry", () => {
-  const outcome = resolvePlaylistAxis("kr", null, priorCountry());
+test("reports the axis invalid when nothing fresh or carried survives", () => {
+  const outcome = resolvePlaylistAxis("kr", attempt([], ["pl.a"]), undefined);
 
-  expect(outcome).toEqual({ playlistsValid: false, carried: false });
-});
-
-test("treats an empty prior playlist set as nothing to carry", () => {
-  const outcome = resolvePlaylistAxis(
-    "kr",
-    null,
-    priorCountry({ playlists: [], playlistsValid: true }),
-  );
-
-  expect(outcome.carried).toBe(false);
+  expect(outcome.playlistsValid).toBe(false);
 });
 
 function rssFor(cc: string): AppleRssTrack[] {
@@ -172,15 +186,6 @@ function rssFor(cc: string): AppleRssTrack[] {
       artworkUrl: `https://art/${cc}/1/600x600bb.jpg`,
     },
   ];
-}
-
-function applePlaylist(id: string): ApplePlaylist {
-  return {
-    id,
-    name: `${id} name`,
-    appleUrl: `https://music.apple.com/x/playlist/${id}`,
-    artworkUrl: `https://art/${id}/600x600bb.jpg`,
-  };
 }
 
 function scrapedTrack(id: string, rank: number): PlaylistTrack {
@@ -233,7 +238,13 @@ function makeDeps(input: {
       fetchPrevious: input.fetchPrevious,
       now: () => new Date("2026-07-20T00:00:00.000Z"),
       playlistAxis: {
-        fetchPlaylists: vi.fn(async (cc: string) => input.feedsByCc[cc] ?? []),
+        // The real fetcher validates `results` as non-empty, so a country with
+        // no feed throws rather than returning nothing.
+        fetchPlaylists: vi.fn(async (cc: string) => {
+          const feed = input.feedsByCc[cc];
+          if (!feed) throw new ApplePlaylistsError(cc, "no feed");
+          return feed;
+        }),
         fetchPlaylistPage:
           input.fetchPlaylistPage ?? vi.fn(async () => scrapedTracks()),
         uploadPlaylistFile: vi.fn(async (file: PlaylistFile) => {

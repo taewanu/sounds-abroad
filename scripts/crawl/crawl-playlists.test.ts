@@ -68,9 +68,9 @@ test("returns metadata and a track file for each scraped playlist", async () => 
 
   const result = await crawlCountryPlaylists("kr", selected, makeDeps(), now);
 
-  expect(result.playlists.map((p) => p.id)).toEqual(["pl.a", "pl.b"]);
+  expect([...result.byId.keys()]).toEqual(["pl.a", "pl.b"]);
   expect(result.files.map((f) => f.id)).toEqual(["pl.a", "pl.b"]);
-  expect(result.valid).toBe(true);
+  expect(result.byId.size).toBeGreaterThan(0);
 });
 
 test("carries the feed's name and artwork onto the metadata", async () => {
@@ -78,7 +78,7 @@ test("carries the feed's name and artwork onto the metadata", async () => {
 
   const result = await crawlCountryPlaylists("kr", [playlist], makeDeps(), now);
 
-  expect(result.playlists[0]).toMatchObject({
+  expect(result.byId.get("pl.a")).toMatchObject({
     id: playlist.id,
     name: playlist.name,
     appleUrl: playlist.appleUrl,
@@ -99,7 +99,7 @@ test("tallies the genre histogram from the resolved member tracks", async () => 
     now,
   );
 
-  expect(result.playlists[0].genres).toEqual([
+  expect(result.byId.get("pl.a")?.genres).toEqual([
     { name: "K-Pop", count: 1 },
     { name: "Rock", count: 1 },
   ]);
@@ -149,8 +149,8 @@ test("skips a playlist whose page failed, keeping the others", async () => {
     now,
   );
 
-  expect(result.playlists.map((p) => p.id)).toEqual(["pl.b"]);
-  expect(result.pageFailures).toBe(1);
+  expect([...result.byId.keys()]).toEqual(["pl.b"]);
+  expect(result.failedIds.length).toBe(1);
   expect(result.pagesAttempted).toBe(2);
 });
 
@@ -168,7 +168,7 @@ test("reports the axis invalid when every page failed", async () => {
     now,
   );
 
-  expect(result.valid).toBe(false);
+  expect(result.byId.size).toBe(0);
   expect(result.files).toHaveLength(0);
 });
 
