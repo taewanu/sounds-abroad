@@ -1,8 +1,8 @@
 # ADR-0007: Out-of-band human-curated commentary
 
-**Status:** Accepted (2026-06-15). Trust model partially superseded by [ADR-0008](0008-risk-tiered-commentary-gate.md) (2026-06-16): the primary guard moves from a uniform human read-through to a risk-tiered code gate. The rest of this record (out-of-band generation, the Blob sidecar, the crawl contract, the significance trigger, the no-lyric lint) stands. An LLM-adjudicated relaxation of the no-lyric lint's `quoted-span` rule was proposed and DEFERRED by [ADR-0010](0010-defer-quoted-span-lyric-judge.md) (2026-06-20): the rule still hard-drops, pending data on how often it false-positives on long titles.
+**Status:** Accepted (2026-06-15). Trust model superseded by [ADR-0008](0008-risk-tiered-commentary-gate.md) (2026-06-16), which moved the primary guard from a uniform human read-through to a risk-tiered code gate, and then by [ADR-0009](0009-fully-automated-commentary-gate.md) (2026-06-18), which removed the human from the publish path entirely. The rest of this record (out-of-band generation, the Blob sidecar, the crawl contract, the significance trigger, the no-lyric lint) stands. An LLM-adjudicated relaxation of the no-lyric lint's `quoted-span` rule was proposed and DEFERRED by [ADR-0010](0010-defer-quoted-span-lyric-judge.md) (2026-06-20): the rule still hard-drops, pending data on how often it false-positives on long titles.
 
-> **No human remains in the publish path.** [ADR-0008](0008-risk-tiered-commentary-gate.md) moved the primary guard from a human read-through to a risk-tiered code gate, and [ADR-0009](0009-fully-automated-commentary-gate.md) then removed the person entirely: every blurb passes or fails on code alone, and any doubt drops the card rather than routing it to review. This record's title predates both. What still stands here is the out-of-band shape (generation outside the crawl, the Blob sidecar, the read-and-bake contract, the significance trigger, the no-lyric lint), not the human curation its name describes.
+> **No human remains in the publish path**, despite this record's title. See the note on the Decision section for the two steps that got there.
 
 ## Context
 
@@ -17,7 +17,7 @@ Options weighed for where commentary is generated:
 
 ## Decision
 
-> **Trust model superseded by [ADR-0008](0008-risk-tiered-commentary-gate.md).** The "human-reviewed every entry" claims in this section describe the original uniform gate. Under ADR-0008 the safe `what-it-is` tier auto-publishes once the deterministic checks and an LLM grounding check pass; human review is kept for the risky `why-charting` tier and as spot-check sampling of the safe tier. Everything else here (out-of-band generation, the store, the significance trigger, the no-lyric lint) stands.
+> **Trust model superseded, in two steps.** The "human-reviewed every entry" claims in this section describe the original uniform gate. [ADR-0008](0008-risk-tiered-commentary-gate.md) made the code gate primary and narrowed the human to the risky `why-charting` tier plus spot-checks of the safe tier. [ADR-0009](0009-fully-automated-commentary-gate.md) then removed the person entirely: both tiers pass or fail on code alone, and anything unverifiable drops the card rather than reaching a reviewer. Read every mention of review below as a record of what was decided in June, not as current behaviour. Everything else here (out-of-band generation, the store, the significance trigger, the no-lyric lint) stands.
 
 Commentary is generated out-of-band and human-reviewed, never by the crawl. The crawl reads a commentary store and bakes each entry into the served chart data, leaving tracks without an entry as `null` (no card) and never aborting on a miss, the same carry-forward contract it already uses for failed fetches.
 
