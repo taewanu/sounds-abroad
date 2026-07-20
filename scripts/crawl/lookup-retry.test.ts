@@ -5,25 +5,25 @@ import {
   type ItunesLookupErrorKind,
   type LookupResult,
 } from "./itunes-lookup";
-import { withLookupRetry } from "./lookup-retry";
+import { withLookupRetry, type BatchLookup } from "./lookup-retry";
 
 function lookupError(kind: ItunesLookupErrorKind): ItunesLookupError {
-  return new ItunesLookupError("1", "kr", kind, kind);
+  return new ItunesLookupError(["1"], "kr", kind, kind);
 }
 
-function resolved(id: string): LookupResult {
-  return { id, previewUrl: `https://preview/${id}.m4a` };
+function resolved(ids: readonly string[]): Map<string, LookupResult> {
+  return new Map(
+    ids.map((id) => [id, { id, previewUrl: `https://preview/${id}.m4a` }]),
+  );
 }
 
 test("withLookupRetry resolves the first success without sleeping", async () => {
-  const lookup = vi.fn<(id: string, cc: string) => Promise<LookupResult>>(
-    async (id) => resolved(id),
-  );
+  const lookup = vi.fn<BatchLookup>(async (ids) => resolved(ids));
   const sleep = vi.fn(async () => {});
 
-  const result = await withLookupRetry(lookup, { sleep })("1", "kr");
+  const result = await withLookupRetry(lookup, { sleep })(["1", "2"], "kr");
 
-  expect(result).toEqual(resolved("1"));
+  expect(result).toEqual(resolved(["1", "2"]));
   expect(lookup).toHaveBeenCalledTimes(1);
   expect(sleep).not.toHaveBeenCalled();
 });
@@ -32,29 +32,27 @@ test.each(["network", "http"] as const)(
   "withLookupRetry retries the transient %s failure and returns the eventual success",
   async (kind) => {
     const lookup = vi
-      .fn<(id: string, cc: string) => Promise<LookupResult>>()
+      .fn<BatchLookup>()
       .mockRejectedValueOnce(lookupError(kind))
-      .mockResolvedValueOnce(resolved("1"));
+      .mockResolvedValueOnce(resolved(["1"]));
     const sleep = vi.fn(async () => {});
 
-    const result = await withLookupRetry(lookup, { sleep })("1", "kr");
+    const result = await withLookupRetry(lookup, { sleep })(["1"], "kr");
 
-    expect(result).toEqual(resolved("1"));
+    expect(result).toEqual(resolved(["1"]));
     expect(lookup).toHaveBeenCalledTimes(2);
     expect(sleep).toHaveBeenCalledTimes(1);
   },
 );
 
-test.each(["miss", "shape", "json"] as const)(
+test.each(["shape", "json"] as const)(
   "withLookupRetry does not retry the non-transient %s failure",
   async (kind) => {
     const error = lookupError(kind);
-    const lookup = vi
-      .fn<(id: string, cc: string) => Promise<LookupResult>>()
-      .mockRejectedValue(error);
+    const lookup = vi.fn<BatchLookup>().mockRejectedValue(error);
     const sleep = vi.fn(async () => {});
 
-    const promise = withLookupRetry(lookup, { sleep })("1", "kr");
+    const promise = withLookupRetry(lookup, { sleep })(["1"], "kr");
 
     await expect(promise).rejects.toBe(error);
     expect(lookup).toHaveBeenCalledTimes(1);
@@ -64,12 +62,10 @@ test.each(["miss", "shape", "json"] as const)(
 
 test("withLookupRetry throws the transient error after exhausting every attempt", async () => {
   const error = lookupError("http");
-  const lookup = vi
-    .fn<(id: string, cc: string) => Promise<LookupResult>>()
-    .mockRejectedValue(error);
+  const lookup = vi.fn<BatchLookup>().mockRejectedValue(error);
   const sleep = vi.fn(async () => {});
 
-  const promise = withLookupRetry(lookup, { sleep, retries: 2 })("1", "kr");
+  const promise = withLookupRetry(lookup, { sleep, retries: 2 })(["1"], "kr");
 
   await expect(promise).rejects.toBe(error);
   expect(lookup).toHaveBeenCalledTimes(3);

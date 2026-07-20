@@ -212,7 +212,7 @@ export interface CreateSpotifyResolverOptions extends SpotifyFetchOptions {
 /**
  * A resolver that caches the Client Credentials token and refreshes it before
  * expiry, so a single long crawl (which outlives the ~1h token) keeps resolving
- * without per-call auth. Returns a function in the `lookupTrack` dependency shape.
+ * without per-call auth. Returns a function in the `SpotifyResolver` shape.
  */
 export function createSpotifyResolver(
   options: CreateSpotifyResolverOptions,

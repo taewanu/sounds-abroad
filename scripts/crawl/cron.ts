@@ -9,7 +9,7 @@ import {
 
 import { fetchAppleRss } from "./apple-rss";
 import { createItunesFetchers } from "./itunes-fetchers";
-import { lookupTrack } from "./itunes-lookup";
+import { lookupTracks } from "./itunes-lookup";
 import { fetchPublishedCharts } from "./published-charts";
 import { triggerRevalidate } from "./revalidate-trigger";
 import { crawlAll, summarizeValidity, type SpotifyResolution } from "./run";
@@ -68,14 +68,14 @@ try {
     async () => {
       const itunes = createItunesFetchers({
         fetchRss: fetchAppleRss,
-        lookupTrack,
+        lookupTracks,
         throttle: createThrottle(),
         sleep,
       });
       const result = await crawlAll({
         countries: COUNTRIES,
         fetchRss: itunes.fetchRss,
-        lookupTrack: itunes.lookupTrack,
+        lookupTracks: itunes.lookupTracks,
         spotify,
         uploadCharts,
         // Never rejects: a lost snapshot generation only lags the movement
@@ -125,11 +125,16 @@ try {
           country_count: summary.total,
           valid_count: summary.validCount,
           carried_codes: result.carriedCodes,
+          // Counts, not a verdict: a shortfall is either ids with no preview in
+          // that storefront or a silently truncated batch, and no threshold set
+          // here could tell them apart. Watching the ratio over runs can.
+          lookups_requested: result.lookups.requested,
+          lookups_resolved: result.lookups.resolved,
           blob_url: result.url,
         },
       });
       // Carried-forward entries republish stale data as valid, so validity
-      // alone under-reports degradation — a run that carried anything is a
+      // alone under-reports degradation: a run that carried anything is a
       // degraded run even when every published entry parses as healthy.
       if (summary.invalidCodes.length > 0 || result.carriedCodes.length > 0) {
         Sentry.captureMessage("charts:degraded", {

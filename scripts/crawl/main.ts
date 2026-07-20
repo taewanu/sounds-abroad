@@ -2,7 +2,7 @@ import { COUNTRIES } from "../../src/lib/countries";
 
 import { fetchAppleRss } from "./apple-rss";
 import { createItunesFetchers } from "./itunes-fetchers";
-import { lookupTrack } from "./itunes-lookup";
+import { lookupTracks } from "./itunes-lookup";
 import { fetchPublishedCharts } from "./published-charts";
 import { crawlAll, crawlCountry, type SpotifyResolution } from "./run";
 import { createSpotifyResolver } from "./spotify-resolve";
@@ -40,7 +40,7 @@ async function runSingleCountry(cc: string): Promise<void> {
 
   const itunes = createItunesFetchers({
     fetchRss: fetchAppleRss,
-    lookupTrack,
+    lookupTracks,
     throttle: createThrottle(),
   });
   console.log(`[crawl ${cc}] starting single-country debug crawl...`);
@@ -48,13 +48,13 @@ async function runSingleCountry(cc: string): Promise<void> {
     cc,
     name: entry.name,
     fetchRss: itunes.fetchRss,
-    lookupTrack: itunes.lookupTrack,
+    lookupTracks: itunes.lookupTracks,
     spotify: spotifyFromEnv(),
   });
   console.log(
     `[crawl ${cc}] ${country.tracks.length} tracks (valid=${country.valid})`,
   );
-  console.log("[crawl] (dry run — no upload, no revalidate)");
+  console.log("[crawl] (dry run: no upload, no revalidate)");
   console.log(JSON.stringify({ [cc]: country }, null, 2));
 }
 
@@ -75,13 +75,13 @@ async function runAllCountries(): Promise<void> {
   }
   const itunes = createItunesFetchers({
     fetchRss: fetchAppleRss,
-    lookupTrack,
+    lookupTracks,
     throttle: createThrottle(),
   });
   await crawlAll({
     countries: COUNTRIES,
     fetchRss: itunes.fetchRss,
-    lookupTrack: itunes.lookupTrack,
+    lookupTracks: itunes.lookupTracks,
     spotify: spotifyFromEnv(),
     uploadCharts,
     fetchPrevious: previousUrl
@@ -96,7 +96,7 @@ async function runAllCountries(): Promise<void> {
         );
       }
     },
-    // Local debug entry never hits production revalidate — cron.ts injects the real one.
+    // Local debug entry never hits production revalidate; cron.ts injects the real one.
     triggerRevalidate: async () => {
       console.log("[crawl] revalidate skipped (local debug)");
     },

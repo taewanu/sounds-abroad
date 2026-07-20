@@ -8,7 +8,8 @@ import type { CountryEntry } from "../../src/lib/countries";
 import { trackKey } from "../../src/lib/track-identity";
 
 import { AppleRssError, type AppleRssTrack } from "./apple-rss";
-import { ItunesLookupError, type LookupResult } from "./itunes-lookup";
+import { batchIds, ItunesLookupError, type LookupTally } from "./itunes-lookup";
+import type { BatchLookup } from "./lookup-retry";
 import { SpotifyResolveError, type SpotifyResolver } from "./spotify-resolve";
 import type { Throttle } from "./throttle";
 
@@ -25,22 +26,23 @@ export interface CrawlCountryDeps {
   name: string;
   // Both iTunes fetchers arrive rate-limited and retry-wrapped (they share one
   // throttle, and the retry must sit around the throttle so each attempt takes
-  // its own slot — see createItunesFetchers). The orchestrator never throttles.
+  // its own slot, see createItunesFetchers). The orchestrator never throttles.
   fetchRss: (cc: string) => Promise<AppleRssTrack[]>;
-  lookupTrack: (id: string, cc: string) => Promise<LookupResult>;
+  lookupTracks: BatchLookup;
   spotify?: SpotifyResolution;
 }
 
 export interface CrawlCountryResult {
   cc: string;
   country: Country;
+  lookups: LookupTally;
 }
 
 export interface CrawlAllDeps {
   countries: readonly CountryEntry[];
   // Rate-limited and retry-wrapped, as in CrawlCountryDeps.
   fetchRss: (cc: string) => Promise<AppleRssTrack[]>;
-  lookupTrack: (id: string, cc: string) => Promise<LookupResult>;
+  lookupTracks: BatchLookup;
   spotify?: SpotifyResolution;
   uploadCharts: (chartFile: ChartFile) => Promise<string>;
   triggerRevalidate: () => Promise<void>;
@@ -65,9 +67,11 @@ export interface CrawlAllDeps {
 export interface CrawlAllResult {
   url: string;
   chartFile: ChartFile;
+  // Every id this run asked about against how many resolved.
+  lookups: LookupTally;
   // Countries republished from the previous payload this run. Carried entries
-  // keep `valid: true`, so they are invisible to summarizeValidity — this is
-  // the only signal that data is going stale.
+  // keep `valid: true`, so they are invisible to summarizeValidity, which
+  // leaves this the only signal that data is going stale.
   carriedCodes: string[];
 }
 
@@ -93,7 +97,7 @@ function spotifySearchUrl(name: string, artist: string): string {
 
 /**
  * Resolves the track's Spotify link-out: the exact `/track/{id}` deeplink when
- * resolution succeeds, else the `/search` URL (#80). Resolution is best-effort —
+ * resolution succeeds, else the `/search` URL (#80). Resolution is best-effort:
  * any SpotifyResolveError degrades to the search URL, never worse than before.
  */
 async function spotifyUrlFor(
@@ -115,33 +119,42 @@ async function spotifyUrlFor(
 }
 
 /**
- * Resolves the track's audio preview: the iTunes `previewUrl` when the lookup
- * succeeds, else null. Best-effort, mirroring spotifyUrlFor — any
- * ItunesLookupError degrades to a null preview so one bad track never aborts
- * the crawl; any other error propagates.
+ * Resolves audio previews for a whole chart, one request per batch of ids.
+ * Best-effort, mirroring spotifyUrlFor: an ItunesLookupError leaves that
+ * batch's tracks without previews rather than aborting the country, and any
+ * other error propagates. An id absent from the result simply has no preview.
  */
-async function previewUrlFor(
-  id: string,
-  rank: number,
+async function previewUrlsFor(
+  ids: readonly string[],
   cc: string,
-  lookupTrack: CrawlCountryDeps["lookupTrack"],
-): Promise<string | null> {
-  try {
-    const lookup = await lookupTrack(id, cc);
-    return lookup.previewUrl;
-  } catch (err) {
-    if (!(err instanceof ItunesLookupError)) throw err;
-    console.warn(
-      `[crawl ${cc}] lookup ${err.kind} for rank ${rank} id=${id}: ${err.message}`,
-    );
-    return null;
+  lookupTracks: BatchLookup,
+): Promise<{ previews: Map<string, string>; lookups: LookupTally }> {
+  const previews = new Map<string, string>();
+
+  for (const batch of batchIds(ids)) {
+    try {
+      const resolved = await lookupTracks(batch, cc);
+      for (const [id, result] of resolved) {
+        previews.set(id, result.previewUrl);
+      }
+    } catch (err) {
+      if (!(err instanceof ItunesLookupError)) throw err;
+      console.warn(
+        `[crawl ${cc}] lookup ${err.kind} for ${batch.length} ids: ${err.message}`,
+      );
+    }
   }
+
+  return {
+    previews,
+    lookups: { requested: ids.length, resolved: previews.size },
+  };
 }
 
 export async function crawlCountry(
   deps: CrawlCountryDeps,
 ): Promise<CrawlCountryResult> {
-  const { cc, name, fetchRss, lookupTrack, spotify } = deps;
+  const { cc, name, fetchRss, lookupTracks, spotify } = deps;
 
   let rssTracks: AppleRssTrack[];
   try {
@@ -149,38 +162,44 @@ export async function crawlCountry(
   } catch (err) {
     if (!(err instanceof AppleRssError)) throw err;
     console.warn(`[crawl ${cc}] RSS failed: ${err.message}`);
-    return { cc, country: { name, valid: false, tracks: [] } };
+    return {
+      cc,
+      country: { name, valid: false, tracks: [] },
+      lookups: { requested: 0, resolved: 0 },
+    };
   }
+
+  const { previews, lookups } = await previewUrlsFor(
+    rssTracks.map((rss) => rss.id),
+    cc,
+    lookupTracks,
+  );
 
   const tracks: Track[] = [];
   for (const rss of rssTracks) {
-    const [previewUrl, spotifyUrl] = await Promise.all([
-      previewUrlFor(rss.id, rss.rank, cc, lookupTrack),
-      spotifyUrlFor(rss.name, rss.artist, cc, spotify),
-    ]);
     tracks.push({
       rank: rss.rank,
       name: rss.name,
       artist: rss.artist,
-      previewUrl,
+      previewUrl: previews.get(rss.id) ?? null,
       artworkUrl: rss.artworkUrl,
       appleUrl: rss.appleUrl,
-      spotifyUrl,
+      spotifyUrl: await spotifyUrlFor(rss.name, rss.artist, cc, spotify),
     });
   }
 
   // A successful lookup always carries a preview URL, so zero playable tracks
-  // means every lookup failed — a lookup-host outage, not a real chart. Marked
+  // means every lookup failed: a lookup-host outage, not a real chart. Marked
   // invalid so carry-forward keeps the last playable data instead of letting
   // an unplayable chart overwrite it while telemetry reports healthy.
   const playable = tracks.some((t) => t.previewUrl !== null);
   if (tracks.length > 0 && !playable) {
     console.warn(
-      `[crawl ${cc}] all ${tracks.length} lookups failed — zero playable previews`,
+      `[crawl ${cc}] all ${tracks.length} lookups failed, zero playable previews`,
     );
   }
 
-  return { cc, country: { name, valid: playable, tracks } };
+  return { cc, country: { name, valid: playable, tracks }, lookups };
 }
 
 /**
@@ -231,7 +250,7 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
   const {
     countries,
     fetchRss,
-    lookupTrack,
+    lookupTracks,
     spotify,
     uploadCharts,
     triggerRevalidate,
@@ -246,14 +265,21 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
 
   const countriesMap: ChartFile["countries"] = {};
   const carriedCodes: string[] = [];
+  const lookups: LookupTally = { requested: 0, resolved: 0 };
   for (const entry of countries) {
-    const { cc, country } = await crawlCountry({
+    const {
+      cc,
+      country,
+      lookups: countryLookups,
+    } = await crawlCountry({
       cc: entry.code,
       name: entry.name,
       fetchRss,
-      lookupTrack,
+      lookupTracks,
       spotify,
     });
+    lookups.requested += countryLookups.requested;
+    lookups.resolved += countryLookups.resolved;
 
     // Carry forward only genuine prior data, never an earlier empty entry.
     const prior = previous?.countries[cc];
@@ -261,7 +287,7 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
       countriesMap[cc] = prior;
       carriedCodes.push(cc);
       console.log(
-        `[crawl ${cc}] crawl failed — carried forward last-good (${prior.tracks.length} tracks)`,
+        `[crawl ${cc}] crawl failed, carried forward last-good (${prior.tracks.length} tracks)`,
       );
       continue;
     }
@@ -292,7 +318,10 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
 
   const url = await uploadCharts(chartFile);
   console.log(`[crawl] uploaded → ${url}`);
+  console.log(
+    `[crawl] lookups: ${lookups.resolved}/${lookups.requested} ids resolved`,
+  );
   await triggerRevalidate();
 
-  return { url, chartFile, carriedCodes };
+  return { url, chartFile, lookups, carriedCodes };
 }
