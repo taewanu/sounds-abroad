@@ -72,11 +72,10 @@ const PlaylistTrackSchema = z.object({
   previewUrl: z.url().nullable(),
   artworkUrl: z.url(),
   appleUrl: z.url(),
-  // The search form only. Resolving an exact /track/{id} costs a Spotify call
-  // per track, which the songs axis affords at 25 a country and this axis does
-  // not at 1,400. Omitting it entirely would make the link appear and vanish
-  // as a visitor moves between charts.
-  spotifyUrl: z.url(),
+  // The search form only: an exact /track/{id} costs a Spotify call per track,
+  // which this axis carries too many tracks to afford. Optional like every
+  // other additive field here, so blobs written before it still parse.
+  spotifyUrl: z.url().optional(),
 });
 
 /** One playlist's track list, published as its own blob (ADR-0016). */

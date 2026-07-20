@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 
 import fixture from "./__fixtures__/charts.json";
-import { ChartFileSchema } from "./chart-schema";
+import { ChartFileSchema, PlaylistFileSchema } from "./chart-schema";
 
 test("ChartFileSchema parses the hand-crafted fixture", () => {
   expect(() => ChartFileSchema.parse(fixture)).not.toThrow();
@@ -297,4 +297,27 @@ test("ChartFileSchema rejects an empty countries record", () => {
   };
 
   expect(() => ChartFileSchema.parse(empty)).toThrow();
+});
+
+test("PlaylistFileSchema parses a blob written before spotifyUrl existed", () => {
+  // The crawl publishes ~600 playlist blobs and rewrites one only when that
+  // playlist crawls successfully, so entries written before an additive field
+  // stay live indefinitely. Every additive field here is optional for that
+  // reason.
+  const published = {
+    id: "pl.48229b41bbfc47d7af39dae8e8b5276e",
+    lastUpdated: "2026-07-20T08:25:33.368Z",
+    tracks: [
+      {
+        rank: 1,
+        name: "Ice Cream",
+        artist: "연준",
+        previewUrl: "https://preview/1.m4a",
+        artworkUrl: "https://art/1/600x600bb.jpg",
+        appleUrl: "https://music.apple.com/kr/album/x?i=1",
+      },
+    ],
+  };
+
+  expect(PlaylistFileSchema.safeParse(published).success).toBe(true);
 });

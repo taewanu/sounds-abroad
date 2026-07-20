@@ -65,15 +65,8 @@ export function isContractBroken(
 
 type ResolvedTrack = Pick<LookupResult, "previewUrl" | "genre">;
 
-/**
- * Resolves a whole country's playlist tracks in one pass.
- *
- * Called once per country rather than once per playlist: a request carries up
- * to LOOKUP_BATCH_MAX ids and one playlist rarely fills half of one. Gathering
- * the country first also collapses the tracks its playlists share, which are
- * asked about once instead of once per playlist that lists them.
- */
-async function previewsFor(
+/** Resolves a set of track ids to their preview URL and genre. */
+async function resolveTracks(
   ids: readonly string[],
   cc: string,
   lookupTracks: BatchLookup,
@@ -121,13 +114,14 @@ export async function crawlCountryPlaylists(
   const failedIds: string[] = [];
   const lookups: LookupTally = { requested: 0, resolved: 0 };
 
-  const scrapedByPlaylist = new Map<string, PlaylistTrack[]>();
+  const scraped: { playlist: ApplePlaylist; tracks: PlaylistTrack[] }[] = [];
   for (const playlist of selected) {
     try {
-      scrapedByPlaylist.set(
+      const tracks = await deps.fetchPlaylistPage(
         playlist.id,
-        await deps.fetchPlaylistPage(playlist.id, playlist.appleUrl),
+        playlist.appleUrl,
       );
+      scraped.push({ playlist, tracks });
     } catch (err) {
       if (!(err instanceof PlaylistPageError)) throw err;
       failedIds.push(playlist.id);
@@ -137,17 +131,16 @@ export async function crawlCountryPlaylists(
     }
   }
 
-  const ids = new Set<string>();
-  for (const scraped of scrapedByPlaylist.values()) {
-    for (const track of scraped) ids.add(track.id);
-  }
-  const resolved = await previewsFor([...ids], cc, deps.lookupTracks, lookups);
+  const ids = new Set(scraped.flatMap((s) => s.tracks.map((t) => t.id)));
+  const resolved = await resolveTracks(
+    [...ids],
+    cc,
+    deps.lookupTracks,
+    lookups,
+  );
 
-  for (const playlist of selected) {
-    const scraped = scrapedByPlaylist.get(playlist.id);
-    if (!scraped) continue;
-
-    const tracks: ChartPlaylistTrack[] = scraped.map((track) => ({
+  for (const { playlist, tracks: pageTracks } of scraped) {
+    const tracks: ChartPlaylistTrack[] = pageTracks.map((track) => ({
       rank: track.rank,
       name: track.name,
       artist: track.artist,
@@ -163,7 +156,7 @@ export async function crawlCountryPlaylists(
       appleUrl: playlist.appleUrl,
       artworkUrl: playlist.artworkUrl,
       genres: genreHistogram(
-        scraped.map((track) => resolved.get(track.id)?.genre ?? null),
+        pageTracks.map((track) => resolved.get(track.id)?.genre ?? null),
       ),
       trackCount: tracks.length,
     });

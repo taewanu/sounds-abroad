@@ -273,23 +273,27 @@ test("asks about a track shared by two playlists only once", async () => {
   const asked = lookupTracks.mock.calls[0][0];
   expect(asked.filter((id) => id === shared)).toHaveLength(1);
   expect(asked).toHaveLength(3);
-  // Both playlists still get the shared track resolved.
   for (const file of result.files) {
     expect(file.tracks.find((t) => t.rank === 1)?.previewUrl).not.toBeNull();
   }
 });
 
 test("gives every playlist track a Spotify search link", async () => {
+  const deps = makeDeps({
+    fetchPlaylistPage: vi.fn(async () => [
+      { ...scrapedTrack("t1", 1), name: "Ice Cream", artist: "연준" },
+    ]),
+  });
+
   const result = await crawlCountryPlaylists(
     "kr",
     [applePlaylist("pl.a")],
-    makeDeps(),
+    deps,
     now,
   );
 
-  const track = result.files[0].tracks[0];
-  expect(track.spotifyUrl).toBe(
-    `https://open.spotify.com/search/${encodeURIComponent(`${track.name} ${track.artist}`)}`,
+  expect(result.files[0].tracks[0].spotifyUrl).toBe(
+    "https://open.spotify.com/search/Ice%20Cream%20%EC%97%B0%EC%A4%80",
   );
 });
 
