@@ -1,0 +1,959 @@
+{
+  "data": [
+    {
+      "intent": {
+        "$kind": "PlaylistDetailPageIntent",
+        "contentDescriptor": {
+          "kind": "playlist",
+          "identifiers": {
+            "storeAdamID": "pl.48229b41bbfc47d7af39dae8e8b5276e"
+          },
+          "locale": {
+            "storefront": "kr",
+            "language": null
+          }
+        },
+        "prominentItemIdentifier": null
+      },
+      "data": {
+        "pageMetrics": {
+          "instructions": [
+            {
+              "data": {
+                "topic": "xp_its_music_main",
+                "shouldFlush": false,
+                "fields": {
+                  "eventType": "page"
+                },
+                "includingFields": ["pageFields", "languages"],
+                "excludingFields": []
+              },
+              "invocationPoints": ["pageEnter", "appEnter"]
+            },
+            {
+              "data": {
+                "topic": "xp_its_music_main",
+                "shouldFlush": false,
+                "fields": {
+                  "eventType": "impressions"
+                },
+                "includingFields": ["pageFields", "languages", "impressions"],
+                "excludingFields": []
+              },
+              "invocationPoints": ["pageExit", "appExit"]
+            }
+          ],
+          "pageFields": {
+            "pageType": "Playlist",
+            "pageUrl": "https://music.apple.com/kr/playlist/kpopwrld/pl.48229b41bbfc47d7af39dae8e8b5276e",
+            "pageFeatureName": "playlist_detail",
+            "pageId": "pl.48229b41bbfc47d7af39dae8e8b5276e",
+            "page": "Playlist_pl.48229b41bbfc47d7af39dae8e8b5276e"
+          },
+          "custom": {}
+        },
+        "sections": [
+          {
+            "id": "playlist-detail-header-section - pl.48229b41bbfc47d7af39dae8e8b5276e",
+            "itemKind": "containerDetailHeaderLockup",
+            "presentation": {
+              "kind": "single"
+            },
+            "items": [
+              {
+                "id": "playlist-detail-header - pl.48229b41bbfc47d7af39dae8e8b5276e",
+                "artwork": {
+                  "dictionary": {
+                    "bgColor": "0b0910",
+                    "hasP3": false,
+                    "height": 3840,
+                    "textColor1": "ffffff",
+                    "textColor2": "ffffff",
+                    "textColor3": "bebac5",
+                    "textColor4": "b1a9c5",
+                    "url": "https://is1-ssl.mzstatic.com/image/thumb/Features/v4/15/e0/fc/15e0fced-06d2-3950-2fe0-decc94c7f227/5575ed03-b808-4d88-9520-ed306fcd5699.png/{w}x{h}bb.{f}",
+                    "width": 3840
+                  }
+                },
+                "tallArtwork": {
+                  "dictionary": {
+                    "bgColor": "0a0910",
+                    "hasP3": false,
+                    "height": 2732,
+                    "textColor1": "ffffff",
+                    "textColor2": "ffffff",
+                    "textColor3": "b0b2c4",
+                    "textColor4": "bfabc4",
+                    "textGradient": ["ffffff", "ffffff"],
+                    "url": "https://is1-ssl.mzstatic.com/image/thumb/Features/v4/e6/f7/11/e6f711eb-7d9e-9d7c-c8ab-6c4e9add90a1/098a0076-2045-4b77-aaa8-7f83e771b07c.png/{w}x{h}bb.{f}",
+                    "width": 2048
+                  },
+                  "cropStyle": "sr"
+                },
+                "title": "KPOPWRLD",
+                "subtitleLinks": [
+                  {
+                    "title": "Apple Music K-Pop",
+                    "segue": {
+                      "$kind": "flowAction",
+                      "destination": {
+                        "kind": "catalogItemDetailPage",
+                        "contentDescriptor": {
+                          "kind": "appleCurator",
+                          "identifiers": {
+                            "storeAdamID": "988658197"
+                          },
+                          "url": "https://music.apple.com/kr/curator/apple-music-k-pop/988658197"
+                        },
+                        "prominentItemIdentifier": null
+                      }
+                    }
+                  }
+                ],
+                "tertiaryTitleLinks": [],
+                "collaborators": [],
+                "quaternaryTitle": "지난 주에 업데이트됨",
+                "canEdit": false,
+                "modalPresentationDescriptor": {
+                  "headerTitle": "KPOPWRLD",
+                  "headerSubtitle": "Apple Music K-Pop",
+                  "paragraphText": "새로워진 'KPOPWRLD'에 오신 걸 환영합니다! K-Pop 인기곡을 선보였던 플레이리스트 'A-List: K-Pop'이 'KPOPWRLD'로 다시 태어났습니다. 힙합, 록, 댄스, 팝을 넘나들며 빚어낸 완벽한 사운드로 세계적인 사랑을 받는 K-Pop, 그 현재와 미래를 만나보세요. Apple Music 에디터가 정기적으로 업데이트하는 플레이리스트입니다. 마음에 드는 곡이 있다면 보관함에 추가하세요."
+                },
+                "showExplicitBadge": false,
+                "contentDescriptor": {
+                  "kind": "playlist",
+                  "identifiers": {
+                    "storeAdamID": "pl.48229b41bbfc47d7af39dae8e8b5276e"
+                  },
+                  "url": "https://music.apple.com/kr/playlist/kpopwrld/pl.48229b41bbfc47d7af39dae8e8b5276e"
+                },
+                "playButton": {
+                  "id": "play-button-non-subscriber-pl.48229b41bbfc47d7af39dae8e8b5276e",
+                  "segue": {
+                    "$kind": "playAction",
+                    "items": [
+                      {
+                        "contentDescriptor": {
+                          "kind": "playlist",
+                          "identifiers": {
+                            "storeAdamID": "pl.48229b41bbfc47d7af39dae8e8b5276e"
+                          },
+                          "url": "https://music.apple.com/kr/playlist/kpopwrld/pl.48229b41bbfc47d7af39dae8e8b5276e"
+                        }
+                      }
+                    ],
+                    "containerContentDescriptor": {
+                      "kind": "playlist",
+                      "identifiers": {
+                        "storeAdamID": "pl.48229b41bbfc47d7af39dae8e8b5276e"
+                      },
+                      "url": "https://music.apple.com/kr/playlist/kpopwrld/pl.48229b41bbfc47d7af39dae8e8b5276e"
+                    },
+                    "groupingIdentifier": null
+                  },
+                  "title": "미리 듣기"
+                },
+                "shuffleButton": null,
+                "trackCount": 64,
+                "isPreviewMode": false
+              }
+            ]
+          },
+          {
+            "id": "track-list - pl.48229b41bbfc47d7af39dae8e8b5276e",
+            "itemKind": "trackLockup",
+            "presentation": {
+              "kind": "collection",
+              "layout": "list"
+            },
+            "items": [
+              {
+                "id": "track-lockup - pl.48229b41bbfc47d7af39dae8e8b5276e - 6778800489",
+                "title": "Ice Cream",
+                "trackNumber": null,
+                "tertiaryLinks": [
+                  {
+                    "title": "NO LABELS: PART 02 - EP",
+                    "segue": {
+                      "$kind": "flowAction",
+                      "destination": {
+                        "kind": "catalogItemDetailPage",
+                        "contentDescriptor": {
+                          "kind": "album",
+                          "identifiers": {
+                            "storeAdamID": "6778800277"
+                          },
+                          "url": "https://music.apple.com/kr/album/ice-cream/6778800277",
+                          "locale": {
+                            "storefront": "kr",
+                            "language": null
+                          }
+                        },
+                        "prominentItemIdentifier": null
+                      }
+                    }
+                  }
+                ],
+                "duration": 124896,
+                "contentDescriptor": {
+                  "kind": "song",
+                  "identifiers": {
+                    "storeAdamID": "6778800489"
+                  },
+                  "url": "https://music.apple.com/kr/album/ice-cream/6778800277?i=6778800489"
+                },
+                "artwork": {
+                  "dictionary": {
+                    "bgColor": "d9e4e7",
+                    "hasP3": false,
+                    "height": 1400,
+                    "textColor1": "32261b",
+                    "textColor2": "3d2d25",
+                    "textColor3": "534c44",
+                    "textColor4": "5c514c",
+                    "url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/33/31/f3/3331f3ee-e5b5-9eec-e6ef-71842f04d60e/823375197690_Cover.jpg/{w}x{h}bb.{f}",
+                    "width": 1400
+                  }
+                },
+                "subtitleLinks": [
+                  {
+                    "title": "연준",
+                    "segue": {
+                      "$kind": "flowAction",
+                      "destination": {
+                        "kind": "catalogItemDetailPage",
+                        "contentDescriptor": {
+                          "kind": "artist",
+                          "identifiers": {
+                            "storeAdamID": "1492229490"
+                          },
+                          "url": "https://music.apple.com/kr/artist/%EC%97%B0%EC%A4%80/1492229490"
+                        },
+                        "prominentItemIdentifier": null
+                      }
+                    }
+                  }
+                ],
+                "playAction": {
+                  "$kind": "playAction",
+                  "items": [
+                    {
+                      "contentDescriptor": {
+                        "kind": "song",
+                        "identifiers": {
+                          "storeAdamID": "6778800489"
+                        },
+                        "url": "https://music.apple.com/kr/album/ice-cream/6778800277?i=6778800489"
+                      }
+                    }
+                  ],
+                  "containerContentDescriptor": {
+                    "kind": "playlist",
+                    "identifiers": {
+                      "storeAdamID": "pl.48229b41bbfc47d7af39dae8e8b5276e"
+                    },
+                    "url": "https://music.apple.com/kr/playlist/kpopwrld/pl.48229b41bbfc47d7af39dae8e8b5276e"
+                  },
+                  "groupingIdentifier": "pl.48229b41bbfc47d7af39dae8e8b5276e"
+                },
+                "layoutStyle": {
+                  "kind": "playlistTrackList",
+                  "hasVideo": false,
+                  "hasBadging": false
+                },
+                "showExplicitBadge": false,
+                "isProminent": false,
+                "pauseAction": {
+                  "$kind": "pausePlaybackAction"
+                },
+                "resumeAction": {
+                  "$kind": "resumePlaybackAction"
+                },
+                "isDisabled": false,
+                "isPreviewMode": true,
+                "composer": "슬로우 래빗, Misha, 슈프림 보이, \"Hitman\" Bang & Rachel West",
+                "showPopularityIndicator": false,
+                "artistName": "연준",
+                "socialProfileContentDescriptor": null
+              },
+              {
+                "id": "track-lockup - pl.48229b41bbfc47d7af39dae8e8b5276e - 6779521286",
+                "title": "Lemon Tang",
+                "trackNumber": null,
+                "tertiaryLinks": [
+                  {
+                    "title": "Lemon Tang - The 2nd Mini Album - EP",
+                    "segue": {
+                      "$kind": "flowAction",
+                      "destination": {
+                        "kind": "catalogItemDetailPage",
+                        "contentDescriptor": {
+                          "kind": "album",
+                          "identifiers": {
+                            "storeAdamID": "6779521284"
+                          },
+                          "url": "https://music.apple.com/kr/album/lemon-tang/6779521284",
+                          "locale": {
+                            "storefront": "kr",
+                            "language": null
+                          }
+                        },
+                        "prominentItemIdentifier": null
+                      }
+                    }
+                  }
+                ],
+                "duration": 163000,
+                "contentDescriptor": {
+                  "kind": "song",
+                  "identifiers": {
+                    "storeAdamID": "6779521286"
+                  },
+                  "url": "https://music.apple.com/kr/album/lemon-tang/6779521284?i=6779521286"
+                },
+                "artwork": {
+                  "dictionary": {
+                    "bgColor": "d2e1ea",
+                    "hasP3": false,
+                    "height": 4000,
+                    "textColor1": "141d14",
+                    "textColor2": "1f271b",
+                    "textColor3": "3a443f",
+                    "textColor4": "434c44",
+                    "url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/00/a4/c1/00a4c1fb-c2c9-83c9-af2e-44cb5da80bc4/888735956140.png/{w}x{h}bb.{f}",
+                    "width": 4000
+                  }
+                },
+                "subtitleLinks": [
+                  {
+                    "title": "Hearts2Hearts",
+                    "segue": {
+                      "$kind": "flowAction",
+                      "destination": {
+                        "kind": "catalogItemDetailPage",
+                        "contentDescriptor": {
+                          "kind": "artist",
+                          "identifiers": {
+                            "storeAdamID": "1793698498"
+                          },
+                          "url": "https://music.apple.com/kr/artist/hearts2hearts/1793698498"
+                        },
+                        "prominentItemIdentifier": null
+                      }
+                    }
+                  }
+                ],
+                "playAction": {
+                  "$kind": "playAction",
+                  "items": [
+                    {
+                      "contentDescriptor": {
+                        "kind": "song",
+                        "identifiers": {
+                          "storeAdamID": "6779521286"
+                        },
+                        "url": "https://music.apple.com/kr/album/lemon-tang/6779521284?i=6779521286"
+                      }
+                    }
+                  ],
+                  "containerContentDescriptor": {
+                    "kind": "playlist",
+                    "identifiers": {
+                      "storeAdamID": "pl.48229b41bbfc47d7af39dae8e8b5276e"
+                    },
+                    "url": "https://music.apple.com/kr/playlist/kpopwrld/pl.48229b41bbfc47d7af39dae8e8b5276e"
+                  },
+                  "groupingIdentifier": "pl.48229b41bbfc47d7af39dae8e8b5276e"
+                },
+                "layoutStyle": {
+                  "kind": "playlistTrackList",
+                  "hasVideo": false,
+                  "hasBadging": false
+                },
+                "showExplicitBadge": false,
+                "isProminent": false,
+                "pauseAction": {
+                  "$kind": "pausePlaybackAction"
+                },
+                "resumeAction": {
+                  "$kind": "resumePlaybackAction"
+                },
+                "isDisabled": false,
+                "isPreviewMode": true,
+                "composer": "KENZIE, 앤드류최, No2zcat, 제이송 & Rouno",
+                "showPopularityIndicator": false,
+                "artistName": "Hearts2Hearts",
+                "socialProfileContentDescriptor": null
+              },
+              {
+                "id": "track-lockup - pl.48229b41bbfc47d7af39dae8e8b5276e - 6770401926",
+                "title": "BAD",
+                "trackNumber": null,
+                "tertiaryLinks": [
+                  {
+                    "title": "GOLDEN HOUR : Part.5 - EP",
+                    "segue": {
+                      "$kind": "flowAction",
+                      "destination": {
+                        "kind": "catalogItemDetailPage",
+                        "contentDescriptor": {
+                          "kind": "album",
+                          "identifiers": {
+                            "storeAdamID": "6770401924"
+                          },
+                          "url": "https://music.apple.com/kr/album/bad/6770401924",
+                          "locale": {
+                            "storefront": "kr",
+                            "language": null
+                          }
+                        },
+                        "prominentItemIdentifier": null
+                      }
+                    }
+                  }
+                ],
+                "duration": 156035,
+                "contentDescriptor": {
+                  "kind": "song",
+                  "identifiers": {
+                    "storeAdamID": "6770401926"
+                  },
+                  "url": "https://music.apple.com/kr/album/bad/6770401924?i=6770401926"
+                },
+                "artwork": {
+                  "dictionary": {
+                    "bgColor": "f98bd8",
+                    "hasP3": false,
+                    "height": 3000,
+                    "textColor1": "150e13",
+                    "textColor2": "150e13",
+                    "textColor3": "43273b",
+                    "textColor4": "43273b",
+                    "url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/15/5e/a0/155ea070-3f0d-84ae-7883-128ecd9ed5bf/196874257944.jpg/{w}x{h}bb.{f}",
+                    "width": 3000
+                  }
+                },
+                "subtitleLinks": [
+                  {
+                    "title": "에이티즈",
+                    "segue": {
+                      "$kind": "flowAction",
+                      "destination": {
+                        "kind": "catalogItemDetailPage",
+                        "contentDescriptor": {
+                          "kind": "artist",
+                          "identifiers": {
+                            "storeAdamID": "1439301205"
+                          },
+                          "url": "https://music.apple.com/kr/artist/%EC%97%90%EC%9D%B4%ED%8B%B0%EC%A6%88/1439301205"
+                        },
+                        "prominentItemIdentifier": null
+                      }
+                    }
+                  }
+                ],
+                "playAction": {
+                  "$kind": "playAction",
+                  "items": [
+                    {
+                      "contentDescriptor": {
+                        "kind": "song",
+                        "identifiers": {
+                          "storeAdamID": "6770401926"
+                        },
+                        "url": "https://music.apple.com/kr/album/bad/6770401924?i=6770401926"
+                      }
+                    }
+                  ],
+                  "containerContentDescriptor": {
+                    "kind": "playlist",
+                    "identifiers": {
+                      "storeAdamID": "pl.48229b41bbfc47d7af39dae8e8b5276e"
+                    },
+                    "url": "https://music.apple.com/kr/playlist/kpopwrld/pl.48229b41bbfc47d7af39dae8e8b5276e"
+                  },
+                  "groupingIdentifier": "pl.48229b41bbfc47d7af39dae8e8b5276e"
+                },
+                "layoutStyle": {
+                  "kind": "playlistTrackList",
+                  "hasVideo": false,
+                  "hasBadging": false
+                },
+                "showExplicitBadge": false,
+                "isProminent": false,
+                "pauseAction": {
+                  "$kind": "pausePlaybackAction"
+                },
+                "resumeAction": {
+                  "$kind": "resumePlaybackAction"
+                },
+                "isDisabled": false,
+                "isPreviewMode": true,
+                "composer": "이든, 마독스, Peperoni, Oliv, Jordan, Eljay, Joe Harvey & Jack Harvey",
+                "showPopularityIndicator": false,
+                "artistName": "에이티즈",
+                "socialProfileContentDescriptor": null
+              },
+              {
+                "id": "track-lockup - pl.48229b41bbfc47d7af39dae8e8b5276e - 1887194026",
+                "title": "It's Me",
+                "trackNumber": null,
+                "tertiaryLinks": [
+                  {
+                    "title": "MAMIHLAPINATAPAI - EP",
+                    "segue": {
+                      "$kind": "flowAction",
+                      "destination": {
+                        "kind": "catalogItemDetailPage",
+                        "contentDescriptor": {
+                          "kind": "album",
+                          "identifiers": {
+                            "storeAdamID": "1887194024"
+                          },
+                          "url": "https://music.apple.com/kr/album/its-me/1887194024",
+                          "locale": {
+                            "storefront": "kr",
+                            "language": null
+                          }
+                        },
+                        "prominentItemIdentifier": null
+                      }
+                    }
+                  }
+                ],
+                "duration": 138284,
+                "contentDescriptor": {
+                  "kind": "song",
+                  "identifiers": {
+                    "storeAdamID": "1887194026"
+                  },
+                  "url": "https://music.apple.com/kr/album/its-me/1887194024?i=1887194026"
+                },
+                "artwork": {
+                  "dictionary": {
+                    "bgColor": "3f567b",
+                    "hasP3": false,
+                    "height": 1400,
+                    "textColor1": "c3d8fc",
+                    "textColor2": "95bdfd",
+                    "textColor3": "a9bee2",
+                    "textColor4": "83a8e3",
+                    "url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/db/56/04/db5604ab-c7f4-b982-8c76-98ee766ac294/823375069195_Cover.jpg/{w}x{h}bb.{f}",
+                    "width": 1400
+                  }
+                },
+                "subtitleLinks": [
+                  {
+                    "title": "아일릿",
+                    "segue": {
+                      "$kind": "flowAction",
+                      "destination": {
+                        "kind": "catalogItemDetailPage",
+                        "contentDescriptor": {
+                          "kind": "artist",
+                          "identifiers": {
+                            "storeAdamID": "1734551937"
+                          },
+                          "url": "https://music.apple.com/kr/artist/%EC%95%84%EC%9D%BC%EB%A6%BF/1734551937"
+                        },
+                        "prominentItemIdentifier": null
+                      }
+                    }
+                  }
+                ],
+                "playAction": {
+                  "$kind": "playAction",
+                  "items": [
+                    {
+                      "contentDescriptor": {
+                        "kind": "song",
+                        "identifiers": {
+                          "storeAdamID": "1887194026"
+                        },
+                        "url": "https://music.apple.com/kr/album/its-me/1887194024?i=1887194026"
+                      }
+                    }
+                  ],
+                  "containerContentDescriptor": {
+                    "kind": "playlist",
+                    "identifiers": {
+                      "storeAdamID": "pl.48229b41bbfc47d7af39dae8e8b5276e"
+                    },
+                    "url": "https://music.apple.com/kr/playlist/kpopwrld/pl.48229b41bbfc47d7af39dae8e8b5276e"
+                  },
+                  "groupingIdentifier": "pl.48229b41bbfc47d7af39dae8e8b5276e"
+                },
+                "layoutStyle": {
+                  "kind": "playlistTrackList",
+                  "hasVideo": false,
+                  "hasBadging": false
+                },
+                "showExplicitBadge": false,
+                "isProminent": false,
+                "pauseAction": {
+                  "$kind": "pausePlaybackAction"
+                },
+                "resumeAction": {
+                  "$kind": "resumePlaybackAction"
+                },
+                "isDisabled": false,
+                "isPreviewMode": true,
+                "composer": "Jack Brady, Jordan Roman, Sorana, Rollo, The Deep & 유라",
+                "showPopularityIndicator": false,
+                "artistName": "아일릿",
+                "socialProfileContentDescriptor": null
+              },
+              {
+                "id": "track-lockup - pl.48229b41bbfc47d7af39dae8e8b5276e - 6776077187",
+                "title": "ICONIC BY MISTAKE",
+                "trackNumber": null,
+                "tertiaryLinks": [
+                  {
+                    "title": "ICONIC BY MISTAKE - Single",
+                    "segue": {
+                      "$kind": "flowAction",
+                      "destination": {
+                        "kind": "catalogItemDetailPage",
+                        "contentDescriptor": {
+                          "kind": "album",
+                          "identifiers": {
+                            "storeAdamID": "6776077182"
+                          },
+                          "url": "https://music.apple.com/kr/album/iconic-by-mistake/6776077182",
+                          "locale": {
+                            "storefront": "kr",
+                            "language": null
+                          }
+                        },
+                        "prominentItemIdentifier": null
+                      }
+                    }
+                  }
+                ],
+                "duration": 177983,
+                "contentDescriptor": {
+                  "kind": "song",
+                  "identifiers": {
+                    "storeAdamID": "6776077187"
+                  },
+                  "url": "https://music.apple.com/kr/album/iconic-by-mistake/6776077182?i=6776077187"
+                },
+                "artwork": {
+                  "dictionary": {
+                    "bgColor": "090909",
+                    "hasP3": false,
+                    "height": 1400,
+                    "textColor1": "c3cfda",
+                    "textColor2": "bcc3cf",
+                    "textColor3": "9ea7b0",
+                    "textColor4": "989ea8",
+                    "url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/79/22/91/79229159-769c-dd71-b5c3-2295e4fbb744/823375193074_Cover.jpg/{w}x{h}bb.{f}",
+                    "width": 1400
+                  }
+                },
+                "subtitleLinks": [
+                  {
+                    "title": "르세라핌",
+                    "segue": {
+                      "$kind": "flowAction",
+                      "destination": {
+                        "kind": "catalogItemDetailPage",
+                        "contentDescriptor": {
+                          "kind": "artist",
+                          "identifiers": {
+                            "storeAdamID": "1616740364"
+                          },
+                          "url": "https://music.apple.com/kr/artist/%EB%A5%B4%EC%84%B8%EB%9D%BC%ED%95%8C/1616740364"
+                        },
+                        "prominentItemIdentifier": null
+                      }
+                    }
+                  },
+                  {
+                    "title": "아일릿",
+                    "segue": {
+                      "$kind": "flowAction",
+                      "destination": {
+                        "kind": "catalogItemDetailPage",
+                        "contentDescriptor": {
+                          "kind": "artist",
+                          "identifiers": {
+                            "storeAdamID": "1734551937"
+                          },
+                          "url": "https://music.apple.com/kr/artist/%EC%95%84%EC%9D%BC%EB%A6%BF/1734551937"
+                        },
+                        "prominentItemIdentifier": null
+                      }
+                    }
+                  },
+                  {
+                    "title": "KATSEYE",
+                    "segue": {
+                      "$kind": "flowAction",
+                      "destination": {
+                        "kind": "catalogItemDetailPage",
+                        "contentDescriptor": {
+                          "kind": "artist",
+                          "identifiers": {
+                            "storeAdamID": "1754284416"
+                          },
+                          "url": "https://music.apple.com/kr/artist/katseye/1754284416"
+                        },
+                        "prominentItemIdentifier": null
+                      }
+                    }
+                  }
+                ],
+                "playAction": {
+                  "$kind": "playAction",
+                  "items": [
+                    {
+                      "contentDescriptor": {
+                        "kind": "song",
+                        "identifiers": {
+                          "storeAdamID": "6776077187"
+                        },
+                        "url": "https://music.apple.com/kr/album/iconic-by-mistake/6776077182?i=6776077187"
+                      }
+                    }
+                  ],
+                  "containerContentDescriptor": {
+                    "kind": "playlist",
+                    "identifiers": {
+                      "storeAdamID": "pl.48229b41bbfc47d7af39dae8e8b5276e"
+                    },
+                    "url": "https://music.apple.com/kr/playlist/kpopwrld/pl.48229b41bbfc47d7af39dae8e8b5276e"
+                  },
+                  "groupingIdentifier": "pl.48229b41bbfc47d7af39dae8e8b5276e"
+                },
+                "layoutStyle": {
+                  "kind": "playlistTrackList",
+                  "hasVideo": false,
+                  "hasBadging": false
+                },
+                "showExplicitBadge": true,
+                "isProminent": false,
+                "pauseAction": {
+                  "$kind": "pausePlaybackAction"
+                },
+                "resumeAction": {
+                  "$kind": "resumePlaybackAction"
+                },
+                "isDisabled": false,
+                "isPreviewMode": true,
+                "composer": "Sean Cook, McKay Stevens, Madison Love, Alice Longyu Gao, Justin Tranter, Brandon Colbein, alyx, Amanda “Kiddo” Ibanez & dyvahh",
+                "showPopularityIndicator": false,
+                "artistName": "르세라핌, 아일릿 & KATSEYE",
+                "socialProfileContentDescriptor": null
+              }
+            ],
+            "header": {
+              "item": {
+                "firstColumnText": "노래",
+                "secondColumnText": "아티스트",
+                "thirdColumnText": "앨범"
+              },
+              "kind": "column"
+            },
+            "containerContentDescriptor": {
+              "kind": "playlist",
+              "identifiers": {
+                "storeAdamID": "pl.48229b41bbfc47d7af39dae8e8b5276e"
+              },
+              "url": "https://music.apple.com/kr/playlist/kpopwrld/pl.48229b41bbfc47d7af39dae8e8b5276e"
+            },
+            "containerArtwork": {
+              "dictionary": {
+                "bgColor": "000000",
+                "hasP3": false,
+                "height": 1080,
+                "textColor1": "ffffff",
+                "textColor2": "ffffff",
+                "textColor3": "1c65c5",
+                "textColor4": "0758cb",
+                "url": "https://is1-ssl.mzstatic.com/image/thumb/Features/v4/3e/9c/71/3e9c71b0-c797-d337-9abf-8a4b6e41375b/18c721eb-57f5-434a-9f28-c8b0179776de.png/{w}x{h}SC.DN01.{f}?l=ko-KR",
+                "width": 1080
+              }
+            }
+          },
+          {
+            "id": "track-list-footer-section - pl.48229b41bbfc47d7af39dae8e8b5276e",
+            "itemKind": "containerDetailTracklistFooterLockup",
+            "presentation": {
+              "kind": "single"
+            },
+            "items": [
+              {
+                "id": "track-list-footer - pl.48229b41bbfc47d7af39dae8e8b5276e",
+                "contentDescriptor": {
+                  "kind": "playlist",
+                  "identifiers": {
+                    "storeAdamID": "pl.48229b41bbfc47d7af39dae8e8b5276e"
+                  },
+                  "url": "https://music.apple.com/kr/playlist/kpopwrld/pl.48229b41bbfc47d7af39dae8e8b5276e"
+                },
+                "numberOfSocialBadges": 10,
+                "hidden": false,
+                "description": "노래 64곡, 3시간 1분"
+              }
+            ]
+          },
+          {
+            "id": "spacerSection - footer - pl.48229b41bbfc47d7af39dae8e8b5276e",
+            "itemKind": "spacer",
+            "presentation": {
+              "kind": "single"
+            },
+            "backgroundTreatment": "alternate",
+            "items": [
+              {
+                "id": "spacerSection - footer - pl.48229b41bbfc47d7af39dae8e8b5276e - spacer item - footer - pl.48229b41bbfc47d7af39dae8e8b5276e"
+              }
+            ]
+          },
+          {
+            "id": "artist - featured-artists",
+            "itemKind": "bubbleLockup",
+            "presentation": {
+              "kind": "collection",
+              "layout": {
+                "kind": "shelf",
+                "numberOfRows": 1
+              }
+            },
+            "items": [
+              {
+                "id": "featured-artists - 1492229490",
+                "artwork": {
+                  "dictionary": {
+                    "bgColor": "d5d4cf",
+                    "defaultCropCode": "bb",
+                    "hasP3": true,
+                    "height": 2400,
+                    "textColor1": "262524",
+                    "textColor2": "31302e",
+                    "textColor3": "494846",
+                    "textColor4": "51504e",
+                    "url": "https://is1-ssl.mzstatic.com/image/thumb/AMCArtistImages221/v4/76/67/9f/76679ff5-1e7b-0992-07e1-78cda77005c0/ami-identity-0d9b1df8dd4f12b623a265d13d63e853-2026-07-01T02-57-51.603Z_cropped.png/{w}x{h}bb.{f}",
+                    "width": 2400
+                  },
+                  "cropStyle": "ac"
+                },
+                "title": "연준",
+                "contentDescriptor": {
+                  "kind": "artist",
+                  "identifiers": {
+                    "storeAdamID": "1492229490"
+                  },
+                  "url": "https://music.apple.com/kr/artist/%EC%97%B0%EC%A4%80/1492229490"
+                },
+                "segue": {
+                  "$kind": "flowAction",
+                  "destination": {
+                    "kind": "catalogItemDetailPage",
+                    "contentDescriptor": {
+                      "kind": "artist",
+                      "identifiers": {
+                        "storeAdamID": "1492229490"
+                      },
+                      "url": "https://music.apple.com/kr/artist/%EC%97%B0%EC%A4%80/1492229490"
+                    },
+                    "prominentItemIdentifier": null
+                  }
+                },
+                "name": "연준",
+                "accessibilityLabel": "연준"
+              }
+            ],
+            "header": {
+              "kind": "default",
+              "item": {
+                "titleLink": {
+                  "title": "연관 아티스트",
+                  "segue": {
+                    "$kind": "flowAction",
+                    "destination": {
+                      "kind": "catalogPage",
+                      "intent": {
+                        "$kind": "ContainerDetailSeeAllPageIntent",
+                        "url": "/v1/catalog/kr/playlists/pl.48229b41bbfc47d7af39dae8e8b5276e/view/featured-artists?l=ko",
+                        "viewKind": "featured-artists",
+                        "id": "artist",
+                        "title": "연관 아티스트",
+                        "containerType": "playlists"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "displaySeparator": false,
+            "backgroundTreatment": "alternate"
+          }
+        ],
+        "invalidationRules": {
+          "eventTriggers": [
+            {
+              "events": [
+                {
+                  "name": "subscriptionStatusChange"
+                },
+                {
+                  "name": "restrictionsDidChange"
+                }
+              ],
+              "intent": {
+                "$kind": "RefreshPageIntent",
+                "intent": {
+                  "$kind": "PlaylistDetailPageIntent",
+                  "contentDescriptor": {
+                    "kind": "playlist",
+                    "identifiers": {
+                      "storeAdamID": "pl.48229b41bbfc47d7af39dae8e8b5276e"
+                    },
+                    "locale": {
+                      "storefront": "kr",
+                      "language": null
+                    }
+                  },
+                  "prominentItemIdentifier": null
+                },
+                "reason": "Subscription Status Changed"
+              }
+            },
+            {
+              "events": [
+                {
+                  "name": "sortByChange"
+                }
+              ],
+              "intent": {
+                "$kind": "RefreshPageIntent",
+                "intent": {
+                  "$kind": "PlaylistDetailPageIntent",
+                  "contentDescriptor": {
+                    "kind": "playlist",
+                    "identifiers": {
+                      "storeAdamID": "pl.48229b41bbfc47d7af39dae8e8b5276e"
+                    },
+                    "locale": {
+                      "storefront": "kr",
+                      "language": null
+                    }
+                  },
+                  "prominentItemIdentifier": null
+                },
+                "reason": "SortBy Changed"
+              }
+            }
+          ]
+        },
+        "canonicalURL": "https://music.apple.com/kr/playlist/kpopwrld/pl.48229b41bbfc47d7af39dae8e8b5276e",
+        "seoData": {
+          "pageTitle": "KPOPWRLD - 플레이리스트 - Apple Music"
+        }
+      }
+    }
+  ],
+  "userTokenHash": ""
+}

@@ -58,7 +58,7 @@ function previewUrlForId(id: string): string {
 
 function resolvedPreviews(ids: readonly string[]): Map<string, LookupResult> {
   return new Map(
-    ids.map((id) => [id, { id, previewUrl: previewUrlForId(id) }]),
+    ids.map((id) => [id, { id, previewUrl: previewUrlForId(id), genre: null }]),
   );
 }
 
@@ -280,7 +280,7 @@ function countryPreviews(
   return new Map(
     ids.map((id) => [
       id,
-      { id, previewUrl: `https://preview/${cc}/${id}.m4a` },
+      { id, previewUrl: `https://preview/${cc}/${id}.m4a`, genre: null },
     ]),
   );
 }
@@ -307,6 +307,7 @@ function makeCrawlAllDeps(input: {
               {
                 id,
                 previewUrl: `https://preview/${cc}/${id}.m4a`,
+                genre: null,
               },
             ]),
           ),

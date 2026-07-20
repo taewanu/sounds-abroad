@@ -1,13 +1,23 @@
 import { COUNTRIES } from "../../src/lib/countries";
 
+import { fetchPlaylists } from "./apple-playlists";
 import { fetchAppleRss } from "./apple-rss";
 import { createItunesFetchers } from "./itunes-fetchers";
 import { lookupTracks } from "./itunes-lookup";
+import { fetchPlaylistPage } from "./playlist-page";
 import { fetchPublishedCharts } from "./published-charts";
 import { crawlAll, crawlCountry, type SpotifyResolution } from "./run";
 import { createSpotifyResolver } from "./spotify-resolve";
-import { createSpotifyThrottle, createThrottle } from "./throttle";
-import { uploadCharts, uploadPreviousCharts } from "./upload-blob";
+import {
+  createPlaylistPageThrottle,
+  createSpotifyThrottle,
+  createThrottle,
+} from "./throttle";
+import {
+  uploadCharts,
+  uploadPlaylistFile,
+  uploadPreviousCharts,
+} from "./upload-blob";
 
 // Spotify resolution for local debug: enabled only when both credentials are in
 // .env.local; otherwise links fall back to the search URL, same as production.
@@ -40,6 +50,7 @@ async function runSingleCountry(cc: string): Promise<void> {
 
   const itunes = createItunesFetchers({
     fetchRss: fetchAppleRss,
+    fetchPlaylists,
     lookupTracks,
     throttle: createThrottle(),
   });
@@ -75,11 +86,19 @@ async function runAllCountries(): Promise<void> {
   }
   const itunes = createItunesFetchers({
     fetchRss: fetchAppleRss,
+    fetchPlaylists,
     lookupTracks,
     throttle: createThrottle(),
   });
+  const pageThrottle = createPlaylistPageThrottle();
   await crawlAll({
     countries: COUNTRIES,
+    playlistAxis: {
+      fetchPlaylists: itunes.fetchPlaylists,
+      fetchPlaylistPage: (id, url) =>
+        pageThrottle(() => fetchPlaylistPage(id, url)),
+      uploadPlaylistFile,
+    },
     fetchRss: itunes.fetchRss,
     lookupTracks: itunes.lookupTracks,
     spotify: spotifyFromEnv(),

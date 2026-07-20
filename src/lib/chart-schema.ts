@@ -28,10 +28,57 @@ const TrackSchema = z.object({
   spread: z.number().int().min(1).optional(),
 });
 
+/**
+ * One genre and how many of a playlist's tracks carry it. The crawl bakes the
+ * whole distribution rather than a single label, so the labelling rule stays a
+ * read-time judgement (ADR-0013, extended by ADR-0015): the top genre's share
+ * ranges widely between playlists, and any rule for it will need tuning without
+ * waiting on a re-crawl.
+ */
+export const PlaylistGenreSchema = z.object({
+  name: z.string().min(1),
+  count: z.number().int().min(1),
+});
+
+/**
+ * What a country carries about a playlist. Enough to render the chart selector
+ * with no fetch; the track list travels separately (ADR-0016).
+ */
+export const PlaylistSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  appleUrl: z.url(),
+  artworkUrl: z.url(),
+  genres: z.array(PlaylistGenreSchema),
+  trackCount: z.number().int().min(1),
+  spread: z.number().int().min(1).optional(),
+});
+
 const CountrySchema = z.object({
   name: z.string().min(1),
   valid: z.boolean(),
   tracks: z.array(TrackSchema).max(25),
+  // Both additive-optional, so a blob predating the playlist axis still parses.
+  // Validity is per-axis: a playlist failure must not roll back a fresh songs
+  // chart, which a single country-level flag would do (ADR-0015).
+  playlists: z.array(PlaylistSchema).optional(),
+  playlistsValid: z.boolean().optional(),
+});
+
+const PlaylistTrackSchema = z.object({
+  rank: z.number().int().min(1),
+  name: z.string().min(1),
+  artist: z.string().min(1),
+  previewUrl: z.url().nullable(),
+  artworkUrl: z.url(),
+  appleUrl: z.url(),
+});
+
+/** One playlist's track list, published as its own blob (ADR-0016). */
+export const PlaylistFileSchema = z.object({
+  id: z.string().min(1),
+  lastUpdated: z.iso.datetime(),
+  tracks: z.array(PlaylistTrackSchema).min(1),
 });
 
 export const ChartFileSchema = z.object({
@@ -48,3 +95,7 @@ export type Commentary = z.infer<typeof CommentarySchema>;
 export type Track = z.infer<typeof TrackSchema>;
 export type Country = z.infer<typeof CountrySchema>;
 export type ChartFile = z.infer<typeof ChartFileSchema>;
+export type PlaylistGenre = z.infer<typeof PlaylistGenreSchema>;
+export type Playlist = z.infer<typeof PlaylistSchema>;
+export type PlaylistTrack = z.infer<typeof PlaylistTrackSchema>;
+export type PlaylistFile = z.infer<typeof PlaylistFileSchema>;

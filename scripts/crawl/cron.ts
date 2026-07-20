@@ -7,15 +7,25 @@ import {
   withCommentaryDegradationSignal,
 } from "../commentary/fetch-commentary";
 
+import { fetchPlaylists } from "./apple-playlists";
 import { fetchAppleRss } from "./apple-rss";
 import { createItunesFetchers } from "./itunes-fetchers";
 import { lookupTracks } from "./itunes-lookup";
+import { fetchPlaylistPage } from "./playlist-page";
 import { fetchPublishedCharts } from "./published-charts";
 import { triggerRevalidate } from "./revalidate-trigger";
 import { crawlAll, summarizeValidity, type SpotifyResolution } from "./run";
 import { createSpotifyResolver } from "./spotify-resolve";
-import { createSpotifyThrottle, createThrottle } from "./throttle";
-import { uploadCharts, uploadPreviousCharts } from "./upload-blob";
+import {
+  createPlaylistPageThrottle,
+  createSpotifyThrottle,
+  createThrottle,
+} from "./throttle";
+import {
+  uploadCharts,
+  uploadPlaylistFile,
+  uploadPreviousCharts,
+} from "./upload-blob";
 
 if (!process.env.BLOB_READ_WRITE_TOKEN) {
   throw new Error("BLOB_READ_WRITE_TOKEN missing.");
@@ -68,12 +78,22 @@ try {
     async () => {
       const itunes = createItunesFetchers({
         fetchRss: fetchAppleRss,
+        fetchPlaylists,
         lookupTracks,
         throttle: createThrottle(),
         sleep,
       });
+      // The feed shares the iTunes throttle (same per-IP budget); pages come
+      // from music.apple.com and get their own, so they do not queue behind it.
+      const pageThrottle = createPlaylistPageThrottle();
       const result = await crawlAll({
         countries: COUNTRIES,
+        playlistAxis: {
+          fetchPlaylists: itunes.fetchPlaylists,
+          fetchPlaylistPage: (id, url) =>
+            pageThrottle(() => fetchPlaylistPage(id, url)),
+          uploadPlaylistFile,
+        },
         fetchRss: itunes.fetchRss,
         lookupTracks: itunes.lookupTracks,
         spotify,
@@ -125,6 +145,7 @@ try {
           country_count: summary.total,
           valid_count: summary.validCount,
           carried_codes: result.carriedCodes,
+          carried_playlist_codes: result.carriedPlaylistCodes,
           // Unthresholded on purpose; see LookupTally.
           lookups_requested: result.lookups.requested,
           lookups_resolved: result.lookups.resolved,
@@ -134,13 +155,20 @@ try {
       // Carried-forward entries republish stale data as valid, so validity
       // alone under-reports degradation: a run that carried anything is a
       // degraded run even when every published entry parses as healthy.
-      if (summary.invalidCodes.length > 0 || result.carriedCodes.length > 0) {
+      // The playlist axis carries independently, so it counts here too or a
+      // fully-stale chart list would report as a healthy run.
+      const degraded =
+        summary.invalidCodes.length > 0 ||
+        result.carriedCodes.length > 0 ||
+        result.carriedPlaylistCodes.length > 0;
+      if (degraded) {
         Sentry.captureMessage("charts:degraded", {
           level: "warning",
           extra: {
             run_id: process.env.GITHUB_RUN_ID,
             invalid_codes: summary.invalidCodes,
             carried_codes: result.carriedCodes,
+            carried_playlist_codes: result.carriedPlaylistCodes,
             valid_count: summary.validCount,
             country_count: summary.total,
           },

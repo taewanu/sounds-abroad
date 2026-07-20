@@ -48,7 +48,11 @@ test("resolves previewUrl from the captured kr fixture", async () => {
     fetch: fakeFetch({ ok: true, body }),
   });
 
-  expect(resolved.get(id)).toEqual({ id, previewUrl: raw.previewUrl });
+  expect(resolved.get(id)).toEqual({
+    id,
+    previewUrl: raw.previewUrl,
+    genre: raw.primaryGenreName ?? null,
+  });
 });
 
 test("sends every requested id in one comma-separated request", async () => {
