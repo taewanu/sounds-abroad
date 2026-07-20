@@ -4,11 +4,13 @@ export async function triggerRevalidate(): Promise<void> {
   if (!url) throw new Error("SITE_URL missing");
   if (!secret) throw new Error("REVALIDATE_SECRET missing");
 
-  // Fires immediately: R2 is read-after-write consistent, and the published
-  // objects are JSON, which Cloudflare's default rules leave uncached
-  // (cf-cache-status: DYNAMIC), so nothing stale sits between the upload and
-  // this call. A cache rule on the data domain would reintroduce that window,
-  // and would need a purge here rather than a wait.
+  // Fires immediately: R2 is read-after-write consistent and nothing caches
+  // between the upload and this call, so there is no propagation to wait out.
+  // The `max-age` the uploads set still governs browsers and Next's own fetch
+  // cache; what it does not reach is Cloudflare's edge, which leaves `.json`
+  // uncached under its default rules (measured cf-cache-status: DYNAMIC). A
+  // cache rule on the data domain would change that, and would need a purge
+  // here rather than a wait.
   const res = await fetch(`${url}/api/revalidate`, {
     method: "POST",
     headers: { Authorization: `Bearer ${secret}` },

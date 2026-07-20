@@ -11,6 +11,11 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // Restoring here rather than in the one test that fakes timers: a test that
+  // dies on vitest's timeout never resumes, so neither a trailing call nor a
+  // `finally` runs, and the fake timers would outlive it. Verified — a probe
+  // test placed after that one hangs on a plain setTimeout without this.
+  vi.useRealTimers();
   vi.restoreAllMocks();
   delete process.env.SITE_URL;
   delete process.env.REVALIDATE_SECRET;
@@ -32,8 +37,8 @@ test("issues the bearer POST without waiting on a timer", async () => {
   const fetchSpy = vi
     .spyOn(globalThis, "fetch")
     .mockResolvedValue(new Response(null, { status: 200 }));
-  // Fake timers with nothing advancing them: a reintroduced delay would hang
-  // rather than pass, so this fails loudly if the wait comes back.
+  // Fake timers that nothing advances: a reintroduced delay never resolves, so
+  // this times out rather than passing quietly. afterEach restores them.
   vi.useFakeTimers();
 
   await triggerRevalidate();
@@ -47,8 +52,6 @@ test("issues the bearer POST without waiting on a timer", async () => {
       signal: expect.any(AbortSignal),
     }),
   );
-
-  vi.useRealTimers();
 });
 
 test("throws with status code when revalidate responds non-2xx", async () => {
