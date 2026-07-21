@@ -11,6 +11,7 @@ Vendored skills (used under the MIT License reproduced below):
 - grill-with-docs
 - grilling
 - handoff
+- implement
 - improve-codebase-architecture
 - prototype
 - setup-pre-commit
