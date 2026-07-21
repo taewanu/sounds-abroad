@@ -1,0 +1,55 @@
+version: 2
+
+updates:
+  # Keeps SHA-pinned action refs current: without this, pinning freezes the
+  # workflows at whatever commit was pinned and patches never arrive.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore"
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore"
+    # A dependency lands in the first group it matches, so the coupled sets are
+    # listed before the catch-alls.
+    groups:
+      # Both packages read the same wire format and are released in lockstep;
+      # splitting them produces a PR pair that only passes once both merge.
+      sentry:
+        patterns:
+          - "@sentry/*"
+      # three's API moves in minors and the renderer bindings track it, so the
+      # renderer, the library, and its types have to move as one.
+      three:
+        patterns:
+          - "three"
+          - "@types/three"
+          - "@react-three/*"
+      # Tooling cannot reach production, so a single batched PR is enough
+      # review surface. Majors stay out: they carry config migrations.
+      tooling:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+      runtime:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+    # Framework majors are deliberately NOT ignored. A major PR is the only
+    # in-repo signal that one shipped, and closing an unwanted one costs a
+    # click; ignoring it costs the signal.
+    ignore:
+      # The exception: this major tracks the runtime mise installs, not the
+      # newest published, so the version is a deliberate choice rather than a
+      # lag to close.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
