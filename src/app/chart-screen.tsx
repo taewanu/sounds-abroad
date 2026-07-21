@@ -11,6 +11,7 @@ import {
 import { useSearchParams } from "next/navigation";
 
 import { ChartSheet, type SnapState } from "@/components/chart-sheet/sheet";
+import { useChartTracks } from "@/components/chart-sheet/use-chart-tracks";
 import { EdgeChevrons } from "@/components/globe/edge-chevrons";
 import { markUsed } from "@/components/globe/edge-hint-record";
 import { EdgeTapHint } from "@/components/globe/edge-tap-hint";
@@ -95,6 +96,9 @@ function ChartScreenInner({
   countryCode: string;
   charts: ChartFile;
 }) {
+  // Which of the country's charts is open. Held here rather than in the sheet
+  // because playback resolves against it too.
+  const chart = useChartTracks(countryCode, country);
   const [snap, setSnap] = useState<SnapState>("peek");
   const [scrollSignal, setScrollSignal] = useState(0);
   const [focusIntent, setFocusIntent] = useState<{
@@ -416,6 +420,7 @@ function ChartScreenInner({
     <>
       <ChartSheet
         country={country}
+        chart={chart}
         countryCode={countryCode}
         snap={snap}
         onSnapChange={setSnap}

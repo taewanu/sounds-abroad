@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
@@ -10,17 +11,23 @@ import {
 } from "react";
 
 import { track as trackEvent } from "@/lib/analytics";
+import { SONGS_CHART } from "@/lib/chart-ref";
 import type { Country } from "@/lib/chart-schema";
 import { selectGem } from "@/lib/select-gem";
 
+import { ChartRail } from "./chart-rail";
 import { firstCommentaryRank } from "./first-commentary-rank";
 import { GemCard } from "./gem-card";
 import { TrackRow } from "./track-row";
+import type { ChartTracksState } from "./use-chart-tracks";
 
 export type SnapState = "hidden" | "closed" | "peek" | "full";
 
 export interface ChartSheetProps {
   country: Country;
+  // Which of the country's charts is on screen, its tracks, and how to move
+  // between them. Held above the sheet because playback reads it too.
+  chart: ChartTracksState;
   countryCode: string;
   snap: SnapState;
   onSnapChange: (snap: SnapState) => void;
@@ -127,6 +134,7 @@ function nextSnap(
 
 export function ChartSheet({
   country,
+  chart,
   countryCode,
   snap,
   onSnapChange,
@@ -140,11 +148,17 @@ export function ChartSheet({
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const olRef = useRef<HTMLOListElement | null>(null);
 
+  // Both derive from the songs chart rather than the open one. Commentary and
+  // spread are carried by the songs axis alone, so a playlist chart has neither
+  // a hinted row nor a gem to open with (ADR-0017).
+  const onSongsChart = chart.ref === SONGS_CHART;
+  const hasRail = (country.playlists?.length ?? 0) > 0;
+
   // The one row eligible for the commentary discovery pulse, recomputed per
   // country (the <ol> remounts on country change, resetting the hint).
   const hintRank = useMemo(
-    () => firstCommentaryRank(country.tracks),
-    [country.tracks],
+    () => (onSongsChart ? firstCommentaryRank(country.tracks) : null),
+    [onSongsChart, country.tracks],
   );
 
   // selectGem returns null for an empty track list (a failed crawl with no
@@ -153,8 +167,8 @@ export function ChartSheet({
   // always returns a gem, so the card renders on every landing with real
   // tracks, regardless of how it was reached.
   const gemSelection = useMemo(
-    () => selectGem(country.tracks),
-    [country.tracks],
+    () => (onSongsChart ? selectGem(country.tracks) : null),
+    [onSongsChart, country.tracks],
   );
 
   // Lifts the peek max-height clamp so the list fills the sheet while it's
@@ -689,6 +703,10 @@ export function ChartSheet({
         ...(hasMiniPlayer ? SHEET_STYLE_WITH_MINI : SHEET_STYLE_NO_MINI),
         transform: `translateY(${SNAP_Y[initialSnap]})`,
         willChange: "transform",
+        // The peek clamp sizes the list against the header above it, so it has
+        // to know whether a rail is there. Declared rather than measured: the
+        // rail is one row of fixed height.
+        ...({ "--rail-h": hasRail ? "46px" : "0px" } as CSSProperties),
       }}
       // Explicit z so the edge-tap hint can bracket the sheet: its aurora rails
       // sit below (a lower z) and its sheet-dim above, reproducing the backdrop
@@ -705,15 +723,22 @@ export function ChartSheet({
         <h2 id="chart-sheet-title" className="text-h3 px-6 pb-3 font-semibold">
           {country.name}
         </h2>
+        <ChartRail
+          playlists={country.playlists ?? []}
+          current={chart.ref}
+          pending={chart.pending}
+          failed={chart.failed}
+          onOpen={chart.open}
+        />
       </div>
       {/* Native list scroll is enabled only at full (touch-pan-y); at the
           partial snaps a vertical drag drives the sheet instead, so the list
           is touch-none there. */}
       <ol
-        key={countryCode}
+        key={`${countryCode}:${chart.ref}`}
         ref={olRef}
         data-peek={(snap === "peek" && !isDragging) || undefined}
-        className="min-h-0 flex-1 touch-none overflow-y-auto overscroll-y-contain px-4 pb-12 transition-[max-height] duration-300 ease-out [-ms-overflow-style:none] [scrollbar-width:none] group-data-[snap=full]:touch-pan-y data-[peek]:max-h-[calc(35dvh-62px)] [&::-webkit-scrollbar]:hidden"
+        className="min-h-0 flex-1 touch-none overflow-y-auto overscroll-y-contain px-4 pb-12 transition-[max-height] duration-300 ease-out [-ms-overflow-style:none] [scrollbar-width:none] group-data-[snap=full]:touch-pan-y data-[peek]:max-h-[calc(35dvh-62px-var(--rail-h))] [&::-webkit-scrollbar]:hidden"
       >
         {gemSelection ? (
           <li
@@ -734,7 +759,7 @@ export function ChartSheet({
             />
           </li>
         ) : null}
-        {country.tracks.map((track) => (
+        {chart.tracks.map((track) => (
           <TrackRow
             key={track.rank}
             track={track}

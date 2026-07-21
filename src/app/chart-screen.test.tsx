@@ -902,3 +902,115 @@ describe("ChartScreen end-of-chart roll", () => {
     expect(prev.disabled).toBe(true);
   });
 });
+
+describe("ChartScreen chart rail", () => {
+  const PL_ID = "pl.rail";
+  const RAIL_CODE = "br";
+
+  function chartsWithPlaylist(): ChartFile {
+    const base = CHARTS.countries[RAIL_CODE];
+    return {
+      ...CHARTS,
+      countries: {
+        ...CHARTS.countries,
+        [RAIL_CODE]: {
+          ...base,
+          playlists: [
+            {
+              id: PL_ID,
+              name: "Pagode 2026",
+              appleUrl: `https://music.apple.com/br/playlist/${PL_ID}`,
+              artworkUrl: "https://art.test/p.jpg",
+              genres: [],
+              trackCount: 1,
+            },
+          ],
+          playlistsValid: true,
+        },
+      },
+    };
+  }
+
+  const PLAYLIST_TRACK = {
+    rank: 1,
+    name: "Only on the playlist",
+    artist: "Playlist artist",
+    previewUrl: null,
+    artworkUrl: "https://art.test/t.jpg",
+    appleUrl: "https://music.apple.com/br/song/x?i=99",
+  };
+
+  beforeEach(() => {
+    mockSearchParams.value = new URLSearchParams(`cc=${RAIL_CODE}`);
+    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              id: PL_ID,
+              lastUpdated: "2026-07-21T00:00:00.000Z",
+              tracks: [PLAYLIST_TRACK],
+            }),
+            { status: 200, headers: { "content-type": "application/json" } },
+          ),
+      ),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  test("lists every chart the country carries without fetching any of them", () => {
+    render(
+      <ChartScreen
+        charts={chartsWithPlaylist()}
+        defaultCountryCode={RAIL_CODE}
+      />,
+    );
+
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual([
+      "Top Songs",
+      "Pagode 2026",
+    ]);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  test("opening a playlist chart replaces the list with its tracks", async () => {
+    const charts = chartsWithPlaylist();
+    render(<ChartScreen charts={charts} defaultCountryCode={RAIL_CODE} />);
+    const songsTrack = charts.countries[RAIL_CODE].tracks[0].name;
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("tab", { name: "Pagode 2026" }));
+    });
+
+    expect(screen.getAllByText(PLAYLIST_TRACK.name).length).toBeGreaterThan(0);
+    expect(screen.queryByText(songsTrack)).toBeNull();
+  });
+
+  test("returning to the songs chart costs no second read", async () => {
+    const charts = chartsWithPlaylist();
+    render(<ChartScreen charts={charts} defaultCountryCode={RAIL_CODE} />);
+    const songsTrack = charts.countries[RAIL_CODE].tracks[0].name;
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("tab", { name: "Pagode 2026" }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("tab", { name: "Top Songs" }));
+    });
+
+    expect(screen.getAllByText(songsTrack).length).toBeGreaterThan(0);
+    expect(vi.mocked(fetch).mock.calls.length).toBe(1);
+  });
+
+  test("a country carrying no playlists renders no rail", () => {
+    render(<ChartScreen charts={CHARTS} defaultCountryCode={RAIL_CODE} />);
+
+    expect(screen.queryByRole("tablist")).toBeNull();
+  });
+});
