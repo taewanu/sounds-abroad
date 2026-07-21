@@ -15,7 +15,8 @@ import { SONGS_CHART, type ChartRef } from "@/lib/chart-ref";
 import type { Country } from "@/lib/chart-schema";
 import { selectGem } from "@/lib/select-gem";
 
-import { CHART_PANEL_ID, ChartRail, chartTabId } from "./chart-rail";
+import { ChartRail } from "./chart-rail";
+import { CHART_PANEL_ID, chartTabId } from "./chart-tabs";
 import { firstCommentaryRank } from "./first-commentary-rank";
 import { GemCard } from "./gem-card";
 import { TrackRow } from "./track-row";

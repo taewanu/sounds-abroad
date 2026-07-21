@@ -4,7 +4,8 @@ import { expect, test, vi } from "vitest";
 import { SONGS_CHART } from "@/lib/chart-ref";
 import type { Playlist } from "@/lib/chart-schema";
 
-import { CHART_PANEL_ID, ChartRail, SONGS_CHART_LABEL } from "./chart-rail";
+import { ChartRail } from "./chart-rail";
+import { CHART_PANEL_ID, SONGS_CHART_LABEL } from "./chart-tabs";
 
 function playlist(id: string, name: string): Playlist {
   return {

@@ -5,24 +5,12 @@ import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { SONGS_CHART, type ChartRef } from "@/lib/chart-ref";
 import type { Playlist } from "@/lib/chart-schema";
 
-export const SONGS_CHART_LABEL = "Top Songs";
-
-/** The id of the track list a chart's tab controls. */
-export const CHART_PANEL_ID = "chart-panel";
-
-/** The id of one chart's tab, so the panel can name what labels it. */
-export function chartTabId(ref: ChartRef): string {
-  return `chart-tab-${ref}`;
-}
-
-// How far each key moves focus along the rail. Home and End are absolute rather
-// than a step, so they are named instead of numbered.
-const KEY_STEP: Record<string, number | "first" | "last" | undefined> = {
-  ArrowRight: 1,
-  ArrowLeft: -1,
-  Home: "first",
-  End: "last",
-};
+import {
+  CHART_PANEL_ID,
+  SONGS_CHART_LABEL,
+  chartTabId,
+  focusAlongTabs,
+} from "./chart-tabs";
 
 export interface ChartRailProps {
   /** The country's playlists, in the order the crawl received them. */
@@ -69,28 +57,12 @@ export function ChartRail({
 
   const active = pending ?? current;
 
-  // Arrows move focus between charts; opening one stays on Enter or Space.
-  // Focus alone must not open, because opening a playlist chart costs a read
-  // and arrowing across the rail would fire one per key.
   function handleKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
-    const step = KEY_STEP[event.key];
-    if (step === undefined) return;
-    const tabs = [
-      ...event.currentTarget.querySelectorAll<HTMLButtonElement>(
-        "[role='tab']:not([disabled])",
-      ),
-    ];
-    if (tabs.length === 0) return;
-    const from = tabs.indexOf(document.activeElement as HTMLButtonElement);
-    // Wraps, so the rail has no dead end in either direction.
-    const to =
-      step === "first"
-        ? 0
-        : step === "last"
-          ? tabs.length - 1
-          : (Math.max(from, 0) + step + tabs.length) % tabs.length;
-    event.preventDefault();
-    tabs[to]?.focus();
+    if (
+      focusAlongTabs(event.currentTarget, event.key, document.activeElement)
+    ) {
+      event.preventDefault();
+    }
   }
 
   return (
