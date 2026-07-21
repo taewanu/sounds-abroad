@@ -2,6 +2,24 @@
 
 Domain glossary for Sounds Abroad. Each term has one project-specific meaning; the _Avoid_ line lists words that blur it. Use these terms as defined when naming concepts in issues, plans, tests, and reviews.
 
+## Charts
+
+**Chart**:
+A ranked track list belonging to one country. A country carries a songs chart and one chart per local playlist; they are peers of one another, differing in where their tracks come from and in how many they carry, not in standing. See ADR-0017.
+_Avoid_: using "chart" for the whole published payload (that is the charts file); treating the songs chart as the country's chart and the rest as something else.
+
+**Songs chart**:
+The 25-track chart of what a country is playing, drawn from the storefront's own ranking. Every country has exactly one, ranks mean the same thing across countries, and it is the chart a country opens on. Its tracks carry spread and may carry commentary.
+_Avoid_: "top chart" or "main chart", both of which imply the playlist charts are subordinate.
+
+**Playlist chart**:
+A chart whose tracks come from one Apple storefront playlist that survived the crawl's locality filter. Meaningful in exactly one country, since a playlist appearing across many storefronts is excluded as global. Its tracks carry neither spread nor commentary, and it may run to a hundred tracks or more.
+_Avoid_: calling it "a playlist" when the chart is meant — the playlist is the source, the chart is what a listener opens.
+
+**Chart ref**:
+What names a chart within a country: the songs sentinel, or a playlist id. Held as a flat string so it compares by identity in state, in effect dependencies, and in the URL without a serializer.
+_Avoid_: using a country code alone to locate a track list, which held only while a country had one chart.
+
 ## Roadmap
 
 The roadmap and release model, in one line: milestone-driven semver Versions, a single roadmap tracking issue as the source of truth, vertical-slice issues that each ship as one squash-merged PR, and annotated semver tags as the immutable record. See ADR-0005.
