@@ -7,10 +7,12 @@ https://github.com/mattpocock/skills
 Vendored skills (used under the MIT License reproduced below):
 
 - diagnosing-bugs
+- domain-modeling
 - git-guardrails-claude-code
 - grill-with-docs
 - grilling
 - handoff
+- implement
 - improve-codebase-architecture
 - prototype
 - setup-pre-commit
@@ -18,6 +20,18 @@ Vendored skills (used under the MIT License reproduced below):
 - to-spec
 - to-tickets
 - triage
+
+Three deliberate departures from upstream, so a sync diff isn't mistaken for drift:
+
+- `to-spec` publishes without a triage label. Upstream applies `ready-for-agent`
+  directly; this repo classifies via `/triage` first.
+- `domain-modeling/ADR-FORMAT.md` carries this repo's ADR template. Upstream's is
+  a title plus one paragraph, which no ADR in `docs/adr/` looks like.
+- Each skill's `agents/openai.yaml` is dropped. It is Codex picker metadata,
+  inert under Claude Code.
+
+Everything else is byte-identical to upstream, kept that way by the
+`.claude/skills` entry in `.prettierignore`.
 
 ---
 
