@@ -19,6 +19,14 @@ This repo is **single-context** — all domain documentation lives at the repo r
 
 ADRs use sequential 4-digit numbering with kebab-case titles. The two listed are illustrative; see `docs/adr/` for the live set.
 
+## ADR or spec?
+
+Open an ADR only when the decision rejects a real alternative someone would otherwise re-pick and get wrong. If the code, schema, or a one-line commit body already carries the WHY, keep it there.
+
+- **ADR:** X over Y, where Y stays tempting and the reason isn't visible at the call site.
+- **Commit or comment:** a narrow rule the code enforces itself (one lint sub-rule, one bypass).
+- **Issue or PRD:** what to build; the ADR is only why the shape was chosen.
+
 ## Before exploring, read whatever exists
 
 - `CONTEXT.md` (if present) — definitions of domain terms
