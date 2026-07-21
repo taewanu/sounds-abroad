@@ -54,3 +54,9 @@ Keying the blobs by playlist rather than by country also deduplicates. A playlis
 
 - The existing `charts-prev.json` snapshot and the rank-movement diff built on it ([ADR-0007](0007-out-of-band-human-curated-commentary.md)) concern the songs axis, which is unchanged here.
 - Per-track payload stays as it is. This decision is about what travels together and when, not about making tracks smaller.
+
+## Amendment (2026-07-21): writes went uncounted
+
+The Consequences priced the split on read-side terms (first-load KB, parse ms) and named the atomicity and orphan costs, but never counted that one blob per playlist is one write per crawl. Object stores meter writes far more tightly than reads, and the free tier's write cap is what the axis exhausted, taking production down ([#268](https://github.com/taewanu/sounds-abroad/issues/268)).
+
+The split stands; the writes are what changed. [#269](https://github.com/taewanu/sounds-abroad/issues/269) withholds the per-playlist blobs until [#260](https://github.com/taewanu/sounds-abroad/issues/260) gives them a reader, and points at change-only publishing (measured churn: ~3 of 615 a run) as the durable shape, since rewriting every blob every run is the most expensive one available.
