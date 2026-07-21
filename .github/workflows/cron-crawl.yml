@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 # A run is long (a large share of its timeout); never cancel an in-flight run
-# for a superseding trigger — that would forfeit the chart refresh it's mid-way through.
+# for a superseding trigger: that would forfeit the chart refresh it's mid-way through.
 concurrency:
   group: cron-crawl
   cancel-in-progress: false

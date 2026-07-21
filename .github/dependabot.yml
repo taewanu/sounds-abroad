@@ -9,6 +9,12 @@ updates:
       interval: "weekly"
     commit-message:
       prefix: "chore"
+    # An action used by several workflows would otherwise land one PR per
+    # workflow for the same bump.
+    groups:
+      actions:
+        patterns:
+          - "*"
 
   - package-ecosystem: "npm"
     directory: "/"
@@ -44,12 +50,11 @@ updates:
         update-types:
           - "minor"
           - "patch"
-    # Framework majors are deliberately NOT ignored. A major PR is the only
-    # in-repo signal that one shipped, and closing an unwanted one costs a
-    # click; ignoring it costs the signal.
+    # Framework majors are deliberately not ignored: a major PR is the only
+    # in-repo signal that one shipped.
     ignore:
-      # The exception: this major tracks the runtime mise installs, not the
-      # newest published, so the version is a deliberate choice rather than a
-      # lag to close.
+      # These types describe the standard library of one Node major, so the
+      # right version is whichever major the runtime is on rather than the
+      # newest published. Raising it is a runtime decision, not a lag to close.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
