@@ -3,6 +3,7 @@ import { describe, expect, test, vi } from "vitest";
 
 import type { AudioEngine } from "@/lib/audio-engine";
 import { type AudioState, createAudioStore } from "@/lib/audio-store";
+import { SONGS_CHART } from "@/lib/chart-ref";
 import type { Commentary, Track } from "@/lib/chart-schema";
 import type { GemTier } from "@/lib/select-gem";
 import { AudioStoreContext } from "@/providers/audio-store-provider";
@@ -91,6 +92,7 @@ describe("GemCard", () => {
       currentTrack: track,
       isPlaying: true,
       currentCountryCode: "kr",
+      currentChartRef: SONGS_CHART,
     });
 
     fireEvent.click(screen.getByRole("button", { name: /pause/i }));
@@ -116,6 +118,7 @@ describe("GemCard", () => {
       currentTrack: track,
       isPlaying: true,
       currentCountryCode: "kr",
+      currentChartRef: SONGS_CHART,
     });
 
     expect(container.querySelector(".eq")).not.toBeNull();
@@ -128,6 +131,7 @@ describe("GemCard", () => {
       currentTrack: track,
       isPlaying: false,
       currentCountryCode: "kr",
+      currentChartRef: SONGS_CHART,
     });
 
     expect(container.querySelector(".eq[data-paused]")).not.toBeNull();
@@ -143,6 +147,7 @@ describe("GemCard", () => {
       currentTrack: other,
       isPlaying: true,
       currentCountryCode: "kr",
+      currentChartRef: SONGS_CHART,
     });
 
     expect(container.querySelector(".eq")).toBeNull();
@@ -153,7 +158,12 @@ describe("GemCard", () => {
     const { container } = renderGemCard(
       track,
       "entirely their own",
-      { currentTrack: track, isPlaying: true, currentCountryCode: "br" },
+      {
+        currentTrack: track,
+        isPlaying: true,
+        currentCountryCode: "br",
+        currentChartRef: SONGS_CHART,
+      },
       "kr",
     );
 

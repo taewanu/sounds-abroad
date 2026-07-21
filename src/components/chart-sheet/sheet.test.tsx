@@ -80,6 +80,8 @@ function staticChart(country: Country): ChartTracksState {
     pending: null,
     failed: new Set(),
     open: () => {},
+    peek: () => null,
+    read: () => Promise.resolve([]),
   };
 }
 
@@ -575,6 +577,7 @@ describe("ChartSheet", () => {
           onSnapChange={vi.fn()}
           currentTrackRank={first}
           currentCountryCode="us"
+          currentChartRef={SONGS_CHART}
         />
       </AudioStoreProvider>,
     );
@@ -590,6 +593,7 @@ describe("ChartSheet", () => {
           onSnapChange={vi.fn()}
           currentTrackRank={next}
           currentCountryCode="us"
+          currentChartRef={SONGS_CHART}
         />
       </AudioStoreProvider>,
     );
@@ -609,6 +613,7 @@ describe("ChartSheet", () => {
       onSnapChange: vi.fn(),
       currentTrackRank: rank,
       currentCountryCode: "kr",
+      currentChartRef: SONGS_CHART,
     };
 
     // Browsing one country while another's track plays. The reopen bumps the
@@ -676,6 +681,7 @@ describe("ChartSheet", () => {
           countryCode="us"
           currentTrackRank={COUNTRY_US.tracks[0].rank}
           currentCountryCode="us"
+          currentChartRef={SONGS_CHART}
           stepSignal={0}
         />
       </AudioStoreProvider>,
@@ -693,6 +699,7 @@ describe("ChartSheet", () => {
           countryCode="us"
           currentTrackRank={landed}
           currentCountryCode="kr"
+          currentChartRef={SONGS_CHART}
           stepSignal={1}
         />
       </AudioStoreProvider>,
@@ -710,6 +717,7 @@ describe("ChartSheet", () => {
           countryCode="kr"
           currentTrackRank={landed}
           currentCountryCode="kr"
+          currentChartRef={SONGS_CHART}
           stepSignal={1}
         />
       </AudioStoreProvider>,
@@ -738,6 +746,7 @@ describe("ChartSheet", () => {
           countryCode="kr"
           currentTrackRank={COUNTRY_KR.tracks[0].rank}
           currentCountryCode="us"
+          currentChartRef={SONGS_CHART}
           scrollSignal={0}
         />
       </AudioStoreProvider>,
@@ -754,6 +763,7 @@ describe("ChartSheet", () => {
           countryCode="kr"
           currentTrackRank={COUNTRY_KR.tracks[0].rank}
           currentCountryCode="us"
+          currentChartRef={SONGS_CHART}
           scrollSignal={1}
         />
       </AudioStoreProvider>,
@@ -769,6 +779,7 @@ describe("ChartSheet", () => {
           countryCode="kr"
           currentTrackRank={null}
           currentCountryCode={null}
+          currentChartRef={null}
           scrollSignal={1}
         />
       </AudioStoreProvider>,
@@ -784,6 +795,7 @@ describe("ChartSheet", () => {
           countryCode="kr"
           currentTrackRank={rank}
           currentCountryCode="kr"
+          currentChartRef={SONGS_CHART}
           scrollSignal={1}
         />
       </AudioStoreProvider>,

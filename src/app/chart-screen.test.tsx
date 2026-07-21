@@ -1014,3 +1014,216 @@ describe("ChartScreen chart rail", () => {
     expect(screen.queryByRole("tablist")).toBeNull();
   });
 });
+
+describe("ChartScreen playlist playback", () => {
+  const PL_CODE = "zz";
+  const PL_FIRST = "pl.first";
+  const PL_SECOND = "pl.second";
+  const PL_FIRST_LABEL = "First playlist";
+  const PL_SECOND_LABEL = "Second playlist";
+  const SONGS_ONLY = "Songs only";
+
+  function playlistTrack(rank: number, name: string) {
+    return {
+      rank,
+      name,
+      artist: `${name} artist`,
+      previewUrl: `https://example.com/${rank}-${name}.m4a`,
+      artworkUrl: "https://example.com/pl.jpg",
+      appleUrl: `https://music.apple.com/x/song?i=90${rank}${name.length}`,
+    };
+  }
+
+  // Two tracks in the first chart so a step has somewhere to go inside it, one
+  // in the second so its own end arrives immediately.
+  const FIRST_HEAD = playlistTrack(1, "First head");
+  const FIRST_TAIL = playlistTrack(2, "First tail");
+  const SECOND_ONLY = playlistTrack(1, "Second only");
+  const TRACKS_BY_CHART: Record<string, ReturnType<typeof playlistTrack>[]> = {
+    [PL_FIRST]: [FIRST_HEAD, FIRST_TAIL],
+    [PL_SECOND]: [SECOND_ONLY],
+  };
+
+  function playlistEntry(id: string, name: string) {
+    return {
+      id,
+      name,
+      appleUrl: `https://music.apple.com/x/playlist/${id}`,
+      artworkUrl: "https://example.com/pl-art.jpg",
+      genres: [],
+      trackCount: TRACKS_BY_CHART[id].length,
+    };
+  }
+
+  // A country carrying two playlist charts, plus a drawable country so the
+  // cross-country roll past them has somewhere to land.
+  const PLAYLIST_CHARTS: ChartFile = {
+    lastUpdated: "2026-07-21T00:00:00Z",
+    countries: {
+      [PL_CODE]: {
+        name: "Country under test",
+        valid: true,
+        tracks: [rollTrack(1, SONGS_ONLY, "https://example.com/songs.m4a")],
+        playlists: [
+          playlistEntry(PL_FIRST, PL_FIRST_LABEL),
+          playlistEntry(PL_SECOND, PL_SECOND_LABEL),
+        ],
+        playlistsValid: true,
+      },
+      [DRAW_1]: rollCountry([
+        rollTrack(1, LANDING_START, "https://example.com/landing.m4a"),
+      ]),
+    },
+  };
+
+  beforeEach(() => {
+    mockSearchParams.value = new URLSearchParams(`cc=${PL_CODE}`);
+    audioEngine.reset();
+    globeChartStore.setState({
+      selectedCountry: null,
+      readMode: false,
+      settleSignal: 0,
+      skipIntent: { dir: 1, nonce: 0 },
+      visited: new Set(),
+    });
+    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        const id = decodeURIComponent(url.split("/").pop() ?? "");
+        return new Response(
+          JSON.stringify({
+            id,
+            lastUpdated: "2026-07-21T00:00:00.000Z",
+            tracks: TRACKS_BY_CHART[id],
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  async function openChart(label: string) {
+    await act(async () => {
+      fireEvent.click(screen.getByRole("tab", { name: label }));
+    });
+  }
+
+  function playPreview(name: string, artist: string) {
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: `Play preview of ${name} by ${artist}`,
+      }),
+    );
+  }
+
+  // The mini-player's own transport label, which names what is playing whatever
+  // the list on screen shows. A row's label names the artist as well, so the
+  // one without is the mini-player's.
+  const MINI_TRANSPORT = /^(Play|Pause) preview of (?!.* by ).+$/;
+
+  function miniPlayerTrackName(): string {
+    const label =
+      screen
+        .getByRole("button", { name: MINI_TRANSPORT })
+        .getAttribute("aria-label") ?? "";
+    return label.replace(/^(Play|Pause) preview of /, "");
+  }
+
+  test("a track of a playlist chart plays through the preview pipeline", async () => {
+    const { container } = render(
+      <ChartScreen charts={PLAYLIST_CHARTS} defaultCountryCode={PL_CODE} />,
+    );
+    await openChart(PL_FIRST_LABEL);
+
+    playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
+
+    expect(playingRank(container)).toBe("1");
+  });
+
+  test("next moves within the playing chart", async () => {
+    const { container } = render(
+      <ChartScreen charts={PLAYLIST_CHARTS} defaultCountryCode={PL_CODE} />,
+    );
+    await openChart(PL_FIRST_LABEL);
+    playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
+
+    fireEvent.click(screen.getByRole("button", { name: "Next track" }));
+
+    expect(playingRank(container)).toBe("2");
+    expect(miniPlayerTrackName()).toBe(FIRST_TAIL.name);
+  });
+
+  test("browsing another chart leaves playback in the one it started from", async () => {
+    const { container } = render(
+      <ChartScreen charts={PLAYLIST_CHARTS} defaultCountryCode={PL_CODE} />,
+    );
+    await openChart(PL_FIRST_LABEL);
+    playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
+
+    await openChart("Top Songs");
+
+    expect(playingRank(container)).toBeNull();
+    expect(miniPlayerTrackName()).toBe(FIRST_HEAD.name);
+
+    fireEvent.click(screen.getByRole("button", { name: "Next track" }));
+
+    expect(miniPlayerTrackName()).toBe(FIRST_TAIL.name);
+    expect(playingRank(container)).toBeNull();
+  });
+
+  test("the end of a playlist chart continues into the country's next one", async () => {
+    render(
+      <ChartScreen charts={PLAYLIST_CHARTS} defaultCountryCode={PL_CODE} />,
+    );
+    await openChart(PL_FIRST_LABEL);
+    playPreview(FIRST_TAIL.name, FIRST_TAIL.artist);
+
+    await act(async () => {
+      audioEngine.end();
+    });
+
+    expect(miniPlayerTrackName()).toBe(SECOND_ONLY.name);
+    expect(globeChartStore.getState().selectedCountry).not.toBe(DRAW_1);
+    expect(
+      screen
+        .getByRole("tab", { name: PL_SECOND_LABEL })
+        .getAttribute("aria-selected"),
+    ).toBe("true");
+  });
+
+  test("a country whose playlist charts are exhausted rolls into another country", async () => {
+    render(
+      <ChartScreen charts={PLAYLIST_CHARTS} defaultCountryCode={PL_CODE} />,
+    );
+    await openChart(PL_SECOND_LABEL);
+    playPreview(SECOND_ONLY.name, SECOND_ONLY.artist);
+
+    await act(async () => {
+      audioEngine.end();
+    });
+
+    expect(globeChartStore.getState().selectedCountry).toBe(DRAW_1);
+    expect(miniPlayerTrackName()).toBe(LANDING_START);
+  });
+
+  test("the songs chart's end still rolls out of a country carrying playlists", async () => {
+    render(
+      <ChartScreen charts={PLAYLIST_CHARTS} defaultCountryCode={PL_CODE} />,
+    );
+    playPreview(SONGS_ONLY, `${SONGS_ONLY} artist`);
+
+    await act(async () => {
+      audioEngine.end();
+    });
+
+    expect(globeChartStore.getState().selectedCountry).toBe(DRAW_1);
+    expect(miniPlayerTrackName()).toBe(LANDING_START);
+  });
+});
