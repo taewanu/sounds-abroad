@@ -23,6 +23,7 @@ import { findAdjacentPlayable } from "@/lib/adjacent-playable";
 import { track as trackEvent } from "@/lib/analytics";
 import { isPlaylistRef, SONGS_CHART, type ChartRef } from "@/lib/chart-ref";
 import type { ChartFile, ChartTrack, Country } from "@/lib/chart-schema";
+import { CHART_PARAM, chartFromUrl, chartQuery } from "@/lib/chart-url";
 import {
   backRollTarget,
   planChartContinuation,
@@ -62,16 +63,15 @@ export interface ChartScreenProps {
 export function ChartScreen({ charts, defaultCountryCode }: ChartScreenProps) {
   const searchParams = useSearchParams();
   const rawCc = searchParams.get("cc");
+  const rawChart = searchParams.get(CHART_PARAM);
   const countryCode =
     validateUrlCode(rawCc, charts.countries) ?? defaultCountryCode;
 
-  // Write the resolved code into the URL when it isn't already there (bare `/`,
-  // an invalid cc, or a non-canonical case). replaceState relabels the URL with
-  // no navigation, so there's no refetch or flicker.
-  useEffect(() => {
-    if (rawCc === countryCode) return;
-    window.history.replaceState(null, "", `?cc=${countryCode}`);
-  }, [rawCc, countryCode]);
+  const urlChart = chartFromUrl(rawChart, charts.countries[countryCode]);
+  // What the URL would have to carry to already name this chart, so the write
+  // below fires for a bare `/`, an invalid code, a non-canonical case, or a
+  // chart parameter this country does not carry.
+  const urlChartParam = isPlaylistRef(urlChart) ? urlChart : null;
 
   // Publish the resolved country to the globe. The globe is a layout backdrop,
   // so its own useSearchParams never sees a client-side ?cc= change; this page
@@ -86,6 +86,8 @@ export function ChartScreen({ charts, defaultCountryCode }: ChartScreenProps) {
         country={charts.countries[countryCode]}
         countryCode={countryCode}
         charts={charts}
+        urlChart={urlChart}
+        urlIsCanonical={rawCc === countryCode && rawChart === urlChartParam}
       />
     </AudioStoreProvider>
   );
@@ -95,14 +97,45 @@ function ChartScreenInner({
   country,
   countryCode,
   charts,
+  urlChart,
+  urlIsCanonical,
 }: {
   country: Country;
   countryCode: string;
   charts: ChartFile;
+  urlChart: ChartRef;
+  urlIsCanonical: boolean;
 }) {
   // Which of the country's charts is open. Held here rather than in the sheet
   // because playback resolves against it too.
-  const chart = useChartTracks(countryCode, country);
+  const chart = useChartTracks(countryCode, country, urlChart);
+
+  // Keep the URL naming what is on screen, so a chart can be linked to and a
+  // reload restores one. replaceState relabels without navigating, so switching
+  // charts costs no refetch. Written here rather than beside the country alone,
+  // because a bare `?cc=` write would drop the chart the listener is reading.
+  const chartRef = chart.ref;
+  const chartFailed = chart.failed.has(urlChart);
+  // What the URL already says. A ref, not the search params, because
+  // replaceState leaves those stale, so after the first write they would keep
+  // reporting the arrival query.
+  const urlSays = useRef<string | null>(
+    urlIsCanonical ? chartQuery(countryCode, urlChart) : null,
+  );
+  // Whether the chart the arrival URL named has been honoured. Until it is, the
+  // displayed chart is still the songs chart, and writing would drop the very
+  // chart being read.
+  const arrivalHonoured = useRef(urlChart === SONGS_CHART);
+  useEffect(() => {
+    if (!arrivalHonoured.current) {
+      if (chartRef !== urlChart && !chartFailed) return;
+      arrivalHonoured.current = true;
+    }
+    const want = chartQuery(countryCode, chartRef);
+    if (urlSays.current === want) return;
+    urlSays.current = want;
+    window.history.replaceState(null, "", want);
+  }, [urlChart, chartFailed, chartRef, countryCode]);
   const { peek: peekChart, read: readChart, open: openChart } = chart;
 
   // The track list a chart holds, or null when it isn't in hand: the songs

@@ -1227,3 +1227,123 @@ describe("ChartScreen playlist playback", () => {
     expect(miniPlayerTrackName()).toBe(LANDING_START);
   });
 });
+
+describe("ChartScreen chart in the URL", () => {
+  const PL_ID = "pl.url";
+  const CODE = "br";
+
+  function chartsWithPlaylist(): ChartFile {
+    const base = CHARTS.countries[CODE];
+    return {
+      ...CHARTS,
+      countries: {
+        ...CHARTS.countries,
+        [CODE]: {
+          ...base,
+          playlists: [
+            {
+              id: PL_ID,
+              name: "Pagode 2026",
+              appleUrl: `https://music.apple.com/br/playlist/${PL_ID}`,
+              artworkUrl: "https://art.test/p.jpg",
+              genres: [],
+              trackCount: 1,
+            },
+          ],
+          playlistsValid: true,
+        },
+      },
+    };
+  }
+
+  const PLAYLIST_TRACK = {
+    rank: 1,
+    name: "Only on the playlist",
+    artist: "Playlist artist",
+    previewUrl: null,
+    artworkUrl: "https://art.test/t.jpg",
+    appleUrl: "https://music.apple.com/br/song/x?i=99",
+  };
+
+  let replaceState: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    replaceState = vi
+      .spyOn(window.history, "replaceState")
+      .mockImplementation(() => {});
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              id: PL_ID,
+              lastUpdated: "2026-07-21T00:00:00.000Z",
+              tracks: [PLAYLIST_TRACK],
+            }),
+            { status: 200, headers: { "content-type": "application/json" } },
+          ),
+      ),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    replaceState.mockRestore();
+  });
+
+  test("names the chart in the URL once one is opened", async () => {
+    mockSearchParams.value = new URLSearchParams(`cc=${CODE}`);
+    render(
+      <ChartScreen charts={chartsWithPlaylist()} defaultCountryCode={CODE} />,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("tab", { name: "Pagode 2026" }));
+    });
+
+    expect(replaceState).toHaveBeenLastCalledWith(
+      null,
+      "",
+      `?cc=${CODE}&chart=${PL_ID}`,
+    );
+  });
+
+  test("a link naming a chart opens it", async () => {
+    mockSearchParams.value = new URLSearchParams(`cc=${CODE}&chart=${PL_ID}`);
+    render(
+      <ChartScreen charts={chartsWithPlaylist()} defaultCountryCode={CODE} />,
+    );
+
+    await act(async () => {});
+
+    expect(screen.getAllByText(PLAYLIST_TRACK.name).length).toBeGreaterThan(0);
+  });
+
+  test("a chart the country does not carry falls back to its songs chart", async () => {
+    mockSearchParams.value = new URLSearchParams(
+      `cc=${CODE}&chart=pl.elsewhere`,
+    );
+    const charts = chartsWithPlaylist();
+    render(<ChartScreen charts={charts} defaultCountryCode={CODE} />);
+
+    await act(async () => {});
+
+    expect(
+      screen.getAllByText(charts.countries[CODE].tracks[0].name).length,
+    ).toBeGreaterThan(0);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(replaceState).toHaveBeenLastCalledWith(null, "", `?cc=${CODE}`);
+  });
+
+  test("a URL already naming the open chart is left alone", async () => {
+    mockSearchParams.value = new URLSearchParams(`cc=${CODE}&chart=${PL_ID}`);
+    render(
+      <ChartScreen charts={chartsWithPlaylist()} defaultCountryCode={CODE} />,
+    );
+
+    await act(async () => {});
+
+    expect(replaceState).not.toHaveBeenCalled();
+  });
+});

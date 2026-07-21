@@ -39,9 +39,13 @@ async function readPlaylistTracks(id: string): Promise<ChartTrack[]> {
 export function useChartTracks(
   countryCode: string,
   country: Country,
+  /** The chart the URL asked for on arrival, opened once. */
+  initialChart: ChartRef = SONGS_CHART,
 ): ChartTracksState {
   const [ref, setRef] = useState<ChartRef>(SONGS_CHART);
-  const [pending, setPending] = useState<ChartRef | null>(null);
+  const [pending, setPending] = useState<ChartRef | null>(
+    initialChart === SONGS_CHART ? null : initialChart,
+  );
   const [failed, setFailed] = useState<ReadonlySet<ChartRef>>(new Set());
   const [tracks, setTracks] = useState<ChartTrack[]>(country.tracks);
 
@@ -93,6 +97,26 @@ export function useChartTracks(
     return fetched;
   }, []);
 
+  // Reads a chart and takes it once it lands, unless the listener has since
+  // asked for another.
+  const commit = useCallback(
+    (next: ChartRef, token: number) => {
+      read(next)
+        .then((fetched) => {
+          if (isStale(token)) return;
+          setPending(null);
+          setRef(next);
+          setTracks(fetched);
+        })
+        .catch(() => {
+          if (isStale(token)) return;
+          setPending(null);
+          setFailed((prev) => new Set(prev).add(next));
+        });
+    },
+    [isStale, read],
+  );
+
   const open = useCallback(
     (next: ChartRef) => {
       if (next === ref) return;
@@ -114,21 +138,22 @@ export function useChartTracks(
       }
 
       setPending(next);
-      read(next)
-        .then((fetched) => {
-          if (isStale(token)) return;
-          setPending(null);
-          setRef(next);
-          setTracks(fetched);
-        })
-        .catch(() => {
-          if (isStale(token)) return;
-          setPending(null);
-          setFailed((prev) => new Set(prev).add(next));
-        });
+      commit(next, token);
     },
-    [ref, country.tracks, isStale, read],
+    [ref, country.tracks, commit],
   );
+
+  // The chart a link named is already pending on the first render, seeded above,
+  // so this only starts its read. Nothing is set synchronously here: commit
+  // touches state only once the read has settled.
+  const startedFromUrl = useRef(false);
+  useEffect(() => {
+    if (startedFromUrl.current) return;
+    startedFromUrl.current = true;
+    if (initialChart !== SONGS_CHART) {
+      commit(initialChart, ++latestRequest.current);
+    }
+  }, [initialChart, commit]);
 
   return { ref, tracks, pending, failed, open, peek, read };
 }
