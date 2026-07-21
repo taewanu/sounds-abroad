@@ -106,9 +106,9 @@ export type PlaylistFile = z.infer<typeof PlaylistFileSchema>;
 
 /**
  * What a rendered row accepts: a track from either axis. Both `Track` and
- * `PlaylistTrack` satisfy it structurally, so neither schema has to loosen —
- * the songs axis keeps `spotifyUrl` required, and a payload missing it still
- * fails validation on read rather than rendering a dead link.
+ * `PlaylistTrack` satisfy it structurally, so neither schema has to loosen: the
+ * songs axis keeps `spotifyUrl` required, and a payload missing it still fails
+ * validation on read rather than rendering a dead link.
  */
 export type ChartTrack = {
   rank: number;

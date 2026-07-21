@@ -16,7 +16,7 @@ function track(rank: number, name: string) {
     artist: `Artist ${rank}`,
     previewUrl: null,
     artworkUrl: "https://art.test/a.jpg",
-    appleUrl: `https://music.apple.com/br/song/${rank}?i=${rank}`,
+    appleUrl: `https://music.apple.com/underTest/song/${rank}?i=${rank}`,
     spotifyUrl: "https://open.spotify.com/search/a",
   };
 }
@@ -29,7 +29,7 @@ function country(name: string, playlistIds: string[]): Country {
     playlists: playlistIds.map((id) => ({
       id,
       name: id,
-      appleUrl: `https://music.apple.com/br/playlist/${id}`,
+      appleUrl: `https://music.apple.com/underTest/playlist/${id}`,
       artworkUrl: "https://art.test/p.jpg",
       genres: [],
       trackCount: 1,
@@ -79,38 +79,38 @@ afterEach(() => {
 });
 
 test("opens on the songs chart with the country's own tracks", () => {
-  const br = country("Brazil", ["pl.a"]);
+  const underTest = country("Country under test", ["pl.a"]);
 
-  const { result } = renderHook(() => useChartTracks("br", br));
+  const { result } = renderHook(() => useChartTracks("cc", underTest));
 
   expect(result.current.ref).toBe(SONGS_CHART);
-  expect(result.current.tracks).toEqual(br.tracks);
+  expect(result.current.tracks).toEqual(underTest.tracks);
 });
 
 test("a chart still in flight is not yet the chart on screen", async () => {
-  const br = country("Brazil", ["pl.a"]);
+  const underTest = country("Country under test", ["pl.a"]);
   const { release } = deferredFetch();
-  const { result } = renderHook(() => useChartTracks("br", br));
+  const { result } = renderHook(() => useChartTracks("cc", underTest));
 
   act(() => result.current.open("pl.a"));
 
   expect(result.current.pending).toBe("pl.a");
   expect(result.current.ref).toBe(SONGS_CHART);
-  expect(result.current.tracks).toEqual(br.tracks);
+  expect(result.current.tracks).toEqual(underTest.tracks);
 
   await act(async () => {
-    release("pl.a", playlistPayload("pl.a", "Pagode song"));
+    release("pl.a", playlistPayload("pl.a", "A playlist track"));
   });
 
   await waitFor(() => expect(result.current.ref).toBe("pl.a"));
-  expect(result.current.tracks[0].name).toBe("Pagode song");
+  expect(result.current.tracks[0].name).toBe("A playlist track");
   expect(result.current.pending).toBeNull();
 });
 
 test("a slower earlier request never overwrites the chart asked for later", async () => {
-  const br = country("Brazil", ["pl.a", "pl.b"]);
+  const underTest = country("Country under test", ["pl.a", "pl.b"]);
   const { release } = deferredFetch();
-  const { result } = renderHook(() => useChartTracks("br", br));
+  const { result } = renderHook(() => useChartTracks("cc", underTest));
 
   act(() => result.current.open("pl.a"));
   act(() => result.current.open("pl.b"));
@@ -129,9 +129,9 @@ test("a slower earlier request never overwrites the chart asked for later", asyn
 });
 
 test("an abandoned read still fills the cache, so returning to it costs nothing", async () => {
-  const br = country("Brazil", ["pl.a", "pl.b"]);
+  const underTest = country("Country under test", ["pl.a", "pl.b"]);
   const { spy, release } = deferredFetch();
-  const { result } = renderHook(() => useChartTracks("br", br));
+  const { result } = renderHook(() => useChartTracks("cc", underTest));
 
   act(() => result.current.open("pl.a"));
   act(() => result.current.open("pl.b"));
@@ -150,12 +150,12 @@ test("an abandoned read still fills the cache, so returning to it costs nothing"
 });
 
 test("a chart that fails to load leaves the displayed chart alone", async () => {
-  const br = country("Brazil", ["pl.a"]);
+  const underTest = country("Country under test", ["pl.a"]);
   vi.stubGlobal(
     "fetch",
     vi.fn(async () => new Response("", { status: 404 })),
   );
-  const { result } = renderHook(() => useChartTracks("br", br));
+  const { result } = renderHook(() => useChartTracks("cc", underTest));
 
   await act(async () => {
     result.current.open("pl.a");
@@ -163,44 +163,44 @@ test("a chart that fails to load leaves the displayed chart alone", async () => 
 
   await waitFor(() => expect(result.current.failed.has("pl.a")).toBe(true));
   expect(result.current.ref).toBe(SONGS_CHART);
-  expect(result.current.tracks).toEqual(br.tracks);
+  expect(result.current.tracks).toEqual(underTest.tracks);
   expect(result.current.pending).toBeNull();
 });
 
 test("a new country opens on its own songs chart", async () => {
-  const br = country("Brazil", ["pl.a"]);
-  const jp = country("Japan", ["pl.j"]);
+  const underTest = country("Country under test", ["pl.a"]);
+  const movedTo = country("Country moved to", ["pl.j"]);
   const { release } = deferredFetch();
   const { result, rerender } = renderHook(
     ({ code, data }) => useChartTracks(code, data),
-    { initialProps: { code: "br", data: br } },
+    { initialProps: { code: "cc", data: underTest } },
   );
 
   act(() => result.current.open("pl.a"));
   await act(async () => {
-    release("pl.a", playlistPayload("pl.a", "Pagode song"));
+    release("pl.a", playlistPayload("pl.a", "A playlist track"));
   });
   await waitFor(() => expect(result.current.ref).toBe("pl.a"));
 
-  rerender({ code: "jp", data: jp });
+  rerender({ code: "other", data: movedTo });
 
   expect(result.current.ref).toBe(SONGS_CHART);
-  expect(result.current.tracks).toEqual(jp.tracks);
+  expect(result.current.tracks).toEqual(movedTo.tracks);
 });
 
 test("records every chart opened, and whether it had to be read", async () => {
-  const br = country("Brazil", ["pl.a"]);
+  const underTest = country("Country under test", ["pl.a"]);
   const { release } = deferredFetch();
-  const { result } = renderHook(() => useChartTracks("br", br));
+  const { result } = renderHook(() => useChartTracks("cc", underTest));
 
   act(() => result.current.open("pl.a"));
   await act(async () => {
-    release("pl.a", playlistPayload("pl.a", "Pagode song"));
+    release("pl.a", playlistPayload("pl.a", "A playlist track"));
   });
   await waitFor(() => expect(result.current.ref).toBe("pl.a"));
 
   expect(trackEvent).toHaveBeenCalledWith("chart_opened", {
-    country: "br",
+    country: "cc",
     chart: "playlist",
     loaded: true,
     cached: false,
@@ -209,7 +209,7 @@ test("records every chart opened, and whether it had to be read", async () => {
   act(() => result.current.open(SONGS_CHART));
 
   expect(trackEvent).toHaveBeenLastCalledWith("chart_opened", {
-    country: "br",
+    country: "cc",
     chart: "songs",
     loaded: true,
     cached: true,
@@ -217,12 +217,12 @@ test("records every chart opened, and whether it had to be read", async () => {
 });
 
 test("records a chart that would not load as opened but unloaded", async () => {
-  const br = country("Brazil", ["pl.a"]);
+  const underTest = country("Country under test", ["pl.a"]);
   vi.stubGlobal(
     "fetch",
     vi.fn(async () => new Response("", { status: 404 })),
   );
-  const { result } = renderHook(() => useChartTracks("br", br));
+  const { result } = renderHook(() => useChartTracks("cc", underTest));
 
   await act(async () => {
     result.current.open("pl.a");
@@ -230,7 +230,7 @@ test("records a chart that would not load as opened but unloaded", async () => {
   await waitFor(() => expect(result.current.failed.has("pl.a")).toBe(true));
 
   expect(trackEvent).toHaveBeenCalledWith("chart_opened", {
-    country: "br",
+    country: "cc",
     chart: "playlist",
     loaded: false,
     cached: false,
@@ -238,22 +238,39 @@ test("records a chart that would not load as opened but unloaded", async () => {
 });
 
 test("a chart reopened from the session cache is not counted as a fresh read", async () => {
-  const br = country("Brazil", ["pl.a", "pl.b"]);
+  const underTest = country("Country under test", ["pl.a", "pl.b"]);
   const { release } = deferredFetch();
-  const { result } = renderHook(() => useChartTracks("br", br));
+  const { result } = renderHook(() => useChartTracks("cc", underTest));
 
   act(() => result.current.open("pl.a"));
   await act(async () => {
-    release("pl.a", playlistPayload("pl.a", "Pagode song"));
+    release("pl.a", playlistPayload("pl.a", "A playlist track"));
   });
   await waitFor(() => expect(result.current.ref).toBe("pl.a"));
   act(() => result.current.open(SONGS_CHART));
   act(() => result.current.open("pl.a"));
 
   expect(trackEvent).toHaveBeenLastCalledWith("chart_opened", {
-    country: "br",
+    country: "cc",
     chart: "playlist",
     loaded: true,
     cached: true,
   });
+});
+
+test("tapping a chart already being read does not start a second read", async () => {
+  const underTest = country("Country under test", ["pl.a"]);
+  const { spy, release } = deferredFetch();
+  const { result } = renderHook(() => useChartTracks("cc", underTest));
+
+  act(() => result.current.open("pl.a"));
+  act(() => result.current.open("pl.a"));
+
+  expect(spy.mock.calls.length).toBe(1);
+
+  await act(async () => {
+    release("pl.a", playlistPayload("pl.a", "A playlist track"));
+  });
+  await waitFor(() => expect(result.current.ref).toBe("pl.a"));
+  expect(spy.mock.calls.length).toBe(1);
 });

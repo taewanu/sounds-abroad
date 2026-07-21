@@ -4,7 +4,7 @@ import { expect, test, vi } from "vitest";
 import { SONGS_CHART } from "@/lib/chart-ref";
 import type { Playlist } from "@/lib/chart-schema";
 
-import { ChartRail, SONGS_CHART_LABEL } from "./chart-rail";
+import { CHART_PANEL_ID, ChartRail, SONGS_CHART_LABEL } from "./chart-rail";
 
 function playlist(id: string, name: string): Playlist {
   return {
@@ -18,8 +18,8 @@ function playlist(id: string, name: string): Playlist {
 }
 
 const PLAYLISTS = [
-  playlist("pl.a", "Pagode 2026"),
-  playlist("pl.b", "Sertanejo VIP"),
+  playlist("pl.a", "First playlist"),
+  playlist("pl.b", "Second playlist"),
 ];
 
 function renderRail(overrides: Partial<Parameters<typeof ChartRail>[0]> = {}) {
@@ -41,7 +41,11 @@ test("lists the songs chart first, then the playlists as published", () => {
   renderRail();
 
   const names = screen.getAllByRole("tab").map((tab) => tab.textContent);
-  expect(names).toEqual([SONGS_CHART_LABEL, "Pagode 2026", "Sertanejo VIP"]);
+  expect(names).toEqual([
+    SONGS_CHART_LABEL,
+    "First playlist",
+    "Second playlist",
+  ]);
 });
 
 test("marks the chart on screen as selected", () => {
@@ -49,7 +53,7 @@ test("marks the chart on screen as selected", () => {
 
   expect(
     screen
-      .getByRole("tab", { name: "Sertanejo VIP" })
+      .getByRole("tab", { name: "Second playlist" })
       .getAttribute("aria-selected"),
   ).toBe("true");
   expect(
@@ -64,7 +68,7 @@ test("marks a chart asked for as selected before its tracks arrive", () => {
 
   expect(
     screen
-      .getByRole("tab", { name: "Pagode 2026" })
+      .getByRole("tab", { name: "First playlist" })
       .getAttribute("aria-selected"),
   ).toBe("true");
 });
@@ -72,7 +76,7 @@ test("marks a chart asked for as selected before its tracks arrive", () => {
 test("asks to open the chart that was tapped", () => {
   const { onOpen } = renderRail();
 
-  fireEvent.click(screen.getByRole("tab", { name: "Sertanejo VIP" }));
+  fireEvent.click(screen.getByRole("tab", { name: "Second playlist" }));
 
   expect(onOpen).toHaveBeenCalledWith("pl.b");
 });
@@ -80,7 +84,7 @@ test("asks to open the chart that was tapped", () => {
 test("a chart that would not load stops offering itself", () => {
   const { onOpen } = renderRail({ failed: new Set(["pl.a"]) });
 
-  const tab = screen.getByRole("tab", { name: "Pagode 2026" });
+  const tab = screen.getByRole("tab", { name: "First playlist" });
   expect((tab as HTMLButtonElement).disabled).toBe(true);
   fireEvent.click(tab);
 
@@ -101,7 +105,7 @@ test("the rail is one tab stop, on the chart that is open", () => {
     .filter((tab) => tab.tabIndex === 0)
     .map((tab) => tab.textContent);
 
-  expect(stops).toEqual(["Pagode 2026"]);
+  expect(stops).toEqual(["First playlist"]);
 });
 
 test("arrow keys move focus along the rail and wrap at both ends", () => {
@@ -155,7 +159,7 @@ test("arrowing skips a chart that would not load", () => {
 test("announces each chart's position in the set", () => {
   renderRail();
 
-  const tab = screen.getByRole("tab", { name: "Sertanejo VIP" });
+  const tab = screen.getByRole("tab", { name: "Second playlist" });
   expect(tab.getAttribute("aria-posinset")).toBe("3");
   expect(tab.getAttribute("aria-setsize")).toBe("3");
 });
@@ -163,10 +167,18 @@ test("announces each chart's position in the set", () => {
 test("the chart being read is the one marked as waiting", () => {
   renderRail({ current: SONGS_CHART, pending: "pl.a" });
 
-  expect(screen.getByRole("tab", { name: "Pagode 2026" }).className).toContain(
-    "chart-tab-waiting",
-  );
+  expect(
+    screen.getByRole("tab", { name: "First playlist" }).className,
+  ).toContain("chart-tab-waiting");
   expect(
     screen.getByRole("tab", { name: SONGS_CHART_LABEL }).className,
   ).not.toContain("chart-tab-waiting");
+});
+
+test("each chart's tab names the list it controls", () => {
+  renderRail({ current: SONGS_CHART });
+
+  for (const tab of screen.getAllByRole("tab")) {
+    expect(tab.getAttribute("aria-controls")).toBe(CHART_PANEL_ID);
+  }
 });

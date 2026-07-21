@@ -15,7 +15,7 @@ import { SONGS_CHART, type ChartRef } from "@/lib/chart-ref";
 import type { Country } from "@/lib/chart-schema";
 import { selectGem } from "@/lib/select-gem";
 
-import { ChartRail } from "./chart-rail";
+import { CHART_PANEL_ID, ChartRail, chartTabId } from "./chart-rail";
 import { firstCommentaryRank } from "./first-commentary-rank";
 import { GemCard } from "./gem-card";
 import { TrackRow } from "./track-row";
@@ -749,6 +749,14 @@ export function ChartSheet({
           partial snaps a vertical drag drives the sheet instead, so the list
           is touch-none there. */}
       <ol
+        // The panel the chart rail's tabs control, but only where a rail
+        // rendered: a panel with no tabs would announce a relationship that is
+        // not there. Focusable so one tab off the rail lands on the list itself
+        // rather than on whichever control happens to come first.
+        id={hasRail ? CHART_PANEL_ID : undefined}
+        role={hasRail ? "tabpanel" : undefined}
+        aria-labelledby={hasRail ? chartTabId(chart.ref) : undefined}
+        tabIndex={hasRail ? 0 : undefined}
         key={listKey}
         ref={olRef}
         data-peek={(snap === "peek" && !isDragging) || undefined}

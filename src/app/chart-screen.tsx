@@ -110,7 +110,7 @@ function ChartScreenInner({
   // because playback resolves against it too.
   const chart = useChartTracks(countryCode, country, urlChart);
 
-  // Keep the URL naming what is on screen, so a chart can be linked to and a
+  // Keeps the URL naming what is on screen, so a chart can be linked to and a
   // reload restores one. replaceState relabels without navigating, so switching
   // charts costs no refetch. Written here rather than beside the country alone,
   // because a bare `?cc=` write would drop the chart the listener is reading.
@@ -321,7 +321,15 @@ function ChartScreenInner({
       });
       if (landing.code !== selectedCountry) suppressResurfaceRef.current = true;
       setSelectedCountry(landing.code);
-      window.history.replaceState(null, "", `?cc=${landing.code}`);
+      // Spelled here rather than left to the sync effect: this screen's country
+      // comes from the search params, which replaceState does not update, so a
+      // landing is invisible to it. Routed through the shared query so the
+      // chart is dropped rather than silently left behind.
+      window.history.replaceState(
+        null,
+        "",
+        chartQuery(landing.code, SONGS_CHART),
+      );
       signalStep(1);
       flashSkip(1);
       trackEvent("next_executed", {
@@ -470,7 +478,11 @@ function ChartScreenInner({
       if (back.countryCode !== store.selectedCountry)
         suppressResurfaceRef.current = true;
       store.setSelectedCountry(back.countryCode);
-      window.history.replaceState(null, "", `?cc=${back.countryCode}`);
+      window.history.replaceState(
+        null,
+        "",
+        chartQuery(back.countryCode, SONGS_CHART),
+      );
       signalStep(dir);
       flashSkip(-1);
       trackEvent("next_executed", {

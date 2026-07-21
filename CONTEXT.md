@@ -14,7 +14,7 @@ _Avoid_: "top chart" or "main chart", both of which imply the playlist charts ar
 
 **Playlist chart**:
 A chart whose tracks come from one Apple storefront playlist that survived the crawl's locality filter. Meaningful in exactly one country, since a playlist appearing across many storefronts is excluded as global. Its tracks carry neither spread nor commentary, and it may run to a hundred tracks or more.
-_Avoid_: calling it "a playlist" when the chart is meant — the playlist is the source, the chart is what a listener opens.
+_Avoid_: calling it "a playlist" when the chart is meant. The playlist is the source, the chart is what a listener opens.
 
 **Chart ref**:
 What names a chart within a country: the songs sentinel, or a playlist id. Held as a flat string so it compares by identity in state, in effect dependencies, and in the URL without a serializer.

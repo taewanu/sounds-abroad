@@ -7,6 +7,14 @@ import type { Playlist } from "@/lib/chart-schema";
 
 export const SONGS_CHART_LABEL = "Top Songs";
 
+/** The id of the track list a chart's tab controls. */
+export const CHART_PANEL_ID = "chart-panel";
+
+/** The id of one chart's tab, so the panel can name what labels it. */
+export function chartTabId(ref: ChartRef): string {
+  return `chart-tab-${ref}`;
+}
+
 // How far each key moves focus along the rail. Home and End are absolute rather
 // than a step, so they are named instead of numbered.
 const KEY_STEP: Record<string, number | "first" | "last" | undefined> = {
@@ -102,8 +110,10 @@ export function ChartRail({
         return (
           <button
             key={ref}
+            id={chartTabId(ref)}
             type="button"
             role="tab"
+            aria-controls={CHART_PANEL_ID}
             aria-selected={selected}
             aria-disabled={unavailable || undefined}
             aria-posinset={index + 1}

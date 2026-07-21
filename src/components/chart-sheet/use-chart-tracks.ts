@@ -137,7 +137,10 @@ export function useChartTracks(
 
   const open = useCallback(
     (next: ChartRef) => {
-      if (next === ref) return;
+      // Already shown, or already being read: a second tap on a chart in flight
+      // would start a second read, since the displayed chart is still the one
+      // being left.
+      if (next === ref || next === pending) return;
       const token = ++latestRequest.current;
 
       if (next === SONGS_CHART) {
@@ -160,7 +163,7 @@ export function useChartTracks(
       setPending(next);
       commit(next, token);
     },
-    [ref, country.tracks, commit, report],
+    [ref, pending, country.tracks, commit, report],
   );
 
   // The chart a link named is already pending on the first render, seeded above,

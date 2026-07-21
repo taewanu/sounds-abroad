@@ -12,8 +12,8 @@ import posthog from "posthog-js";
  * discovered weeks later.
  */
 export interface AnalyticsEvent {
-  // A track started from a fresh selection (not an advance — those are
-  // next_executed). `source` is which surface the user picked it from.
+  // A track started from a fresh selection, not an advance; those are
+  // next_executed. `source` is which surface the user picked it from.
   track_played: {
     country: string;
     source: "track_row" | "gem_card";
@@ -34,8 +34,8 @@ export interface AnalyticsEvent {
   // A chart was opened from the selector. The evidence the playlist axis is
   // judged by: it costs a daily crawl whether or not anyone opens one, so
   // whether they do is the question. `loaded` false is an ordinary outcome, not
-  // an error — a country carried forward can advertise a chart the latest run
-  // never wrote — and counting those separates "nobody looks" from "it is
+  // an error, since a country carried forward can advertise a chart the latest
+  // run never wrote, and counting those separates "nobody looks" from "it is
   // broken". Cached reopens carry `cached`, so a fetch count is recoverable.
   chart_opened: {
     country: string;

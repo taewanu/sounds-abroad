@@ -1168,7 +1168,7 @@
   }
 }
 
-[data-chart-waiting] [data-rank] {
+[data-chart-waiting] > li {
   animation: chart-row-wait var(--row-wait-dur, 3s) var(--ease-in-out)
     var(--row-wait-delay, 0s) infinite;
 }
@@ -1191,7 +1191,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   /* Keep the recede, drop the breathing: the state still reads, nothing moves. */
-  [data-chart-waiting] [data-rank] {
+  [data-chart-waiting] > li {
     animation: none;
     opacity: 0.42;
   }

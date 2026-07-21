@@ -14,7 +14,7 @@ Two readings were available: a country keeps one answer with playlists as depth 
 
 **The songs chart is the default, not the parent.** Every chart is presented at equal standing, with the songs chart pinned first. It follows that a chart is addressable: if the songs chart is one of sixteen rather than the country's identity, the other fifteen must be reachable by the same means it is.
 
-**A chart selection does not survive a country change.** A playlist id exists in exactly one country by construction, because the crawl's selection filter excludes playlists appearing across many storefronts — the axis selects for non-transferability. Genre offers no bridge either: sampled across distant countries, top-genre sets intersect only at the most generic entries, and the local genres that make the axis worth having are precisely the ones that do not transfer.
+**A chart selection does not survive a country change.** A playlist id exists in exactly one country by construction, because the crawl's selection filter excludes playlists appearing across many storefronts: the axis selects for non-transferability. Genre offers no bridge either: sampled across distant countries, top-genre sets intersect only at the most generic entries, and the local genres that make the axis worth having are precisely the ones that do not transfer.
 
 The asymmetry is the point, and it is why the country axis can support a fairness draw while the chart axis cannot. Countries are comparable: every one has a songs chart, and rank 1 means the same thing everywhere. Charts within a country are not comparable across countries.
 

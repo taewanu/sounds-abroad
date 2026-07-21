@@ -903,59 +903,68 @@ describe("ChartScreen end-of-chart roll", () => {
   });
 });
 
-describe("ChartScreen chart rail", () => {
-  const PL_ID = "pl.rail";
-  const RAIL_CODE = "br";
+// One country carrying one playlist chart, for the blocks below that exercise
+// the rail, the URL, and the wait. The id is shared so a stubbed read matches
+// whichever block is running.
+const PL_ID = "pl.under-test";
+const RAIL_CODE = "br";
 
-  function chartsWithPlaylist(): ChartFile {
-    const base = CHARTS.countries[RAIL_CODE];
-    return {
-      ...CHARTS,
-      countries: {
-        ...CHARTS.countries,
-        [RAIL_CODE]: {
-          ...base,
-          playlists: [
-            {
-              id: PL_ID,
-              name: "Pagode 2026",
-              appleUrl: `https://music.apple.com/br/playlist/${PL_ID}`,
-              artworkUrl: "https://art.test/p.jpg",
-              genres: [],
-              trackCount: 1,
-            },
-          ],
-          playlistsValid: true,
-        },
+function chartsWithPlaylist(): ChartFile {
+  const base = CHARTS.countries[RAIL_CODE];
+  return {
+    ...CHARTS,
+    countries: {
+      ...CHARTS.countries,
+      [RAIL_CODE]: {
+        ...base,
+        playlists: [
+          {
+            id: PL_ID,
+            name: "A playlist chart",
+            appleUrl: `https://music.apple.com/br/playlist/${PL_ID}`,
+            artworkUrl: "https://art.test/p.jpg",
+            genres: [],
+            trackCount: 1,
+          },
+        ],
+        playlistsValid: true,
       },
-    };
-  }
-
-  const PLAYLIST_TRACK = {
-    rank: 1,
-    name: "Only on the playlist",
-    artist: "Playlist artist",
-    previewUrl: null,
-    artworkUrl: "https://art.test/t.jpg",
-    appleUrl: "https://music.apple.com/br/song/x?i=99",
+    },
   };
+}
 
+const PLAYLIST_TRACK = {
+  rank: 1,
+  name: "Only on the playlist",
+  artist: "Playlist artist",
+  previewUrl: null,
+  artworkUrl: "https://art.test/t.jpg",
+  appleUrl: "https://music.apple.com/br/song/x?i=99",
+};
+
+/** The published shape a stubbed read returns for that playlist. */
+function playlistPayload(): string {
+  return JSON.stringify({
+    id: PL_ID,
+    lastUpdated: "2026-07-21T00:00:00.000Z",
+    tracks: [PLAYLIST_TRACK],
+  });
+}
+
+function playlistResponse(): Response {
+  return new Response(playlistPayload(), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  });
+}
+
+describe("ChartScreen chart rail", () => {
   beforeEach(() => {
     mockSearchParams.value = new URLSearchParams(`cc=${RAIL_CODE}`);
     vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
     vi.stubGlobal(
       "fetch",
-      vi.fn(
-        async () =>
-          new Response(
-            JSON.stringify({
-              id: PL_ID,
-              lastUpdated: "2026-07-21T00:00:00.000Z",
-              tracks: [PLAYLIST_TRACK],
-            }),
-            { status: 200, headers: { "content-type": "application/json" } },
-          ),
-      ),
+      vi.fn(async () => playlistResponse()),
     );
   });
 
@@ -974,7 +983,7 @@ describe("ChartScreen chart rail", () => {
 
     expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual([
       "Top Songs",
-      "Pagode 2026",
+      "A playlist chart",
     ]);
     expect(fetch).not.toHaveBeenCalled();
   });
@@ -985,7 +994,7 @@ describe("ChartScreen chart rail", () => {
     const songsTrack = charts.countries[RAIL_CODE].tracks[0].name;
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("tab", { name: "Pagode 2026" }));
+      fireEvent.click(screen.getByRole("tab", { name: "A playlist chart" }));
     });
 
     expect(screen.getAllByText(PLAYLIST_TRACK.name).length).toBeGreaterThan(0);
@@ -998,7 +1007,7 @@ describe("ChartScreen chart rail", () => {
     const songsTrack = charts.countries[RAIL_CODE].tracks[0].name;
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("tab", { name: "Pagode 2026" }));
+      fireEvent.click(screen.getByRole("tab", { name: "A playlist chart" }));
     });
     await act(async () => {
       fireEvent.click(screen.getByRole("tab", { name: "Top Songs" }));
@@ -1229,41 +1238,7 @@ describe("ChartScreen playlist playback", () => {
 });
 
 describe("ChartScreen chart in the URL", () => {
-  const PL_ID = "pl.url";
-  const CODE = "br";
-
-  function chartsWithPlaylist(): ChartFile {
-    const base = CHARTS.countries[CODE];
-    return {
-      ...CHARTS,
-      countries: {
-        ...CHARTS.countries,
-        [CODE]: {
-          ...base,
-          playlists: [
-            {
-              id: PL_ID,
-              name: "Pagode 2026",
-              appleUrl: `https://music.apple.com/br/playlist/${PL_ID}`,
-              artworkUrl: "https://art.test/p.jpg",
-              genres: [],
-              trackCount: 1,
-            },
-          ],
-          playlistsValid: true,
-        },
-      },
-    };
-  }
-
-  const PLAYLIST_TRACK = {
-    rank: 1,
-    name: "Only on the playlist",
-    artist: "Playlist artist",
-    previewUrl: null,
-    artworkUrl: "https://art.test/t.jpg",
-    appleUrl: "https://music.apple.com/br/song/x?i=99",
-  };
+  const CODE = RAIL_CODE;
 
   let replaceState: ReturnType<typeof vi.spyOn>;
 
@@ -1273,17 +1248,7 @@ describe("ChartScreen chart in the URL", () => {
       .mockImplementation(() => {});
     vi.stubGlobal(
       "fetch",
-      vi.fn(
-        async () =>
-          new Response(
-            JSON.stringify({
-              id: PL_ID,
-              lastUpdated: "2026-07-21T00:00:00.000Z",
-              tracks: [PLAYLIST_TRACK],
-            }),
-            { status: 200, headers: { "content-type": "application/json" } },
-          ),
-      ),
+      vi.fn(async () => playlistResponse()),
     );
   });
 
@@ -1299,7 +1264,7 @@ describe("ChartScreen chart in the URL", () => {
     );
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("tab", { name: "Pagode 2026" }));
+      fireEvent.click(screen.getByRole("tab", { name: "A playlist chart" }));
     });
 
     expect(replaceState).toHaveBeenLastCalledWith(
@@ -1349,32 +1314,7 @@ describe("ChartScreen chart in the URL", () => {
 });
 
 describe("ChartScreen while a chart is read", () => {
-  const PL_ID = "pl.wait";
-  const CODE = "br";
-
-  function chartsWithPlaylist(): ChartFile {
-    const base = CHARTS.countries[CODE];
-    return {
-      ...CHARTS,
-      countries: {
-        ...CHARTS.countries,
-        [CODE]: {
-          ...base,
-          playlists: [
-            {
-              id: PL_ID,
-              name: "Pagode 2026",
-              appleUrl: `https://music.apple.com/br/playlist/${PL_ID}`,
-              artworkUrl: "https://art.test/p.jpg",
-              genres: [],
-              trackCount: 1,
-            },
-          ],
-          playlistsValid: true,
-        },
-      },
-    };
-  }
+  const CODE = RAIL_CODE;
 
   beforeEach(() => {
     mockSearchParams.value = new URLSearchParams(`cc=${CODE}`);
@@ -1393,29 +1333,7 @@ describe("ChartScreen while a chart is read", () => {
       vi.fn(
         () =>
           new Promise<Response>((resolve) => {
-            release = () =>
-              resolve(
-                new Response(
-                  JSON.stringify({
-                    id: PL_ID,
-                    lastUpdated: "2026-07-21T00:00:00.000Z",
-                    tracks: [
-                      {
-                        rank: 1,
-                        name: "Only on the playlist",
-                        artist: "Playlist artist",
-                        previewUrl: null,
-                        artworkUrl: "https://art.test/t.jpg",
-                        appleUrl: "https://music.apple.com/br/song/x?i=9",
-                      },
-                    ],
-                  }),
-                  {
-                    status: 200,
-                    headers: { "content-type": "application/json" },
-                  },
-                ),
-              );
+            release = () => resolve(playlistResponse());
           }),
       ),
     );
@@ -1425,7 +1343,7 @@ describe("ChartScreen while a chart is read", () => {
     );
     const songsTrack = charts.countries[CODE].tracks[0].name;
 
-    fireEvent.click(screen.getByRole("tab", { name: "Pagode 2026" }));
+    fireEvent.click(screen.getByRole("tab", { name: "A playlist chart" }));
 
     expect(container.querySelector("[data-chart-waiting]")).not.toBeNull();
     expect(screen.getAllByText(songsTrack).length).toBeGreaterThan(0);
@@ -1449,14 +1367,49 @@ describe("ChartScreen while a chart is read", () => {
     const songsTrack = charts.countries[CODE].tracks[0].name;
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("tab", { name: "Pagode 2026" }));
+      fireEvent.click(screen.getByRole("tab", { name: "A playlist chart" }));
     });
 
     expect(screen.getAllByText(songsTrack).length).toBeGreaterThan(0);
     expect(
-      (screen.getByRole("tab", { name: "Pagode 2026" }) as HTMLButtonElement)
-        .disabled,
+      (
+        screen.getByRole("tab", {
+          name: "A playlist chart",
+        }) as HTMLButtonElement
+      ).disabled,
     ).toBe(true);
     expect(container.querySelector("[data-chart-waiting]")).toBeNull();
+  });
+});
+
+describe("ChartScreen rail and panel", () => {
+  beforeEach(() => {
+    mockSearchParams.value = new URLSearchParams(`cc=${RAIL_CODE}`);
+    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  test("the track list is the panel the open chart's tab controls", () => {
+    render(
+      <ChartScreen
+        charts={chartsWithPlaylist()}
+        defaultCountryCode={RAIL_CODE}
+      />,
+    );
+
+    const panel = screen.getByRole("tabpanel");
+    const open = screen.getByRole("tab", { selected: true });
+    expect(panel.getAttribute("aria-labelledby")).toBe(open.id);
+    expect(open.getAttribute("aria-controls")).toBe(panel.id);
+    expect(panel.tabIndex).toBe(0);
+  });
+
+  test("a country with no rail exposes no panel", () => {
+    render(<ChartScreen charts={CHARTS} defaultCountryCode={RAIL_CODE} />);
+
+    expect(screen.queryByRole("tabpanel")).toBeNull();
   });
 });
