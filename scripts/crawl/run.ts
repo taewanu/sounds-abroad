@@ -544,12 +544,6 @@ interface PlaylistAxisReport {
   contractBreak: { pagesAttempted: number; pageFailures: number } | null;
 }
 
-// Withheld until #260 gives these blobs a reader (#269); the metadata still
-// ships in charts.json regardless. Re-enable by flipping this and un-skipping
-// the paired test. When on, the upload must stay before charts.json: a failed
-// upload aborts rather than advertising a chart whose blob never arrived.
-const PUBLISH_PLAYLIST_BLOBS = false;
-
 async function crawlPlaylistAxis(
   run: PlaylistAxisRun,
 ): Promise<PlaylistAxisReport> {
@@ -600,7 +594,9 @@ async function crawlPlaylistAxis(
     }
     countriesMap[cc] = country;
 
-    if (attempt && PUBLISH_PLAYLIST_BLOBS) {
+    // Ahead of charts.json, so a failed upload aborts the run rather than
+    // advertising a chart whose track list never arrived.
+    if (attempt) {
       for (const file of attempt.result.files) {
         await axis.uploadPlaylistFile(file);
       }

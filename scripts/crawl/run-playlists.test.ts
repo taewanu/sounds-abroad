@@ -268,17 +268,14 @@ test("attaches playlist metadata to each country", async () => {
   expect(result.chartFile.countries.kr.playlistsValid).toBe(true);
 });
 
-test("withholds track files while no reader exists (#269)", async () => {
+test("publishes a track file for every surviving playlist", async () => {
   const { deps, uploaded } = makeDeps({
     feedsByCc: { kr: [applePlaylist("pl.kr")], ng: [applePlaylist("pl.ng")] },
   });
 
   await crawlAll(deps);
 
-  // The metadata still attaches (asserted above); only the per-playlist blobs
-  // are held back until #260 reads them. Flip this to the surviving ids when
-  // PUBLISH_PLAYLIST_BLOBS is re-enabled.
-  expect(uploaded).toEqual([]);
+  expect(uploaded.map((file) => file.id).sort()).toEqual(["pl.kr", "pl.ng"]);
 });
 
 test("drops a playlist every storefront carries", async () => {
@@ -471,11 +468,7 @@ test("publishes nothing on the playlist axis when it is not wired", async () => 
   expect(result.carriedPlaylistCodes).toEqual([]);
 });
 
-// Dormant while PUBLISH_PLAYLIST_BLOBS is off (#269): the upload loop is
-// skipped, so a throwing uploader is never reached. The abort-before-charts
-// invariant this guards still matters when the writes come back, so it is
-// paused rather than deleted. Un-skip in the same commit that re-enables them.
-test.skip("publishes no charts when a playlist file fails to upload", async () => {
+test("publishes no charts when a playlist file fails to upload", async () => {
   const { deps } = makeDeps({
     feedsByCc: { kr: [applePlaylist("pl.kr")], ng: [applePlaylist("pl.ng")] },
   });
