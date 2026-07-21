@@ -3,6 +3,7 @@
 import { GemIcon } from "@/components/icons/gem";
 import { PauseIcon } from "@/components/icons/pause";
 import { PlayIcon } from "@/components/icons/play";
+import { SONGS_CHART } from "@/lib/chart-ref";
 import type { Track } from "@/lib/chart-schema";
 import { GEM_TIER_STRENGTH, type GemTier } from "@/lib/select-gem";
 import { sameTrack } from "@/lib/track-identity";
@@ -37,15 +38,20 @@ function TierDots({ tier }: { tier: GemTier }) {
 // reads, same toggle call) so a tap here behaves identically to tapping a
 // ranked row, with the tier label standing in for the rank number.
 export function GemCard({ track, tier, countryCode }: GemCardProps) {
+  // The hero stands only on the songs chart, so that is the chart a tap here
+  // plays from (ADR-0017).
   const isCurrent = useAudioStore(
     (s) =>
-      sameTrack(s.currentTrack, track) && s.currentCountryCode === countryCode,
+      sameTrack(s.currentTrack, track) &&
+      s.currentCountryCode === countryCode &&
+      s.currentChartRef === SONGS_CHART,
   );
   const isPlaying = useAudioStore(
     (s) =>
       s.isPlaying &&
       sameTrack(s.currentTrack, track) &&
-      s.currentCountryCode === countryCode,
+      s.currentCountryCode === countryCode &&
+      s.currentChartRef === SONGS_CHART,
   );
   const hasError = useAudioStore(
     (s) => s.lastError?.previewUrl === track.previewUrl,
@@ -63,7 +69,9 @@ export function GemCard({ track, tier, countryCode }: GemCardProps) {
       <button
         type="button"
         disabled={!hasPreview}
-        onClick={() => toggle(track, countryCode, "gem_card")}
+        onClick={() =>
+          toggle(track, { countryCode, chartRef: SONGS_CHART }, "gem_card")
+        }
         aria-label={`${isPlaying ? "Pause" : "Play"} the Local Gem, ${track.name} by ${track.artist}`}
         className="focus-visible:outline-aurora flex min-w-0 items-center gap-[14px] text-left transition-transform duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none"
       >

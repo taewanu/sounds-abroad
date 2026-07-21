@@ -15,6 +15,10 @@ export interface ChartTracksState {
   /** Charts whose track list would not load, so they stop offering themselves. */
   failed: ReadonlySet<ChartRef>;
   open: (next: ChartRef) => void;
+  /** A playlist chart's tracks once they have been read, else null. */
+  peek: (id: string) => ChartTrack[] | null;
+  /** Reads a playlist chart's tracks, from the session cache where it can. */
+  read: (id: string) => Promise<ChartTrack[]>;
 }
 
 async function readPlaylistTracks(id: string): Promise<ChartTrack[]> {
@@ -77,6 +81,18 @@ export function useChartTracks(
     [],
   );
 
+  const peek = useCallback((id: string) => cache.current.get(id) ?? null, []);
+
+  // The one read path, so a chart opened for display and one reached by
+  // playback share both the fetch and the session cache.
+  const read = useCallback(async (id: string) => {
+    const cached = cache.current.get(id);
+    if (cached) return cached;
+    const fetched = await readPlaylistTracks(id);
+    cache.current.set(id, fetched);
+    return fetched;
+  }, []);
+
   const open = useCallback(
     (next: ChartRef) => {
       if (next === ref) return;
@@ -98,9 +114,8 @@ export function useChartTracks(
       }
 
       setPending(next);
-      readPlaylistTracks(next)
+      read(next)
         .then((fetched) => {
-          cache.current.set(next, fetched);
           if (isStale(token)) return;
           setPending(null);
           setRef(next);
@@ -112,8 +127,8 @@ export function useChartTracks(
           setFailed((prev) => new Set(prev).add(next));
         });
     },
-    [ref, country.tracks, isStale],
+    [ref, country.tracks, isStale, read],
   );
 
-  return { ref, tracks, pending, failed, open };
+  return { ref, tracks, pending, failed, open, peek, read };
 }

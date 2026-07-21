@@ -1,11 +1,14 @@
 import { describe, expect, test } from "vitest";
 
-import type { ChartFile, Country, Track } from "./chart-schema";
+import { SONGS_CHART } from "./chart-ref";
+import type { ChartFile, Country, Playlist, Track } from "./chart-schema";
 import {
   backRollTarget,
   firstPlayable,
   MAX_ROLL_ATTEMPTS,
+  planChartContinuation,
   planRoll,
+  playlistsAfter,
   recordAfterSelection,
   type RollRecord,
 } from "./end-of-chart-roll";
@@ -129,6 +132,87 @@ describe("planRoll", () => {
   });
 });
 
+function makePlaylist(id: string): Playlist {
+  return {
+    id,
+    name: `Chart ${id}`,
+    appleUrl: `https://music.apple.com/x/playlist/${id}`,
+    artworkUrl: "https://example.com/art.jpg",
+    genres: [],
+    trackCount: 1,
+  };
+}
+
+describe("playlistsAfter", () => {
+  const country: Country = {
+    ...makeCountry([makeTrack(1, "https://example.com/1.m4a")]),
+    playlists: ["pl.a", "pl.b", "pl.c"].map(makePlaylist),
+  };
+
+  test("returns the country's later charts in published order", () => {
+    expect(playlistsAfter(country, "pl.a")).toEqual(["pl.b", "pl.c"]);
+  });
+
+  test("returns nothing at the last chart the country carries", () => {
+    expect(playlistsAfter(country, "pl.c")).toEqual([]);
+  });
+
+  test("returns nothing for the songs chart, whose end leaves the country", () => {
+    expect(playlistsAfter(country, SONGS_CHART)).toEqual([]);
+  });
+
+  test("returns nothing for a chart the country no longer advertises", () => {
+    expect(playlistsAfter(country, "pl.gone")).toEqual([]);
+    expect(playlistsAfter(makeCountry([]), "pl.a")).toEqual([]);
+    expect(playlistsAfter(undefined, "pl.a")).toEqual([]);
+  });
+});
+
+describe("planChartContinuation", () => {
+  const silent = [makeTrack(1, null)];
+  const playable = [
+    makeTrack(1, null),
+    makeTrack(2, "https://example.com/2.m4a"),
+  ];
+
+  test("lands on the first candidate that can play, at its first playable", async () => {
+    const read = async (ref: string) => (ref === "pl.a" ? playable : silent);
+
+    expect(await planChartContinuation(["pl.a", "pl.b"], read)).toEqual({
+      ref: "pl.a",
+      track: playable[1],
+    });
+  });
+
+  test("passes over a candidate with nothing playable", async () => {
+    const read = async (ref: string) => (ref === "pl.a" ? silent : playable);
+
+    expect(await planChartContinuation(["pl.a", "pl.b"], read)).toEqual({
+      ref: "pl.b",
+      track: playable[1],
+    });
+  });
+
+  test("passes over a candidate that cannot be read", async () => {
+    const read = async (ref: string) => {
+      if (ref === "pl.a") throw new Error("unreadable");
+      return playable;
+    };
+
+    expect(await planChartContinuation(["pl.a", "pl.b"], read)).toEqual({
+      ref: "pl.b",
+      track: playable[1],
+    });
+  });
+
+  test("returns null once every candidate is spent", async () => {
+    const read = async () => silent;
+
+    expect(await planChartContinuation(["pl.a", "pl.b"], read)).toBeNull();
+    expect(await planChartContinuation([], read)).toBeNull();
+  });
+});
+
 describe("backRollTarget", () => {
   const originLast = makeTrack(9, "https://example.com/9.m4a");
   const rolledGap = makeTrack(1, null);
@@ -140,31 +224,49 @@ describe("backRollTarget", () => {
   };
   const record: RollRecord = {
     originCountryCode: ORIGIN_CODE,
+    originChartRef: SONGS_CHART,
     originTrack: originLast,
     rolledToCode: "bb",
   };
 
   test("returns the origin at the rolled-in chart's first playable", () => {
-    expect(backRollTarget(record, countries, rolledFirst, "bb")).toEqual({
+    expect(
+      backRollTarget(record, countries, rolledFirst, "bb", SONGS_CHART),
+    ).toEqual({
       countryCode: ORIGIN_CODE,
+      chartRef: SONGS_CHART,
       track: originLast,
     });
   });
 
   test("keeps the clamp past the rolled-in chart's first playable", () => {
-    expect(backRollTarget(record, countries, rolledSecond, "bb")).toBeNull();
+    expect(
+      backRollTarget(record, countries, rolledSecond, "bb", SONGS_CHART),
+    ).toBeNull();
   });
 
   test("keeps the clamp when playback is not on the rolled-in chart", () => {
-    expect(backRollTarget(record, countries, rolledFirst, "cc")).toBeNull();
     expect(
-      backRollTarget(record, countries, originLast, ORIGIN_CODE),
+      backRollTarget(record, countries, rolledFirst, "cc", SONGS_CHART),
+    ).toBeNull();
+    expect(
+      backRollTarget(record, countries, originLast, ORIGIN_CODE, SONGS_CHART),
     ).toBeNull();
   });
 
   test("keeps the clamp with no record or nothing playing", () => {
-    expect(backRollTarget(null, countries, rolledFirst, "bb")).toBeNull();
-    expect(backRollTarget(record, countries, null, "bb")).toBeNull();
+    expect(
+      backRollTarget(null, countries, rolledFirst, "bb", SONGS_CHART),
+    ).toBeNull();
+    expect(
+      backRollTarget(record, countries, null, "bb", SONGS_CHART),
+    ).toBeNull();
+  });
+
+  test("keeps the clamp once playback has moved to another of the country's charts", () => {
+    expect(
+      backRollTarget(record, countries, rolledFirst, "bb", "pl.other"),
+    ).toBeNull();
   });
 
   test("keeps the clamp when the rolled-in chart is gone from the chart file", () => {
@@ -172,13 +274,16 @@ describe("backRollTarget", () => {
       [ORIGIN_CODE]: makeCountry([originLast]),
     };
 
-    expect(backRollTarget(record, withoutRolled, rolledFirst, "bb")).toBeNull();
+    expect(
+      backRollTarget(record, withoutRolled, rolledFirst, "bb", SONGS_CHART),
+    ).toBeNull();
   });
 });
 
 describe("recordAfterSelection", () => {
   const record: RollRecord = {
     originCountryCode: ORIGIN_CODE,
+    originChartRef: SONGS_CHART,
     originTrack: makeTrack(9, "https://example.com/9.m4a"),
     rolledToCode: "bb",
   };
