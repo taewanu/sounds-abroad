@@ -92,3 +92,70 @@ test("a country with no playlists renders no rail", () => {
 
   expect(screen.queryByRole("tablist")).toBeNull();
 });
+
+test("the rail is one tab stop, on the chart that is open", () => {
+  renderRail({ current: "pl.a" });
+
+  const stops = screen
+    .getAllByRole("tab")
+    .filter((tab) => tab.tabIndex === 0)
+    .map((tab) => tab.textContent);
+
+  expect(stops).toEqual(["Pagode 2026"]);
+});
+
+test("arrow keys move focus along the rail and wrap at both ends", () => {
+  renderRail();
+  const tabs = screen.getAllByRole("tab");
+  const rail = screen.getByRole("tablist");
+  tabs[0].focus();
+
+  fireEvent.keyDown(rail, { key: "ArrowRight" });
+  expect(document.activeElement).toBe(tabs[1]);
+
+  fireEvent.keyDown(rail, { key: "ArrowLeft" });
+  fireEvent.keyDown(rail, { key: "ArrowLeft" });
+  expect(document.activeElement).toBe(tabs[2]);
+});
+
+test("Home and End reach the ends of the rail", () => {
+  renderRail();
+  const tabs = screen.getAllByRole("tab");
+  const rail = screen.getByRole("tablist");
+  tabs[0].focus();
+
+  fireEvent.keyDown(rail, { key: "End" });
+  expect(document.activeElement).toBe(tabs[2]);
+
+  fireEvent.keyDown(rail, { key: "Home" });
+  expect(document.activeElement).toBe(tabs[0]);
+});
+
+test("moving focus does not open a chart", () => {
+  const { onOpen } = renderRail();
+  const rail = screen.getByRole("tablist");
+  screen.getAllByRole("tab")[0].focus();
+
+  fireEvent.keyDown(rail, { key: "ArrowRight" });
+
+  expect(onOpen).not.toHaveBeenCalled();
+});
+
+test("arrowing skips a chart that would not load", () => {
+  renderRail({ failed: new Set(["pl.a"]) });
+  const tabs = screen.getAllByRole("tab");
+  const rail = screen.getByRole("tablist");
+  tabs[0].focus();
+
+  fireEvent.keyDown(rail, { key: "ArrowRight" });
+
+  expect(document.activeElement).toBe(tabs[2]);
+});
+
+test("announces each chart's position in the set", () => {
+  renderRail();
+
+  const tab = screen.getByRole("tab", { name: "Sertanejo VIP" });
+  expect(tab.getAttribute("aria-posinset")).toBe("3");
+  expect(tab.getAttribute("aria-setsize")).toBe("3");
+});
