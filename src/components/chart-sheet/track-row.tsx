@@ -8,14 +8,15 @@ import { PlayIcon } from "@/components/icons/play";
 import { SpotifyIcon } from "@/components/icons/spotify";
 import { useOverflowMarquee } from "@/components/use-overflow-marquee";
 import { track as trackEvent } from "@/lib/analytics";
-import type { Track } from "@/lib/chart-schema";
+import type { ChartTrack } from "@/lib/chart-schema";
+import { spotifySearchUrl } from "@/lib/spotify-search-url";
 import { sameTrack } from "@/lib/track-identity";
 import { useAudioStore } from "@/providers/audio-store-provider";
 
 import { TrackCommentary } from "./track-commentary";
 
 export interface TrackRowProps {
-  track: Track;
+  track: ChartTrack;
   countryCode: string;
   // True on the first commentary-bearing row of the current country: the one
   // row eligible for the one-time discovery pulse.
@@ -69,6 +70,16 @@ export function TrackRow({
   });
 
   const commentary = track.commentary ?? null;
+
+  // A payload written before the field existed carries no link, so synthesize
+  // the search form rather than render a dead anchor.
+  const spotifyHref =
+    track.spotifyUrl ?? spotifySearchUrl(track.name, track.artist);
+  // The URL is the only thing that knows: both forms are plain strings, and
+  // the playlist axis bakes the search form rather than leaving it absent.
+  const spotifyDestination = spotifyHref.includes("/track/")
+    ? "track"
+    : "search";
 
   // content-visibility:auto skips layout/paint for rows scrolled out of view
   // (most of the list); the focused card must fully render, so it opts out.
@@ -172,6 +183,7 @@ export function TrackRow({
               trackEvent("deeplink_out", {
                 country: countryCode,
                 platform: "apple",
+                destination: "track",
                 rank: track.rank,
               });
             }}
@@ -181,7 +193,7 @@ export function TrackRow({
             <AppleMusicIcon className="h-3.5 w-3.5" />
           </a>
           <a
-            href={track.spotifyUrl}
+            href={spotifyHref}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => {
@@ -189,6 +201,7 @@ export function TrackRow({
               trackEvent("deeplink_out", {
                 country: countryCode,
                 platform: "spotify",
+                destination: spotifyDestination,
                 rank: track.rank,
               });
             }}

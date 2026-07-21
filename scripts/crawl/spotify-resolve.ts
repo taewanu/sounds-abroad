@@ -260,12 +260,3 @@ export function createSpotifyResolver(
     }
   };
 }
-
-/**
- * The link-out used when no exact track id is available: a Spotify search for
- * the name and artist. Synthesized locally, so unlike `/track/{id}` it costs no
- * API call and is always available.
- */
-export function spotifySearchUrl(name: string, artist: string): string {
-  return `https://open.spotify.com/search/${encodeURIComponent(`${name} ${artist}`)}`;
-}

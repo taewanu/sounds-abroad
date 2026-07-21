@@ -7,7 +7,7 @@ import {
   type AudioEngineFactory,
   createBrowserAudioEngine,
 } from "@/lib/audio-engine";
-import type { Track } from "@/lib/chart-schema";
+import type { ChartTrack } from "@/lib/chart-schema";
 import {
   clearNowPlaying,
   setActionHandlers,
@@ -21,7 +21,7 @@ export interface AudioError {
 }
 
 export interface AudioState {
-  currentTrack: Track | null;
+  currentTrack: ChartTrack | null;
   currentCountryCode: string | null;
   isPlaying: boolean;
   volume: number;
@@ -35,7 +35,7 @@ export interface AudioState {
   // track_played event fires only for those, not for skips (which route through
   // step() with no source and are covered by next_executed) or pause/resume.
   toggle: (
-    track: Track,
+    track: ChartTrack,
     countryCode?: string,
     source?: AnalyticsEvent["track_played"]["source"],
   ) => void;
@@ -118,7 +118,7 @@ export function createAudioStore(
     // rejection (the track was already switched) must not clobber the live
     // track either. Otherwise mirror the engine's error listener: clear
     // isPlaying, record lastError, breadcrumb, and tell the OS it's paused.
-    function handlePlayRejection(track: Track, token: number) {
+    function handlePlayRejection(track: ChartTrack, token: number) {
       return (error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError")
           return;

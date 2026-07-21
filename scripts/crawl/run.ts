@@ -11,6 +11,7 @@ import {
   type CommentaryStore,
 } from "../../src/lib/commentary-store";
 import type { CountryEntry } from "../../src/lib/countries";
+import { spotifySearchUrl } from "../../src/lib/spotify-search-url";
 import { trackKey } from "../../src/lib/track-identity";
 
 import { ApplePlaylistsError, type ApplePlaylist } from "./apple-playlists";
@@ -28,11 +29,7 @@ import {
   countPlaylistSpread,
   selectLocalPlaylists,
 } from "./playlist-selection";
-import {
-  SpotifyResolveError,
-  spotifySearchUrl,
-  type SpotifyResolver,
-} from "./spotify-resolve";
+import { SpotifyResolveError, type SpotifyResolver } from "./spotify-resolve";
 import type { Throttle } from "./throttle";
 
 // Optional Spotify resolution: present only when crawl credentials are wired.

@@ -103,3 +103,21 @@ export type PlaylistGenre = z.infer<typeof PlaylistGenreSchema>;
 export type Playlist = z.infer<typeof PlaylistSchema>;
 export type PlaylistTrack = z.infer<typeof PlaylistTrackSchema>;
 export type PlaylistFile = z.infer<typeof PlaylistFileSchema>;
+
+/**
+ * What a rendered row accepts: a track from either axis. Both `Track` and
+ * `PlaylistTrack` satisfy it structurally, so neither schema has to loosen —
+ * the songs axis keeps `spotifyUrl` required, and a payload missing it still
+ * fails validation on read rather than rendering a dead link.
+ */
+export type ChartTrack = {
+  rank: number;
+  name: string;
+  artist: string;
+  previewUrl: string | null;
+  artworkUrl: string;
+  appleUrl: string;
+  spotifyUrl?: string;
+  commentary?: Commentary | null;
+  spread?: number;
+};

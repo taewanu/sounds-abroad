@@ -3,6 +3,7 @@ import type {
   PlaylistFile,
   PlaylistTrack as ChartPlaylistTrack,
 } from "../../src/lib/chart-schema";
+import { spotifySearchUrl } from "../../src/lib/spotify-search-url";
 
 import type { ApplePlaylist } from "./apple-playlists";
 import {
@@ -14,7 +15,6 @@ import {
 import type { BatchLookup } from "./lookup-retry";
 import { PlaylistPageError, type PlaylistTrack } from "./playlist-page";
 import { genreHistogram } from "./playlist-selection";
-import { spotifySearchUrl } from "./spotify-resolve";
 
 /**
  * Share of a country's page fetches that may fail before the run stops treating

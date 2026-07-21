@@ -9,7 +9,7 @@ import { SkipBackIcon } from "@/components/icons/skip-back";
 import { SkipForwardIcon } from "@/components/icons/skip-forward";
 import { useOverflowMarquee } from "@/components/use-overflow-marquee";
 import { VolumeControl } from "@/components/volume-control";
-import type { Track } from "@/lib/chart-schema";
+import type { ChartTrack } from "@/lib/chart-schema";
 import { trackKey } from "@/lib/track-identity";
 import { useAudioStore } from "@/providers/audio-store-provider";
 
@@ -25,8 +25,8 @@ export interface MiniPlayerProps {
   // The adjacent playable tracks, previewed in the swipe rail so a drag shows
   // where it's heading. Null at a chart end, where the skip rolls to another
   // country instead of a plain neighbour.
-  prevTrack: Track | null;
-  nextTrack: Track | null;
+  prevTrack: ChartTrack | null;
+  nextTrack: ChartTrack | null;
 }
 
 const SKIP_BUTTON_CLASS =
@@ -48,7 +48,7 @@ function TrackArtwork({ url }: { url: string }) {
 // A non-interactive preview of an adjacent track for the rail: only the current
 // card carries the marquee, EQ, and a11y text, so the neighbours stay plain and
 // hidden from assistive tech. Null (a chart end) renders an empty slot.
-function PreviewCard({ track }: { track: Track | null }) {
+function PreviewCard({ track }: { track: ChartTrack | null }) {
   if (track === null)
     return <div className="w-full shrink-0" aria-hidden="true" />;
   return (

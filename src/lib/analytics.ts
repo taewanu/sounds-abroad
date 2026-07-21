@@ -62,10 +62,14 @@ export interface AnalyticsEvent {
   };
 
   // The user followed a track out to Apple Music or Spotify for full playback,
-  // a conversion signal that the preview created real interest.
+  // a conversion signal that the preview created real interest. `destination`
+  // splits where the tap actually lands: a Spotify link is the exact track only
+  // when the crawl resolved one, and otherwise a search the user finishes by
+  // hand. Recorded per tap because it cannot be reconstructed later.
   deeplink_out: {
     country: string;
     platform: "apple" | "spotify";
+    destination: "track" | "search";
     rank: number;
   };
 }

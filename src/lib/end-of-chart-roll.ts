@@ -1,4 +1,4 @@
-import type { ChartFile, Track } from "./chart-schema";
+import type { ChartFile, ChartTrack } from "./chart-schema";
 import { sameTrack } from "./track-identity";
 
 // Redraw bound for a roll whose drawn chart can't continue playback (absent
@@ -12,12 +12,12 @@ export const MAX_ROLL_ATTEMPTS = 3;
 // and marks the roll's own landing so it isn't read as a manual selection.
 export interface RollRecord {
   originCountryCode: string;
-  originTrack: Track;
+  originTrack: ChartTrack;
   rolledToCode: string;
 }
 
 /** The first track that can play, or null when none can. */
-export function firstPlayable(tracks: Track[]): Track | null {
+export function firstPlayable(tracks: ChartTrack[]): ChartTrack | null {
   for (const track of tracks) {
     if (track.previewUrl !== null) return track;
   }
@@ -26,7 +26,7 @@ export function firstPlayable(tracks: Track[]): Track | null {
 
 export interface RollLanding {
   code: string;
-  track: Track;
+  track: ChartTrack;
 }
 
 /**
@@ -59,9 +59,9 @@ export function planRoll(
 export function backRollTarget(
   record: RollRecord | null,
   countries: ChartFile["countries"],
-  currentTrack: Track | null,
+  currentTrack: ChartTrack | null,
   currentCountryCode: string | null,
-): { countryCode: string; track: Track } | null {
+): { countryCode: string; track: ChartTrack } | null {
   if (record === null || currentTrack === null) return null;
   if (currentCountryCode !== record.rolledToCode) return null;
   const rolled = countries[record.rolledToCode];
