@@ -274,3 +274,24 @@ test("tapping a chart already being read does not start a second read", async ()
   await waitFor(() => expect(result.current.ref).toBe("pl.a"));
   expect(spy.mock.calls.length).toBe(1);
 });
+
+test("a read started in one country cannot land in the next", async () => {
+  const underTest = country("Country under test", ["pl.a"]);
+  const movedTo = country("Country moved to", ["pl.j"]);
+  const { release } = deferredFetch();
+  const { result, rerender } = renderHook(
+    ({ code, data }) => useChartTracks(code, data),
+    { initialProps: { code: "cc", data: underTest } },
+  );
+
+  act(() => result.current.open("pl.a"));
+  rerender({ code: "other", data: movedTo });
+
+  await act(async () => {
+    release("pl.a", playlistPayload("pl.a", "A playlist track"));
+  });
+
+  expect(result.current.ref).toBe(SONGS_CHART);
+  expect(result.current.tracks).toEqual(movedTo.tracks);
+  expect(result.current.pending).toBeNull();
+});

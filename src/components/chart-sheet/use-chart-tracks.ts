@@ -22,8 +22,17 @@ export interface ChartTracksState {
   read: (id: string) => Promise<ChartTrack[]>;
 }
 
+/**
+ * How long a chart may take to arrive before the read is abandoned. Without a
+ * bound a hung connection never settles, and the chart would keep saying it is
+ * loading with no way to fail.
+ */
+const READ_TIMEOUT_MS = 10_000;
+
 async function readPlaylistTracks(id: string): Promise<ChartTrack[]> {
-  const res = await fetch(`/api/playlist/${encodeURIComponent(id)}`);
+  const res = await fetch(`/api/playlist/${encodeURIComponent(id)}`, {
+    signal: AbortSignal.timeout(READ_TIMEOUT_MS),
+  });
   if (!res.ok) throw new Error(`playlist ${id}: ${res.status}`);
   return PlaylistFileSchema.parse(await res.json()).tracks;
 }
@@ -50,6 +59,12 @@ export function useChartTracks(
   const [failed, setFailed] = useState<ReadonlySet<ChartRef>>(new Set());
   const [tracks, setTracks] = useState<ChartTrack[]>(country.tracks);
 
+  // Which read is still wanted. Tapping a second chart before the first lands
+  // must not let the first overwrite the list the listener has moved on from.
+  // A token rather than an AbortController because an abandoned read still
+  // fills the cache, so tapping back to it is instant instead of paying twice.
+  const latestRequest = useRef(0);
+
   // A new country opens on its songs chart: a playlist belongs to exactly one
   // country, so nothing about the old selection survives the move (ADR-0017).
   // Adjusted during render rather than in an effect, so the new country's chart
@@ -68,11 +83,6 @@ export function useChartTracks(
   // each insert.
   const cache = useRef(new Map<string, ChartTrack[]>());
 
-  // Which read is still wanted. Tapping a second chart before the first lands
-  // must not let the first overwrite the list the listener has moved on from.
-  // A token rather than an AbortController because an abandoned read still
-  // fills the cache, so tapping back to it is instant instead of paying twice.
-  const latestRequest = useRef(0);
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
@@ -81,8 +91,23 @@ export function useChartTracks(
     };
   }, []);
 
+  // The country as it is now, for the resolve path to compare against. A ref
+  // synced in an effect, because a read settles long after the render it was
+  // started in and a closure would hold the country it began in.
+  const shownCountryRef = useRef(countryCode);
+  useEffect(() => {
+    shownCountryRef.current = countryCode;
+  }, [countryCode]);
+
+  // A read is stale once the listener has asked for another chart, left the
+  // country it was asked for, or left the screen. The country matters because a
+  // playlist belongs to exactly one, so a read landing after the globe moved
+  // would put a chart this country does not carry on screen.
   const isStale = useCallback(
-    (token: number) => !mounted.current || token !== latestRequest.current,
+    (token: number, askedIn: string) =>
+      !mounted.current ||
+      token !== latestRequest.current ||
+      askedIn !== shownCountryRef.current,
     [],
   );
 
@@ -116,18 +141,18 @@ export function useChartTracks(
   // Reads a chart and takes it once it lands, unless the listener has since
   // asked for another.
   const commit = useCallback(
-    (next: ChartRef, token: number) => {
+    (next: ChartRef, token: number, askedIn: string) => {
       read(next)
         .then((fetched) => {
           report(next, true, false);
-          if (isStale(token)) return;
+          if (isStale(token, askedIn)) return;
           setPending(null);
           setRef(next);
           setTracks(fetched);
         })
         .catch(() => {
           report(next, false, false);
-          if (isStale(token)) return;
+          if (isStale(token, askedIn)) return;
           setPending(null);
           setFailed((prev) => new Set(prev).add(next));
         });
@@ -161,9 +186,9 @@ export function useChartTracks(
       }
 
       setPending(next);
-      commit(next, token);
+      commit(next, token, countryCode);
     },
-    [ref, pending, country.tracks, commit, report],
+    [ref, pending, country.tracks, countryCode, commit, report],
   );
 
   // The chart a link named is already pending on the first render, seeded above,
@@ -174,9 +199,9 @@ export function useChartTracks(
     if (startedFromUrl.current) return;
     startedFromUrl.current = true;
     if (initialChart !== SONGS_CHART) {
-      commit(initialChart, ++latestRequest.current);
+      commit(initialChart, ++latestRequest.current, countryCode);
     }
-  }, [initialChart, commit]);
+  }, [initialChart, countryCode, commit]);
 
   return { ref, tracks, pending, failed, open, peek, read };
 }

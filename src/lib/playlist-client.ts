@@ -1,6 +1,15 @@
 import { MUSIC_CHARTS_TAG } from "./cache-tags";
 import { PlaylistFileSchema, type PlaylistFile } from "./chart-schema";
 
+/**
+ * How long a track list may take before the read is abandoned.
+ *
+ * Without a bound a hung connection never settles, and a chart waiting on one
+ * would keep telling the listener it is loading with no way to fail. Generous
+ * against a blob of this size, so a slow network still lands.
+ */
+const READ_TIMEOUT_MS = 10_000;
+
 export class PlaylistFetchError extends Error {
   constructor(
     public readonly playlistId: string,
@@ -64,6 +73,7 @@ export async function fetchPlaylistFile(
     res = await fetch(url, {
       cache: "force-cache",
       next: { tags: [MUSIC_CHARTS_TAG] },
+      signal: AbortSignal.timeout(READ_TIMEOUT_MS),
     });
   } catch (err) {
     throw new PlaylistFetchError(

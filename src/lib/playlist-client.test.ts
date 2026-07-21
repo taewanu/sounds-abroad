@@ -71,6 +71,7 @@ test("returns the parsed track list when the body matches the schema", async () 
   expect(spy).toHaveBeenCalledWith(playlistFileUrl(CHARTS_URL, PLAYLIST_ID), {
     cache: "force-cache",
     next: { tags: [MUSIC_CHARTS_TAG] },
+    signal: expect.any(AbortSignal),
   });
 });
 

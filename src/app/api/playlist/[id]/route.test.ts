@@ -107,3 +107,11 @@ test("fails loudly when the charts location is not configured", async () => {
   expect(res.status).toBe(500);
   expect(fetchPlaylistFileMock).not.toHaveBeenCalled();
 });
+
+test("lets an unrecognized failure through rather than reporting it as upstream", async () => {
+  fetchPlaylistFileMock.mockRejectedValue(new Error("something else"));
+
+  await expect(readPlaylist(makeReq(), params(PLAYLIST_ID))).rejects.toThrow(
+    "something else",
+  );
+});
