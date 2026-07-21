@@ -12,6 +12,13 @@ import {
   focusAlongTabs,
 } from "./chart-tabs";
 
+// Closes over nothing, so it is built once rather than per render.
+function handleKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+  if (focusAlongTabs(event.currentTarget, event.key, document.activeElement)) {
+    event.preventDefault();
+  }
+}
+
 export interface ChartRailProps {
   /** The country's playlists, in the order the crawl received them. */
   playlists: readonly Playlist[];
@@ -56,14 +63,6 @@ export function ChartRail({
   ];
 
   const active = pending ?? current;
-
-  function handleKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
-    if (
-      focusAlongTabs(event.currentTarget, event.key, document.activeElement)
-    ) {
-      event.preventDefault();
-    }
-  }
 
   return (
     <div
