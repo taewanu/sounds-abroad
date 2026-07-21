@@ -4,15 +4,17 @@ import { triggerRevalidate } from "./revalidate-trigger";
 
 const SITE_URL = "https://example.test";
 const SECRET = "fixture-secret";
-const PROPAGATION_MS = 120_000;
 
 beforeEach(() => {
-  vi.useFakeTimers();
   process.env.SITE_URL = SITE_URL;
   process.env.REVALIDATE_SECRET = SECRET;
 });
 
 afterEach(() => {
+  // Restoring here rather than in the one test that fakes timers: a test that
+  // dies on vitest's timeout never resumes, so neither a trailing call nor a
+  // `finally` runs, and the fake timers would outlive it. Verified — a probe
+  // test placed after that one hangs on a plain setTimeout without this.
   vi.useRealTimers();
   vi.restoreAllMocks();
   delete process.env.SITE_URL;
@@ -31,19 +33,15 @@ test("throws when REVALIDATE_SECRET is missing", async () => {
   await expect(triggerRevalidate()).rejects.toThrow(/REVALIDATE_SECRET/);
 });
 
-test("waits PROPAGATION_MS before issuing the bearer POST", async () => {
+test("issues the bearer POST without waiting on a timer", async () => {
   const fetchSpy = vi
     .spyOn(globalThis, "fetch")
     .mockResolvedValue(new Response(null, { status: 200 }));
+  // Fake timers that nothing advances: a reintroduced delay never resolves, so
+  // this times out rather than passing quietly. afterEach restores them.
+  vi.useFakeTimers();
 
-  const pending = triggerRevalidate();
-  expect(fetchSpy).not.toHaveBeenCalled();
-
-  await vi.advanceTimersByTimeAsync(PROPAGATION_MS - 1);
-  expect(fetchSpy).not.toHaveBeenCalled();
-
-  await vi.advanceTimersByTimeAsync(1);
-  await pending;
+  await triggerRevalidate();
 
   expect(fetchSpy).toHaveBeenCalledTimes(1);
   expect(fetchSpy).toHaveBeenCalledWith(
@@ -61,9 +59,5 @@ test("throws with status code when revalidate responds non-2xx", async () => {
     new Response(null, { status: 401, statusText: "Unauthorized" }),
   );
 
-  // Attach the rejection assertion before driving timers so the rejection is
-  // observed synchronously — otherwise Node flags it as unhandled.
-  const assertion = expect(triggerRevalidate()).rejects.toThrow(/401/);
-  await vi.advanceTimersByTimeAsync(PROPAGATION_MS);
-  await assertion;
+  await expect(triggerRevalidate()).rejects.toThrow(/401/);
 });
