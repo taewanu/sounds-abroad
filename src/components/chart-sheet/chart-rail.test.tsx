@@ -159,3 +159,14 @@ test("announces each chart's position in the set", () => {
   expect(tab.getAttribute("aria-posinset")).toBe("3");
   expect(tab.getAttribute("aria-setsize")).toBe("3");
 });
+
+test("the chart being read is the one marked as waiting", () => {
+  renderRail({ current: SONGS_CHART, pending: "pl.a" });
+
+  expect(screen.getByRole("tab", { name: "Pagode 2026" }).className).toContain(
+    "chart-tab-waiting",
+  );
+  expect(
+    screen.getByRole("tab", { name: SONGS_CHART_LABEL }).className,
+  ).not.toContain("chart-tab-waiting");
+});

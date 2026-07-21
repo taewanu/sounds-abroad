@@ -97,6 +97,7 @@ export function ChartRail({
         // The asked-for chart reads as selected the moment it is tapped, so the
         // tap is acknowledged before its track list arrives.
         const selected = active === ref;
+        const waiting = pending === ref;
         const unavailable = failed.has(ref);
         return (
           <button
@@ -117,7 +118,7 @@ export function ChartRail({
               selected
                 ? "bg-fg-1 text-void border-transparent font-semibold"
                 : "bg-fg-1/5 text-fg-2 border-fg-1/10"
-            }`}
+            } ${waiting ? "chart-tab-waiting" : ""}`}
           >
             {label}
           </button>

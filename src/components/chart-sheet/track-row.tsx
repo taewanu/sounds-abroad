@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { type CSSProperties, useState } from "react";
 
 import { AppleMusicIcon } from "@/components/icons/apple-music";
 import { PauseIcon } from "@/components/icons/pause";
@@ -117,6 +117,16 @@ export function TrackRow({
       inert={dimmed}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      // A per-row clock for the waiting pulse, derived from the rank rather than
+      // drawn at random: the sheet is server-painted, so a random value would
+      // differ between the server and the client and break hydration. The
+      // coprime multipliers keep neighbouring ranks from landing in step.
+      style={
+        {
+          "--row-wait-dur": `${2400 + ((track.rank * 37) % 23) * 100}ms`,
+          "--row-wait-delay": `-${((track.rank * 53) % 20) * 100}ms`,
+        } as CSSProperties
+      }
       className={`${baseClass} ${stateClass}`}
     >
       <div className="flex items-center gap-[14px]">

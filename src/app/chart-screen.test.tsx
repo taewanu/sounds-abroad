@@ -1347,3 +1347,116 @@ describe("ChartScreen chart in the URL", () => {
     expect(replaceState).not.toHaveBeenCalled();
   });
 });
+
+describe("ChartScreen while a chart is read", () => {
+  const PL_ID = "pl.wait";
+  const CODE = "br";
+
+  function chartsWithPlaylist(): ChartFile {
+    const base = CHARTS.countries[CODE];
+    return {
+      ...CHARTS,
+      countries: {
+        ...CHARTS.countries,
+        [CODE]: {
+          ...base,
+          playlists: [
+            {
+              id: PL_ID,
+              name: "Pagode 2026",
+              appleUrl: `https://music.apple.com/br/playlist/${PL_ID}`,
+              artworkUrl: "https://art.test/p.jpg",
+              genres: [],
+              trackCount: 1,
+            },
+          ],
+          playlistsValid: true,
+        },
+      },
+    };
+  }
+
+  beforeEach(() => {
+    mockSearchParams.value = new URLSearchParams(`cc=${CODE}`);
+    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  test("the outgoing chart stays on screen and is marked as waiting", async () => {
+    let release: (() => void) | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        () =>
+          new Promise<Response>((resolve) => {
+            release = () =>
+              resolve(
+                new Response(
+                  JSON.stringify({
+                    id: PL_ID,
+                    lastUpdated: "2026-07-21T00:00:00.000Z",
+                    tracks: [
+                      {
+                        rank: 1,
+                        name: "Only on the playlist",
+                        artist: "Playlist artist",
+                        previewUrl: null,
+                        artworkUrl: "https://art.test/t.jpg",
+                        appleUrl: "https://music.apple.com/br/song/x?i=9",
+                      },
+                    ],
+                  }),
+                  {
+                    status: 200,
+                    headers: { "content-type": "application/json" },
+                  },
+                ),
+              );
+          }),
+      ),
+    );
+    const charts = chartsWithPlaylist();
+    const { container } = render(
+      <ChartScreen charts={charts} defaultCountryCode={CODE} />,
+    );
+    const songsTrack = charts.countries[CODE].tracks[0].name;
+
+    fireEvent.click(screen.getByRole("tab", { name: "Pagode 2026" }));
+
+    expect(container.querySelector("[data-chart-waiting]")).not.toBeNull();
+    expect(screen.getAllByText(songsTrack).length).toBeGreaterThan(0);
+
+    await act(async () => {
+      release?.();
+    });
+
+    expect(container.querySelector("[data-chart-waiting]")).toBeNull();
+  });
+
+  test("a chart that fails to load leaves the list and stops offering itself", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("", { status: 404 })),
+    );
+    const charts = chartsWithPlaylist();
+    const { container } = render(
+      <ChartScreen charts={charts} defaultCountryCode={CODE} />,
+    );
+    const songsTrack = charts.countries[CODE].tracks[0].name;
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("tab", { name: "Pagode 2026" }));
+    });
+
+    expect(screen.getAllByText(songsTrack).length).toBeGreaterThan(0);
+    expect(
+      (screen.getByRole("tab", { name: "Pagode 2026" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+    expect(container.querySelector("[data-chart-waiting]")).toBeNull();
+  });
+});
