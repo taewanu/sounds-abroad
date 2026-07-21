@@ -20,14 +20,28 @@ export interface AnalyticsEvent {
   };
 
   // The user advanced to another track. Every next/prev surface routes through
-  // one seam, so `direction` and `outcome` come from there; `outcome: "rolled"`
-  // means they exhausted the country and rolled into a new one. `from_rank` is
-  // the rank they left, measuring per-country consumption depth.
+  // one seam, so `direction` and `outcome` come from there. `outcome` names how
+  // far the move reached: within the chart, on to the country's next chart, or
+  // out into a fresh country. `from_rank` is the rank they left, measuring
+  // consumption depth within a chart.
   next_executed: {
     country: string;
     direction: "next" | "prev";
-    outcome: "adjacent" | "rolled" | "back_rolled";
+    outcome: "adjacent" | "continued" | "rolled" | "back_rolled";
     from_rank: number;
+  };
+
+  // A chart was opened from the selector. The evidence the playlist axis is
+  // judged by: it costs a daily crawl whether or not anyone opens one, so
+  // whether they do is the question. `loaded` false is an ordinary outcome, not
+  // an error — a country carried forward can advertise a chart the latest run
+  // never wrote — and counting those separates "nobody looks" from "it is
+  // broken". Cached reopens carry `cached`, so a fetch count is recoverable.
+  chart_opened: {
+    country: string;
+    chart: "songs" | "playlist";
+    loaded: boolean;
+    cached: boolean;
   };
 
   // A preview failed to play. `reason` splits the detectable causes; `errorName`

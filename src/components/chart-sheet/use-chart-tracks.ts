@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { SONGS_CHART, type ChartRef } from "@/lib/chart-ref";
+import { track as trackEvent } from "@/lib/analytics";
+import { SONGS_CHART, isPlaylistRef, type ChartRef } from "@/lib/chart-ref";
 import type { ChartTrack, Country } from "@/lib/chart-schema";
 import { PlaylistFileSchema } from "@/lib/chart-schema";
 
@@ -97,24 +98,41 @@ export function useChartTracks(
     return fetched;
   }, []);
 
+  // Whether the axis is used at all, which is the evidence its daily crawl cost
+  // is judged against. Reported on the ask rather than on the render, so a
+  // chart the listener moved off before it landed still counts as asked for.
+  const report = useCallback(
+    (chart: ChartRef, loaded: boolean, cached: boolean) => {
+      trackEvent("chart_opened", {
+        country: countryCode,
+        chart: isPlaylistRef(chart) ? "playlist" : "songs",
+        loaded,
+        cached,
+      });
+    },
+    [countryCode],
+  );
+
   // Reads a chart and takes it once it lands, unless the listener has since
   // asked for another.
   const commit = useCallback(
     (next: ChartRef, token: number) => {
       read(next)
         .then((fetched) => {
+          report(next, true, false);
           if (isStale(token)) return;
           setPending(null);
           setRef(next);
           setTracks(fetched);
         })
         .catch(() => {
+          report(next, false, false);
           if (isStale(token)) return;
           setPending(null);
           setFailed((prev) => new Set(prev).add(next));
         });
     },
-    [isStale, read],
+    [isStale, read, report],
   );
 
   const open = useCallback(
@@ -123,6 +141,7 @@ export function useChartTracks(
       const token = ++latestRequest.current;
 
       if (next === SONGS_CHART) {
+        report(SONGS_CHART, true, true);
         setPending(null);
         setRef(SONGS_CHART);
         setTracks(country.tracks);
@@ -131,6 +150,7 @@ export function useChartTracks(
 
       const cached = cache.current.get(next);
       if (cached) {
+        report(next, true, true);
         setPending(null);
         setRef(next);
         setTracks(cached);
@@ -140,7 +160,7 @@ export function useChartTracks(
       setPending(next);
       commit(next, token);
     },
-    [ref, country.tracks, commit],
+    [ref, country.tracks, commit, report],
   );
 
   // The chart a link named is already pending on the first render, seeded above,

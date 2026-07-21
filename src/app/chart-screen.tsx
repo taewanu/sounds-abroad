@@ -362,8 +362,12 @@ function ChartScreenInner({
       toggle(landing.track, { countryCode: fromCode, chartRef: landing.ref });
       audioStore.getState().signalStep(1);
       flashSkip(1);
-      // No next_executed: the event's outcome vocabulary names moves between
-      // countries, and a continuation stays inside one.
+      trackEvent("next_executed", {
+        country: fromCode,
+        direction: "next",
+        outcome: "continued",
+        from_rank: fromTrack.rank,
+      });
 
       // Bring the chart that took over on screen, but only for a listener who
       // was reading the one it continues from: anyone browsing elsewhere chose
