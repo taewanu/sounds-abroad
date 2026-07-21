@@ -1,0 +1,60 @@
+version: 2
+
+updates:
+  # Keeps SHA-pinned action refs current: without this, pinning freezes the
+  # workflows at whatever commit was pinned and patches never arrive.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore"
+    # An action used by several workflows would otherwise land one PR per
+    # workflow for the same bump.
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore"
+    # A dependency lands in the first group it matches, so the coupled sets are
+    # listed before the catch-alls.
+    groups:
+      # Both packages read the same wire format and are released in lockstep;
+      # splitting them produces a PR pair that only passes once both merge.
+      sentry:
+        patterns:
+          - "@sentry/*"
+      # three's API moves in minors and the renderer bindings track it, so the
+      # renderer, the library, and its types have to move as one.
+      three:
+        patterns:
+          - "three"
+          - "@types/three"
+          - "@react-three/*"
+      # Tooling cannot reach production, so a single batched PR is enough
+      # review surface. Majors stay out: they carry config migrations.
+      tooling:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+      runtime:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+    # Framework majors are deliberately not ignored: a major PR is the only
+    # in-repo signal that one shipped.
+    ignore:
+      # These types describe the standard library of one Node major, so the
+      # right version is whichever major the runtime is on rather than the
+      # newest published. Raising it is a runtime decision, not a lag to close.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]

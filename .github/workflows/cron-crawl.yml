@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 # A run is long (a large share of its timeout); never cancel an in-flight run
-# for a superseding trigger — that would forfeit the chart refresh it's mid-way through.
+# for a superseding trigger: that would forfeit the chart refresh it's mid-way through.
 concurrency:
   group: cron-crawl
   cancel-in-progress: false
@@ -22,10 +22,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Node and pnpm via mise
-        uses: jdx/mise-action@v4
+        uses: jdx/mise-action@dad1bfd3df957f44999b559dd69dc1671cb4e9ea # v4.2.1
 
       - name: Install dependencies
         run: mise exec -- pnpm install --frozen-lockfile
