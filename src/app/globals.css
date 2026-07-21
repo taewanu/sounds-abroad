@@ -1173,15 +1173,16 @@
     var(--row-wait-delay, 0s) infinite;
 }
 
-/* The chart being read holds the accent so the tap is acknowledged before its
-   tracks arrive. */
+/* The chart being read reads as chosen straight away, so the tap is
+   acknowledged before its tracks arrive, and settles once they land. One fill
+   carries both, softening rather than taking a colour of its own. */
 @keyframes chart-tab-wait {
   0%,
   100% {
-    opacity: 1;
+    background-color: color-mix(in srgb, var(--color-fg-1) 15%, transparent);
   }
   50% {
-    opacity: 0.62;
+    background-color: color-mix(in srgb, var(--color-fg-1) 4%, transparent);
   }
 }
 
@@ -1195,7 +1196,10 @@
     animation: none;
     opacity: 0.42;
   }
+  /* Rest at the soft end of the same breath, so a chart still being read stays
+     distinguishable from the one already open without moving. */
   .chart-tab-waiting {
     animation: none;
+    background-color: color-mix(in srgb, var(--color-fg-1) 4%, transparent);
   }
 }

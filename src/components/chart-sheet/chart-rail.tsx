@@ -126,7 +126,7 @@ export function ChartRail({
             onClick={() => onOpen(ref)}
             className={`focus-visible:outline-aurora rounded-pill text-small max-w-[42vw] shrink-0 truncate border px-3.5 py-1.5 transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-30 ${
               selected
-                ? "bg-fg-1 text-void border-transparent font-semibold"
+                ? "bg-fg-1/15 text-fg-1 border-fg-1/20 font-semibold"
                 : "bg-fg-1/5 text-fg-2 border-fg-1/10"
             } ${waiting ? "chart-tab-waiting" : ""}`}
           >
