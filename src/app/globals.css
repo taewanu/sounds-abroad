@@ -1173,9 +1173,10 @@
     var(--row-wait-delay, 0s) infinite;
 }
 
-/* The chart being read reads as chosen straight away, so the tap is
-   acknowledged before its tracks arrive, and settles once they land. One fill
-   carries both, softening rather than taking a colour of its own. */
+/* The chart being read takes the open chart's fill straight away, so the tap is
+   acknowledged before its tracks arrive, and rests once they land. The fill
+   thins and returns rather than changing hue, so the rail never carries two
+   filled shapes at once. */
 @keyframes chart-tab-wait {
   0%,
   100% {

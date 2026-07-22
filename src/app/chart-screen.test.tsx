@@ -1238,8 +1238,6 @@ describe("ChartScreen playlist playback", () => {
 });
 
 describe("ChartScreen chart in the URL", () => {
-  const CODE = RAIL_CODE;
-
   let replaceState: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
@@ -1258,9 +1256,12 @@ describe("ChartScreen chart in the URL", () => {
   });
 
   test("names the chart in the URL once one is opened", async () => {
-    mockSearchParams.value = new URLSearchParams(`cc=${CODE}`);
+    mockSearchParams.value = new URLSearchParams(`cc=${RAIL_CODE}`);
     render(
-      <ChartScreen charts={chartsWithPlaylist()} defaultCountryCode={CODE} />,
+      <ChartScreen
+        charts={chartsWithPlaylist()}
+        defaultCountryCode={RAIL_CODE}
+      />,
     );
 
     await act(async () => {
@@ -1270,14 +1271,19 @@ describe("ChartScreen chart in the URL", () => {
     expect(replaceState).toHaveBeenLastCalledWith(
       null,
       "",
-      `?cc=${CODE}&chart=${PL_ID}`,
+      `?cc=${RAIL_CODE}&chart=${PL_ID}`,
     );
   });
 
   test("a link naming a chart opens it", async () => {
-    mockSearchParams.value = new URLSearchParams(`cc=${CODE}&chart=${PL_ID}`);
+    mockSearchParams.value = new URLSearchParams(
+      `cc=${RAIL_CODE}&chart=${PL_ID}`,
+    );
     render(
-      <ChartScreen charts={chartsWithPlaylist()} defaultCountryCode={CODE} />,
+      <ChartScreen
+        charts={chartsWithPlaylist()}
+        defaultCountryCode={RAIL_CODE}
+      />,
     );
 
     await act(async () => {});
@@ -1287,24 +1293,29 @@ describe("ChartScreen chart in the URL", () => {
 
   test("a chart the country does not carry falls back to its songs chart", async () => {
     mockSearchParams.value = new URLSearchParams(
-      `cc=${CODE}&chart=pl.elsewhere`,
+      `cc=${RAIL_CODE}&chart=pl.elsewhere`,
     );
     const charts = chartsWithPlaylist();
-    render(<ChartScreen charts={charts} defaultCountryCode={CODE} />);
+    render(<ChartScreen charts={charts} defaultCountryCode={RAIL_CODE} />);
 
     await act(async () => {});
 
     expect(
-      screen.getAllByText(charts.countries[CODE].tracks[0].name).length,
+      screen.getAllByText(charts.countries[RAIL_CODE].tracks[0].name).length,
     ).toBeGreaterThan(0);
     expect(fetch).not.toHaveBeenCalled();
-    expect(replaceState).toHaveBeenLastCalledWith(null, "", `?cc=${CODE}`);
+    expect(replaceState).toHaveBeenLastCalledWith(null, "", `?cc=${RAIL_CODE}`);
   });
 
   test("a URL already naming the open chart is left alone", async () => {
-    mockSearchParams.value = new URLSearchParams(`cc=${CODE}&chart=${PL_ID}`);
+    mockSearchParams.value = new URLSearchParams(
+      `cc=${RAIL_CODE}&chart=${PL_ID}`,
+    );
     render(
-      <ChartScreen charts={chartsWithPlaylist()} defaultCountryCode={CODE} />,
+      <ChartScreen
+        charts={chartsWithPlaylist()}
+        defaultCountryCode={RAIL_CODE}
+      />,
     );
 
     await act(async () => {});
@@ -1314,10 +1325,8 @@ describe("ChartScreen chart in the URL", () => {
 });
 
 describe("ChartScreen while a chart is read", () => {
-  const CODE = RAIL_CODE;
-
   beforeEach(() => {
-    mockSearchParams.value = new URLSearchParams(`cc=${CODE}`);
+    mockSearchParams.value = new URLSearchParams(`cc=${RAIL_CODE}`);
     vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
   });
 
@@ -1339,9 +1348,9 @@ describe("ChartScreen while a chart is read", () => {
     );
     const charts = chartsWithPlaylist();
     const { container } = render(
-      <ChartScreen charts={charts} defaultCountryCode={CODE} />,
+      <ChartScreen charts={charts} defaultCountryCode={RAIL_CODE} />,
     );
-    const songsTrack = charts.countries[CODE].tracks[0].name;
+    const songsTrack = charts.countries[RAIL_CODE].tracks[0].name;
 
     fireEvent.click(screen.getByRole("tab", { name: "A playlist chart" }));
 
@@ -1362,9 +1371,9 @@ describe("ChartScreen while a chart is read", () => {
     );
     const charts = chartsWithPlaylist();
     const { container } = render(
-      <ChartScreen charts={charts} defaultCountryCode={CODE} />,
+      <ChartScreen charts={charts} defaultCountryCode={RAIL_CODE} />,
     );
-    const songsTrack = charts.countries[CODE].tracks[0].name;
+    const songsTrack = charts.countries[RAIL_CODE].tracks[0].name;
 
     await act(async () => {
       fireEvent.click(screen.getByRole("tab", { name: "A playlist chart" }));

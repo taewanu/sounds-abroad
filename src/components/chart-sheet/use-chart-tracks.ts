@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { track as trackEvent } from "@/lib/analytics";
 import { SONGS_CHART, isPlaylistRef, type ChartRef } from "@/lib/chart-ref";
@@ -23,11 +29,11 @@ export interface ChartTracksState {
 }
 
 /**
- * How long a chart may take to arrive before the read is abandoned. Without a
- * bound a hung connection never settles, and the chart would keep saying it is
- * loading with no way to fail.
+ * How long the browser waits on the app's own route. Longer than the hop it
+ * covers would need, so the upstream failure surfaces as itself rather than as
+ * a timeout raced against the server's own bound.
  */
-const READ_TIMEOUT_MS = 10_000;
+const READ_TIMEOUT_MS = 15_000;
 
 async function readPlaylistTracks(id: string): Promise<ChartTrack[]> {
   const res = await fetch(`/api/playlist/${encodeURIComponent(id)}`, {
@@ -91,11 +97,14 @@ export function useChartTracks(
     };
   }, []);
 
-  // The country as it is now, for the resolve path to compare against. A ref
-  // synced in an effect, because a read settles long after the render it was
-  // started in and a closure would hold the country it began in.
+  // The country as of the last committed render, for the resolve path to read.
+  // A ref because a read settles long after the render it began in, and its
+  // closure holds the country it was asked for, not the one now on screen.
+  // Synced in a layout effect rather than a passive one: passive effects flush
+  // after the browser is free to run other work, which would leave a window
+  // where a read landing just after the country changed still read as wanted.
   const shownCountryRef = useRef(countryCode);
-  useEffect(() => {
+  useLayoutEffect(() => {
     shownCountryRef.current = countryCode;
   }, [countryCode]);
 
