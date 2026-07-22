@@ -18,7 +18,10 @@ reviews:
   auto_apply_labels: false
   suggested_reviewers: false
   collapse_walkthrough: true
-  enable_prompt_for_ai_agents: true
+  # Off because the prompt blocks restate each finding a second time, in
+  # machine-directed prose, and bury the finding itself under several folds. The
+  # inline comment and its suggested diff carry the same information.
+  enable_prompt_for_ai_agents: false
 
   path_filters:
     - "!**/.next/**"

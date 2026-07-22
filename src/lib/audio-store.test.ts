@@ -1,5 +1,6 @@
 import { assert, beforeEach, describe, expect, test, vi } from "vitest";
 
+import { SONGS_CHART, type ChartRef } from "@/lib/chart-ref";
 import type { Track } from "@/lib/chart-schema";
 
 import type { AudioEngine } from "./audio-engine";
@@ -17,6 +18,15 @@ vi.mock("./media-session", () => ({
   setPlaybackState: vi.fn(),
   setActionHandlers: vi.fn(),
 }));
+
+// A chart ref outside the songs sentinel, standing for any of a country's
+// other charts.
+const PLAYLIST_REF = "pl.other";
+
+// A playback location, defaulting to the chart every country carries.
+function at(countryCode: string, chartRef: ChartRef = SONGS_CHART) {
+  return { countryCode, chartRef };
+}
 
 type EventType = "ended" | "error" | "play" | "pause";
 
@@ -206,9 +216,9 @@ describe("createAudioStore", () => {
       appleUrl: "https://music.apple.com/us/album/x/1?i=42",
       previewUrl: "https://example.com/shared.m4a",
     });
-    store.getState().toggle(inA, "kr");
+    store.getState().toggle(inA, at("kr"));
 
-    store.getState().toggle(inB, "us");
+    store.getState().toggle(inB, at("us"));
 
     expect(store.getState().currentCountryCode).toBe("us");
     expect(store.getState().currentTrack).toBe(inB);
@@ -216,58 +226,75 @@ describe("createAudioStore", () => {
     expect(audio.pause).not.toHaveBeenCalled();
   });
 
-  test("toggle of the current song in the same country pauses, not switches", () => {
+  test("toggle of the current song at the same location pauses, not switches", () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     const track = makeTrack({ appleUrl: "https://music.apple.com/x?i=42" });
-    store.getState().toggle(track, "kr");
+    store.getState().toggle(track, at("kr"));
 
-    store.getState().toggle(track, "kr");
+    store.getState().toggle(track, at("kr"));
 
     expect(audio.pause).toHaveBeenCalledOnce();
     expect(store.getState().isPlaying).toBe(false);
     expect(store.getState().currentCountryCode).toBe("kr");
   });
 
-  test("toggle on new track stores countryCode when provided", () => {
+  test("toggle on new track stores the location it was played from", () => {
     const store = createAudioStore(() => makeMockAudio());
     const track = makeTrack();
 
-    store.getState().toggle(track, "br");
+    store.getState().toggle(track, at("br", PLAYLIST_REF));
 
     expect(store.getState().currentCountryCode).toBe("br");
+    expect(store.getState().currentChartRef).toBe(PLAYLIST_REF);
   });
 
-  test("toggle on new track without countryCode sets currentCountryCode to null", () => {
+  test("toggle on new track with no location leaves the location unset", () => {
     const store = createAudioStore(() => makeMockAudio());
     const track = makeTrack();
 
     store.getState().toggle(track);
 
     expect(store.getState().currentCountryCode).toBeNull();
+    expect(store.getState().currentChartRef).toBeNull();
   });
 
-  test("resume (toggle same track after pause) preserves countryCode", () => {
+  test("the same song reached from another chart of the country switches, not resumes", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    const track = makeTrack({ appleUrl: "https://music.apple.com/x?i=42" });
+    store.getState().toggle(track, at("br"));
+
+    store.getState().toggle(track, at("br", PLAYLIST_REF));
+
+    expect(audio.pause).not.toHaveBeenCalled();
+    expect(store.getState().isPlaying).toBe(true);
+    expect(store.getState().currentChartRef).toBe(PLAYLIST_REF);
+  });
+
+  test("resume (toggle same track after pause) preserves the location", () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     const track = makeTrack();
-    store.getState().toggle(track, "br");
+    store.getState().toggle(track, at("br", PLAYLIST_REF));
     store.getState().toggle(track); // pause
     assert(store.getState().isPlaying === false, "arrange: paused");
 
-    store.getState().toggle(track); // resume without countryCode
+    store.getState().toggle(track); // resume with no location
 
     expect(store.getState().currentCountryCode).toBe("br");
+    expect(store.getState().currentChartRef).toBe(PLAYLIST_REF);
     expect(store.getState().isPlaying).toBe(true);
   });
 
-  test("stop clears currentCountryCode", () => {
+  test("stop clears the location", () => {
     const store = createAudioStore(() => makeMockAudio());
-    store.getState().toggle(makeTrack(), "br");
+    store.getState().toggle(makeTrack(), at("br"));
 
     store.getState().stop();
 
     expect(store.getState().currentCountryCode).toBeNull();
+    expect(store.getState().currentChartRef).toBeNull();
   });
 
   test("stop clears currentTrack and isPlaying", () => {
@@ -282,11 +309,11 @@ describe("createAudioStore", () => {
     expect(store.getState().isPlaying).toBe(false);
   });
 
-  test("pause stops playback but preserves currentTrack and countryCode", () => {
+  test("pause stops playback but preserves currentTrack and location", () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     const track = makeTrack();
-    store.getState().toggle(track, "br");
+    store.getState().toggle(track, at("br"));
 
     store.getState().pause();
 

@@ -1,4 +1,4 @@
-import type { Track } from "./chart-schema";
+import type { ChartTrack } from "./chart-schema";
 import { sameTrack } from "./track-identity";
 
 /**
@@ -9,10 +9,10 @@ import { sameTrack } from "./track-identity";
  * preview asset or when several have none.
  */
 export function findAdjacentPlayable(
-  tracks: Track[],
-  current: Track | null,
+  tracks: ChartTrack[],
+  current: ChartTrack | null,
   dir: 1 | -1,
-): Track | null {
+): ChartTrack | null {
   if (current === null) return null;
   const currentIdx = tracks.findIndex((t) => sameTrack(t, current));
   if (currentIdx === -1) return null;

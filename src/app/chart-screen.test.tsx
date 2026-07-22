@@ -902,3 +902,523 @@ describe("ChartScreen end-of-chart roll", () => {
     expect(prev.disabled).toBe(true);
   });
 });
+
+// One country carrying one playlist chart, for the blocks below that exercise
+// the rail, the URL, and the wait. The id is shared so a stubbed read matches
+// whichever block is running.
+const PL_ID = "pl.under-test";
+const RAIL_CODE = "br";
+
+function chartsWithPlaylist(): ChartFile {
+  const base = CHARTS.countries[RAIL_CODE];
+  return {
+    ...CHARTS,
+    countries: {
+      ...CHARTS.countries,
+      [RAIL_CODE]: {
+        ...base,
+        playlists: [
+          {
+            id: PL_ID,
+            name: "A playlist chart",
+            appleUrl: `https://music.apple.com/br/playlist/${PL_ID}`,
+            artworkUrl: "https://art.test/p.jpg",
+            genres: [],
+            trackCount: 1,
+          },
+        ],
+        playlistsValid: true,
+      },
+    },
+  };
+}
+
+const PLAYLIST_TRACK = {
+  rank: 1,
+  name: "Only on the playlist",
+  artist: "Playlist artist",
+  previewUrl: null,
+  artworkUrl: "https://art.test/t.jpg",
+  appleUrl: "https://music.apple.com/br/song/x?i=99",
+};
+
+/** The published shape a stubbed read returns for that playlist. */
+function playlistPayload(): string {
+  return JSON.stringify({
+    id: PL_ID,
+    lastUpdated: "2026-07-21T00:00:00.000Z",
+    tracks: [PLAYLIST_TRACK],
+  });
+}
+
+function playlistResponse(): Response {
+  return new Response(playlistPayload(), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  });
+}
+
+describe("ChartScreen chart rail", () => {
+  beforeEach(() => {
+    mockSearchParams.value = new URLSearchParams(`cc=${RAIL_CODE}`);
+    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => playlistResponse()),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  test("lists every chart the country carries without fetching any of them", () => {
+    render(
+      <ChartScreen
+        charts={chartsWithPlaylist()}
+        defaultCountryCode={RAIL_CODE}
+      />,
+    );
+
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual([
+      "Top Songs",
+      "A playlist chart",
+    ]);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  test("opening a playlist chart replaces the list with its tracks", async () => {
+    const charts = chartsWithPlaylist();
+    render(<ChartScreen charts={charts} defaultCountryCode={RAIL_CODE} />);
+    const songsTrack = charts.countries[RAIL_CODE].tracks[0].name;
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("tab", { name: "A playlist chart" }));
+    });
+
+    expect(screen.getAllByText(PLAYLIST_TRACK.name).length).toBeGreaterThan(0);
+    expect(screen.queryByText(songsTrack)).toBeNull();
+  });
+
+  test("returning to the songs chart costs no second read", async () => {
+    const charts = chartsWithPlaylist();
+    render(<ChartScreen charts={charts} defaultCountryCode={RAIL_CODE} />);
+    const songsTrack = charts.countries[RAIL_CODE].tracks[0].name;
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("tab", { name: "A playlist chart" }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("tab", { name: "Top Songs" }));
+    });
+
+    expect(screen.getAllByText(songsTrack).length).toBeGreaterThan(0);
+    expect(vi.mocked(fetch).mock.calls.length).toBe(1);
+  });
+
+  test("a country carrying no playlists renders no rail", () => {
+    render(<ChartScreen charts={CHARTS} defaultCountryCode={RAIL_CODE} />);
+
+    expect(screen.queryByRole("tablist")).toBeNull();
+  });
+});
+
+describe("ChartScreen playlist playback", () => {
+  const PL_CODE = "zz";
+  const PL_FIRST = "pl.first";
+  const PL_SECOND = "pl.second";
+  const PL_FIRST_LABEL = "First playlist";
+  const PL_SECOND_LABEL = "Second playlist";
+  const SONGS_ONLY = "Songs only";
+
+  function playlistTrack(rank: number, name: string) {
+    return {
+      rank,
+      name,
+      artist: `${name} artist`,
+      previewUrl: `https://example.com/${rank}-${name}.m4a`,
+      artworkUrl: "https://example.com/pl.jpg",
+      appleUrl: `https://music.apple.com/x/song?i=90${rank}${name.length}`,
+    };
+  }
+
+  // Two tracks in the first chart so a step has somewhere to go inside it, one
+  // in the second so its own end arrives immediately.
+  const FIRST_HEAD = playlistTrack(1, "First head");
+  const FIRST_TAIL = playlistTrack(2, "First tail");
+  const SECOND_ONLY = playlistTrack(1, "Second only");
+  const TRACKS_BY_CHART: Record<string, ReturnType<typeof playlistTrack>[]> = {
+    [PL_FIRST]: [FIRST_HEAD, FIRST_TAIL],
+    [PL_SECOND]: [SECOND_ONLY],
+  };
+
+  function playlistEntry(id: string, name: string) {
+    return {
+      id,
+      name,
+      appleUrl: `https://music.apple.com/x/playlist/${id}`,
+      artworkUrl: "https://example.com/pl-art.jpg",
+      genres: [],
+      trackCount: TRACKS_BY_CHART[id].length,
+    };
+  }
+
+  // A country carrying two playlist charts, plus a drawable country so the
+  // cross-country roll past them has somewhere to land.
+  const PLAYLIST_CHARTS: ChartFile = {
+    lastUpdated: "2026-07-21T00:00:00Z",
+    countries: {
+      [PL_CODE]: {
+        name: "Country under test",
+        valid: true,
+        tracks: [rollTrack(1, SONGS_ONLY, "https://example.com/songs.m4a")],
+        playlists: [
+          playlistEntry(PL_FIRST, PL_FIRST_LABEL),
+          playlistEntry(PL_SECOND, PL_SECOND_LABEL),
+        ],
+        playlistsValid: true,
+      },
+      [DRAW_1]: rollCountry([
+        rollTrack(1, LANDING_START, "https://example.com/landing.m4a"),
+      ]),
+    },
+  };
+
+  beforeEach(() => {
+    mockSearchParams.value = new URLSearchParams(`cc=${PL_CODE}`);
+    audioEngine.reset();
+    globeChartStore.setState({
+      selectedCountry: null,
+      readMode: false,
+      settleSignal: 0,
+      skipIntent: { dir: 1, nonce: 0 },
+      visited: new Set(),
+    });
+    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        const id = decodeURIComponent(url.split("/").pop() ?? "");
+        return new Response(
+          JSON.stringify({
+            id,
+            lastUpdated: "2026-07-21T00:00:00.000Z",
+            tracks: TRACKS_BY_CHART[id],
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  async function openChart(label: string) {
+    await act(async () => {
+      fireEvent.click(screen.getByRole("tab", { name: label }));
+    });
+  }
+
+  function playPreview(name: string, artist: string) {
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: `Play preview of ${name} by ${artist}`,
+      }),
+    );
+  }
+
+  // The mini-player's own transport label, which names what is playing whatever
+  // the list on screen shows. A row's label names the artist as well, so the
+  // one without is the mini-player's.
+  const MINI_TRANSPORT = /^(Play|Pause) preview of (?!.* by ).+$/;
+
+  function miniPlayerTrackName(): string {
+    const label =
+      screen
+        .getByRole("button", { name: MINI_TRANSPORT })
+        .getAttribute("aria-label") ?? "";
+    return label.replace(/^(Play|Pause) preview of /, "");
+  }
+
+  test("a track of a playlist chart plays through the preview pipeline", async () => {
+    const { container } = render(
+      <ChartScreen charts={PLAYLIST_CHARTS} defaultCountryCode={PL_CODE} />,
+    );
+    await openChart(PL_FIRST_LABEL);
+
+    playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
+
+    expect(playingRank(container)).toBe("1");
+  });
+
+  test("next moves within the playing chart", async () => {
+    const { container } = render(
+      <ChartScreen charts={PLAYLIST_CHARTS} defaultCountryCode={PL_CODE} />,
+    );
+    await openChart(PL_FIRST_LABEL);
+    playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
+
+    fireEvent.click(screen.getByRole("button", { name: "Next track" }));
+
+    expect(playingRank(container)).toBe("2");
+    expect(miniPlayerTrackName()).toBe(FIRST_TAIL.name);
+  });
+
+  test("browsing another chart leaves playback in the one it started from", async () => {
+    const { container } = render(
+      <ChartScreen charts={PLAYLIST_CHARTS} defaultCountryCode={PL_CODE} />,
+    );
+    await openChart(PL_FIRST_LABEL);
+    playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
+
+    await openChart("Top Songs");
+
+    expect(playingRank(container)).toBeNull();
+    expect(miniPlayerTrackName()).toBe(FIRST_HEAD.name);
+
+    fireEvent.click(screen.getByRole("button", { name: "Next track" }));
+
+    expect(miniPlayerTrackName()).toBe(FIRST_TAIL.name);
+    expect(playingRank(container)).toBeNull();
+  });
+
+  test("the end of a playlist chart continues into the country's next one", async () => {
+    render(
+      <ChartScreen charts={PLAYLIST_CHARTS} defaultCountryCode={PL_CODE} />,
+    );
+    await openChart(PL_FIRST_LABEL);
+    playPreview(FIRST_TAIL.name, FIRST_TAIL.artist);
+
+    await act(async () => {
+      audioEngine.end();
+    });
+
+    expect(miniPlayerTrackName()).toBe(SECOND_ONLY.name);
+    expect(globeChartStore.getState().selectedCountry).not.toBe(DRAW_1);
+    expect(
+      screen
+        .getByRole("tab", { name: PL_SECOND_LABEL })
+        .getAttribute("aria-selected"),
+    ).toBe("true");
+  });
+
+  test("a country whose playlist charts are exhausted rolls into another country", async () => {
+    render(
+      <ChartScreen charts={PLAYLIST_CHARTS} defaultCountryCode={PL_CODE} />,
+    );
+    await openChart(PL_SECOND_LABEL);
+    playPreview(SECOND_ONLY.name, SECOND_ONLY.artist);
+
+    await act(async () => {
+      audioEngine.end();
+    });
+
+    expect(globeChartStore.getState().selectedCountry).toBe(DRAW_1);
+    expect(miniPlayerTrackName()).toBe(LANDING_START);
+  });
+
+  test("the songs chart's end still rolls out of a country carrying playlists", async () => {
+    render(
+      <ChartScreen charts={PLAYLIST_CHARTS} defaultCountryCode={PL_CODE} />,
+    );
+    playPreview(SONGS_ONLY, `${SONGS_ONLY} artist`);
+
+    await act(async () => {
+      audioEngine.end();
+    });
+
+    expect(globeChartStore.getState().selectedCountry).toBe(DRAW_1);
+    expect(miniPlayerTrackName()).toBe(LANDING_START);
+  });
+});
+
+describe("ChartScreen chart in the URL", () => {
+  let replaceState: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    replaceState = vi
+      .spyOn(window.history, "replaceState")
+      .mockImplementation(() => {});
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => playlistResponse()),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    replaceState.mockRestore();
+  });
+
+  test("names the chart in the URL once one is opened", async () => {
+    mockSearchParams.value = new URLSearchParams(`cc=${RAIL_CODE}`);
+    render(
+      <ChartScreen
+        charts={chartsWithPlaylist()}
+        defaultCountryCode={RAIL_CODE}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("tab", { name: "A playlist chart" }));
+    });
+
+    expect(replaceState).toHaveBeenLastCalledWith(
+      null,
+      "",
+      `?cc=${RAIL_CODE}&chart=${PL_ID}`,
+    );
+  });
+
+  test("a link naming a chart opens it", async () => {
+    mockSearchParams.value = new URLSearchParams(
+      `cc=${RAIL_CODE}&chart=${PL_ID}`,
+    );
+    render(
+      <ChartScreen
+        charts={chartsWithPlaylist()}
+        defaultCountryCode={RAIL_CODE}
+      />,
+    );
+
+    await act(async () => {});
+
+    expect(screen.getAllByText(PLAYLIST_TRACK.name).length).toBeGreaterThan(0);
+  });
+
+  test("a chart the country does not carry falls back to its songs chart", async () => {
+    mockSearchParams.value = new URLSearchParams(
+      `cc=${RAIL_CODE}&chart=pl.elsewhere`,
+    );
+    const charts = chartsWithPlaylist();
+    render(<ChartScreen charts={charts} defaultCountryCode={RAIL_CODE} />);
+
+    await act(async () => {});
+
+    expect(
+      screen.getAllByText(charts.countries[RAIL_CODE].tracks[0].name).length,
+    ).toBeGreaterThan(0);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(replaceState).toHaveBeenLastCalledWith(null, "", `?cc=${RAIL_CODE}`);
+  });
+
+  test("a URL already naming the open chart is left alone", async () => {
+    mockSearchParams.value = new URLSearchParams(
+      `cc=${RAIL_CODE}&chart=${PL_ID}`,
+    );
+    render(
+      <ChartScreen
+        charts={chartsWithPlaylist()}
+        defaultCountryCode={RAIL_CODE}
+      />,
+    );
+
+    await act(async () => {});
+
+    expect(replaceState).not.toHaveBeenCalled();
+  });
+});
+
+describe("ChartScreen while a chart is read", () => {
+  beforeEach(() => {
+    mockSearchParams.value = new URLSearchParams(`cc=${RAIL_CODE}`);
+    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  test("the outgoing chart stays on screen and is marked as waiting", async () => {
+    let release: (() => void) | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        () =>
+          new Promise<Response>((resolve) => {
+            release = () => resolve(playlistResponse());
+          }),
+      ),
+    );
+    const charts = chartsWithPlaylist();
+    const { container } = render(
+      <ChartScreen charts={charts} defaultCountryCode={RAIL_CODE} />,
+    );
+    const songsTrack = charts.countries[RAIL_CODE].tracks[0].name;
+
+    fireEvent.click(screen.getByRole("tab", { name: "A playlist chart" }));
+
+    expect(container.querySelector("[data-chart-waiting]")).not.toBeNull();
+    expect(screen.getAllByText(songsTrack).length).toBeGreaterThan(0);
+
+    await act(async () => {
+      release?.();
+    });
+
+    expect(container.querySelector("[data-chart-waiting]")).toBeNull();
+  });
+
+  test("a chart that fails to load leaves the list and stops offering itself", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("", { status: 404 })),
+    );
+    const charts = chartsWithPlaylist();
+    const { container } = render(
+      <ChartScreen charts={charts} defaultCountryCode={RAIL_CODE} />,
+    );
+    const songsTrack = charts.countries[RAIL_CODE].tracks[0].name;
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("tab", { name: "A playlist chart" }));
+    });
+
+    expect(screen.getAllByText(songsTrack).length).toBeGreaterThan(0);
+    expect(
+      (
+        screen.getByRole("tab", {
+          name: "A playlist chart",
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(container.querySelector("[data-chart-waiting]")).toBeNull();
+  });
+});
+
+describe("ChartScreen rail and panel", () => {
+  beforeEach(() => {
+    mockSearchParams.value = new URLSearchParams(`cc=${RAIL_CODE}`);
+    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  test("the track list is the panel the open chart's tab controls", () => {
+    render(
+      <ChartScreen
+        charts={chartsWithPlaylist()}
+        defaultCountryCode={RAIL_CODE}
+      />,
+    );
+
+    const panel = screen.getByRole("tabpanel");
+    const open = screen.getByRole("tab", { selected: true });
+    expect(panel.getAttribute("aria-labelledby")).toBe(open.id);
+    expect(open.getAttribute("aria-controls")).toBe(panel.id);
+    expect(panel.tabIndex).toBe(0);
+  });
+
+  test("a country with no rail exposes no panel", () => {
+    render(<ChartScreen charts={CHARTS} defaultCountryCode={RAIL_CODE} />);
+
+    expect(screen.queryByRole("tabpanel")).toBeNull();
+  });
+});

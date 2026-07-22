@@ -7,7 +7,8 @@ import {
   type AudioEngineFactory,
   createBrowserAudioEngine,
 } from "@/lib/audio-engine";
-import type { Track } from "@/lib/chart-schema";
+import type { ChartRef } from "@/lib/chart-ref";
+import type { ChartTrack } from "@/lib/chart-schema";
 import {
   clearNowPlaying,
   setActionHandlers,
@@ -20,9 +21,19 @@ export interface AudioError {
   previewUrl: string | null;
 }
 
+/**
+ * Where a track is being played from: a country plus one of its charts. The
+ * pair travels together because neither half locates a track list on its own.
+ */
+export interface PlaybackLocation {
+  countryCode: string;
+  chartRef: ChartRef;
+}
+
 export interface AudioState {
-  currentTrack: Track | null;
+  currentTrack: ChartTrack | null;
   currentCountryCode: string | null;
+  currentChartRef: ChartRef | null;
   isPlaying: boolean;
   volume: number;
   lastError: AudioError | null;
@@ -34,9 +45,11 @@ export interface AudioState {
   // `source` marks a fresh user selection (track row, gem card) so a
   // track_played event fires only for those, not for skips (which route through
   // step() with no source and are covered by next_executed) or pause/resume.
+  // An omitted `location` keeps the stored one, which is how a transport resume
+  // stays where it was.
   toggle: (
-    track: Track,
-    countryCode?: string,
+    track: ChartTrack,
+    location?: PlaybackLocation,
     source?: AnalyticsEvent["track_played"]["source"],
   ) => void;
   signalStep: (dir: 1 | -1) => void;
@@ -118,7 +131,7 @@ export function createAudioStore(
     // rejection (the track was already switched) must not clobber the live
     // track either. Otherwise mirror the engine's error listener: clear
     // isPlaying, record lastError, breadcrumb, and tell the OS it's paused.
-    function handlePlayRejection(track: Track, token: number) {
+    function handlePlayRejection(track: ChartTrack, token: number) {
       return (error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError")
           return;
@@ -143,6 +156,7 @@ export function createAudioStore(
     return {
       currentTrack: null,
       currentCountryCode: null,
+      currentChartRef: null,
       isPlaying: false,
       volume: 1,
       lastError: null,
@@ -152,16 +166,17 @@ export function createAudioStore(
         set((state) => ({
           lastStep: { dir, nonce: (state.lastStep?.nonce ?? 0) + 1 },
         })),
-      toggle: (track, countryCode, source) => {
+      toggle: (track, location, source) => {
         const state = get();
         const a = getEngine();
-        // Same song in a different country is a context switch, not a resume:
-        // identity is the stable song key, and the country must match too. An
-        // omitted countryCode (OS transport resume) keeps the stored context.
+        // The same song reached from another chart is a context switch, not a
+        // resume: identity is the stable song key, and the location must match
+        // too. An omitted location (OS transport resume) keeps the stored one.
         const isCurrent =
           sameTrack(state.currentTrack, track) &&
-          (countryCode === undefined ||
-            state.currentCountryCode === countryCode);
+          (location === undefined ||
+            (state.currentCountryCode === location.countryCode &&
+              state.currentChartRef === location.chartRef));
         if (isCurrent && state.isPlaying) {
           a.pause();
           set({ isPlaying: false });
@@ -173,7 +188,7 @@ export function createAudioStore(
         }
         if (isCurrent) {
           // Resume in place: reassigning src restarts at 0, so leave it and
-          // just play. Keeps the preview position and the stored countryCode.
+          // just play. Keeps the preview position and the stored location.
           void a.play().catch(handlePlayRejection(track, ++playToken));
           set({ currentTrack: track, isPlaying: true, lastError: null });
           return;
@@ -183,13 +198,14 @@ export function createAudioStore(
         setNowPlaying(track);
         set({
           currentTrack: track,
-          currentCountryCode: countryCode ?? null,
+          currentCountryCode: location?.countryCode ?? null,
+          currentChartRef: location?.chartRef ?? null,
           isPlaying: true,
           lastError: null,
         });
         if (source) {
           trackEvent("track_played", {
-            country: countryCode ?? "unknown",
+            country: location?.countryCode ?? "unknown",
             source,
           });
         }
@@ -211,6 +227,7 @@ export function createAudioStore(
         set({
           currentTrack: null,
           currentCountryCode: null,
+          currentChartRef: null,
           isPlaying: false,
           lastError: null,
         });

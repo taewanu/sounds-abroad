@@ -11,6 +11,7 @@ import {
 import { useSearchParams } from "next/navigation";
 
 import { ChartSheet, type SnapState } from "@/components/chart-sheet/sheet";
+import { useChartTracks } from "@/components/chart-sheet/use-chart-tracks";
 import { EdgeChevrons } from "@/components/globe/edge-chevrons";
 import { markUsed } from "@/components/globe/edge-hint-record";
 import { EdgeTapHint } from "@/components/globe/edge-tap-hint";
@@ -20,10 +21,14 @@ import { TourHost } from "@/components/tour/tour-host";
 import { useTourGateOpen } from "@/components/tour/use-tour-gate-open";
 import { findAdjacentPlayable } from "@/lib/adjacent-playable";
 import { track as trackEvent } from "@/lib/analytics";
-import type { ChartFile, Country } from "@/lib/chart-schema";
+import { isPlaylistRef, SONGS_CHART, type ChartRef } from "@/lib/chart-ref";
+import type { ChartFile, ChartTrack, Country } from "@/lib/chart-schema";
+import { CHART_PARAM, chartFromUrl, chartQuery } from "@/lib/chart-url";
 import {
   backRollTarget,
+  planChartContinuation,
   planRoll,
+  playlistsAfter,
   recordAfterSelection,
   type RollRecord,
 } from "@/lib/end-of-chart-roll";
@@ -34,6 +39,7 @@ import {
   useGlobeChart,
 } from "@/lib/globe-chart-store";
 import { setSkipHandlers } from "@/lib/media-session";
+import { sameTrack } from "@/lib/track-identity";
 import {
   AudioStoreProvider,
   useAudioStore,
@@ -57,16 +63,15 @@ export interface ChartScreenProps {
 export function ChartScreen({ charts, defaultCountryCode }: ChartScreenProps) {
   const searchParams = useSearchParams();
   const rawCc = searchParams.get("cc");
+  const rawChart = searchParams.get(CHART_PARAM);
   const countryCode =
     validateUrlCode(rawCc, charts.countries) ?? defaultCountryCode;
 
-  // Write the resolved code into the URL when it isn't already there (bare `/`,
-  // an invalid cc, or a non-canonical case). replaceState relabels the URL with
-  // no navigation, so there's no refetch or flicker.
-  useEffect(() => {
-    if (rawCc === countryCode) return;
-    window.history.replaceState(null, "", `?cc=${countryCode}`);
-  }, [rawCc, countryCode]);
+  const urlChart = chartFromUrl(rawChart, charts.countries[countryCode]);
+  // What the URL would have to carry to already name this chart, so the write
+  // below fires for a bare `/`, an invalid code, a non-canonical case, or a
+  // chart parameter this country does not carry.
+  const urlChartParam = isPlaylistRef(urlChart) ? urlChart : null;
 
   // Publish the resolved country to the globe. The globe is a layout backdrop,
   // so its own useSearchParams never sees a client-side ?cc= change; this page
@@ -81,6 +86,8 @@ export function ChartScreen({ charts, defaultCountryCode }: ChartScreenProps) {
         country={charts.countries[countryCode]}
         countryCode={countryCode}
         charts={charts}
+        urlChart={urlChart}
+        urlIsCanonical={rawCc === countryCode && rawChart === urlChartParam}
       />
     </AudioStoreProvider>
   );
@@ -90,11 +97,65 @@ function ChartScreenInner({
   country,
   countryCode,
   charts,
+  urlChart,
+  urlIsCanonical,
 }: {
   country: Country;
   countryCode: string;
   charts: ChartFile;
+  urlChart: ChartRef;
+  urlIsCanonical: boolean;
 }) {
+  // Which of the country's charts is open. Held here rather than in the sheet
+  // because playback resolves against it too.
+  const chart = useChartTracks(countryCode, country, urlChart);
+
+  // Keeps the URL naming what is on screen, so a chart can be linked to and a
+  // reload restores one. replaceState relabels without navigating, so switching
+  // charts costs no refetch. Written here rather than beside the country alone,
+  // because a bare `?cc=` write would drop the chart the listener is reading.
+  const chartRef = chart.ref;
+  const chartFailed = chart.failed.has(urlChart);
+  // What the URL already says. A ref, not the search params, because
+  // replaceState leaves those stale, so after the first write they would keep
+  // reporting the arrival query.
+  const urlSays = useRef<string | null>(
+    urlIsCanonical ? chartQuery(countryCode, urlChart) : null,
+  );
+  // Whether the chart the arrival URL named has been honoured. Until it is, the
+  // displayed chart is still the songs chart, and writing would drop the very
+  // chart being read.
+  const arrivalHonoured = useRef(urlChart === SONGS_CHART);
+  useEffect(() => {
+    if (!arrivalHonoured.current) {
+      if (chartRef !== urlChart && !chartFailed) return;
+      arrivalHonoured.current = true;
+    }
+    const want = chartQuery(countryCode, chartRef);
+    if (urlSays.current === want) return;
+    urlSays.current = want;
+    window.history.replaceState(null, "", want);
+  }, [urlChart, chartFailed, chartRef, countryCode]);
+  const { peek: peekChart, read: readChart, open: openChart } = chart;
+
+  // The track list a chart holds, or null when it isn't in hand: the songs
+  // chart travels in the payload, a playlist chart only once it has been read.
+  // Located by country and chart together, because the country the listener is
+  // browsing need not be the one playing.
+  const tracksOf = useCallback(
+    (code: string, ref: ChartRef): ChartTrack[] | null =>
+      isPlaylistRef(ref)
+        ? peekChart(ref)
+        : (charts.countries[code]?.tracks ?? null),
+    [charts.countries, peekChart],
+  );
+
+  // What is on screen, for the deferred half of a continuation to read at the
+  // moment it commits rather than at the moment it started.
+  const onScreenRef = useRef({ countryCode, chartRef: chart.ref });
+  useEffect(() => {
+    onScreenRef.current = { countryCode, chartRef: chart.ref };
+  }, [countryCode, chart.ref]);
   const [snap, setSnap] = useState<SnapState>("peek");
   const [scrollSignal, setScrollSignal] = useState(0);
   const [focusIntent, setFocusIntent] = useState<{
@@ -123,6 +184,7 @@ function ChartScreenInner({
   const selectedCountry = useGlobeChart((s) => s.selectedCountry);
   const currentTrack = useAudioStore((s) => s.currentTrack);
   const currentCountryCode = useAudioStore((s) => s.currentCountryCode);
+  const currentChartRef = useAudioStore((s) => s.currentChartRef);
   const lastStep = useAudioStore((s) => s.lastStep);
   const hasCurrentTrack = currentTrack !== null;
   const currentTrackRank = currentTrack?.rank ?? null;
@@ -222,25 +284,156 @@ function ChartScreenInner({
     }));
   }, [audioStore, handleMiniTap]);
 
-  // Step within the source country, not the visible one. Reads live audio
-  // state so the callback survives track changes; it re-forms only when the
-  // roll record turns over. Past the last playable, next rolls into a fresh
-  // fairness-drawn country instead of clamping; prev at a rolled-in chart's
-  // first playable rolls back to the origin. Every next/prev surface routes
-  // through here, so all of them inherit the roll.
-  const step = useCallback(
-    (dir: 1 | -1): "adjacent" | "rolled" | "backRolled" | null => {
-      const { currentTrack, currentCountryCode, toggle, signalStep } =
+  // Roll out of a country into a fresh fairness-drawn one, the behaviour past
+  // the last chart a country can offer.
+  const rollOutOfCountry = useCallback(
+    (
+      fromCode: string,
+      fromRef: ChartRef,
+      fromTrack: ChartTrack,
+    ): "rolled" | null => {
+      const { toggle, signalStep } = audioStore.getState();
+      const { visited, selectedCountry, setSelectedCountry } =
+        globeChartStore.getState();
+      const landing = planRoll(charts.countries, fromCode, (exclude) =>
+        pickShuffleCountry(visited, exclude),
+      );
+      if (!landing) return null;
+      // Playback first (same task as the triggering gesture or ended event),
+      // then the record, then the landing side effects. The record must be
+      // queued before setSelectedCountry so the selection subscription reads
+      // the landing as the roll's own, not a manual pick to clear on. Arm the
+      // resurface guard before the selection so the roll's settle continues
+      // playback without reopening a dismissed sheet, but only when the code
+      // actually changes: a no-op selection produces no settle, so an armed
+      // flag would linger and swallow a later unrelated resurface. A draw lands
+      // on the country's songs chart, the one every country has and the one a
+      // fresh country opens on.
+      toggle(landing.track, {
+        countryCode: landing.code,
+        chartRef: SONGS_CHART,
+      });
+      setRollRecord({
+        originCountryCode: fromCode,
+        originChartRef: fromRef,
+        originTrack: fromTrack,
+        rolledToCode: landing.code,
+      });
+      if (landing.code !== selectedCountry) suppressResurfaceRef.current = true;
+      setSelectedCountry(landing.code);
+      // Spelled here rather than left to the sync effect: this screen's country
+      // comes from the search params, which replaceState does not update, so a
+      // landing is invisible to it. Routed through the shared query so the
+      // chart is dropped rather than silently left behind.
+      window.history.replaceState(
+        null,
+        "",
+        chartQuery(landing.code, SONGS_CHART),
+      );
+      signalStep(1);
+      flashSkip(1);
+      trackEvent("next_executed", {
+        country: fromCode,
+        direction: "next",
+        outcome: "rolled",
+        from_rank: fromTrack.rank,
+      });
+      return "rolled";
+    },
+    [audioStore, charts.countries, flashSkip],
+  );
+
+  // Continue into the next chart of the same country, reading candidates in
+  // published order until one can play. The read is why this is the one step
+  // outcome that settles asynchronously; a country whose charts are all spent
+  // falls through to the cross-country roll, so listening still never
+  // dead-ends (ADR-0017).
+  const continueWithinCountry = useCallback(
+    async (fromCode: string, fromRef: ChartRef, fromTrack: ChartTrack) => {
+      const refs = playlistsAfter(charts.countries[fromCode], fromRef);
+      const landing = await planChartContinuation(refs, readChart);
+      const { currentTrack, currentCountryCode, currentChartRef, toggle } =
         audioStore.getState();
-      if (currentTrack === null || currentCountryCode === null) return null;
-      const source = charts.countries[currentCountryCode];
-      if (!source) return null;
-      const adj = findAdjacentPlayable(source.tracks, currentTrack, dir);
+      // The listener may have chosen something else while the read was in
+      // flight; committing then would pull them out of it.
+      if (
+        !sameTrack(currentTrack, fromTrack) ||
+        currentCountryCode !== fromCode ||
+        currentChartRef !== fromRef
+      ) {
+        return;
+      }
+      if (!landing) {
+        rollOutOfCountry(fromCode, fromRef, fromTrack);
+        return;
+      }
+      toggle(landing.track, { countryCode: fromCode, chartRef: landing.ref });
+      audioStore.getState().signalStep(1);
+      flashSkip(1);
+      trackEvent("next_executed", {
+        country: fromCode,
+        direction: "next",
+        outcome: "continued",
+        from_rank: fromTrack.rank,
+      });
+
+      // Bring the chart that took over on screen, but only for a listener who
+      // was reading the one it continues from: anyone browsing elsewhere chose
+      // that, and playback is theirs to hear, not to be moved by.
+      const displayed = onScreenRef.current;
+      if (
+        displayed.countryCode === fromCode &&
+        displayed.chartRef === fromRef
+      ) {
+        openChart(landing.ref);
+      }
+    },
+    [
+      audioStore,
+      charts.countries,
+      readChart,
+      openChart,
+      flashSkip,
+      rollOutOfCountry,
+    ],
+  );
+
+  // Step within the chart being played, not the one on screen. Reads live audio
+  // state so the callback survives track changes; it re-forms only when the
+  // roll record turns over. Past the last playable, next continues into the
+  // country's next chart and then into a fresh fairness-drawn country instead
+  // of clamping; prev at a rolled-in chart's first playable rolls back to the
+  // origin. Every next/prev surface routes through here, so all of them inherit
+  // the roll.
+  const step = useCallback(
+    (
+      dir: 1 | -1,
+    ): "adjacent" | "rolled" | "backRolled" | "continued" | null => {
+      const {
+        currentTrack,
+        currentCountryCode,
+        currentChartRef,
+        toggle,
+        signalStep,
+      } = audioStore.getState();
+      if (
+        currentTrack === null ||
+        currentCountryCode === null ||
+        currentChartRef === null
+      ) {
+        return null;
+      }
+      const playing = tracksOf(currentCountryCode, currentChartRef);
+      if (!playing) return null;
+      const adj = findAdjacentPlayable(playing, currentTrack, dir);
       // Publish the direction after each real change, so every surface that
       // steps (buttons, swipe, media keys, edge-tap, auto-advance, and a roll)
       // feeds the one directional mini-player cue with no per-surface wiring.
       if (adj) {
-        toggle(adj, currentCountryCode);
+        toggle(adj, {
+          countryCode: currentCountryCode,
+          chartRef: currentChartRef,
+        });
         signalStep(dir);
         trackEvent("next_executed", {
           country: currentCountryCode,
@@ -251,56 +444,45 @@ function ChartScreenInner({
         return "adjacent";
       }
       if (dir === 1) {
-        const { visited, selectedCountry, setSelectedCountry } =
-          globeChartStore.getState();
-        const landing = planRoll(
-          charts.countries,
+        if (
+          playlistsAfter(charts.countries[currentCountryCode], currentChartRef)
+            .length > 0
+        ) {
+          void continueWithinCountry(
+            currentCountryCode,
+            currentChartRef,
+            currentTrack,
+          );
+          return "continued";
+        }
+        return rollOutOfCountry(
           currentCountryCode,
-          (exclude) => pickShuffleCountry(visited, exclude),
+          currentChartRef,
+          currentTrack,
         );
-        if (!landing) return null;
-        // Playback first (same task as the triggering gesture or ended event),
-        // then the record, then the landing side effects. The record must be
-        // queued before setSelectedCountry so the selection subscription reads
-        // the landing as the roll's own, not a manual pick to clear on. Arm the
-        // resurface guard before the selection so the roll's settle continues
-        // playback without reopening a dismissed sheet, but only when the code
-        // actually changes: a no-op selection produces no settle, so an armed
-        // flag would linger and swallow a later unrelated resurface.
-        toggle(landing.track, landing.code);
-        setRollRecord({
-          originCountryCode: currentCountryCode,
-          originTrack: currentTrack,
-          rolledToCode: landing.code,
-        });
-        if (landing.code !== selectedCountry)
-          suppressResurfaceRef.current = true;
-        setSelectedCountry(landing.code);
-        window.history.replaceState(null, "", `?cc=${landing.code}`);
-        signalStep(dir);
-        flashSkip(1);
-        trackEvent("next_executed", {
-          country: currentCountryCode,
-          direction: "next",
-          outcome: "rolled",
-          from_rank: currentTrack.rank,
-        });
-        return "rolled";
       }
       const back = backRollTarget(
         rollRecord,
         charts.countries,
         currentTrack,
         currentCountryCode,
+        currentChartRef,
       );
       if (!back) return null;
-      toggle(back.track, back.countryCode);
+      toggle(back.track, {
+        countryCode: back.countryCode,
+        chartRef: back.chartRef,
+      });
       setRollRecord(null);
       const store = globeChartStore.getState();
       if (back.countryCode !== store.selectedCountry)
         suppressResurfaceRef.current = true;
       store.setSelectedCountry(back.countryCode);
-      window.history.replaceState(null, "", `?cc=${back.countryCode}`);
+      window.history.replaceState(
+        null,
+        "",
+        chartQuery(back.countryCode, SONGS_CHART),
+      );
       signalStep(dir);
       flashSkip(-1);
       trackEvent("next_executed", {
@@ -311,7 +493,15 @@ function ChartScreenInner({
       });
       return "backRolled";
     },
-    [audioStore, charts.countries, rollRecord, flashSkip],
+    [
+      audioStore,
+      charts.countries,
+      rollRecord,
+      flashSkip,
+      tracksOf,
+      continueWithinCountry,
+      rollOutOfCountry,
+    ],
   );
   const goPrev = useCallback(() => step(-1), [step]);
   const goNext = useCallback(() => step(1), [step]);
@@ -332,12 +522,15 @@ function ChartScreenInner({
   }, [audioStore]);
 
   const canPrev = useMemo(() => {
-    if (currentTrack === null || currentCountryCode === null) return false;
-    const source = charts.countries[currentCountryCode];
     if (
-      source &&
-      findAdjacentPlayable(source.tracks, currentTrack, -1) !== null
+      currentTrack === null ||
+      currentCountryCode === null ||
+      currentChartRef === null
     ) {
+      return false;
+    }
+    const playing = tracksOf(currentCountryCode, currentChartRef);
+    if (playing && findAdjacentPlayable(playing, currentTrack, -1) !== null) {
       return true;
     }
     return (
@@ -346,27 +539,41 @@ function ChartScreenInner({
         charts.countries,
         currentTrack,
         currentCountryCode,
+        currentChartRef,
       ) !== null
     );
-  }, [currentTrack, currentCountryCode, charts.countries, rollRecord]);
+  }, [
+    currentTrack,
+    currentCountryCode,
+    currentChartRef,
+    charts.countries,
+    rollRecord,
+    tracksOf,
+  ]);
   // Next never dead-ends while listening: past the last playable the step
-  // rolls into a fresh country, and if even the bounded redraws fail it
-  // no-ops, so the button need not predict the draw.
+  // continues into the country's next chart and then into a fresh country, and
+  // if even the bounded redraws fail it no-ops, so the button need not predict
+  // the draw.
   const canNext = hasCurrentTrack && currentCountryCode !== null;
 
   // The plain adjacent tracks, for the mini-player's swipe rail preview. Null at
-  // a chart end, where the step rolls to another country rather than a neighbour
-  // (the roll target isn't previewed — it's a bigger context change on commit).
+  // a chart end, where the step moves to another chart rather than a neighbour
+  // (that target isn't previewed: it's a bigger context change on commit).
   const [prevTrack, nextTrack] = useMemo(() => {
-    if (currentTrack === null || currentCountryCode === null)
+    if (
+      currentTrack === null ||
+      currentCountryCode === null ||
+      currentChartRef === null
+    ) {
       return [null, null] as const;
-    const source = charts.countries[currentCountryCode];
-    if (!source) return [null, null] as const;
+    }
+    const playing = tracksOf(currentCountryCode, currentChartRef);
+    if (!playing) return [null, null] as const;
     return [
-      findAdjacentPlayable(source.tracks, currentTrack, -1),
-      findAdjacentPlayable(source.tracks, currentTrack, 1),
+      findAdjacentPlayable(playing, currentTrack, -1),
+      findAdjacentPlayable(playing, currentTrack, 1),
     ] as const;
-  }, [currentTrack, currentCountryCode, charts.countries]);
+  }, [currentTrack, currentCountryCode, currentChartRef, tracksOf]);
 
   // Skip lives here, not in the audio store: routing prev/next needs the chart
   // data to find the adjacent playable track, which the store doesn't hold.
@@ -416,11 +623,13 @@ function ChartScreenInner({
     <>
       <ChartSheet
         country={country}
+        chart={chart}
         countryCode={countryCode}
         snap={snap}
         onSnapChange={setSnap}
         currentTrackRank={currentTrackRank}
         currentCountryCode={currentCountryCode}
+        currentChartRef={currentChartRef}
         hasMiniPlayer={hasCurrentTrack}
         scrollSignal={scrollSignal}
         stepSignal={lastStep?.nonce ?? 0}

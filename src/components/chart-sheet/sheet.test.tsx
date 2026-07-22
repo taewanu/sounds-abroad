@@ -4,6 +4,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { COUNTRY_KR, COUNTRY_US } from "@/lib/__fixtures__";
 import type { AudioEngine } from "@/lib/audio-engine";
 import { createAudioStore } from "@/lib/audio-store";
+import { SONGS_CHART } from "@/lib/chart-ref";
 import type { Country } from "@/lib/chart-schema";
 import { selectGem } from "@/lib/select-gem";
 import {
@@ -12,6 +13,7 @@ import {
 } from "@/providers/audio-store-provider";
 
 import { ChartSheet, type SnapState } from "./sheet";
+import type { ChartTracksState } from "./use-chart-tracks";
 
 function makeMockAudio(): AudioEngine {
   return {
@@ -69,6 +71,20 @@ function stubRects(viewport: DOMRect, row: DOMRect) {
   };
 }
 
+// A chart state pinned to the songs axis: these tests predate the chart rail and
+// assert list, drag, and scroll behaviour that is the same on any chart.
+function staticChart(country: Country): ChartTracksState {
+  return {
+    ref: SONGS_CHART,
+    tracks: country.tracks,
+    pending: null,
+    failed: new Set(),
+    open: () => {},
+    peek: () => null,
+    read: () => Promise.resolve([]),
+  };
+}
+
 function renderSheet(snap: SnapState) {
   const onSnapChange = vi.fn();
   const store = createAudioStore(() => makeMockAudio());
@@ -76,6 +92,7 @@ function renderSheet(snap: SnapState) {
     <AudioStoreContext.Provider value={store}>
       <ChartSheet
         country={COUNTRY_KR}
+        chart={staticChart(COUNTRY_KR)}
         countryCode="kr"
         snap={snap}
         onSnapChange={onSnapChange}
@@ -222,6 +239,7 @@ describe("ChartSheet", () => {
         <AudioStoreContext.Provider value={store}>
           <ChartSheet
             country={emptyCountry}
+            chart={staticChart(emptyCountry)}
             countryCode="kr"
             snap="peek"
             onSnapChange={vi.fn()}
@@ -285,6 +303,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
           snap="closed"
           onSnapChange={vi.fn()}
@@ -297,6 +316,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
           snap="peek"
           onSnapChange={vi.fn()}
@@ -318,6 +338,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
           snap="peek"
           onSnapChange={vi.fn()}
@@ -332,6 +353,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
           snap="full"
           onSnapChange={vi.fn()}
@@ -353,6 +375,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
           snap="hidden"
           onSnapChange={vi.fn()}
@@ -365,6 +388,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
           snap="peek"
           onSnapChange={vi.fn()}
@@ -386,6 +410,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
           snap="peek"
           onSnapChange={vi.fn()}
@@ -400,6 +425,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
           snap="peek"
           onSnapChange={vi.fn()}
@@ -425,6 +451,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
           snap="peek"
           onSnapChange={vi.fn()}
@@ -440,6 +467,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
           snap="peek"
           onSnapChange={vi.fn()}
@@ -461,6 +489,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
           snap="closed"
           onSnapChange={vi.fn()}
@@ -473,6 +502,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
           snap="peek"
           onSnapChange={vi.fn()}
@@ -498,6 +528,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
           snap="peek"
           onSnapChange={vi.fn()}
@@ -513,6 +544,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
           snap="peek"
           onSnapChange={vi.fn()}
@@ -539,11 +571,13 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
           snap="peek"
           onSnapChange={vi.fn()}
           currentTrackRank={first}
           currentCountryCode="us"
+          currentChartRef={SONGS_CHART}
         />
       </AudioStoreProvider>,
     );
@@ -553,11 +587,13 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
           snap="peek"
           onSnapChange={vi.fn()}
           currentTrackRank={next}
           currentCountryCode="us"
+          currentChartRef={SONGS_CHART}
         />
       </AudioStoreProvider>,
     );
@@ -577,6 +613,7 @@ describe("ChartSheet", () => {
       onSnapChange: vi.fn(),
       currentTrackRank: rank,
       currentCountryCode: "kr",
+      currentChartRef: SONGS_CHART,
     };
 
     // Browsing one country while another's track plays. The reopen bumps the
@@ -586,6 +623,7 @@ describe("ChartSheet", () => {
         <ChartSheet
           {...props}
           country={COUNTRY_US}
+          chart={staticChart(COUNTRY_US)}
           countryCode="us"
           scrollSignal={0}
         />
@@ -598,6 +636,7 @@ describe("ChartSheet", () => {
         <ChartSheet
           {...props}
           country={COUNTRY_US}
+          chart={staticChart(COUNTRY_US)}
           countryCode="us"
           scrollSignal={1}
         />
@@ -612,6 +651,7 @@ describe("ChartSheet", () => {
         <ChartSheet
           {...props}
           country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
           scrollSignal={1}
         />
@@ -637,9 +677,11 @@ describe("ChartSheet", () => {
         <ChartSheet
           {...base}
           country={COUNTRY_US}
+          chart={staticChart(COUNTRY_US)}
           countryCode="us"
           currentTrackRank={COUNTRY_US.tracks[0].rank}
           currentCountryCode="us"
+          currentChartRef={SONGS_CHART}
           stepSignal={0}
         />
       </AudioStoreProvider>,
@@ -653,9 +695,11 @@ describe("ChartSheet", () => {
         <ChartSheet
           {...base}
           country={COUNTRY_US}
+          chart={staticChart(COUNTRY_US)}
           countryCode="us"
           currentTrackRank={landed}
           currentCountryCode="kr"
+          currentChartRef={SONGS_CHART}
           stepSignal={1}
         />
       </AudioStoreProvider>,
@@ -669,9 +713,11 @@ describe("ChartSheet", () => {
         <ChartSheet
           {...base}
           country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
           currentTrackRank={landed}
           currentCountryCode="kr"
+          currentChartRef={SONGS_CHART}
           stepSignal={1}
         />
       </AudioStoreProvider>,
@@ -696,9 +742,11 @@ describe("ChartSheet", () => {
         <ChartSheet
           {...base}
           country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
           currentTrackRank={COUNTRY_KR.tracks[0].rank}
           currentCountryCode="us"
+          currentChartRef={SONGS_CHART}
           scrollSignal={0}
         />
       </AudioStoreProvider>,
@@ -711,9 +759,11 @@ describe("ChartSheet", () => {
         <ChartSheet
           {...base}
           country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
           currentTrackRank={COUNTRY_KR.tracks[0].rank}
           currentCountryCode="us"
+          currentChartRef={SONGS_CHART}
           scrollSignal={1}
         />
       </AudioStoreProvider>,
@@ -725,9 +775,11 @@ describe("ChartSheet", () => {
         <ChartSheet
           {...base}
           country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
           currentTrackRank={null}
           currentCountryCode={null}
+          currentChartRef={null}
           scrollSignal={1}
         />
       </AudioStoreProvider>,
@@ -739,9 +791,11 @@ describe("ChartSheet", () => {
         <ChartSheet
           {...base}
           country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
           currentTrackRank={rank}
           currentCountryCode="kr"
+          currentChartRef={SONGS_CHART}
           scrollSignal={1}
         />
       </AudioStoreProvider>,
@@ -763,6 +817,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
           snap="peek"
           onSnapChange={vi.fn()}
@@ -776,6 +831,7 @@ describe("ChartSheet", () => {
       <AudioStoreProvider>
         <ChartSheet
           country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
           snap="peek"
           onSnapChange={vi.fn()}
@@ -881,6 +937,7 @@ describe("ChartSheet commentary focus", () => {
       <AudioStoreContext.Provider value={store}>
         <ChartSheet
           country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
           snap="full"
           onSnapChange={vi.fn()}
@@ -970,6 +1027,7 @@ describe("ChartSheet commentary focus", () => {
       <AudioStoreContext.Provider value={store}>
         <ChartSheet
           country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
           countryCode={cc}
           snap="full"
           onSnapChange={vi.fn()}

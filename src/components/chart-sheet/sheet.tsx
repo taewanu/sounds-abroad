@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
@@ -10,22 +11,33 @@ import {
 } from "react";
 
 import { track as trackEvent } from "@/lib/analytics";
+import { SONGS_CHART, type ChartRef } from "@/lib/chart-ref";
 import type { Country } from "@/lib/chart-schema";
 import { selectGem } from "@/lib/select-gem";
 
+import { ChartRail } from "./chart-rail";
+import { CHART_PANEL_ID, chartTabId } from "./chart-tabs";
 import { firstCommentaryRank } from "./first-commentary-rank";
 import { GemCard } from "./gem-card";
 import { TrackRow } from "./track-row";
+import type { ChartTracksState } from "./use-chart-tracks";
 
 export type SnapState = "hidden" | "closed" | "peek" | "full";
 
 export interface ChartSheetProps {
   country: Country;
+  // Which of the country's charts is on screen, its tracks, and how to move
+  // between them. Held above the sheet because playback reads it too.
+  chart: ChartTracksState;
   countryCode: string;
   snap: SnapState;
   onSnapChange: (snap: SnapState) => void;
   currentTrackRank?: number | null;
+  // Where playback sits. Ranks repeat across a country's charts as well as
+  // across countries, so a rank alone cannot say whether the playing row is one
+  // of the rows on screen.
   currentCountryCode?: string | null;
+  currentChartRef?: ChartRef | null;
   hasMiniPlayer?: boolean;
   scrollSignal?: number;
   // Bumped on a skip / auto-advance (the step nonce). The auto-scroll follows an
@@ -127,11 +139,13 @@ function nextSnap(
 
 export function ChartSheet({
   country,
+  chart,
   countryCode,
   snap,
   onSnapChange,
   currentTrackRank = null,
   currentCountryCode = null,
+  currentChartRef = null,
   hasMiniPlayer = false,
   scrollSignal = 0,
   stepSignal = 0,
@@ -140,11 +154,28 @@ export function ChartSheet({
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const olRef = useRef<HTMLOListElement | null>(null);
 
+  // Both derive from the songs chart rather than the open one. Commentary and
+  // spread are carried by the songs axis alone, so a playlist chart has neither
+  // a hinted row nor a gem to open with (ADR-0017).
+  const onSongsChart = chart.ref === SONGS_CHART;
+  const hasRail = (country.playlists?.length ?? 0) > 0;
+
+  // Whether what is playing sits outside the list on screen. Only while it is
+  // inside does the playing rank name a row here; from any other chart, that
+  // rank belongs to an unrelated row of the one being browsed.
+  const otherChartPlaying =
+    currentCountryCode !== null &&
+    (currentCountryCode !== countryCode || currentChartRef !== chart.ref);
+
+  // One key per chart, so the list remounts whenever the tracks under it are
+  // replaced rather than reusing rows across two unrelated rankings.
+  const listKey = `${countryCode}:${chart.ref}`;
+
   // The one row eligible for the commentary discovery pulse, recomputed per
   // country (the <ol> remounts on country change, resetting the hint).
   const hintRank = useMemo(
-    () => firstCommentaryRank(country.tracks),
-    [country.tracks],
+    () => (onSongsChart ? firstCommentaryRank(country.tracks) : null),
+    [onSongsChart, country.tracks],
   );
 
   // selectGem returns null for an empty track list (a failed crawl with no
@@ -153,8 +184,8 @@ export function ChartSheet({
   // always returns a gem, so the card renders on every landing with real
   // tracks, regardless of how it was reached.
   const gemSelection = useMemo(
-    () => selectGem(country.tracks),
-    [country.tracks],
+    () => (onSongsChart ? selectGem(country.tracks) : null),
+    [onSongsChart, country.tracks],
   );
 
   // Lifts the peek max-height clamp so the list fills the sheet while it's
@@ -187,16 +218,16 @@ export function ChartSheet({
 
   // Apply an outside focus ask during render (the same idiom as the reset
   // above, placed after it so it wins on the same pass). Ranks repeat across
-  // countries, so the intent targets its row only once the displayed country
-  // is the playing one; until then the nonce stays unconsumed, so the focus
-  // lands after the country change instead of being clobbered by its reset.
-  // The badge toggles: a fresh ask for the row already focused closes it, so
-  // the mini-player button both opens and dismisses its own card.
+  // charts, so the intent targets its row only once the chart on screen is the
+  // playing one; until then the nonce stays unconsumed, so the focus lands
+  // after the change instead of being clobbered by its reset. The badge
+  // toggles: a fresh ask for the row already focused closes it, so the
+  // mini-player button both opens and dismisses its own card.
   const [consumedFocusNonce, setConsumedFocusNonce] = useState(0);
   if (
     focusIntent !== null &&
     focusIntent.nonce !== consumedFocusNonce &&
-    (currentCountryCode === null || currentCountryCode === countryCode)
+    !otherChartPlaying
   ) {
     setConsumedFocusNonce(focusIntent.nonce);
     setFocusedRank((cur) =>
@@ -596,20 +627,18 @@ export function ChartSheet({
   const prevSnapRef = useRef(snap);
   const prevSignalRef = useRef(scrollSignal);
   const prevStepRef = useRef(stepSignal);
-  const prevCountryRef = useRef(countryCode);
+  const prevListKeyRef = useRef(listKey);
 
   useEffect(() => {
     const wasMin =
       prevSnapRef.current === "closed" || prevSnapRef.current === "hidden";
     const signalChanged = prevSignalRef.current !== scrollSignal;
     const stepChanged = prevStepRef.current !== stepSignal;
-    const otherCountryPlaying =
-      currentCountryCode !== null && currentCountryCode !== countryCode;
-    // The <ol> is keyed by country, so a country change remounts the whole list.
-    const listSwapped = prevCountryRef.current !== countryCode;
+    // The <ol> is keyed by the chart, so opening another one remounts the list.
+    const listSwapped = prevListKeyRef.current !== listKey;
     prevSnapRef.current = snap;
-    prevCountryRef.current = countryCode;
-    // Hold both asks while another country's track plays, the same idiom as the
+    prevListKeyRef.current = listKey;
+    // Hold both asks while another chart's track plays, the same idiom as the
     // focus nonce above: a reopen tap and an end-of-chart roll each land their
     // signal a render before the route swaps the displayed country over, so
     // consuming one now would leave the pass where the two finally align with
@@ -617,17 +646,17 @@ export function ChartSheet({
     // never reveal the row it just landed on. Every other bail still consumes
     // both, so a held ask can't outlive its own change and fire against a later
     // unrelated one.
-    if (!otherCountryPlaying) {
+    if (!otherChartPlaying) {
       prevSignalRef.current = scrollSignal;
       prevStepRef.current = stepSignal;
     }
     if (snap === "closed" || snap === "hidden") return;
     if (currentTrackRank === null) return;
     // The now-playing row only exists in the displayed list when the playing
-    // country is the one on screen. Ranks repeat across countries, so a
-    // mismatch would scroll to an unrelated row of the browsed country; skip
-    // until they align (null = nothing playing, already handled above).
-    if (otherCountryPlaying) return;
+    // chart is the one on screen. Ranks repeat across charts, so a mismatch
+    // would scroll to an unrelated row of the browsed chart; skip until they
+    // align (null = nothing playing, already handled above).
+    if (otherChartPlaying) return;
     // Reveal the row on an INDIRECT change only: a reopen (raised from
     // minimized, or a mini-player tap that bumped the signal), or a skip /
     // auto-advance (a bumped step). A DIRECT tap changes the rank with no step,
@@ -666,8 +695,8 @@ export function ChartSheet({
     currentTrackRank,
     scrollSignal,
     stepSignal,
-    countryCode,
-    currentCountryCode,
+    listKey,
+    otherChartPlaying,
   ]);
 
   return (
@@ -689,6 +718,10 @@ export function ChartSheet({
         ...(hasMiniPlayer ? SHEET_STYLE_WITH_MINI : SHEET_STYLE_NO_MINI),
         transform: `translateY(${SNAP_Y[initialSnap]})`,
         willChange: "transform",
+        // The peek clamp sizes the list against the header above it, so it has
+        // to know whether a rail is there. Declared rather than measured: the
+        // rail is one row of fixed height.
+        ...({ "--rail-h": hasRail ? "46px" : "0px" } as CSSProperties),
       }}
       // Explicit z so the edge-tap hint can bracket the sheet: its aurora rails
       // sit below (a lower z) and its sheet-dim above, reproducing the backdrop
@@ -705,15 +738,33 @@ export function ChartSheet({
         <h2 id="chart-sheet-title" className="text-h3 px-6 pb-3 font-semibold">
           {country.name}
         </h2>
+        <ChartRail
+          playlists={country.playlists ?? []}
+          current={chart.ref}
+          pending={chart.pending}
+          failed={chart.failed}
+          onOpen={chart.open}
+        />
       </div>
       {/* Native list scroll is enabled only at full (touch-pan-y); at the
           partial snaps a vertical drag drives the sheet instead, so the list
           is touch-none there. */}
       <ol
-        key={countryCode}
+        // The panel the chart rail's tabs control, but only where a rail
+        // rendered: a panel with no tabs would announce a relationship that is
+        // not there. Focusable so one tab off the rail lands on the list itself
+        // rather than on whichever control happens to come first.
+        id={hasRail ? CHART_PANEL_ID : undefined}
+        role={hasRail ? "tabpanel" : undefined}
+        aria-labelledby={hasRail ? chartTabId(chart.ref) : undefined}
+        tabIndex={hasRail ? 0 : undefined}
+        key={listKey}
         ref={olRef}
         data-peek={(snap === "peek" && !isDragging) || undefined}
-        className="min-h-0 flex-1 touch-none overflow-y-auto overscroll-y-contain px-4 pb-12 transition-[max-height] duration-300 ease-out [-ms-overflow-style:none] [scrollbar-width:none] group-data-[snap=full]:touch-pan-y data-[peek]:max-h-[calc(35dvh-62px)] [&::-webkit-scrollbar]:hidden"
+        // The chart on screen is on its way out; its rows recede and breathe
+        // until the next one lands, or until a failed read leaves it in place.
+        data-chart-waiting={chart.pending !== null || undefined}
+        className="min-h-0 flex-1 touch-none overflow-y-auto overscroll-y-contain px-4 pb-12 transition-[max-height] duration-300 ease-out [-ms-overflow-style:none] [scrollbar-width:none] group-data-[snap=full]:touch-pan-y data-[peek]:max-h-[calc(35dvh-62px-var(--rail-h))] [&::-webkit-scrollbar]:hidden"
       >
         {gemSelection ? (
           <li
@@ -734,11 +785,12 @@ export function ChartSheet({
             />
           </li>
         ) : null}
-        {country.tracks.map((track) => (
+        {chart.tracks.map((track) => (
           <TrackRow
             key={track.rank}
             track={track}
             countryCode={countryCode}
+            chartRef={chart.ref}
             isHintTarget={track.rank === hintRank}
             focused={track.rank === focusedRank}
             dimmed={focusedRank !== null && track.rank !== focusedRank}

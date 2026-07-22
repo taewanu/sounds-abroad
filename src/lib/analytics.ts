@@ -12,22 +12,36 @@ import posthog from "posthog-js";
  * discovered weeks later.
  */
 export interface AnalyticsEvent {
-  // A track started from a fresh selection (not an advance — those are
-  // next_executed). `source` is which surface the user picked it from.
+  // A track started from a fresh selection, not an advance; those are
+  // next_executed. `source` is which surface the user picked it from.
   track_played: {
     country: string;
     source: "track_row" | "gem_card";
   };
 
   // The user advanced to another track. Every next/prev surface routes through
-  // one seam, so `direction` and `outcome` come from there; `outcome: "rolled"`
-  // means they exhausted the country and rolled into a new one. `from_rank` is
-  // the rank they left, measuring per-country consumption depth.
+  // one seam, so `direction` and `outcome` come from there. `outcome` names how
+  // far the move reached: within the chart, on to the country's next chart, or
+  // out into a fresh country. `from_rank` is the rank they left, measuring
+  // consumption depth within a chart.
   next_executed: {
     country: string;
     direction: "next" | "prev";
-    outcome: "adjacent" | "rolled" | "back_rolled";
+    outcome: "adjacent" | "continued" | "rolled" | "back_rolled";
     from_rank: number;
+  };
+
+  // A chart was opened from the selector. The evidence the playlist axis is
+  // judged by: it costs a daily crawl whether or not anyone opens one, so
+  // whether they do is the question. `loaded` false is an ordinary outcome, not
+  // an error, since a country carried forward can advertise a chart the latest
+  // run never wrote, and counting those separates "nobody looks" from "it is
+  // broken". Cached reopens carry `cached`, so a fetch count is recoverable.
+  chart_opened: {
+    country: string;
+    chart: "songs" | "playlist";
+    loaded: boolean;
+    cached: boolean;
   };
 
   // A preview failed to play. `reason` splits the detectable causes; `errorName`
@@ -62,10 +76,14 @@ export interface AnalyticsEvent {
   };
 
   // The user followed a track out to Apple Music or Spotify for full playback,
-  // a conversion signal that the preview created real interest.
+  // a conversion signal that the preview created real interest. `destination`
+  // splits where the tap actually lands: a Spotify link is the exact track only
+  // when the crawl resolved one, and otherwise a search the user finishes by
+  // hand. Recorded per tap because it cannot be reconstructed later.
   deeplink_out: {
     country: string;
     platform: "apple" | "spotify";
+    destination: "track" | "search";
     rank: number;
   };
 }

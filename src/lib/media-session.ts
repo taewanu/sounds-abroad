@@ -1,4 +1,4 @@
-import type { Track } from "@/lib/chart-schema";
+import type { ChartTrack } from "@/lib/chart-schema";
 
 export interface MediaSessionDeps {
   mediaSession: MediaSession | null;
@@ -30,7 +30,7 @@ function defaultDeps(): MediaSessionDeps {
  * MediaSession is unsupported so it never throws.
  */
 export function setNowPlaying(
-  track: Track,
+  track: ChartTrack,
   deps: MediaSessionDeps = defaultDeps(),
 ): void {
   const { mediaSession, metadataCtor } = deps;

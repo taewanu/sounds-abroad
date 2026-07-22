@@ -1153,3 +1153,54 @@
     opacity: 0.26;
   }
 }
+
+/* While the next chart is being read, the one on screen recedes and breathes so
+   the wait reads as work rather than a frozen screen. Each row runs on its own
+   clock, derived per row rather than shared, so the list does not pulse as a
+   single wave. */
+@keyframes chart-row-wait {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+
+[data-chart-waiting] > li {
+  animation: chart-row-wait var(--row-wait-dur, 3s) var(--ease-in-out)
+    var(--row-wait-delay, 0s) infinite;
+}
+
+/* The chart being read takes the open chart's fill straight away, so the tap is
+   acknowledged before its tracks arrive, and rests once they land. The fill
+   thins and returns rather than changing hue, so the rail never carries two
+   filled shapes at once. */
+@keyframes chart-tab-wait {
+  0%,
+  100% {
+    background-color: color-mix(in srgb, var(--color-fg-1) 15%, transparent);
+  }
+  50% {
+    background-color: color-mix(in srgb, var(--color-fg-1) 4%, transparent);
+  }
+}
+
+.chart-tab-waiting {
+  animation: chart-tab-wait 1400ms var(--ease-out) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Keep the recede, drop the breathing: the state still reads, nothing moves. */
+  [data-chart-waiting] > li {
+    animation: none;
+    opacity: 0.42;
+  }
+  /* Rest at the soft end of the same breath, so a chart still being read stays
+     distinguishable from the one already open without moving. */
+  .chart-tab-waiting {
+    animation: none;
+    background-color: color-mix(in srgb, var(--color-fg-1) 4%, transparent);
+  }
+}

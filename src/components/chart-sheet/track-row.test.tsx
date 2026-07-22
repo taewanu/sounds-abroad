@@ -3,10 +3,14 @@ import { describe, expect, test, vi } from "vitest";
 
 import type { AudioEngine } from "@/lib/audio-engine";
 import { type AudioState, createAudioStore } from "@/lib/audio-store";
+import { SONGS_CHART, type ChartRef } from "@/lib/chart-ref";
 import type { Commentary, Track } from "@/lib/chart-schema";
 import { AudioStoreContext } from "@/providers/audio-store-provider";
 
 import { TrackRow } from "./track-row";
+
+const trackEvent = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/analytics", () => ({ track: trackEvent }));
 
 function makeMockAudio(): AudioEngine {
   return {
@@ -36,6 +40,7 @@ function renderTrackRow(
   track: Track,
   init?: Partial<AudioState>,
   countryCode = "kr",
+  chartRef: ChartRef = SONGS_CHART,
 ) {
   const store = createAudioStore(() => makeMockAudio());
   if (init) {
@@ -44,7 +49,7 @@ function renderTrackRow(
   const utils = render(
     <AudioStoreContext.Provider value={store}>
       <ul>
-        <TrackRow track={track} countryCode={countryCode} />
+        <TrackRow track={track} countryCode={countryCode} chartRef={chartRef} />
       </ul>
     </AudioStoreContext.Provider>,
   );
@@ -74,13 +79,30 @@ describe("TrackRow", () => {
     expect(store.getState().isPlaying).toBe(true);
   });
 
-  test("clicking the row stores countryCode as source on the audio store", () => {
+  test("clicking the row stores the location it was played from", () => {
     const track = makeTrack();
-    const { store } = renderTrackRow(track, undefined, "br");
+    const { store } = renderTrackRow(track, undefined, "br", "pl.other");
 
     fireEvent.click(screen.getByRole("button", { name: /preview/i }));
 
     expect(store.getState().currentCountryCode).toBe("br");
+    expect(store.getState().currentChartRef).toBe("pl.other");
+  });
+
+  test("data-state idle while the same track plays from another chart", () => {
+    const track = makeTrack();
+    const { container } = renderTrackRow(
+      track,
+      {
+        currentTrack: track,
+        isPlaying: true,
+        currentCountryCode: "kr",
+        currentChartRef: "pl.other",
+      },
+      "kr",
+    );
+
+    expect(container.querySelector("[data-state]")).toBeNull();
   });
 
   test("data-state reflects current vs idle, playing vs paused", () => {
@@ -99,11 +121,12 @@ describe("TrackRow", () => {
       currentTrack: track,
       isPlaying: true,
       currentCountryCode: "kr",
+      currentChartRef: SONGS_CHART,
     });
     rerender(
       <AudioStoreContext.Provider value={store}>
         <ul>
-          <TrackRow track={track} countryCode="kr" />
+          <TrackRow track={track} countryCode="kr" chartRef={SONGS_CHART} />
         </ul>
       </AudioStoreContext.Provider>,
     );
@@ -113,11 +136,12 @@ describe("TrackRow", () => {
       currentTrack: track,
       isPlaying: false,
       currentCountryCode: "kr",
+      currentChartRef: SONGS_CHART,
     });
     rerender(
       <AudioStoreContext.Provider value={store}>
         <ul>
-          <TrackRow track={track} countryCode="kr" />
+          <TrackRow track={track} countryCode="kr" chartRef={SONGS_CHART} />
         </ul>
       </AudioStoreContext.Provider>,
     );
@@ -127,11 +151,12 @@ describe("TrackRow", () => {
       currentTrack: otherTrack,
       isPlaying: true,
       currentCountryCode: "kr",
+      currentChartRef: SONGS_CHART,
     });
     rerender(
       <AudioStoreContext.Provider value={store}>
         <ul>
-          <TrackRow track={track} countryCode="kr" />
+          <TrackRow track={track} countryCode="kr" chartRef={SONGS_CHART} />
         </ul>
       </AudioStoreContext.Provider>,
     );
@@ -142,7 +167,12 @@ describe("TrackRow", () => {
     const track = makeTrack();
     const { container } = renderTrackRow(
       track,
-      { currentTrack: track, isPlaying: true, currentCountryCode: "a" },
+      {
+        currentTrack: track,
+        isPlaying: true,
+        currentCountryCode: "a",
+        currentChartRef: SONGS_CHART,
+      },
       "b",
     );
 
@@ -193,6 +223,7 @@ describe("TrackRow", () => {
       currentTrack: track,
       isPlaying: true,
       currentCountryCode: "kr",
+      currentChartRef: SONGS_CHART,
     });
 
     fireEvent.click(screen.getByRole("link", { name: /Apple Music/i }));
@@ -207,12 +238,53 @@ describe("TrackRow", () => {
       currentTrack: track,
       isPlaying: true,
       currentCountryCode: "kr",
+      currentChartRef: SONGS_CHART,
     });
 
     fireEvent.click(screen.getByRole("link", { name: /Spotify/i }));
 
     expect(store.getState().isPlaying).toBe(false);
     expect(store.getState().currentTrack).toBe(track);
+  });
+
+  test("a resolved Spotify link reports the tap as landing on the track", () => {
+    const track = makeTrack({
+      spotifyUrl: "https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT",
+    });
+
+    renderTrackRow(track);
+    fireEvent.click(screen.getByRole("link", { name: /Spotify/i }));
+
+    expect(trackEvent).toHaveBeenCalledWith(
+      "deeplink_out",
+      expect.objectContaining({ platform: "spotify", destination: "track" }),
+    );
+  });
+
+  test("an unresolved Spotify link reports the tap as landing on a search", () => {
+    const track = makeTrack({
+      spotifyUrl: "https://open.spotify.com/search/Test%20Track",
+    });
+
+    renderTrackRow(track);
+    fireEvent.click(screen.getByRole("link", { name: /Spotify/i }));
+
+    expect(trackEvent).toHaveBeenCalledWith(
+      "deeplink_out",
+      expect.objectContaining({ platform: "spotify", destination: "search" }),
+    );
+  });
+
+  test("a track carrying no Spotify link falls back to a search for it", () => {
+    const track = makeTrack({ name: "Ice Cream", artist: "연준" });
+    delete (track as { spotifyUrl?: string }).spotifyUrl;
+
+    renderTrackRow(track);
+
+    const spotify = screen.getByRole("link", { name: /Spotify/i });
+    expect(spotify.getAttribute("href")).toBe(
+      "https://open.spotify.com/search/Ice%20Cream%20%EC%97%B0%EC%A4%80",
+    );
   });
 
   test("error message renders when lastError matches this track's previewUrl", () => {
@@ -340,6 +412,7 @@ describe("TrackRow commentary focus card", () => {
           <TrackRow
             track={makeTrack({ commentary: COMMENTARY })}
             countryCode="kr"
+            chartRef={SONGS_CHART}
             focused={over.focused ?? false}
             dimmed={over.dimmed ?? false}
             onOpenCommentary={onOpenCommentary}

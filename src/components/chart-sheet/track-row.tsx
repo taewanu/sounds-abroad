@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { type CSSProperties, useState } from "react";
 
 import { AppleMusicIcon } from "@/components/icons/apple-music";
 import { PauseIcon } from "@/components/icons/pause";
@@ -8,15 +8,20 @@ import { PlayIcon } from "@/components/icons/play";
 import { SpotifyIcon } from "@/components/icons/spotify";
 import { useOverflowMarquee } from "@/components/use-overflow-marquee";
 import { track as trackEvent } from "@/lib/analytics";
-import type { Track } from "@/lib/chart-schema";
+import type { ChartRef } from "@/lib/chart-ref";
+import type { ChartTrack } from "@/lib/chart-schema";
+import { spotifySearchUrl } from "@/lib/spotify-search-url";
 import { sameTrack } from "@/lib/track-identity";
 import { useAudioStore } from "@/providers/audio-store-provider";
 
 import { TrackCommentary } from "./track-commentary";
 
 export interface TrackRowProps {
-  track: Track;
+  track: ChartTrack;
   countryCode: string;
+  // Which of the country's charts this row is listed in. Playback is located by
+  // the pair, so the same song listed in two of them keeps one playing state.
+  chartRef: ChartRef;
   // True on the first commentary-bearing row of the current country: the one
   // row eligible for the one-time discovery pulse.
   isHintTarget?: boolean;
@@ -32,6 +37,7 @@ export interface TrackRowProps {
 export function TrackRow({
   track,
   countryCode,
+  chartRef,
   isHintTarget,
   focused = false,
   dimmed = false,
@@ -40,13 +46,16 @@ export function TrackRow({
 }: TrackRowProps) {
   const isCurrent = useAudioStore(
     (s) =>
-      sameTrack(s.currentTrack, track) && s.currentCountryCode === countryCode,
+      sameTrack(s.currentTrack, track) &&
+      s.currentCountryCode === countryCode &&
+      s.currentChartRef === chartRef,
   );
   const isPlaying = useAudioStore(
     (s) =>
       s.isPlaying &&
       sameTrack(s.currentTrack, track) &&
-      s.currentCountryCode === countryCode,
+      s.currentCountryCode === countryCode &&
+      s.currentChartRef === chartRef,
   );
   const hasError = useAudioStore(
     (s) => s.lastError?.previewUrl === track.previewUrl,
@@ -69,6 +78,16 @@ export function TrackRow({
   });
 
   const commentary = track.commentary ?? null;
+
+  // A payload written before the field existed carries no link, so synthesize
+  // the search form rather than render a dead anchor.
+  const spotifyHref =
+    track.spotifyUrl ?? spotifySearchUrl(track.name, track.artist);
+  // The URL is the only thing that knows: both forms are plain strings, and
+  // the playlist axis bakes the search form rather than leaving it absent.
+  const spotifyDestination = spotifyHref.includes("/track/")
+    ? "track"
+    : "search";
 
   // content-visibility:auto skips layout/paint for rows scrolled out of view
   // (most of the list); the focused card must fully render, so it opts out.
@@ -98,13 +117,23 @@ export function TrackRow({
       inert={dimmed}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      // A per-row clock for the waiting pulse, derived from the rank rather than
+      // drawn at random: the sheet is server-painted, so a random value would
+      // differ between the server and the client and break hydration. The
+      // coprime multipliers keep neighbouring ranks from landing in step.
+      style={
+        {
+          "--row-wait-dur": `${2400 + ((track.rank * 37) % 23) * 100}ms`,
+          "--row-wait-delay": `-${((track.rank * 53) % 20) * 100}ms`,
+        } as CSSProperties
+      }
       className={`${baseClass} ${stateClass}`}
     >
       <div className="flex items-center gap-[14px]">
         <button
           type="button"
           disabled={!hasPreview}
-          onClick={() => toggle(track, countryCode, "track_row")}
+          onClick={() => toggle(track, { countryCode, chartRef }, "track_row")}
           aria-label={`${isPlaying ? "Pause" : "Play"} preview of ${track.name} by ${track.artist}`}
           className="focus-visible:outline-aurora flex min-w-0 flex-1 items-center gap-[14px] text-left transition-transform duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none"
         >
@@ -172,6 +201,7 @@ export function TrackRow({
               trackEvent("deeplink_out", {
                 country: countryCode,
                 platform: "apple",
+                destination: "track",
                 rank: track.rank,
               });
             }}
@@ -181,7 +211,7 @@ export function TrackRow({
             <AppleMusicIcon className="h-3.5 w-3.5" />
           </a>
           <a
-            href={track.spotifyUrl}
+            href={spotifyHref}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => {
@@ -189,6 +219,7 @@ export function TrackRow({
               trackEvent("deeplink_out", {
                 country: countryCode,
                 platform: "spotify",
+                destination: spotifyDestination,
                 rank: track.rank,
               });
             }}
