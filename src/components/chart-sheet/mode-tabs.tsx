@@ -68,14 +68,16 @@ export function ModeTabs({ current, waiting, onOpen }: ModeTabsProps) {
           </button>
         );
       })}
-      {/* Sits on the group's own bottom rule, so the two read as one edge. */}
+      {/* Sits on the group's own bottom rule, so the two read as one edge. One
+          pixel wide and scaled to the label, so travelling between two labels of
+          different widths stays on the compositor rather than laying out the
+          sheet on every frame. */}
       <span
         aria-hidden
         style={{
-          width: `${underline.width}px`,
-          transform: `translateX(${underline.left}px)`,
+          transform: `translateX(${underline.left}px) scaleX(${underline.width})`,
         }}
-        className="bg-sunrise absolute -bottom-px left-0 h-0.5 transition-[transform,width] duration-200 ease-[var(--ease-spring)] motion-reduce:transition-none"
+        className="bg-sunrise absolute -bottom-px left-0 h-0.5 w-px origin-left transition-transform duration-200 ease-[var(--ease-spring)] motion-reduce:transition-none"
       />
     </div>
   );
