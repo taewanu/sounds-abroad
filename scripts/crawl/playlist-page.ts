@@ -10,11 +10,7 @@ export interface PlaylistTrack {
 }
 
 export type PlaylistPageErrorKind =
-  | "network"
-  | "http"
-  | "missing-block"
-  | "json"
-  | "shape";
+  "network" | "http" | "missing-block" | "json" | "shape";
 
 export class PlaylistPageError extends Error {
   constructor(

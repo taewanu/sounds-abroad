@@ -13,8 +13,7 @@ import {
  * the parse is tested without touching the blob store.
  */
 export type ParseResult =
-  | { ok: true; store: CommentaryStore }
-  | { ok: false; errors: string[] };
+  { ok: true; store: CommentaryStore } | { ok: false; errors: string[] };
 
 export function parseCandidateStore(raw: unknown): ParseResult {
   const parsed = CommentaryStoreSchema.safeParse(raw);
