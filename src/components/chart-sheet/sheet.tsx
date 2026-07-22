@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import { track as trackEvent } from "@/lib/analytics";
+import { songsChartRows, type ChartMode } from "@/lib/chart-mode";
 import { SONGS_CHART, type ChartRef } from "@/lib/chart-ref";
 import type { Country } from "@/lib/chart-schema";
 import { selectGem } from "@/lib/select-gem";
@@ -19,6 +20,7 @@ import { ChartRail } from "./chart-rail";
 import { CHART_PANEL_ID, chartTabId } from "./chart-tabs";
 import { firstCommentaryRank } from "./first-commentary-rank";
 import { GemCard } from "./gem-card";
+import { ModeTabs } from "./mode-tabs";
 import { TrackRow } from "./track-row";
 import type { ChartTracksState } from "./use-chart-tracks";
 
@@ -30,6 +32,11 @@ export interface ChartSheetProps {
   // between them. Held above the sheet because playback reads it too.
   chart: ChartTracksState;
   countryCode: string;
+  // Which question the songs chart is answering. Held above the sheet for the
+  // same reason the chart selection is: playback resolves against it, so the
+  // rows next and prev walk are the rows on screen.
+  mode: ChartMode;
+  onModeChange: (mode: ChartMode) => void;
   snap: SnapState;
   onSnapChange: (snap: SnapState) => void;
   currentTrackRank?: number | null;
@@ -141,6 +148,8 @@ export function ChartSheet({
   country,
   chart,
   countryCode,
+  mode,
+  onModeChange,
   snap,
   onSnapChange,
   currentTrackRank = null,
@@ -167,14 +176,16 @@ export function ChartSheet({
     currentCountryCode !== null &&
     (currentCountryCode !== countryCode || currentChartRef !== chart.ref);
 
-  // The songs chart continues past the rows that travel eagerly, once they have
-  // been read. A playlist chart travels whole, so it has no tail.
+  // The songs chart as the mode presents it: past the eager rows once they have
+  // been read, and narrowed where the mode narrows. A playlist chart travels
+  // whole and carries no spread, so it is shown exactly as it arrived.
+  const onlyHereMode = onSongsChart && mode === "only_here";
   const rows = useMemo(
     () =>
-      onSongsChart && chart.tail
-        ? [...chart.tracks, ...chart.tail]
+      onSongsChart
+        ? songsChartRows(mode, chart.tracks, chart.tail)
         : chart.tracks,
-    [onSongsChart, chart.tracks, chart.tail],
+    [onSongsChart, mode, chart.tracks, chart.tail],
   );
 
   // Only the songs chart has more to fetch, and only until it has been fetched
@@ -194,9 +205,40 @@ export function ChartSheet({
     return () => observer.disconnect();
   }, [tailReachable, readTail, chart.ref]);
 
+  // Only here draws on the whole hundred rather than the rows that travel
+  // eagerly, so being in it is the ask for the rest. An effect rather than the
+  // switch handler because the switch is not the only way into it: the mode
+  // outlives a country change, and the country it arrives in has a tail of its
+  // own that nothing has asked for. The ask is idempotent per country, so a
+  // listener who already scrolled that far pays nothing.
+  useEffect(() => {
+    if (onlyHereMode && tailReachable) readTail();
+  }, [onlyHereMode, tailReachable, readTail]);
+
+  // Recorded on the ask rather than on the render that follows, so a mode whose
+  // rows never landed still counts as asked for. Landing on a country already
+  // counts as chart_opened, so only a deliberate switch is a mode opening.
+  const openMode = useCallback(
+    (next: ChartMode) => {
+      if (next === mode) return;
+      onModeChange(next);
+      trackEvent("chart_mode_opened", { country: countryCode, mode: next });
+    },
+    [mode, onModeChange, countryCode],
+  );
+
+  // Only here is waiting whenever the chart it filters is still arriving: until
+  // the tail lands it is filtering a quarter of the chart, which would otherwise
+  // read as a short answer rather than an unfinished one.
+  const waitingMode: ChartMode | null =
+    onlyHereMode && chart.tailPending ? "only_here" : null;
+
   // One key per chart, so the list remounts whenever the tracks under it are
-  // replaced rather than reusing rows across two unrelated rankings.
-  const listKey = `${countryCode}:${chart.ref}`;
+  // replaced rather than reusing rows across two unrelated rankings. The mode is
+  // part of it: the two modes are different rankings of the same chart, so the
+  // list starts at the top rather than holding a scroll position measured
+  // against rows that are no longer there.
+  const listKey = `${countryCode}:${chart.ref}:${mode}`;
 
   // The one row eligible for the commentary discovery pulse, recomputed per
   // country (the <ol> remounts on country change, resetting the hint).
@@ -746,9 +788,12 @@ export function ChartSheet({
         transform: `translateY(${SNAP_Y[initialSnap]})`,
         willChange: "transform",
         // The peek clamp sizes the list against the header above it, so it has
-        // to know whether a rail is there. Declared rather than measured: the
-        // rail is one row of fixed height.
-        ...({ "--rail-h": hasRail ? "46px" : "0px" } as CSSProperties),
+        // to know whether a rail and a mode row are there. Declared rather than
+        // measured: each is one row of fixed height.
+        ...({
+          "--rail-h": hasRail ? "46px" : "0px",
+          "--mode-h": onSongsChart ? "45px" : "0px",
+        } as CSSProperties),
       }}
       // Explicit z so the edge-tap hint can bracket the sheet: its aurora rails
       // sit below (a lower z) and its sheet-dim above, reproducing the backdrop
@@ -772,6 +817,11 @@ export function ChartSheet({
           failed={chart.failed}
           onOpen={chart.open}
         />
+        {/* Only the songs axis bakes a spread per track, so only its chart can
+            be read either way; a playlist chart has one reading and no toggle. */}
+        {onSongsChart ? (
+          <ModeTabs current={mode} waiting={waitingMode} onOpen={openMode} />
+        ) : null}
       </div>
       {/* Native list scroll is enabled only at full (touch-pan-y); at the
           partial snaps a vertical drag drives the sheet instead, so the list
@@ -790,8 +840,10 @@ export function ChartSheet({
         data-peek={(snap === "peek" && !isDragging) || undefined}
         // The chart on screen is on its way out; its rows recede and breathe
         // until the next one lands, or until a failed read leaves it in place.
-        data-chart-waiting={chart.pending !== null || undefined}
-        className="min-h-0 flex-1 touch-none overflow-y-auto overscroll-y-contain px-4 pb-12 transition-[max-height] duration-300 ease-out [-ms-overflow-style:none] [scrollbar-width:none] group-data-[snap=full]:touch-pan-y data-[peek]:max-h-[calc(35dvh-62px-var(--rail-h))] [&::-webkit-scrollbar]:hidden"
+        data-chart-waiting={
+          chart.pending !== null || waitingMode !== null || undefined
+        }
+        className="min-h-0 flex-1 touch-none overflow-y-auto overscroll-y-contain px-4 pb-12 transition-[max-height] duration-300 ease-out [-ms-overflow-style:none] [scrollbar-width:none] group-data-[snap=full]:touch-pan-y data-[peek]:max-h-[calc(35dvh-62px-var(--rail-h)-var(--mode-h))] [&::-webkit-scrollbar]:hidden"
       >
         {gemSelection ? (
           <li
@@ -818,6 +870,7 @@ export function ChartSheet({
             track={track}
             countryCode={countryCode}
             chartRef={chart.ref}
+            mode={mode}
             isHintTarget={track.rank === hintRank}
             focused={track.rank === focusedRank}
             dimmed={focusedRank !== null && track.rank !== focusedRank}

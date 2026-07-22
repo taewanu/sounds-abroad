@@ -1528,3 +1528,260 @@ describe("ChartScreen deeper rows", () => {
     expect(screen.queryByText(DEEP_TRACK.name)).toBeNull();
   });
 });
+
+describe("ChartScreen stepping past the eager rows", () => {
+  const DEEP_CODE = "dp";
+
+  function deepTrack(rank: number, spread: number): Track {
+    return {
+      rank,
+      name: `Deep ${rank}`,
+      artist: `Deep artist ${rank}`,
+      previewUrl: `https://example.com/deep-${rank}.m4a`,
+      artworkUrl: "https://example.com/deep.jpg",
+      appleUrl: `https://music.apple.com/x/deep-${rank}`,
+      spotifyUrl: `https://open.spotify.com/x/deep-${rank}`,
+      spread,
+    };
+  }
+
+  // A country whose chart runs past what travelled: ranks 1 and 2 eagerly, 3 and
+  // 4 only once read. Spread is set so Only here keeps 2 and 4, which are on
+  // either side of the boundary.
+  const AWAY_CODE = "aw";
+  const DEEP_CHARTS: ChartFile = {
+    lastUpdated: "2026-07-22T00:00:00Z",
+    countries: {
+      [DEEP_CODE]: {
+        name: "Deep country",
+        valid: true,
+        tracks: [deepTrack(1, 7), deepTrack(2, 1)],
+      },
+      // Somewhere else to stand while the first country's chart plays on.
+      [AWAY_CODE]: {
+        name: "Away country",
+        valid: true,
+        tracks: [deepTrack(1, 3)],
+      },
+    },
+  };
+  const TAIL_ROWS = [deepTrack(3, 5), deepTrack(4, 1)];
+
+  function stubObserver(): { reach: () => void } {
+    let fire: (() => void) | null = null;
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(private readonly cb: IntersectionObserverCallback) {}
+        observe(el: Element) {
+          fire = () =>
+            this.cb(
+              [
+                {
+                  isIntersecting: true,
+                  target: el,
+                } as IntersectionObserverEntry,
+              ],
+              this as unknown as IntersectionObserver,
+            );
+        }
+        disconnect() {}
+        unobserve() {}
+        takeRecords() {
+          return [];
+        }
+      },
+    );
+    return { reach: () => fire?.() };
+  }
+
+  function stubTailFetch() {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              code: DEEP_CODE,
+              lastUpdated: "2026-07-22T00:00:00.000Z",
+              tracks: TAIL_ROWS,
+            }),
+            { status: 200, headers: { "content-type": "application/json" } },
+          ),
+      ),
+    );
+  }
+
+  function play(name: string, artist: string) {
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: `Play preview of ${name} by ${artist}`,
+      }),
+    );
+  }
+
+  function next() {
+    fireEvent.click(screen.getByRole("button", { name: "Next track" }));
+  }
+
+  function prev() {
+    fireEvent.click(screen.getByRole("button", { name: "Previous track" }));
+  }
+
+  beforeEach(() => {
+    mockSearchParams.value = new URLSearchParams(`cc=${DEEP_CODE}`);
+    audioEngine.reset();
+    stubTailFetch();
+    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  test("next continues into the rows read past the payload", async () => {
+    const { reach } = stubObserver();
+    const { container } = render(
+      <ChartScreen charts={DEEP_CHARTS} defaultCountryCode={DEEP_CODE} />,
+    );
+    await act(async () => {
+      reach();
+    });
+    play("Deep 2", "Deep artist 2");
+    expect(playingRank(container)).toBe("2");
+
+    next();
+
+    expect(playingRank(container)).toBe("3");
+  });
+
+  test("next walks the mode on screen, not the rows it hides", async () => {
+    const { reach } = stubObserver();
+    const { container } = render(
+      <ChartScreen charts={DEEP_CHARTS} defaultCountryCode={DEEP_CODE} />,
+    );
+    await act(async () => {
+      reach();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Only here" }));
+    play("Deep 2", "Deep artist 2");
+
+    next();
+
+    // Rank 3 is on the chart but not in this mode, so the step passes over it.
+    expect(playingRank(container)).toBe("4");
+  });
+
+  test("a track the mode hides still steps to the mode's next row", async () => {
+    const { reach } = stubObserver();
+    const { container } = render(
+      <ChartScreen charts={DEEP_CHARTS} defaultCountryCode={DEEP_CODE} />,
+    );
+    await act(async () => {
+      reach();
+    });
+    play("Deep 3", "Deep artist 3");
+
+    fireEvent.click(screen.getByRole("button", { name: "Only here" }));
+    next();
+
+    // Rank 3 is filtered away, but it is still where the listener is, so the
+    // step moves on within Only here rather than reading as the chart's end and
+    // rolling them out of the country.
+    expect(playingRank(container)).toBe("4");
+  });
+
+  test("the mode still governs a chart playing on in a country left behind", async () => {
+    const { reach } = stubObserver();
+    const { rerender } = render(
+      <ChartScreen charts={DEEP_CHARTS} defaultCountryCode={DEEP_CODE} />,
+    );
+    await act(async () => {
+      reach();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Only here" }));
+    play("Deep 2", "Deep artist 2");
+
+    // Stand somewhere else; the chart playing is the one left behind.
+    mockSearchParams.value = new URLSearchParams(`cc=${AWAY_CODE}`);
+    rerender(
+      <ChartScreen charts={DEEP_CHARTS} defaultCountryCode={DEEP_CODE} />,
+    );
+    expect(screen.getByText("Away country")).not.toBeNull();
+
+    next();
+
+    // The playing row is no longer on screen, so the mini-player is what names
+    // it. Rank 3 is hidden by the mode the listener still has on, so the step
+    // lands on 4 exactly as it would have without moving.
+    expect(screen.queryByText("Deep 4")).not.toBeNull();
+    expect(screen.queryByText("Deep 3")).toBeNull();
+  });
+
+  test("changing the mode elsewhere leaves the playing chart in its own", async () => {
+    const { reach } = stubObserver();
+    const { rerender } = render(
+      <ChartScreen charts={DEEP_CHARTS} defaultCountryCode={DEEP_CODE} />,
+    );
+    await act(async () => {
+      reach();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Only here" }));
+    play("Deep 2", "Deep artist 2");
+
+    mockSearchParams.value = new URLSearchParams(`cc=${AWAY_CODE}`);
+    rerender(
+      <ChartScreen charts={DEEP_CHARTS} defaultCountryCode={DEEP_CODE} />,
+    );
+    // Re-aim what is on screen; what is playing was started in the other mode.
+    fireEvent.click(screen.getByRole("button", { name: "Most played" }));
+    next();
+
+    expect(screen.queryByText("Deep 4")).not.toBeNull();
+    expect(screen.queryByText("Deep 3")).toBeNull();
+  });
+
+  test("switching mode on the playing chart re-aims what next walks", async () => {
+    const { reach } = stubObserver();
+    const { container } = render(
+      <ChartScreen charts={DEEP_CHARTS} defaultCountryCode={DEEP_CODE} />,
+    );
+    await act(async () => {
+      reach();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Only here" }));
+    play("Deep 2", "Deep artist 2");
+
+    // Back to the whole chart, still looking at the chart that is playing.
+    fireEvent.click(screen.getByRole("button", { name: "Most played" }));
+    next();
+
+    // Rank 3 is listed again, so it is what next reaches.
+    expect(playingRank(container)).toBe("3");
+  });
+
+  test("stepping back and forth stays on the mode in front of the listener", async () => {
+    const { reach } = stubObserver();
+    const { container } = render(
+      <ChartScreen charts={DEEP_CHARTS} defaultCountryCode={DEEP_CODE} />,
+    );
+    await act(async () => {
+      reach();
+    });
+    play("Deep 1", "Deep artist 1");
+    fireEvent.click(screen.getByRole("button", { name: "Only here" }));
+
+    next();
+    expect(playingRank(container)).toBe("2");
+    next();
+    expect(playingRank(container)).toBe("4");
+    prev();
+    expect(playingRank(container)).toBe("2");
+
+    fireEvent.click(screen.getByRole("button", { name: "Most played" }));
+    next();
+
+    expect(playingRank(container)).toBe("3");
+  });
+});

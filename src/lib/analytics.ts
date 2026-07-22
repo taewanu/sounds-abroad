@@ -44,6 +44,18 @@ export interface AnalyticsEvent {
     cached: boolean;
   };
 
+  // A mode of the songs chart was opened. Whether anyone reads the second one is
+  // the evidence the deeper crawl is judged on: taking a storefront's whole
+  // hundred rather than its first quarter is what makes Only here answerable, and
+  // it costs every run whether or not the mode is ever opened. Reported on the
+  // ask rather than once the rows settle, so a mode whose tail never landed still
+  // counts as asked for; the row count is left out for the same reason, since at
+  // the ask the chart it would count may still be in flight.
+  chart_mode_opened: {
+    country: string;
+    mode: "most_played" | "only_here";
+  };
+
   // A preview failed to play. `reason` splits the detectable causes; `errorName`
   // carries the DOMException name when present, to tell the iOS silent-audio bug
   // (#148, a rejected play) apart from a plain load failure.

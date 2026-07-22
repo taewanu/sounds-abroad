@@ -8,6 +8,7 @@ import { PlayIcon } from "@/components/icons/play";
 import { SpotifyIcon } from "@/components/icons/spotify";
 import { useOverflowMarquee } from "@/components/use-overflow-marquee";
 import { track as trackEvent } from "@/lib/analytics";
+import type { ChartMode } from "@/lib/chart-mode";
 import type { ChartRef } from "@/lib/chart-ref";
 import type { ChartTrack } from "@/lib/chart-schema";
 import { spotifySearchUrl } from "@/lib/spotify-search-url";
@@ -22,6 +23,9 @@ export interface TrackRowProps {
   // Which of the country's charts this row is listed in. Playback is located by
   // the pair, so the same song listed in two of them keeps one playing state.
   chartRef: ChartRef;
+  // The reading the row is listed under, stamped onto playback it starts so the
+  // chart plays on in the mode it was heard in.
+  mode: ChartMode;
   // True on the first commentary-bearing row of the current country: the one
   // row eligible for the one-time discovery pulse.
   isHintTarget?: boolean;
@@ -38,6 +42,7 @@ export function TrackRow({
   track,
   countryCode,
   chartRef,
+  mode,
   isHintTarget,
   focused = false,
   dimmed = false,
@@ -133,7 +138,9 @@ export function TrackRow({
         <button
           type="button"
           disabled={!hasPreview}
-          onClick={() => toggle(track, { countryCode, chartRef }, "track_row")}
+          onClick={() =>
+            toggle(track, { countryCode, chartRef, mode }, "track_row")
+          }
           aria-label={`${isPlaying ? "Pause" : "Play"} preview of ${track.name} by ${track.artist}`}
           className="focus-visible:outline-aurora flex min-w-0 flex-1 items-center gap-[14px] text-left transition-transform duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none"
         >

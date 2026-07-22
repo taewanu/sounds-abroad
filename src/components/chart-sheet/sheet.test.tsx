@@ -86,6 +86,7 @@ function staticChart(country: Country): ChartTracksState {
     tailPending: false,
     tailFailed: false,
     readTail: () => {},
+    peekTail: () => null,
   };
 }
 
@@ -98,6 +99,8 @@ function renderSheet(snap: SnapState) {
         country={COUNTRY_KR}
         chart={staticChart(COUNTRY_KR)}
         countryCode="kr"
+        mode="most_played"
+        onModeChange={() => {}}
         snap={snap}
         onSnapChange={onSnapChange}
       />
@@ -245,6 +248,8 @@ describe("ChartSheet", () => {
             country={emptyCountry}
             chart={staticChart(emptyCountry)}
             countryCode="kr"
+            mode="most_played"
+            onModeChange={() => {}}
             snap="peek"
             onSnapChange={vi.fn()}
           />
@@ -309,6 +314,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_KR}
           chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
+          mode="most_played"
+          onModeChange={() => {}}
           snap="closed"
           onSnapChange={vi.fn()}
           currentTrackRank={rank}
@@ -322,6 +329,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_KR}
           chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
+          mode="most_played"
+          onModeChange={() => {}}
           snap="peek"
           onSnapChange={vi.fn()}
           currentTrackRank={rank}
@@ -344,6 +353,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_KR}
           chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
+          mode="most_played"
+          onModeChange={() => {}}
           snap="peek"
           onSnapChange={vi.fn()}
           currentTrackRank={rank}
@@ -359,6 +370,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_KR}
           chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
+          mode="most_played"
+          onModeChange={() => {}}
           snap="full"
           onSnapChange={vi.fn()}
           currentTrackRank={rank}
@@ -381,6 +394,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_KR}
           chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
+          mode="most_played"
+          onModeChange={() => {}}
           snap="hidden"
           onSnapChange={vi.fn()}
           currentTrackRank={rank}
@@ -394,6 +409,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_KR}
           chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
+          mode="most_played"
+          onModeChange={() => {}}
           snap="peek"
           onSnapChange={vi.fn()}
           currentTrackRank={rank}
@@ -416,6 +433,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_KR}
           chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
+          mode="most_played"
+          onModeChange={() => {}}
           snap="peek"
           onSnapChange={vi.fn()}
           currentTrackRank={rank}
@@ -431,6 +450,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_KR}
           chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
+          mode="most_played"
+          onModeChange={() => {}}
           snap="peek"
           onSnapChange={vi.fn()}
           currentTrackRank={rank}
@@ -457,6 +478,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_KR}
           chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
+          mode="most_played"
+          onModeChange={() => {}}
           snap="peek"
           onSnapChange={vi.fn()}
           currentTrackRank={first}
@@ -473,6 +496,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_KR}
           chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
+          mode="most_played"
+          onModeChange={() => {}}
           snap="peek"
           onSnapChange={vi.fn()}
           currentTrackRank={other}
@@ -495,6 +520,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_KR}
           chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
+          mode="most_played"
+          onModeChange={() => {}}
           snap="closed"
           onSnapChange={vi.fn()}
           currentTrackRank={null}
@@ -508,6 +535,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_KR}
           chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
+          mode="most_played"
+          onModeChange={() => {}}
           snap="peek"
           onSnapChange={vi.fn()}
           currentTrackRank={null}
@@ -534,6 +563,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_KR}
           chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
+          mode="most_played"
+          onModeChange={() => {}}
           snap="peek"
           onSnapChange={vi.fn()}
           currentTrackRank={first}
@@ -550,6 +581,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_KR}
           chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
+          mode="most_played"
+          onModeChange={() => {}}
           snap="peek"
           onSnapChange={vi.fn()}
           currentTrackRank={next}
@@ -577,6 +610,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_KR}
           chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
+          mode="most_played"
+          onModeChange={() => {}}
           snap="peek"
           onSnapChange={vi.fn()}
           currentTrackRank={first}
@@ -593,6 +628,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_KR}
           chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
+          mode="most_played"
+          onModeChange={() => {}}
           snap="peek"
           onSnapChange={vi.fn()}
           currentTrackRank={next}
@@ -629,6 +666,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_US}
           chart={staticChart(COUNTRY_US)}
           countryCode="us"
+          mode="most_played"
+          onModeChange={() => {}}
           scrollSignal={0}
         />
       </AudioStoreProvider>,
@@ -642,6 +681,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_US}
           chart={staticChart(COUNTRY_US)}
           countryCode="us"
+          mode="most_played"
+          onModeChange={() => {}}
           scrollSignal={1}
         />
       </AudioStoreProvider>,
@@ -657,6 +698,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_KR}
           chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
+          mode="most_played"
+          onModeChange={() => {}}
           scrollSignal={1}
         />
       </AudioStoreProvider>,
@@ -683,6 +726,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_US}
           chart={staticChart(COUNTRY_US)}
           countryCode="us"
+          mode="most_played"
+          onModeChange={() => {}}
           currentTrackRank={COUNTRY_US.tracks[0].rank}
           currentCountryCode="us"
           currentChartRef={SONGS_CHART}
@@ -701,6 +746,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_US}
           chart={staticChart(COUNTRY_US)}
           countryCode="us"
+          mode="most_played"
+          onModeChange={() => {}}
           currentTrackRank={landed}
           currentCountryCode="kr"
           currentChartRef={SONGS_CHART}
@@ -719,6 +766,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_KR}
           chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
+          mode="most_played"
+          onModeChange={() => {}}
           currentTrackRank={landed}
           currentCountryCode="kr"
           currentChartRef={SONGS_CHART}
@@ -748,6 +797,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_KR}
           chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
+          mode="most_played"
+          onModeChange={() => {}}
           currentTrackRank={COUNTRY_KR.tracks[0].rank}
           currentCountryCode="us"
           currentChartRef={SONGS_CHART}
@@ -765,6 +816,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_KR}
           chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
+          mode="most_played"
+          onModeChange={() => {}}
           currentTrackRank={COUNTRY_KR.tracks[0].rank}
           currentCountryCode="us"
           currentChartRef={SONGS_CHART}
@@ -781,6 +834,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_KR}
           chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
+          mode="most_played"
+          onModeChange={() => {}}
           currentTrackRank={null}
           currentCountryCode={null}
           currentChartRef={null}
@@ -797,6 +852,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_KR}
           chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
+          mode="most_played"
+          onModeChange={() => {}}
           currentTrackRank={rank}
           currentCountryCode="kr"
           currentChartRef={SONGS_CHART}
@@ -823,6 +880,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_KR}
           chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
+          mode="most_played"
+          onModeChange={() => {}}
           snap="peek"
           onSnapChange={vi.fn()}
           currentTrackRank={first}
@@ -837,6 +896,8 @@ describe("ChartSheet", () => {
           country={COUNTRY_KR}
           chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
+          mode="most_played"
+          onModeChange={() => {}}
           snap="peek"
           onSnapChange={vi.fn()}
           currentTrackRank={next}
@@ -943,6 +1004,8 @@ describe("ChartSheet commentary focus", () => {
           country={COUNTRY_KR}
           chart={staticChart(COUNTRY_KR)}
           countryCode="kr"
+          mode="most_played"
+          onModeChange={() => {}}
           snap="full"
           onSnapChange={vi.fn()}
           focusIntent={{ rank, nonce }}
@@ -1033,6 +1096,8 @@ describe("ChartSheet commentary focus", () => {
           country={COUNTRY_KR}
           chart={staticChart(COUNTRY_KR)}
           countryCode={cc}
+          mode="most_played"
+          onModeChange={() => {}}
           snap="full"
           onSnapChange={vi.fn()}
         />

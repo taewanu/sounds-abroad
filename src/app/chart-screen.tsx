@@ -21,6 +21,12 @@ import { TourHost } from "@/components/tour/tour-host";
 import { useTourGateOpen } from "@/components/tour/use-tour-gate-open";
 import { findAdjacentPlayable } from "@/lib/adjacent-playable";
 import { track as trackEvent } from "@/lib/analytics";
+import {
+  DEFAULT_CHART_MODE,
+  songsChartRows,
+  withPlaying,
+  type ChartMode,
+} from "@/lib/chart-mode";
 import { isPlaylistRef, SONGS_CHART, type ChartRef } from "@/lib/chart-ref";
 import type { ChartFile, ChartTrack, Country } from "@/lib/chart-schema";
 import { CHART_PARAM, chartFromUrl, chartQuery } from "@/lib/chart-url";
@@ -136,18 +142,48 @@ function ChartScreenInner({
     urlSays.current = want;
     window.history.replaceState(null, "", want);
   }, [urlChart, chartFailed, chartRef, countryCode]);
-  const { peek: peekChart, read: readChart, open: openChart } = chart;
+  const { peek: peekChart, read: readChart, open: openChart, peekTail } = chart;
+
+  // Which question the songs chart is answering. Held here rather than in the
+  // sheet because playback resolves against it: the rows next and prev walk are
+  // the rows on screen, so the mode governs both or the chart it names is one
+  // the buttons can step straight out of.
+  const [mode, setMode] = useState<ChartMode>(DEFAULT_CHART_MODE);
+
+  // The mode the playing chart is being read in. It follows the mode on screen
+  // while the listener is looking at that chart, and holds where they left it
+  // once they are not: the list in front of them is what next and prev walk, and
+  // when no such list is in front of them, what they are hearing keeps its own.
+  const currentMode = useAudioStore((s) => s.currentMode);
 
   // The track list a chart holds, or null when it isn't in hand: the songs
   // chart travels in the payload, a playlist chart only once it has been read.
   // Located by country and chart together, because the country the listener is
   // browsing need not be the one playing.
+  //
+  // The songs chart is assembled the same way the sheet lists it, so stepping
+  // reaches every row a listener can see and no row they cannot. `current` is
+  // the track playing on it, put back when the mode has filtered it away, so a
+  // switch mid-song leaves somewhere to step from.
   const tracksOf = useCallback(
-    (code: string, ref: ChartRef): ChartTrack[] | null =>
-      isPlaylistRef(ref)
-        ? peekChart(ref)
-        : (charts.countries[code]?.tracks ?? null),
-    [charts.countries, peekChart],
+    (
+      code: string,
+      ref: ChartRef,
+      current: ChartTrack | null = null,
+    ): ChartTrack[] | null => {
+      if (isPlaylistRef(ref)) return peekChart(ref);
+      const eager = charts.countries[code]?.tracks ?? null;
+      if (eager === null) return null;
+      // The reading playback was started in, not the one on screen: the two part
+      // company the moment the listener browses elsewhere, and what they are
+      // hearing should not be re-ordered by what they are looking at. Falls back
+      // to the mode on screen before anything has played.
+      return withPlaying(
+        songsChartRows(currentMode ?? mode, eager, peekTail(code)),
+        current,
+      );
+    },
+    [charts.countries, peekChart, peekTail, currentMode, mode],
   );
 
   // What is on screen, for the deferred half of a continuation to read at the
@@ -185,10 +221,30 @@ function ChartScreenInner({
   const currentTrack = useAudioStore((s) => s.currentTrack);
   const currentCountryCode = useAudioStore((s) => s.currentCountryCode);
   const currentChartRef = useAudioStore((s) => s.currentChartRef);
+
+  const setCurrentMode = useAudioStore((s) => s.setCurrentMode);
+  const viewingPlayingChart =
+    currentCountryCode === countryCode && currentChartRef === chart.ref;
+  useEffect(() => {
+    if (viewingPlayingChart && currentMode !== mode) setCurrentMode(mode);
+  }, [viewingPlayingChart, currentMode, mode, setCurrentMode]);
   const lastStep = useAudioStore((s) => s.lastStep);
   const hasCurrentTrack = currentTrack !== null;
   const currentTrackRank = currentTrack?.rank ?? null;
   const audioStore = useAudioStoreApi();
+
+  // The mode the chart being stepped through is heard in, for the step paths to
+  // stamp onto where they land. Falls back to the mode on screen, which is the
+  // one a first play would have been started in; read from a ref because a step
+  // fires long after the render that formed its handler.
+  const modeRef = useRef(mode);
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
+  const heardIn = useCallback(
+    (): ChartMode => audioStore.getState().currentMode ?? modeRef.current,
+    [audioStore],
+  );
   const tourGateOpen = useTourGateOpen();
 
   // Only while the globe is visible: at full the sheet covers it, so a cue there
@@ -312,6 +368,7 @@ function ChartScreenInner({
       toggle(landing.track, {
         countryCode: landing.code,
         chartRef: SONGS_CHART,
+        mode: heardIn(),
       });
       setRollRecord({
         originCountryCode: fromCode,
@@ -340,7 +397,7 @@ function ChartScreenInner({
       });
       return "rolled";
     },
-    [audioStore, charts.countries, flashSkip],
+    [audioStore, charts.countries, flashSkip, heardIn],
   );
 
   // Continue into the next chart of the same country, reading candidates in
@@ -367,7 +424,11 @@ function ChartScreenInner({
         rollOutOfCountry(fromCode, fromRef, fromTrack);
         return;
       }
-      toggle(landing.track, { countryCode: fromCode, chartRef: landing.ref });
+      toggle(landing.track, {
+        countryCode: fromCode,
+        chartRef: landing.ref,
+        mode: heardIn(),
+      });
       audioStore.getState().signalStep(1);
       flashSkip(1);
       trackEvent("next_executed", {
@@ -390,6 +451,7 @@ function ChartScreenInner({
     },
     [
       audioStore,
+      heardIn,
       charts.countries,
       readChart,
       openChart,
@@ -423,7 +485,11 @@ function ChartScreenInner({
       ) {
         return null;
       }
-      const playing = tracksOf(currentCountryCode, currentChartRef);
+      const playing = tracksOf(
+        currentCountryCode,
+        currentChartRef,
+        currentTrack,
+      );
       if (!playing) return null;
       const adj = findAdjacentPlayable(playing, currentTrack, dir);
       // Publish the direction after each real change, so every surface that
@@ -433,6 +499,7 @@ function ChartScreenInner({
         toggle(adj, {
           countryCode: currentCountryCode,
           chartRef: currentChartRef,
+          mode: heardIn(),
         });
         signalStep(dir);
         trackEvent("next_executed", {
@@ -472,6 +539,7 @@ function ChartScreenInner({
       toggle(back.track, {
         countryCode: back.countryCode,
         chartRef: back.chartRef,
+        mode: heardIn(),
       });
       setRollRecord(null);
       const store = globeChartStore.getState();
@@ -495,6 +563,7 @@ function ChartScreenInner({
     },
     [
       audioStore,
+      heardIn,
       charts.countries,
       rollRecord,
       flashSkip,
@@ -529,7 +598,7 @@ function ChartScreenInner({
     ) {
       return false;
     }
-    const playing = tracksOf(currentCountryCode, currentChartRef);
+    const playing = tracksOf(currentCountryCode, currentChartRef, currentTrack);
     if (playing && findAdjacentPlayable(playing, currentTrack, -1) !== null) {
       return true;
     }
@@ -567,7 +636,7 @@ function ChartScreenInner({
     ) {
       return [null, null] as const;
     }
-    const playing = tracksOf(currentCountryCode, currentChartRef);
+    const playing = tracksOf(currentCountryCode, currentChartRef, currentTrack);
     if (!playing) return [null, null] as const;
     return [
       findAdjacentPlayable(playing, currentTrack, -1),
@@ -625,6 +694,8 @@ function ChartScreenInner({
         country={country}
         chart={chart}
         countryCode={countryCode}
+        mode={mode}
+        onModeChange={setMode}
         snap={snap}
         onSnapChange={setSnap}
         currentTrackRank={currentTrackRank}
