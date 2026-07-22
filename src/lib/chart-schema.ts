@@ -16,8 +16,16 @@ export const CommentarySchema = z.object({
   generatedAt: z.iso.datetime(),
 });
 
+/**
+ * How many of a country's songs travel in the eagerly loaded payload. A globe
+ * spin must paint without a round trip (ADR-0011), and eager is reserved for
+ * exactly that (ADR-0016), so the rest of the chart is published separately and
+ * read on demand.
+ */
+export const EAGER_TRACK_COUNT = 25;
+
 const TrackSchema = z.object({
-  rank: z.number().int().min(1).max(25),
+  rank: z.number().int().min(1).max(100),
   name: z.string().min(1),
   artist: z.string().min(1),
   previewUrl: z.url().nullable(),
@@ -57,7 +65,7 @@ export const PlaylistSchema = z.object({
 const CountrySchema = z.object({
   name: z.string().min(1),
   valid: z.boolean(),
-  tracks: z.array(TrackSchema).max(25),
+  tracks: z.array(TrackSchema).max(EAGER_TRACK_COUNT),
   // Both additive-optional, so a blob predating the playlist axis still parses.
   // Validity is per-axis: a playlist failure must not roll back a fresh songs
   // chart, which a single country-level flag would do (ADR-0015).
@@ -85,6 +93,17 @@ export const PlaylistFileSchema = z.object({
   tracks: z.array(PlaylistTrackSchema).min(1),
 });
 
+/**
+ * A country's chart beyond the eager rows, published as its own file and read
+ * when a listener reads that far. Ranks continue from where the payload stops,
+ * so the two halves concatenate into one chart.
+ */
+export const SongsTailFileSchema = z.object({
+  code: z.string().regex(/^[a-z]{2}$/),
+  lastUpdated: z.iso.datetime(),
+  tracks: z.array(TrackSchema).min(1),
+});
+
 export const ChartFileSchema = z.object({
   lastUpdated: z.iso.datetime(),
   countries: z
@@ -103,6 +122,7 @@ export type PlaylistGenre = z.infer<typeof PlaylistGenreSchema>;
 export type Playlist = z.infer<typeof PlaylistSchema>;
 export type PlaylistTrack = z.infer<typeof PlaylistTrackSchema>;
 export type PlaylistFile = z.infer<typeof PlaylistFileSchema>;
+export type SongsTailFile = z.infer<typeof SongsTailFileSchema>;
 
 /**
  * What a rendered row accepts: a track from either axis. Both `Track` and

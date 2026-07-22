@@ -2,8 +2,10 @@ import { expect, test, vi } from "vitest";
 
 import {
   ChartFileSchema,
+  EAGER_TRACK_COUNT,
   type ChartFile,
   type Country,
+  type SongsTailFile,
 } from "../../src/lib/chart-schema";
 import {
   commentaryKey,
@@ -260,6 +262,18 @@ test("crawlCountry rethrows non-ItunesLookupError from lookupTracks", async () =
 const FROZEN_NOW = new Date("2026-05-15T12:00:00.000Z");
 const BLOB_URL = "https://blob/charts/v1/charts.json";
 
+/** A storefront ranking `count` songs, for splitting the eager rows from the tail. */
+function deepRssFor(cc: string, count: number): AppleRssTrack[] {
+  return Array.from({ length: count }, (_, i) => ({
+    rank: i + 1,
+    id: `${cc}-${i + 1}`,
+    name: `${cc} song ${i + 1}`,
+    artist: `${cc} artist`,
+    appleUrl: `https://music.apple.com/${cc}/album/${i + 1}`,
+    artworkUrl: `https://art/${cc}/${i + 1}/600x600bb.jpg`,
+  }));
+}
+
 function fakeRssFor(cc: string): AppleRssTrack[] {
   return [
     {
@@ -293,6 +307,7 @@ function makeCrawlAllDeps(input: {
   uploadPrevious?: (chartFile: ChartFile) => Promise<unknown>;
   fetchCommentary?: () => Promise<CommentaryStore | null>;
   uploadCharts?: (chartFile: ChartFile) => Promise<string>;
+  uploadSongsTail?: (file: SongsTailFile) => Promise<unknown>;
 }): CrawlAllDeps {
   return {
     countries: input.countries,
@@ -313,6 +328,7 @@ function makeCrawlAllDeps(input: {
           ),
       ),
     uploadCharts: input.uploadCharts ?? vi.fn(async () => BLOB_URL),
+    uploadSongsTail: input.uploadSongsTail ?? vi.fn(async () => {}),
     triggerRevalidate: vi.fn(async () => {}),
     fetchPrevious: input.fetchPrevious,
     uploadPrevious: input.uploadPrevious,
@@ -755,4 +771,83 @@ test("crawlAll sums the lookup tally across countries", async () => {
 
   // fakeRssFor gives each country a single track.
   expect(result.lookups).toEqual({ requested: 2, resolved: 2 });
+});
+
+test("keeps the eager rows in the payload and publishes the rest separately", async () => {
+  const uploadSongsTail = vi.fn(async (_file: SongsTailFile) => {});
+  const deps = makeCrawlAllDeps({
+    countries: [KR],
+    fetchRss: vi.fn(async (cc) => deepRssFor(cc, 40)),
+    uploadSongsTail,
+  });
+
+  const result = await crawlAll(deps);
+
+  const payload = result.chartFile.countries[KR.code].tracks;
+  expect(payload).toHaveLength(EAGER_TRACK_COUNT);
+  expect(payload.at(-1)?.rank).toBe(EAGER_TRACK_COUNT);
+
+  expect(uploadSongsTail).toHaveBeenCalledTimes(1);
+  const tail = uploadSongsTail.mock.calls[0][0];
+  expect(tail.code).toBe(KR.code);
+  expect(tail.tracks).toHaveLength(15);
+  expect(tail.tracks[0].rank).toBe(EAGER_TRACK_COUNT + 1);
+  expect(tail.tracks.at(-1)?.rank).toBe(40);
+});
+
+test("publishes no tail for a country that ranks no deeper than the payload", async () => {
+  const uploadSongsTail = vi.fn(async (_file: SongsTailFile) => {});
+  const deps = makeCrawlAllDeps({
+    countries: [KR],
+    fetchRss: vi.fn(async (cc) => deepRssFor(cc, EAGER_TRACK_COUNT)),
+    uploadSongsTail,
+  });
+
+  const result = await crawlAll(deps);
+
+  expect(result.chartFile.countries[KR.code].tracks).toHaveLength(
+    EAGER_TRACK_COUNT,
+  );
+  expect(uploadSongsTail).not.toHaveBeenCalled();
+});
+
+test("counts spread across the whole chart, not only the eager rows", async () => {
+  const shared = "shared song";
+  const rssWithSharedDeepTrack = (cc: string): AppleRssTrack[] => {
+    const tracks = deepRssFor(cc, 30);
+    // The same song sits deep in one country and deep in the other, so it is
+    // only visible to spread if the counting reaches past the eager rows.
+    tracks[29] = {
+      ...tracks[29],
+      id: "shared-id",
+      name: shared,
+      artist: "shared artist",
+      appleUrl: "https://music.apple.com/xx/album/shared?i=999",
+    };
+    return tracks;
+  };
+  const deps = makeCrawlAllDeps({
+    countries: [KR, NG],
+    fetchRss: vi.fn(async (cc) => rssWithSharedDeepTrack(cc)),
+    uploadSongsTail: vi.fn(async (_file: SongsTailFile) => {}),
+  });
+
+  const result = await crawlAll(deps);
+  const tail = vi.mocked(deps.uploadSongsTail).mock.calls[0][0].tracks;
+
+  expect(tail.at(-1)?.name).toBe(shared);
+  expect(tail.at(-1)?.spread).toBe(2);
+});
+
+test("publishes no charts when a songs tail fails to upload", async () => {
+  const deps = makeCrawlAllDeps({
+    countries: [KR],
+    fetchRss: vi.fn(async (cc) => deepRssFor(cc, 40)),
+    uploadSongsTail: vi.fn(async () => {
+      throw new Error("tail write failed");
+    }),
+  });
+
+  await expect(crawlAll(deps)).rejects.toThrow("tail write failed");
+  expect(deps.uploadCharts).not.toHaveBeenCalled();
 });

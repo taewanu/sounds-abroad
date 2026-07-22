@@ -1,9 +1,14 @@
-import type { ChartFile, PlaylistFile } from "../../src/lib/chart-schema";
+import type {
+  ChartFile,
+  PlaylistFile,
+  SongsTailFile,
+} from "../../src/lib/chart-schema";
 import { putJson } from "../lib/object-store";
 
 const BLOB_PATHNAME = "charts/v1/charts.json";
 const PREV_BLOB_PATHNAME = "charts/v1/charts-prev.json";
 const PLAYLIST_BLOB_PREFIX = "charts/v1/playlists";
+const SONGS_TAIL_PREFIX = "charts/v1/songs";
 
 export async function uploadCharts(chartFile: ChartFile): Promise<string> {
   return putJson(BLOB_PATHNAME, JSON.stringify(chartFile, null, 2));
@@ -28,6 +33,18 @@ export async function uploadPreviousCharts(
 export async function uploadPlaylistFile(file: PlaylistFile): Promise<string> {
   return putJson(
     `${PLAYLIST_BLOB_PREFIX}/${file.id}.json`,
+    JSON.stringify(file),
+  );
+}
+
+/**
+ * Publishes one country's chart beyond the eager rows as its own object. Keyed
+ * by country, unlike the playlist files, because a songs chart belongs to
+ * exactly one storefront and is never shared.
+ */
+export async function uploadSongsTail(file: SongsTailFile): Promise<string> {
+  return putJson(
+    `${SONGS_TAIL_PREFIX}/${file.code}.json`,
     JSON.stringify(file),
   );
 }

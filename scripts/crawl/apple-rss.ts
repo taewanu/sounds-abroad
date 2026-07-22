@@ -31,14 +31,23 @@ const RssTrackSchema = z.object({
   artworkUrl100: z.url(),
 });
 
+/**
+ * How many songs to ask a storefront for. The feed serves up to a hundred and
+ * costs one request whatever the depth, so asking for fewer buys nothing.
+ */
+export const RSS_DEPTH = 100;
+
+// A bound rather than an equality: a storefront may rank fewer songs than the
+// depth asked for, which is a small market rather than a broken feed. More than
+// the depth is a contract change and worth failing on.
 const RssResponseSchema = z.object({
   feed: z.object({
-    results: z.array(RssTrackSchema).length(25),
+    results: z.array(RssTrackSchema).min(1).max(RSS_DEPTH),
   }),
 });
 
 function rssUrl(cc: string): string {
-  return `https://rss.marketingtools.apple.com/api/v2/${cc}/music/most-played/25/songs.json`;
+  return `https://rss.marketingtools.apple.com/api/v2/${cc}/music/most-played/${RSS_DEPTH}/songs.json`;
 }
 
 export async function fetchAppleRss(
