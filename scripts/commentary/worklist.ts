@@ -18,10 +18,7 @@ import { DEFAULT_MAX_ATTEMPTS, type DropsStore } from "./drops";
  */
 
 export type WorklistReason =
-  | "new-entry"
-  | "rank-jump"
-  | "top-debut"
-  | "local-gem";
+  "new-entry" | "rank-jump" | "top-debut" | "local-gem";
 
 export interface WorklistItem {
   key: string;

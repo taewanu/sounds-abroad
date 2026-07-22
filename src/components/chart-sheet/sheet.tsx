@@ -764,7 +764,7 @@ export function ChartSheet({
         // The chart on screen is on its way out; its rows recede and breathe
         // until the next one lands, or until a failed read leaves it in place.
         data-chart-waiting={chart.pending !== null || undefined}
-        className="min-h-0 flex-1 touch-none overflow-y-auto overscroll-y-contain px-4 pb-12 transition-[max-height] duration-300 ease-out [-ms-overflow-style:none] [scrollbar-width:none] group-data-[snap=full]:touch-pan-y data-[peek]:max-h-[calc(35dvh-62px-var(--rail-h))] [&::-webkit-scrollbar]:hidden"
+        className="min-h-0 flex-1 touch-none [scrollbar-width:none] overflow-y-auto overscroll-y-contain px-4 pb-12 transition-[max-height] duration-300 ease-out [-ms-overflow-style:none] group-data-[snap=full]:touch-pan-y data-[peek]:max-h-[calc(35dvh-62px-var(--rail-h))] [&::-webkit-scrollbar]:hidden"
       >
         {gemSelection ? (
           <li

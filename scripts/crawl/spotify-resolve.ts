@@ -1,12 +1,7 @@
 import { z } from "zod";
 
 export type SpotifyResolveErrorKind =
-  | "miss"
-  | "http"
-  | "json"
-  | "shape"
-  | "network"
-  | "auth";
+  "miss" | "http" | "json" | "shape" | "network" | "auth";
 
 export class SpotifyResolveError extends Error {
   constructor(
