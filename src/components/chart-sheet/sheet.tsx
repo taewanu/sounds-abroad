@@ -22,6 +22,7 @@ import { firstCommentaryRank } from "./first-commentary-rank";
 import { GemCard } from "./gem-card";
 import { ModeEmpty } from "./mode-empty";
 import { ModeTabs } from "./mode-tabs";
+import { TailUnread } from "./tail-unread";
 import { TrackRow } from "./track-row";
 import type { ChartTracksState } from "./use-chart-tracks";
 
@@ -33,9 +34,8 @@ export interface ChartSheetProps {
   // between them. Held above the sheet because playback reads it too.
   chart: ChartTracksState;
   countryCode: string;
-  // Which question the songs chart is answering. Held above the sheet for the
-  // same reason the chart selection is: playback resolves against it, so the
-  // rows next and prev walk are the rows on screen.
+  // Held above the sheet for the same reason the chart selection is: playback
+  // resolves against it.
   mode: ChartMode;
   onModeChange: (mode: ChartMode) => void;
   snap: SnapState;
@@ -177,9 +177,8 @@ export function ChartSheet({
     currentCountryCode !== null &&
     (currentCountryCode !== countryCode || currentChartRef !== chart.ref);
 
-  // The songs chart as the mode presents it: past the eager rows once they have
-  // been read, and narrowed where the mode narrows. A playlist chart travels
-  // whole and carries no spread, so it is shown exactly as it arrived.
+  // A playlist chart travels whole and carries no spread, so it is shown as it
+  // arrived; the songs chart is assembled to the mode.
   const onlyHereMode = onSongsChart && mode === "only_here";
   const rows = useMemo(
     () =>
@@ -206,19 +205,15 @@ export function ChartSheet({
     return () => observer.disconnect();
   }, [tailReachable, readTail, chart.ref]);
 
-  // Only here draws on the whole hundred rather than the rows that travel
-  // eagerly, so being in it is the ask for the rest. An effect rather than the
-  // switch handler because the switch is not the only way into it: the mode
-  // outlives a country change, and the country it arrives in has a tail of its
-  // own that nothing has asked for. The ask is idempotent per country, so a
-  // listener who already scrolled that far pays nothing.
+  // Being in Only here is the ask for the rest of the chart. An effect, not the
+  // switch handler: the mode outlives a country change, so arriving already in
+  // it is the other way in. Idempotent per country.
   useEffect(() => {
     if (onlyHereMode && tailReachable) readTail();
   }, [onlyHereMode, tailReachable, readTail]);
 
-  // Recorded on the ask rather than on the render that follows, so a mode whose
-  // rows never landed still counts as asked for. Landing on a country already
-  // counts as chart_opened, so only a deliberate switch is a mode opening.
+  // Recorded on the ask, so a mode whose rows never landed still counts. Landing
+  // on a country is already chart_opened, so only a switch is a mode opening.
   const openMode = useCallback(
     (next: ChartMode) => {
       if (next === mode) return;
@@ -228,38 +223,34 @@ export function ChartSheet({
     [mode, onModeChange, countryCode],
   );
 
-  // Only here holding nothing is an answer, but only once the chart it filters
-  // has finished arriving: until then an empty list is a chart still loading.
-  const modeIsEmpty = onlyHereMode && rows.length === 0 && !chart.tailPending;
+  // The chart stops short of what it names, the rest having failed to load.
+  const tailUnread = onSongsChart && chart.tailFailed;
 
-  // Only here is waiting whenever the chart it filters is still arriving: until
-  // the tail lands it is filtering a quarter of the chart, which would otherwise
-  // read as a short answer rather than an unfinished one.
+  // An answer, but only from a whole chart: still arriving, an empty list is one
+  // still loading; never arrived, the mode would answer for a hundred rows from
+  // the twenty five it has.
+  const modeIsEmpty =
+    onlyHereMode && rows.length === 0 && !chart.tailPending && !tailUnread;
+
+  // Until the rest lands, Only here is filtering a quarter of the chart, which
+  // would otherwise read as a short answer rather than an unfinished one.
   const waitingMode: ChartMode | null =
     onlyHereMode && chart.tailPending ? "only_here" : null;
 
-  // Whether the rows now on screen should arrive rather than appear.
-  //
-  // A list the listener waited for does not also arrive: a chart being read
-  // already says it is coming, by receding and pulsing its tab, and an entrance
-  // at the end of that wait reads as more waiting. One that comes at once has
-  // said nothing yet, so the movement is what tells them the question changed:
-  // a mode switch, or a chart reopened from the session's cache.
-  //
-  // A fresh country is left out of both. The globe is already carrying that
-  // change, and the sheet arriving under it competes rather than adds.
-  //
-  // Adjusted during render, the same idiom as the country reset above, so the
-  // rows carry it on the pass they mount in rather than a frame later.
+  // A list the listener waited for does not also arrive: the chart being read
+  // already said it was coming, and an entrance at the end of that wait reads as
+  // more waiting. Only an instant one moves, the movement being the only thing
+  // announcing it. A fresh country is left out too, the globe carrying that
+  // change already. Adjusted during render so the rows carry it on the pass they
+  // mount in.
   const [shownList, setShownList] = useState({
     countryCode,
     chartRef: chart.ref,
     mode,
   });
   const [rowsEntering, setRowsEntering] = useState(false);
-  // Whether a read has been waited on since the list last changed. Remembered
-  // rather than read off `pending`, which is null again by the time the chart it
-  // was waiting for is the one on screen.
+  // Remembered rather than read off `pending`, which is null again by the time
+  // the chart it was waiting for is the one on screen.
   const [waitedForList, setWaitedForList] = useState(false);
   if (chart.pending !== null && !waitedForList) setWaitedForList(true);
   if (
@@ -940,6 +931,7 @@ export function ChartSheet({
             onCloseCommentary={() => setFocusedRank(null)}
           />
         ))}
+        {tailUnread ? <TailUnread /> : null}
         {tailReachable ? (
           <li
             ref={tailSentinelRef}

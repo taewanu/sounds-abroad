@@ -346,4 +346,29 @@ describe("ChartSheet chart modes", () => {
 
     expect(rowsEntering(container)).toBe(false);
   });
+
+  test("says the chart stops short when the rest would not load", () => {
+    renderSheet({ tailFailed: true });
+
+    expect(
+      screen.queryByText("The rest of this chart would not load."),
+    ).not.toBeNull();
+  });
+
+  test("claims nothing about only here from a chart it could not finish reading", () => {
+    // Every eager row is carried elsewhere, so only here holds nothing of the
+    // twenty five in hand. It cannot speak for the rows it never got.
+    const shared = [song(1, 4), song(2, 9)];
+    renderSheet(
+      { tracks: shared, tailFailed: true },
+      { ...COUNTRY, tracks: shared },
+    );
+
+    openOnlyHere();
+
+    expect(screen.queryByText("Nothing is only here today")).toBeNull();
+    expect(
+      screen.queryByText("The rest of this chart would not load."),
+    ).not.toBeNull();
+  });
 });
