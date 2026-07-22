@@ -17,7 +17,7 @@ export async function generateMetadata({
   const entry = code ? countryByCode(code) : undefined;
 
   const title = entry
-    ? `${entry.name} — Top 25 on Sounds Abroad`
+    ? `${entry.name} on Sounds Abroad`
     : "Sounds Abroad — World music discovery";
   const description = entry
     ? `What ${entry.name} is listening to right now. Charts from Apple Music, updated daily.`

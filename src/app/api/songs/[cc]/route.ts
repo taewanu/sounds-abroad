@@ -4,7 +4,7 @@ import { MUSIC_CHARTS_TAG } from "@/lib/cache-tags";
 import {
   ChartPartFetchError,
   ChartPartValidationError,
-  fetchPlaylistFile,
+  fetchSongsTail,
 } from "@/lib/chart-parts";
 
 export const runtime = "nodejs";
@@ -20,20 +20,21 @@ function json(body: unknown, status: number, cache?: string): Response {
 }
 
 /**
- * Serves one playlist's track list to the browser.
+ * Serves one country's chart beyond the rows that travel eagerly.
  *
  * The read goes through here rather than straight from the page because the
  * store answers without a cross-origin header and its location is server-only
  * configuration. Routing it also keeps the charts cache tag on the read, so a
- * crawl revalidation refreshes charts and track lists together instead of
- * leaving one generation behind.
+ * crawl revalidation refreshes every part together.
  */
-export async function readPlaylist(
+export async function readSongsTail(
   _req: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ cc: string }> },
 ): Promise<Response> {
-  const { id } = await params;
-  if (!id) return json({ error: "missing playlist id" }, 400);
+  const { cc } = await params;
+  if (!/^[a-z]{2}$/.test(cc)) {
+    return json({ error: "not a country code" }, 400);
+  }
 
   const chartsUrl = process.env.CHARTS_BLOB_URL;
   if (!chartsUrl) {
@@ -42,26 +43,26 @@ export async function readPlaylist(
   }
 
   try {
-    const file = await fetchPlaylistFile(chartsUrl, id);
+    const file = await fetchSongsTail(chartsUrl, cc);
     // Matches the charts payload's own freshness: one crawl writes both, and a
     // revalidation clears them together through the shared tag.
     return json(file, 200, "public, max-age=60");
   } catch (err) {
-    // A playlist the latest run never wrote is ordinary, not a defect: a country
-    // carried forward on this axis still advertises the charts it had. Anything
-    // else is the store failing, which is worth knowing about.
+    // A country whose chart the latest run never published deeper is ordinary,
+    // not a defect: a carried-forward country keeps whatever the run before it
+    // left. Anything else is the store failing, which is worth knowing about.
     if (err instanceof ChartPartFetchError && err.status === 404) {
-      return json({ error: "no such playlist" }, 404);
+      return json({ error: "no deeper chart" }, 404);
     }
     if (
       err instanceof ChartPartFetchError ||
       err instanceof ChartPartValidationError
     ) {
       Sentry.addBreadcrumb({
-        category: "playlist",
+        category: "songs",
         level: "warning",
-        message: "playlist.upstream_failed",
-        data: { playlistId: id, tag: MUSIC_CHARTS_TAG },
+        message: "songs.upstream_failed",
+        data: { country: cc, tag: MUSIC_CHARTS_TAG },
       });
       return json({ error: "upstream failed" }, 502);
     }
@@ -69,4 +70,4 @@ export async function readPlaylist(
   }
 }
 
-export { readPlaylist as GET };
+export { readSongsTail as GET };

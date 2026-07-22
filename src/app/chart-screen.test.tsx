@@ -1422,3 +1422,109 @@ describe("ChartScreen rail and panel", () => {
     expect(screen.queryByRole("tabpanel")).toBeNull();
   });
 });
+
+describe("ChartScreen deeper rows", () => {
+  const DEEP_TRACK = {
+    rank: 26,
+    name: "Only past the eager rows",
+    artist: "A deeper artist",
+    previewUrl: null,
+    artworkUrl: "https://art.test/deep.jpg",
+    appleUrl: "https://music.apple.com/br/song/26?i=26",
+    spotifyUrl: "https://open.spotify.com/search/deep",
+  };
+
+  /** Captures the observer so a test can decide when the list is read that far. */
+  function stubObserver(): { reach: () => void } {
+    let fire: (() => void) | null = null;
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(private readonly cb: IntersectionObserverCallback) {}
+        observe(el: Element) {
+          fire = () =>
+            this.cb(
+              [
+                {
+                  isIntersecting: true,
+                  target: el,
+                } as IntersectionObserverEntry,
+              ],
+              this as unknown as IntersectionObserver,
+            );
+        }
+        disconnect() {}
+        unobserve() {}
+        takeRecords() {
+          return [];
+        }
+      },
+    );
+    return { reach: () => fire?.() };
+  }
+
+  beforeEach(() => {
+    mockSearchParams.value = new URLSearchParams(`cc=${RAIL_CODE}`);
+    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  test("landing on a country reads nothing deeper", () => {
+    const spy = vi.fn();
+    vi.stubGlobal("fetch", spy);
+    stubObserver();
+
+    render(<ChartScreen charts={CHARTS} defaultCountryCode={RAIL_CODE} />);
+
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  test("reading to the end of the chart brings in the rest", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              code: RAIL_CODE,
+              lastUpdated: "2026-07-22T00:00:00.000Z",
+              tracks: [DEEP_TRACK],
+            }),
+            { status: 200, headers: { "content-type": "application/json" } },
+          ),
+      ),
+    );
+    const { reach } = stubObserver();
+    render(<ChartScreen charts={CHARTS} defaultCountryCode={RAIL_CODE} />);
+
+    expect(screen.queryByText(DEEP_TRACK.name)).toBeNull();
+
+    await act(async () => {
+      reach();
+    });
+
+    expect(screen.getAllByText(DEEP_TRACK.name).length).toBeGreaterThan(0);
+  });
+
+  test("a deeper chart that will not load leaves the rows already read", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("", { status: 404 })),
+    );
+    const { reach } = stubObserver();
+    const charts = CHARTS;
+    render(<ChartScreen charts={charts} defaultCountryCode={RAIL_CODE} />);
+    const eager = charts.countries[RAIL_CODE].tracks[0].name;
+
+    await act(async () => {
+      reach();
+    });
+
+    expect(screen.getAllByText(eager).length).toBeGreaterThan(0);
+    expect(screen.queryByText(DEEP_TRACK.name)).toBeNull();
+  });
+});

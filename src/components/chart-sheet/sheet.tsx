@@ -167,6 +167,33 @@ export function ChartSheet({
     currentCountryCode !== null &&
     (currentCountryCode !== countryCode || currentChartRef !== chart.ref);
 
+  // The songs chart continues past the rows that travel eagerly, once they have
+  // been read. A playlist chart travels whole, so it has no tail.
+  const rows = useMemo(
+    () =>
+      onSongsChart && chart.tail
+        ? [...chart.tracks, ...chart.tail]
+        : chart.tracks,
+    [onSongsChart, chart.tracks, chart.tail],
+  );
+
+  // Only the songs chart has more to fetch, and only until it has been fetched
+  // or has failed. The sentinel sits under the last row, so reading that far is
+  // the ask: no button, and nothing fetched for a listener who never gets there.
+  const tailReachable =
+    onSongsChart && chart.tail === null && !chart.tailFailed;
+  const tailSentinelRef = useRef<HTMLLIElement | null>(null);
+  const { readTail } = chart;
+  useEffect(() => {
+    const el = tailSentinelRef.current;
+    if (!tailReachable || !el) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) readTail();
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [tailReachable, readTail, chart.ref]);
+
   // One key per chart, so the list remounts whenever the tracks under it are
   // replaced rather than reusing rows across two unrelated rankings.
   const listKey = `${countryCode}:${chart.ref}`;
@@ -785,7 +812,7 @@ export function ChartSheet({
             />
           </li>
         ) : null}
-        {chart.tracks.map((track) => (
+        {rows.map((track) => (
           <TrackRow
             key={track.rank}
             track={track}
@@ -798,6 +825,14 @@ export function ChartSheet({
             onCloseCommentary={() => setFocusedRank(null)}
           />
         ))}
+        {tailReachable ? (
+          <li
+            ref={tailSentinelRef}
+            data-testid="chart-tail-sentinel"
+            aria-hidden
+            className="h-px"
+          />
+        ) : null}
       </ol>
     </section>
   );

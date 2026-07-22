@@ -81,7 +81,11 @@ function staticChart(country: Country): ChartTracksState {
     failed: new Set(),
     open: () => {},
     peek: () => null,
-    read: () => Promise.resolve([]),
+    read: async () => [],
+    tail: null,
+    tailPending: false,
+    tailFailed: false,
+    readTail: () => {},
   };
 }
 

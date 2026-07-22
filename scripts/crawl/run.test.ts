@@ -832,7 +832,7 @@ test("counts spread across the whole chart, not only the eager rows", async () =
     uploadSongsTail: vi.fn(async (_file: SongsTailFile) => {}),
   });
 
-  const result = await crawlAll(deps);
+  await crawlAll(deps);
   const tail = vi.mocked(deps.uploadSongsTail).mock.calls[0][0].tracks;
 
   expect(tail.at(-1)?.name).toBe(shared);

@@ -311,7 +311,7 @@ export async function GET(request: Request) {
 
   const nameLines = entry ? [entry.name] : ["What the world", "is playing"];
   const eyebrow = entry
-    ? `${entry.code.toUpperCase()} · TOP 25`
+    ? `${entry.code.toUpperCase()} · MOST PLAYED`
     : "TRENDING WORLDWIDE";
   const nameSize = entry ? (square ? 170 : 150) : square ? 112 : 104;
 

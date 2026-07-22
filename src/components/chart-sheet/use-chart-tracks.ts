@@ -11,9 +11,17 @@ import {
 import { track as trackEvent } from "@/lib/analytics";
 import { SONGS_CHART, isPlaylistRef, type ChartRef } from "@/lib/chart-ref";
 import type { ChartTrack, Country } from "@/lib/chart-schema";
-import { PlaylistFileSchema } from "@/lib/chart-schema";
+import { PlaylistFileSchema, SongsTailFileSchema } from "@/lib/chart-schema";
 
 export interface ChartTracksState {
+  /** The songs chart beyond the eager rows, once read. */
+  tail: ChartTrack[] | null;
+  /** True while the deeper rows are being read. */
+  tailPending: boolean;
+  /** True when the deeper rows would not load. */
+  tailFailed: boolean;
+  /** Asks for the deeper rows, once per country per session. */
+  readTail: () => void;
   /** The chart whose tracks are on screen. Never a chart still in flight. */
   ref: ChartRef;
   tracks: ChartTrack[];
@@ -34,6 +42,14 @@ export interface ChartTracksState {
  * a timeout raced against the server's own bound.
  */
 const READ_TIMEOUT_MS = 15_000;
+
+async function readSongsTail(countryCode: string): Promise<ChartTrack[]> {
+  const res = await fetch(`/api/songs/${encodeURIComponent(countryCode)}`, {
+    signal: AbortSignal.timeout(READ_TIMEOUT_MS),
+  });
+  if (!res.ok) throw new Error(`songs tail ${countryCode}: ${res.status}`);
+  return SongsTailFileSchema.parse(await res.json()).tracks;
+}
 
 async function readPlaylistTracks(id: string): Promise<ChartTrack[]> {
   const res = await fetch(`/api/playlist/${encodeURIComponent(id)}`, {
@@ -64,6 +80,11 @@ export function useChartTracks(
   );
   const [failed, setFailed] = useState<ReadonlySet<ChartRef>>(new Set());
   const [tracks, setTracks] = useState<ChartTrack[]>(country.tracks);
+  // The rows past the eager ones, and whether they are on their way. Held per
+  // country: a chart beyond the payload belongs to the country it was read for.
+  const [tail, setTail] = useState<ChartTrack[] | null>(null);
+  const [tailPending, setTailPending] = useState(false);
+  const [tailFailed, setTailFailed] = useState(false);
 
   // Which read is still wanted. Tapping a second chart before the first lands
   // must not let the first overwrite the list the listener has moved on from.
@@ -82,6 +103,9 @@ export function useChartTracks(
     setTracks(country.tracks);
     setPending(null);
     setFailed(new Set());
+    setTail(null);
+    setTailPending(false);
+    setTailFailed(false);
   }
 
   // Session cache, keyed by playlist id. A ref rather than state: reading it
@@ -212,5 +236,38 @@ export function useChartTracks(
     }
   }, [initialChart, countryCode, commit]);
 
-  return { ref, tracks, pending, failed, open, peek, read };
+  // Asked for by reading that far, so landing on a country still costs no round
+  // trip. Once per country per session: a second ask while one is in flight, or
+  // after it landed, does nothing.
+  const askedTail = useRef<string | null>(null);
+  const readTail = useCallback(() => {
+    if (askedTail.current === countryCode) return;
+    askedTail.current = countryCode;
+    setTailPending(true);
+    readSongsTail(countryCode)
+      .then((rows) => {
+        if (!mounted.current || shownCountryRef.current !== countryCode) return;
+        setTailPending(false);
+        setTail(rows);
+      })
+      .catch(() => {
+        if (!mounted.current || shownCountryRef.current !== countryCode) return;
+        setTailPending(false);
+        setTailFailed(true);
+      });
+  }, [countryCode]);
+
+  return {
+    ref,
+    tracks,
+    pending,
+    failed,
+    open,
+    peek,
+    read,
+    tail,
+    tailPending,
+    tailFailed,
+    readTail,
+  };
 }

@@ -295,3 +295,103 @@ test("a read started in one country cannot land in the next", async () => {
   expect(result.current.tracks).toEqual(movedTo.tracks);
   expect(result.current.pending).toBeNull();
 });
+
+test("asks for the deeper rows only when told to, and only once", async () => {
+  const underTest = country("Country under test", []);
+  const rows = [
+    {
+      rank: 26,
+      name: "A deeper song",
+      artist: "An artist",
+      previewUrl: null,
+      artworkUrl: "https://art.test/a.jpg",
+      appleUrl: "https://music.apple.com/cc/song/26?i=26",
+      spotifyUrl: "https://open.spotify.com/search/a",
+    },
+  ];
+  const spy = vi.fn(
+    async () =>
+      new Response(
+        JSON.stringify({
+          code: "cc",
+          lastUpdated: "2026-07-22T00:00:00.000Z",
+          tracks: rows,
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+  );
+  vi.stubGlobal("fetch", spy);
+  const { result } = renderHook(() => useChartTracks("cc", underTest));
+
+  expect(spy).not.toHaveBeenCalled();
+  expect(result.current.tail).toBeNull();
+
+  await act(async () => {
+    result.current.readTail();
+  });
+  await waitFor(() => expect(result.current.tail).toEqual(rows));
+
+  act(() => result.current.readTail());
+
+  expect(spy).toHaveBeenCalledTimes(1);
+  expect(result.current.tailPending).toBe(false);
+});
+
+test("deeper rows that will not load leave the chart readable", async () => {
+  const underTest = country("Country under test", []);
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => new Response("", { status: 404 })),
+  );
+  const { result } = renderHook(() => useChartTracks("cc", underTest));
+
+  await act(async () => {
+    result.current.readTail();
+  });
+
+  await waitFor(() => expect(result.current.tailFailed).toBe(true));
+  expect(result.current.tracks).toEqual(underTest.tracks);
+  expect(result.current.tail).toBeNull();
+});
+
+test("a new country forgets the deeper rows read for the last one", async () => {
+  const underTest = country("Country under test", []);
+  const movedTo = country("Country moved to", []);
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            code: "cc",
+            lastUpdated: "2026-07-22T00:00:00.000Z",
+            tracks: [
+              {
+                rank: 26,
+                name: "A deeper song",
+                artist: "An artist",
+                previewUrl: null,
+                artworkUrl: "https://art.test/a.jpg",
+                appleUrl: "https://music.apple.com/cc/song/26?i=26",
+                spotifyUrl: "https://open.spotify.com/search/a",
+              },
+            ],
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+    ),
+  );
+  const { result, rerender } = renderHook(
+    ({ code, data }) => useChartTracks(code, data),
+    { initialProps: { code: "cc", data: underTest } },
+  );
+
+  await act(async () => {
+    result.current.readTail();
+  });
+  await waitFor(() => expect(result.current.tail).not.toBeNull());
+
+  rerender({ code: "other", data: movedTo });
+
+  expect(result.current.tail).toBeNull();
+});
