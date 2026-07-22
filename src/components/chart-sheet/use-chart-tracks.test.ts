@@ -337,11 +337,28 @@ test("asks for the deeper rows only when told to, and only once", async () => {
   expect(result.current.tailPending).toBe(false);
 });
 
-test("deeper rows that will not load leave the chart readable", async () => {
+test("a chart never published deeper reads as one that ends, not one that failed", async () => {
   const underTest = country("Country under test", []);
   vi.stubGlobal(
     "fetch",
     vi.fn(async () => new Response("", { status: 404 })),
+  );
+  const { result } = renderHook(() => useChartTracks("cc", underTest));
+
+  await act(async () => {
+    result.current.readTail();
+  });
+
+  await waitFor(() => expect(result.current.tail).toEqual([]));
+  expect(result.current.tailFailed).toBe(false);
+  expect(result.current.tracks).toEqual(underTest.tracks);
+});
+
+test("deeper rows that will not load leave the chart readable", async () => {
+  const underTest = country("Country under test", []);
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => new Response("", { status: 502 })),
   );
   const { result } = renderHook(() => useChartTracks("cc", underTest));
 

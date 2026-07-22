@@ -1513,7 +1513,9 @@ describe("ChartScreen deeper rows", () => {
   test("a deeper chart that will not load leaves the rows already read", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => new Response("", { status: 404 })),
+      // The store failing, not a chart that simply ends: 404 is the latter, and
+      // leaves the list as a chart read to its end rather than a broken one.
+      vi.fn(async () => new Response("", { status: 502 })),
     );
     const { reach } = stubObserver();
     const charts = CHARTS;

@@ -49,6 +49,9 @@ async function readSongsTail(countryCode: string): Promise<ChartTrack[]> {
   const res = await fetch(`/api/songs/${encodeURIComponent(countryCode)}`, {
     signal: AbortSignal.timeout(READ_TIMEOUT_MS),
   });
+  // The route answers 404 for a chart that was never published deeper, which is
+  // an answer rather than a failure: the chart ends where the payload does.
+  if (res.status === 404) return [];
   if (!res.ok) throw new Error(`songs tail ${countryCode}: ${res.status}`);
   return SongsTailFileSchema.parse(await res.json()).tracks;
 }
