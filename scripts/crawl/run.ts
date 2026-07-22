@@ -306,17 +306,21 @@ export function bakeCommentary(
  * chart, and before the charts payload is written, so a failed upload aborts
  * rather than advertising a chart deeper than the store can serve.
  *
- * A country ranking no deeper than the eager rows publishes nothing, and a
- * country carried forward from an earlier run keeps whatever tail that run
- * left, which is the same rule the playlist axis follows.
+ * Every country crawled this run publishes one, empty where its chart stops at
+ * the eager rows: skipping the write would leave an earlier run's rows in the
+ * store for a reader to find and take as current. A country carried forward
+ * writes nothing, its chart being that earlier run's, so the tail it left still
+ * belongs to the rows the payload carries.
  */
 async function publishSongsTails(
   countriesMap: ChartFile["countries"],
+  carriedCodes: readonly string[],
   upload: CrawlAllDeps["uploadSongsTail"],
   now: () => Date,
 ): Promise<void> {
+  const carried = new Set(carriedCodes);
   for (const [code, country] of Object.entries(countriesMap)) {
-    if (country.tracks.length <= EAGER_TRACK_COUNT) continue;
+    if (carried.has(code)) continue;
     const tail = country.tracks.slice(EAGER_TRACK_COUNT);
     countriesMap[code] = {
       ...country,
@@ -502,7 +506,12 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
   // Spread describes the whole chart, not the part that travels eagerly.
   bakeSpread(countriesMap);
 
-  await publishSongsTails(countriesMap, deps.uploadSongsTail, now);
+  await publishSongsTails(
+    countriesMap,
+    carriedCodes,
+    deps.uploadSongsTail,
+    now,
+  );
 
   const playlistAxisRun = deps.playlistAxis
     ? await crawlPlaylistAxis({

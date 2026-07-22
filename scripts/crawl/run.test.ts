@@ -795,7 +795,7 @@ test("keeps the eager rows in the payload and publishes the rest separately", as
   expect(tail.tracks.at(-1)?.rank).toBe(40);
 });
 
-test("publishes no tail for a country that ranks no deeper than the payload", async () => {
+test("publishes an empty tail for a country that ranks no deeper than the payload", async () => {
   const uploadSongsTail = vi.fn(async (_file: SongsTailFile) => {});
   const deps = makeCrawlAllDeps({
     countries: [KR],
@@ -808,7 +808,44 @@ test("publishes no tail for a country that ranks no deeper than the payload", as
   expect(result.chartFile.countries[KR.code].tracks).toHaveLength(
     EAGER_TRACK_COUNT,
   );
-  expect(uploadSongsTail).not.toHaveBeenCalled();
+  // Written rather than skipped: an earlier run's rows are still in the store,
+  // and a reader finding them would take them as this chart's.
+  expect(uploadSongsTail).toHaveBeenCalledTimes(1);
+  expect(uploadSongsTail.mock.calls[0][0].tracks).toEqual([]);
+});
+
+test("writes no tail for a country carried forward from an earlier run", async () => {
+  const uploadSongsTail = vi.fn(async (_file: SongsTailFile) => {});
+  const deps = makeCrawlAllDeps({
+    countries: [KR, NG],
+    fetchRss: failRssFor(NG.code),
+    fetchPrevious: vi.fn(async () =>
+      previousChartFile({ ng: priorCountry(NG.name, 3) }),
+    ),
+    uploadSongsTail,
+  });
+
+  const result = await crawlAll(deps);
+
+  // Its chart is the earlier run's, so the tail that run left still belongs to
+  // the rows the payload carries; an empty write would drop rows still current.
+  expect(result.carriedCodes).toEqual([NG.code]);
+  expect(uploadSongsTail.mock.calls.map((call) => call[0].code)).toEqual([
+    KR.code,
+  ]);
+});
+
+test("publishes an empty tail for a chart that no longer ranks past the payload", async () => {
+  const uploadSongsTail = vi.fn(async (_file: SongsTailFile) => {});
+  const deps = makeCrawlAllDeps({
+    countries: [KR],
+    fetchRss: vi.fn(async (cc) => deepRssFor(cc, EAGER_TRACK_COUNT - 5)),
+    uploadSongsTail,
+  });
+
+  await crawlAll(deps);
+
+  expect(uploadSongsTail.mock.calls[0][0].tracks).toEqual([]);
 });
 
 test("counts spread across the whole chart, not only the eager rows", async () => {
