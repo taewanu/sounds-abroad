@@ -1,9 +1,7 @@
 import type { Track } from "./chart-schema";
 
 export type GemTier =
-  | "entirely their own"
-  | "a local favorite"
-  | "their most local pick today";
+  "entirely their own" | "a local favorite" | "their most local pick today";
 
 export interface GemSelection {
   gem: Track;

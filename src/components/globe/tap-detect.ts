@@ -31,9 +31,7 @@ export function horizontalThird(x: number, width: number): HorizontalThird {
 // double-tap skip window. A skip needs a preview playing and two empty taps in
 // a side third within `windowMs`; the second tap's side picks the direction.
 export type TapAction =
-  | { kind: "skip"; dir: 1 | -1 }
-  | { kind: "select" }
-  | { kind: "armSkip" };
+  { kind: "skip"; dir: 1 | -1 } | { kind: "select" } | { kind: "armSkip" };
 
 // A tap that resolves to a country pin (`hit`) selects with no delay wherever
 // it lands, so a country rendered in a side third is never second-class. The

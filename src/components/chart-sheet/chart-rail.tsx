@@ -70,7 +70,7 @@ export function ChartRail({
       aria-label="Charts"
       aria-orientation="horizontal"
       onKeyDown={handleKeyDown}
-      className="flex shrink-0 gap-2 overflow-x-auto px-4 pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="flex shrink-0 [scrollbar-width:none] gap-2 overflow-x-auto px-4 pb-3 [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
     >
       {entries.map(({ ref, label }, index) => {
         // The asked-for chart reads as selected the moment it is tapped, so the

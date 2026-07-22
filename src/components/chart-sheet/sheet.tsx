@@ -900,7 +900,7 @@ export function ChartSheet({
             "--mode-h": onSongsChart ? "45px" : "0px",
           } as CSSProperties
         }
-        className="chart-list min-h-0 flex-1 touch-none overflow-y-auto overscroll-y-contain px-4 pb-12 [-ms-overflow-style:none] [scrollbar-width:none] group-data-[snap=full]:touch-pan-y data-[peek]:max-h-[calc(35dvh-62px-var(--rail-h)-var(--mode-h))] [&::-webkit-scrollbar]:hidden"
+        className="chart-list min-h-0 flex-1 touch-none [scrollbar-width:none] overflow-y-auto overscroll-y-contain px-4 pb-12 [-ms-overflow-style:none] group-data-[snap=full]:touch-pan-y data-[peek]:max-h-[calc(35dvh-62px-var(--rail-h)-var(--mode-h))] [&::-webkit-scrollbar]:hidden"
       >
         {gemSelection ? (
           <li
