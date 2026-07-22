@@ -22,6 +22,8 @@ export interface ChartTracksState {
   tailFailed: boolean;
   /** Asks for the deeper rows, once per country per session. */
   readTail: () => void;
+  /** Any country's deeper rows once read, else null. */
+  peekTail: (countryCode: string) => ChartTrack[] | null;
   /** The chart whose tracks are on screen. Never a chart still in flight. */
   ref: ChartRef;
   tracks: ChartTrack[];
@@ -80,11 +82,23 @@ export function useChartTracks(
   );
   const [failed, setFailed] = useState<ReadonlySet<ChartRef>>(new Set());
   const [tracks, setTracks] = useState<ChartTrack[]>(country.tracks);
-  // The rows past the eager ones, and whether they are on their way. Held per
-  // country: a chart beyond the payload belongs to the country it was read for.
-  const [tail, setTail] = useState<ChartTrack[] | null>(null);
-  const [tailPending, setTailPending] = useState(false);
-  const [tailFailed, setTailFailed] = useState(false);
+  // The rows past the eager ones, by country, kept for the session the same way
+  // playlist track lists are. Playback follows the track rather than the screen,
+  // so a country's chart has to stay whole once the listener has moved on:
+  // dropping it would end that chart at the payload's edge on the next step,
+  // in the middle of a chart they had already read past.
+  //
+  // State rather than a ref, so what is on screen is read straight out of it
+  // rather than copied into a second place on every country change. Keyed by
+  // country, so a read landing after the listener moved fills the country it was
+  // asked for instead of having to be discarded as stale.
+  const [tails, setTails] = useState<Record<string, ChartTrack[]>>({});
+  const [tailReading, setTailReading] = useState<Record<string, boolean>>({});
+  const [tailFailures, setTailFailures] = useState<Record<string, boolean>>({});
+
+  const tail = tails[countryCode] ?? null;
+  const tailPending = tailReading[countryCode] === true;
+  const tailFailed = tailFailures[countryCode] === true;
 
   // Which read is still wanted. Tapping a second chart before the first lands
   // must not let the first overwrite the list the listener has moved on from.
@@ -103,9 +117,6 @@ export function useChartTracks(
     setTracks(country.tracks);
     setPending(null);
     setFailed(new Set());
-    setTail(null);
-    setTailPending(false);
-    setTailFailed(false);
   }
 
   // Session cache, keyed by playlist id. A ref rather than state: reading it
@@ -238,24 +249,30 @@ export function useChartTracks(
 
   // Asked for by reading that far, so landing on a country still costs no round
   // trip. Once per country per session: a second ask while one is in flight, or
-  // after it landed, does nothing.
-  const askedTail = useRef<string | null>(null);
+  // after it landed or failed, does nothing.
+  //
+  // No staleness check on the way back: the rows are filed under the country
+  // they were asked for, so a read landing after the listener moved on is kept
+  // for that country rather than thrown away.
+  const askedTail = useRef(new Set<string>());
   const readTail = useCallback(() => {
-    if (askedTail.current === countryCode) return;
-    askedTail.current = countryCode;
-    setTailPending(true);
+    if (askedTail.current.has(countryCode)) return;
+    askedTail.current.add(countryCode);
+    setTailReading((reading) => ({ ...reading, [countryCode]: true }));
     readSongsTail(countryCode)
       .then((rows) => {
-        if (!mounted.current || shownCountryRef.current !== countryCode) return;
-        setTailPending(false);
-        setTail(rows);
+        if (!mounted.current) return;
+        setTailReading((reading) => ({ ...reading, [countryCode]: false }));
+        setTails((read) => ({ ...read, [countryCode]: rows }));
       })
       .catch(() => {
-        if (!mounted.current || shownCountryRef.current !== countryCode) return;
-        setTailPending(false);
-        setTailFailed(true);
+        if (!mounted.current) return;
+        setTailReading((reading) => ({ ...reading, [countryCode]: false }));
+        setTailFailures((failed) => ({ ...failed, [countryCode]: true }));
       });
   }, [countryCode]);
+
+  const peekTail = useCallback((code: string) => tails[code] ?? null, [tails]);
 
   return {
     ref,
@@ -269,5 +286,6 @@ export function useChartTracks(
     tailPending,
     tailFailed,
     readTail,
+    peekTail,
   };
 }

@@ -354,7 +354,7 @@ test("deeper rows that will not load leave the chart readable", async () => {
   expect(result.current.tail).toBeNull();
 });
 
-test("a new country forgets the deeper rows read for the last one", async () => {
+test("another country shows none of the rows read for the last one", async () => {
   const underTest = country("Country under test", []);
   const movedTo = country("Country moved to", []);
   vi.stubGlobal(
@@ -394,4 +394,69 @@ test("a new country forgets the deeper rows read for the last one", async () => 
   rerender({ code: "other", data: movedTo });
 
   expect(result.current.tail).toBeNull();
+});
+
+test("returning to a country shows its deeper rows again, unread", async () => {
+  const underTest = country("Country under test", []);
+  const movedTo = country("Country moved to", []);
+  const fetchSpy = vi.fn(
+    async () =>
+      new Response(
+        JSON.stringify({
+          code: "cc",
+          lastUpdated: "2026-07-22T00:00:00.000Z",
+          tracks: [track(26, "A deeper song")],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+  );
+  vi.stubGlobal("fetch", fetchSpy);
+  const { result, rerender } = renderHook(
+    ({ code, data }) => useChartTracks(code, data),
+    { initialProps: { code: "cc", data: underTest } },
+  );
+  await act(async () => {
+    result.current.readTail();
+  });
+  await waitFor(() => expect(result.current.tail).not.toBeNull());
+
+  rerender({ code: "other", data: movedTo });
+  rerender({ code: "cc", data: underTest });
+
+  expect(result.current.tail).toHaveLength(1);
+  expect(fetchSpy).toHaveBeenCalledTimes(1);
+});
+
+test("a country's deeper rows stay reachable from another country", async () => {
+  const underTest = country("Country under test", []);
+  const movedTo = country("Country moved to", []);
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            code: "cc",
+            lastUpdated: "2026-07-22T00:00:00.000Z",
+            tracks: [track(26, "A deeper song")],
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+    ),
+  );
+  const { result, rerender } = renderHook(
+    ({ code, data }) => useChartTracks(code, data),
+    { initialProps: { code: "cc", data: underTest } },
+  );
+  await act(async () => {
+    result.current.readTail();
+  });
+  await waitFor(() => expect(result.current.tail).not.toBeNull());
+
+  rerender({ code: "other", data: movedTo });
+
+  // Playback follows the track, not the screen: a chart left behind has to stay
+  // whole for the next step taken in it.
+  expect(result.current.peekTail("cc")).toHaveLength(1);
+  expect(result.current.peekTail("other")).toBeNull();
 });
