@@ -17,6 +17,10 @@ import { useAudioStore } from "@/providers/audio-store-provider";
 
 import { TrackCommentary } from "./track-commentary";
 
+// How many rows the entrance stagger runs across before every later row lands
+// together. Past this the delay would outlast the motion it is spacing.
+const ENTER_STAGGER_ROWS = 7;
+
 export interface TrackRowProps {
   track: ChartTrack;
   countryCode: string;
@@ -26,6 +30,10 @@ export interface TrackRowProps {
   // The reading the row is listed under, stamped onto playback it starts so the
   // chart plays on in the mode it was heard in.
   mode: ChartMode;
+  // Where the row sits in the list it arrived with, for the entrance stagger.
+  // Capped a few rows in, so a chart of a hundred lands in one motion rather
+  // than trickling for seconds.
+  enterIndex?: number;
   // True on the first commentary-bearing row of the current country: the one
   // row eligible for the one-time discovery pulse.
   isHintTarget?: boolean;
@@ -43,6 +51,7 @@ export function TrackRow({
   countryCode,
   chartRef,
   mode,
+  enterIndex = 0,
   isHintTarget,
   focused = false,
   dimmed = false,
@@ -130,6 +139,7 @@ export function TrackRow({
         {
           "--row-wait-dur": `${2400 + ((track.rank * 37) % 23) * 100}ms`,
           "--row-wait-delay": `-${((track.rank * 53) % 20) * 100}ms`,
+          "--enter-index": Math.min(enterIndex, ENTER_STAGGER_ROWS),
         } as CSSProperties
       }
       className={`${baseClass} ${stateClass}`}

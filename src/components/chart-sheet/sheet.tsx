@@ -238,6 +238,40 @@ export function ChartSheet({
   const waitingMode: ChartMode | null =
     onlyHereMode && chart.tailPending ? "only_here" : null;
 
+  // Whether the rows now on screen should arrive rather than appear.
+  //
+  // A list the listener waited for does not also arrive: a chart being read
+  // already says it is coming, by receding and pulsing its tab, and an entrance
+  // at the end of that wait reads as more waiting. One that comes at once has
+  // said nothing yet, so the movement is what tells them the question changed:
+  // a mode switch, or a chart reopened from the session's cache.
+  //
+  // A fresh country is left out of both. The globe is already carrying that
+  // change, and the sheet arriving under it competes rather than adds.
+  //
+  // Adjusted during render, the same idiom as the country reset above, so the
+  // rows carry it on the pass they mount in rather than a frame later.
+  const [shownList, setShownList] = useState({
+    countryCode,
+    chartRef: chart.ref,
+    mode,
+  });
+  const [rowsEntering, setRowsEntering] = useState(false);
+  // Whether a read has been waited on since the list last changed. Remembered
+  // rather than read off `pending`, which is null again by the time the chart it
+  // was waiting for is the one on screen.
+  const [waitedForList, setWaitedForList] = useState(false);
+  if (chart.pending !== null && !waitedForList) setWaitedForList(true);
+  if (
+    shownList.countryCode !== countryCode ||
+    shownList.chartRef !== chart.ref ||
+    shownList.mode !== mode
+  ) {
+    setRowsEntering(shownList.countryCode === countryCode && !waitedForList);
+    setWaitedForList(false);
+    setShownList({ countryCode, chartRef: chart.ref, mode });
+  }
+
   // One key per chart, so the list remounts whenever the tracks under it are
   // replaced rather than reusing rows across two unrelated rankings. The mode is
   // part of it: the two modes are different rankings of the same chart, so the
@@ -802,6 +836,7 @@ export function ChartSheet({
         ...({
           "--rail-h": hasRail ? "46px" : "0px",
           "--mode-h": onSongsChart ? "45px" : "0px",
+          transition: "--mode-h 280ms var(--ease-spring)",
         } as CSSProperties),
       }}
       // Explicit z so the edge-tap hint can bracket the sheet: its aurora rails
@@ -827,10 +862,23 @@ export function ChartSheet({
           onOpen={chart.open}
         />
         {/* Only the songs axis bakes a spread per track, so only its chart can
-            be read either way; a playlist chart has one reading and no toggle. */}
-        {onSongsChart ? (
-          <ModeTabs current={mode} waiting={waitingMode} onOpen={openMode} />
-        ) : null}
+            be read either way; a playlist chart has one reading and no toggle.
+            Kept mounted while it leaves, a removed row having nothing to
+            collapse; 1fr to 0fr because auto heights do not animate. */}
+        <div
+          data-mode-row
+          data-gone={!onSongsChart || undefined}
+          // Out of reach as well as out of sight while it is gone: it stays in
+          // the tree only so it can collapse, and a control nobody can see must
+          // not still answer to a keyboard or a screen reader.
+          aria-hidden={!onSongsChart || undefined}
+          inert={!onSongsChart}
+          className="grid grid-rows-[1fr] transition-[grid-template-rows,opacity] duration-[280ms] ease-[var(--ease-spring)] data-[gone]:grid-rows-[0fr] data-[gone]:opacity-0 motion-reduce:transition-none"
+        >
+          <div className="min-h-0 overflow-hidden">
+            <ModeTabs current={mode} waiting={waitingMode} onOpen={openMode} />
+          </div>
+        </div>
       </div>
       {/* Native list scroll is enabled only at full (touch-pan-y); at the
           partial snaps a vertical drag drives the sheet instead, so the list
@@ -852,6 +900,7 @@ export function ChartSheet({
         data-chart-waiting={
           chart.pending !== null || waitingMode !== null || undefined
         }
+        data-rows-entering={rowsEntering || undefined}
         className="min-h-0 flex-1 touch-none overflow-y-auto overscroll-y-contain px-4 pb-12 transition-[max-height] duration-300 ease-out [-ms-overflow-style:none] [scrollbar-width:none] group-data-[snap=full]:touch-pan-y data-[peek]:max-h-[calc(35dvh-62px-var(--rail-h)-var(--mode-h))] [&::-webkit-scrollbar]:hidden"
       >
         {gemSelection ? (
@@ -876,10 +925,11 @@ export function ChartSheet({
         {modeIsEmpty ? (
           <ModeEmpty countryName={country.name} hasPlaylists={hasRail} />
         ) : null}
-        {rows.map((track) => (
+        {rows.map((track, index) => (
           <TrackRow
             key={track.rank}
             track={track}
+            enterIndex={index}
             countryCode={countryCode}
             chartRef={chart.ref}
             mode={mode}

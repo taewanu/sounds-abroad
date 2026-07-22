@@ -98,16 +98,18 @@ function chartState(over: Partial<ChartTracksState> = {}): ChartTracksState {
 function ModeHost({
   chart,
   country,
+  countryCode,
 }: {
   chart: ChartTracksState;
   country: Country;
+  countryCode: string;
 }) {
   const [mode, setMode] = useState<ChartMode>(DEFAULT_CHART_MODE);
   return (
     <ChartSheet
       country={country}
       chart={chart}
-      countryCode="tl"
+      countryCode={countryCode}
       mode={mode}
       onModeChange={setMode}
       snap="full"
@@ -121,12 +123,27 @@ function renderSheet(
   country: Country = COUNTRY,
 ) {
   const store = createAudioStore(() => makeMockAudio());
-  const utils = render(
+  const tree = (chart: ChartTracksState, code: string, data: Country) => (
     <AudioStoreContext.Provider value={store}>
-      <ModeHost chart={chartState(over)} country={country} />
-    </AudioStoreContext.Provider>,
+      <ModeHost chart={chart} country={data} countryCode={code} />
+    </AudioStoreContext.Provider>
   );
-  return { ...utils, store };
+  const utils = render(tree(chartState(over), "tl", country));
+  // Re-renders the same tree with another chart or country, so a switch the
+  // screen would drive can be driven here without remounting the mode above it.
+  const swap = (
+    next: Partial<ChartTracksState> = {},
+    code = "tl",
+    data: Country = country,
+  ) => utils.rerender(tree(chartState(next), code, data));
+  return { ...utils, store, swap };
+}
+
+/** Whether the track list is set to play its arrival animation. */
+function rowsEntering(container: HTMLElement): boolean {
+  return (
+    container.querySelector("ol")?.hasAttribute("data-rows-entering") ?? false
+  );
 }
 
 function openOnlyHere() {
@@ -289,5 +306,44 @@ describe("ChartSheet chart modes", () => {
     openOnlyHere();
 
     expect(screen.queryByText("Nothing is only here today")).toBeNull();
+  });
+
+  test("the rows arrive when the mode switches", () => {
+    const { container } = renderSheet({ tail: TAIL });
+
+    openOnlyHere();
+
+    expect(rowsEntering(container)).toBe(true);
+  });
+
+  test("the rows do not arrive when a chart had to be read first", () => {
+    const playlistTracks: ChartTrack[] = [song(1), song(2)];
+    const { container, swap } = renderSheet();
+
+    swap({ pending: PLAYLIST_ID });
+    swap({ ref: PLAYLIST_ID, tracks: playlistTracks });
+
+    // The chart already said it was coming by receding and pulsing its tab, so
+    // an entrance on top of that wait would read as more waiting.
+    expect(rowsEntering(container)).toBe(false);
+  });
+
+  test("the rows arrive for a chart that opened without a wait", () => {
+    const playlistTracks: ChartTrack[] = [song(1), song(2)];
+    const { container, swap } = renderSheet();
+
+    // A chart already read once opens from the session's cache, so nothing was
+    // waited on and the movement is the only thing announcing the change.
+    swap({ ref: PLAYLIST_ID, tracks: playlistTracks });
+
+    expect(rowsEntering(container)).toBe(true);
+  });
+
+  test("the rows do not arrive on a fresh country", () => {
+    const { container, swap } = renderSheet();
+
+    swap({}, "other");
+
+    expect(rowsEntering(container)).toBe(false);
   });
 });
