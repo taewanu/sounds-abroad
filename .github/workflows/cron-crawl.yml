@@ -18,6 +18,10 @@ jobs:
   crawl:
     name: Crawl + Publish + Revalidate
     runs-on: ubuntu-latest
+    # Taking each storefront's whole hundred rather than its first quarter puts
+    # the songs axis at roughly 6,300 Spotify lookups a run, throttled to five a
+    # second: about 21 minutes for that axis and about 55 for the run. Measured
+    # before #299 merged, so the headroom here is deliberate, not spare.
     timeout-minutes: 120
 
     steps:
