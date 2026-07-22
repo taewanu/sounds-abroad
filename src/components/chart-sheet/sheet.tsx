@@ -86,6 +86,10 @@ function isRowFullyVisible(row: HTMLElement, viewport: HTMLElement): boolean {
   return r.top >= v.top - 1 && r.bottom <= v.bottom + 1;
 }
 
+// How long the row arrival runs in total: its own length plus the stagger across
+// the rows that carry one. Mirrors chart-rows-in and ENTER_STAGGER_ROWS.
+export const ROWS_ENTER_TOTAL_MS = 320 + 7 * 20;
+
 const SNAP_ORDER: SnapState[] = ["full", "peek", "closed", "hidden"];
 
 // Pointer travel (px) before a press becomes a drag, so a tap on the handle
@@ -237,12 +241,8 @@ export function ChartSheet({
   const waitingMode: ChartMode | null =
     onlyHereMode && chart.tailPending ? "only_here" : null;
 
-  // A list the listener waited for does not also arrive: the chart being read
-  // already said it was coming, and an entrance at the end of that wait reads as
-  // more waiting. Only an instant one moves, the movement being the only thing
-  // announcing it. A fresh country is left out too, the globe carrying that
-  // change already. Adjusted during render so the rows carry it on the pass they
-  // mount in.
+  // Only a list that arrived at once moves: one the listener waited for has
+  // already been announced by the wait, and a fresh country by the globe.
   const [shownList, setShownList] = useState({
     countryCode,
     chartRef: chart.ref,
@@ -262,6 +262,14 @@ export function ChartSheet({
     setWaitedForList(false);
     setShownList({ countryCode, chartRef: chart.ref, mode });
   }
+
+  // Cleared once the rows have landed: left on, it would animate the deeper rows
+  // appended to this same list later, which arrive rather than replace.
+  useEffect(() => {
+    if (!rowsEntering) return;
+    const id = setTimeout(() => setRowsEntering(false), ROWS_ENTER_TOTAL_MS);
+    return () => clearTimeout(id);
+  }, [rowsEntering]);
 
   // One key per chart, so the list remounts whenever the tracks under it are
   // replaced rather than reusing rows across two unrelated rankings. The mode is
@@ -821,14 +829,6 @@ export function ChartSheet({
         ...(hasMiniPlayer ? SHEET_STYLE_WITH_MINI : SHEET_STYLE_NO_MINI),
         transform: `translateY(${SNAP_Y[initialSnap]})`,
         willChange: "transform",
-        // The peek clamp sizes the list against the header above it, so it has
-        // to know whether a rail and a mode row are there. Declared rather than
-        // measured: each is one row of fixed height.
-        ...({
-          "--rail-h": hasRail ? "46px" : "0px",
-          "--mode-h": onSongsChart ? "45px" : "0px",
-          transition: "--mode-h 280ms var(--ease-spring)",
-        } as CSSProperties),
       }}
       // Explicit z so the edge-tap hint can bracket the sheet: its aurora rails
       // sit below (a lower z) and its sheet-dim above, reproducing the backdrop
@@ -857,7 +857,6 @@ export function ChartSheet({
             Kept mounted while it leaves, a removed row having nothing to
             collapse; 1fr to 0fr because auto heights do not animate. */}
         <div
-          data-mode-row
           data-gone={!onSongsChart || undefined}
           // Out of reach as well as out of sight while it is gone: it stays in
           // the tree only so it can collapse, and a control nobody can see must
@@ -892,7 +891,16 @@ export function ChartSheet({
           chart.pending !== null || waitingMode !== null || undefined
         }
         data-rows-entering={rowsEntering || undefined}
-        className="min-h-0 flex-1 touch-none overflow-y-auto overscroll-y-contain px-4 pb-12 transition-[max-height] duration-300 ease-out [-ms-overflow-style:none] [scrollbar-width:none] group-data-[snap=full]:touch-pan-y data-[peek]:max-h-[calc(35dvh-62px-var(--rail-h)-var(--mode-h))] [&::-webkit-scrollbar]:hidden"
+        // The peek clamp sizes the list against the header above it, so it has
+        // to know whether a rail and a mode row are there. Declared rather than
+        // measured: each is one row of fixed height.
+        style={
+          {
+            "--rail-h": hasRail ? "46px" : "0px",
+            "--mode-h": onSongsChart ? "45px" : "0px",
+          } as CSSProperties
+        }
+        className="chart-list min-h-0 flex-1 touch-none overflow-y-auto overscroll-y-contain px-4 pb-12 [-ms-overflow-style:none] [scrollbar-width:none] group-data-[snap=full]:touch-pan-y data-[peek]:max-h-[calc(35dvh-62px-var(--rail-h)-var(--mode-h))] [&::-webkit-scrollbar]:hidden"
       >
         {gemSelection ? (
           <li

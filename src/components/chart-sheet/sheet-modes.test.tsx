@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import type { AudioEngine } from "@/lib/audio-engine";
@@ -9,7 +9,7 @@ import { SONGS_CHART, type ChartRef } from "@/lib/chart-ref";
 import type { ChartTrack, Country, Track } from "@/lib/chart-schema";
 import { AudioStoreContext } from "@/providers/audio-store-provider";
 
-import { ChartSheet } from "./sheet";
+import { ChartSheet, ROWS_ENTER_TOTAL_MS } from "./sheet";
 import type { ChartTracksState } from "./use-chart-tracks";
 
 const trackEvent = vi.hoisted(() => vi.fn());
@@ -370,5 +370,27 @@ describe("ChartSheet chart modes", () => {
     expect(
       screen.queryByText("The rest of this chart would not load."),
     ).not.toBeNull();
+  });
+
+  test("the arrival stops once the rows have landed", () => {
+    vi.useFakeTimers();
+    try {
+      const { container } = renderSheet({ tail: TAIL });
+
+      act(() => {
+        fireEvent.click(screen.getByRole("button", { name: "Only here" }));
+      });
+      expect(rowsEntering(container)).toBe(true);
+
+      act(() => {
+        vi.advanceTimersByTime(ROWS_ENTER_TOTAL_MS);
+      });
+
+      // Rows read in later join this same list rather than replacing it, so a
+      // flag left on would animate them as though the question had changed.
+      expect(rowsEntering(container)).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

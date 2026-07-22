@@ -150,21 +150,14 @@ function ChartScreenInner({
   // the buttons can step straight out of.
   const [mode, setMode] = useState<ChartMode>(DEFAULT_CHART_MODE);
 
-  // The mode the playing chart is being read in. It follows the mode on screen
-  // while the listener is looking at that chart, and holds where they left it
-  // once they are not: the list in front of them is what next and prev walk, and
-  // when no such list is in front of them, what they are hearing keeps its own.
+  // Follows the mode on screen while the listener is looking at the playing
+  // chart, and holds where they left it once they are not.
   const currentMode = useAudioStore((s) => s.currentMode);
 
-  // The track list a chart holds, or null when it isn't in hand: the songs
-  // chart travels in the payload, a playlist chart only once it has been read.
-  // Located by country and chart together, because the country the listener is
-  // browsing need not be the one playing.
-  //
-  // The songs chart is assembled the same way the sheet lists it, so stepping
-  // reaches every row a listener can see and no row they cannot. `current` is
-  // the track playing on it, put back when the mode has filtered it away, so a
-  // switch mid-song leaves somewhere to step from.
+  // The rows next and prev walk, assembled the same way the sheet lists them so
+  // stepping reaches every row a listener can see and no row they cannot.
+  // Located by country and chart together, the country being browsed need not be
+  // the one playing. `current` is put back where the mode filtered it away.
   const tracksOf = useCallback(
     (
       code: string,
@@ -233,10 +226,8 @@ function ChartScreenInner({
   const currentTrackRank = currentTrack?.rank ?? null;
   const audioStore = useAudioStoreApi();
 
-  // The mode the chart being stepped through is heard in, for the step paths to
-  // stamp onto where they land. Falls back to the mode on screen, which is the
-  // one a first play would have been started in; read from a ref because a step
-  // fires long after the render that formed its handler.
+  // The mode a step stamps onto where it lands. From a ref because a step fires
+  // long after the render that formed its handler.
   const modeRef = useRef(mode);
   useEffect(() => {
     modeRef.current = mode;

@@ -1203,7 +1203,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   /* Keep the recede, drop the breathing: the state still reads, nothing moves. */
-  [data-chart-waiting] > li {
+  [data-chart-waiting] > li,
+  [data-chart-waiting][data-chart-waiting] > li {
     animation: none;
     opacity: 0.42;
   }
@@ -1235,9 +1236,32 @@
   animation-delay: calc(20ms * var(--enter-index, 0));
 }
 
+/* A list still being read is not one that has arrived, so the wait outranks the
+   arrival where a switch lands on a chart that is still coming. Doubled for the
+   specificity alone; the two rules set the same property. */
+[data-chart-waiting][data-chart-waiting] > li {
+  animation: chart-row-wait var(--row-wait-dur, 3s) var(--ease-in-out)
+    var(--row-wait-delay, 0s) infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   /* The rows still arrive, they just do not travel to get there. */
   [data-rows-entering] > li {
     animation: none;
+  }
+}
+
+/* The track list's clamp moves on two clocks: its own height as the sheet
+   settles, and the mode row's as that row leaves. Declared here rather than on
+   the sheet, whose inline transition the drag code owns and overwrites. */
+.chart-list {
+  transition:
+    max-height 300ms ease-out,
+    --mode-h 280ms var(--ease-spring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chart-list {
+    transition: none;
   }
 }
