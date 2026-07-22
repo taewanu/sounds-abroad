@@ -258,4 +258,36 @@ describe("ChartSheet chart modes", () => {
 
     expect(screen.queryByRole("button", { name: "Only here" })).toBeNull();
   });
+
+  test("shows no gem in only here, whose claim its weakest tier contradicts", () => {
+    renderSheet({ tail: TAIL });
+
+    expect(screen.queryByText(/Local Gem/i)).not.toBeNull();
+
+    openOnlyHere();
+
+    expect(screen.queryByText(/Local Gem/i)).toBeNull();
+  });
+
+  test("an empty only here says so rather than looking unloaded", () => {
+    // Nothing on this chart is exclusive, so the mode has a real answer: none.
+    const shared = [song(1, 4), song(2, 9)];
+    renderSheet({ tracks: shared, tail: [] }, { ...COUNTRY, tracks: shared });
+
+    openOnlyHere();
+
+    expect(screen.queryByText("Nothing is only here today")).not.toBeNull();
+  });
+
+  test("says nothing about an empty only here while the chart is arriving", () => {
+    const shared = [song(1, 4)];
+    renderSheet(
+      { tracks: shared, tailPending: true },
+      { ...COUNTRY, tracks: shared },
+    );
+
+    openOnlyHere();
+
+    expect(screen.queryByText("Nothing is only here today")).toBeNull();
+  });
 });

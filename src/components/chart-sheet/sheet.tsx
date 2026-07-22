@@ -20,6 +20,7 @@ import { ChartRail } from "./chart-rail";
 import { CHART_PANEL_ID, chartTabId } from "./chart-tabs";
 import { firstCommentaryRank } from "./first-commentary-rank";
 import { GemCard } from "./gem-card";
+import { ModeEmpty } from "./mode-empty";
 import { ModeTabs } from "./mode-tabs";
 import { TrackRow } from "./track-row";
 import type { ChartTracksState } from "./use-chart-tracks";
@@ -227,6 +228,10 @@ export function ChartSheet({
     [mode, onModeChange, countryCode],
   );
 
+  // Only here holding nothing is an answer, but only once the chart it filters
+  // has finished arriving: until then an empty list is a chart still loading.
+  const modeIsEmpty = onlyHereMode && rows.length === 0 && !chart.tailPending;
+
   // Only here is waiting whenever the chart it filters is still arriving: until
   // the tail lands it is filtering a quarter of the chart, which would otherwise
   // read as a short answer rather than an unfinished one.
@@ -252,9 +257,13 @@ export function ChartSheet({
   // is reachable via both a random landing and a direct ?cc=); otherwise it
   // always returns a gem, so the card renders on every landing with real
   // tracks, regardless of how it was reached.
+  //
+  // Not in Only here: the gem's weakest tier stands in when nothing on the chart
+  // is exclusive, which is the very claim that mode makes, so the two contradict
+  // each other on screen. Loudest where it matters least, over an empty list.
   const gemSelection = useMemo(
-    () => (onSongsChart ? selectGem(country.tracks) : null),
-    [onSongsChart, country.tracks],
+    () => (onSongsChart && !onlyHereMode ? selectGem(country.tracks) : null),
+    [onSongsChart, onlyHereMode, country.tracks],
   );
 
   // Lifts the peek max-height clamp so the list fills the sheet while it's
@@ -863,6 +872,9 @@ export function ChartSheet({
               countryCode={countryCode}
             />
           </li>
+        ) : null}
+        {modeIsEmpty ? (
+          <ModeEmpty countryName={country.name} hasPlaylists={hasRail} />
         ) : null}
         {rows.map((track) => (
           <TrackRow
