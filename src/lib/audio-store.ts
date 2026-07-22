@@ -23,15 +23,9 @@ export interface AudioError {
 }
 
 /**
- * Where a track is being played from: a country, one of its charts, and the
- * mode that chart was being read in. They travel together because no part
- * locates a track list on its own, and the mode decides which of the chart's
- * rows the list holds.
- *
- * The mode is carried rather than read live so a chart plays on in the reading
- * it was started in: a listener who has moved to another country and changed
- * the mode there has re-aimed what they are looking at, not what they are
- * hearing.
+ * Where a track is being played from: a country, one of its charts, and the mode
+ * that chart is read in. All three travel together because none locates a track
+ * list on its own.
  */
 export interface PlaybackLocation {
   countryCode: string;
@@ -64,10 +58,9 @@ export interface AudioState {
     source?: AnalyticsEvent["track_played"]["source"],
   ) => void;
   /**
-   * Re-aims the playing chart's mode, for while the listener is looking at that
-   * very chart: the list in front of them is the one next and prev walk, so a
-   * switch there has to reach playback too. Leaving the chart stops the syncing,
-   * which is what freezes the mode playback carries.
+   * Re-aims the playing chart's mode while the listener is looking at that chart,
+   * the list in front of them being the one next and prev walk. Leaving stops
+   * the syncing, which is what freezes the mode playback carries.
    */
   setCurrentMode: (mode: ChartMode) => void;
   signalStep: (dir: 1 | -1) => void;

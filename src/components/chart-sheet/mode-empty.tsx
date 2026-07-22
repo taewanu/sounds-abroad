@@ -6,13 +6,9 @@ export interface ModeEmptyProps {
 }
 
 /**
- * What Only here says when it holds nothing.
- *
- * An empty list alone reads as a chart that failed to load rather than as an
- * answer, and this is an answer: every song this country is playing is playing
- * somewhere else too. Where the country has playlists, they are the other place
- * its own taste shows, so the listener is pointed back at the rail rather than
- * left at a dead end.
+ * What Only here says when it holds nothing. An empty list alone reads as a
+ * chart that failed to load rather than as the answer it is, and a country with
+ * playlists is pointed at them rather than left at a dead end.
  */
 export function ModeEmpty({ countryName, hasPlaylists }: ModeEmptyProps) {
   return (

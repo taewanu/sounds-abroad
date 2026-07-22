@@ -2,10 +2,8 @@ import type { ChartTrack } from "./chart-schema";
 import { sameTrack } from "./track-identity";
 
 /**
- * Which question the songs chart answers. One chart with two lenses rather than
- * two charts: the storefront's own order, or that same list narrowed to what no
- * other country carries. Neither is the real chart with the other its filter;
- * each is named for what it shows.
+ * Which question the songs chart answers. Neither mode is the real chart with
+ * the other its filter; each is named for what it shows.
  */
 export type ChartMode = "most_played" | "only_here";
 
@@ -32,23 +30,17 @@ export function onlyHere(tracks: readonly ChartTrack[]): ChartTrack[] {
 }
 
 /**
- * Whether one track belongs in Only here. `spread` counts the countries whose
- * chart carries the track, and is optional: a playlist track never has one, and
- * a country carried forward from before the count was baked can lack it too. An
- * absent count is not evidence of exclusivity, so it is excluded rather than
- * assumed: the mode claims no other country carries the track, and a chart that
- * was never counted cannot support that claim.
+ * `spread` counts the countries carrying the track. An absent count is excluded
+ * rather than assumed exclusive: a chart that was never counted cannot support
+ * the claim the mode's name makes.
  */
 function isOnlyHere(track: ChartTrack): boolean {
   return track.spread === 1;
 }
 
 /**
- * A country's songs chart as one mode presents it: the rows that travelled with
- * the payload, the rest once they have been read, narrowed to the mode.
- *
- * The one place the chart is assembled, so the list on screen and the list next
- * and prev walk are the same rows rather than two readings that drift.
+ * A country's songs chart as one mode presents it. The one place it is
+ * assembled, so the list on screen and the list next and prev walk cannot drift.
  */
 export function songsChartRows(
   mode: ChartMode,
@@ -60,12 +52,9 @@ export function songsChartRows(
 }
 
 /**
- * The chart with the playing track in it, wherever the mode left it out.
- *
- * Switching mode mid-song can filter the playing track away, and stepping from a
- * track the chart does not contain reads as the end of it, which would roll the
- * listener out of the country on the next tap. Put back at its own rank, so a
- * step lands on the mode's next row rather than leaving.
+ * The chart with the playing track put back at its rank, wherever the mode left
+ * it out. Stepping from a track the chart does not contain reads as its end,
+ * which would roll the listener out of the country on the next tap.
  */
 export function withPlaying(
   rows: readonly ChartTrack[],

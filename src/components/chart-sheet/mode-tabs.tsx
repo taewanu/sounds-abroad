@@ -19,14 +19,10 @@ export interface ModeTabsProps {
 /**
  * The two questions the songs chart answers, as peers.
  *
- * Toggle buttons in a group rather than a second tab list: the rail above
- * already owns the panel's tabs, and these do not swap the panel, they narrow
- * what it lists. Two controls, so each is its own tab stop and the roving
- * tabindex the rail needs would cost more than it saves.
- *
- * One underline travels between them rather than one per button appearing and
- * disappearing, so a switch reads as a single movement. Its place is measured,
- * the two labels being different widths.
+ * Toggle buttons in a group rather than a second tab list: the rail above owns
+ * the panel's tabs, and these narrow what it lists rather than swapping it. One
+ * underline travels between them so a switch reads as a single movement; its
+ * place is measured, the two labels being different widths.
  */
 export function ModeTabs({ current, waiting, onOpen }: ModeTabsProps) {
   const railRef = useRef<HTMLDivElement | null>(null);

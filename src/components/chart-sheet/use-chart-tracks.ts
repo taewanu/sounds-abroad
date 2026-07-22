@@ -83,15 +83,10 @@ export function useChartTracks(
   const [failed, setFailed] = useState<ReadonlySet<ChartRef>>(new Set());
   const [tracks, setTracks] = useState<ChartTrack[]>(country.tracks);
   // The rows past the eager ones, by country, kept for the session the same way
-  // playlist track lists are. Playback follows the track rather than the screen,
-  // so a country's chart has to stay whole once the listener has moved on:
-  // dropping it would end that chart at the payload's edge on the next step,
-  // in the middle of a chart they had already read past.
-  //
-  // State rather than a ref, so what is on screen is read straight out of it
-  // rather than copied into a second place on every country change. Keyed by
-  // country, so a read landing after the listener moved fills the country it was
-  // asked for instead of having to be discarded as stale.
+  // playlist track lists are: playback follows the track rather than the screen,
+  // so a chart left behind has to stay whole for the next step taken in it.
+  // Keyed by country, so a read landing late fills the country it was asked for
+  // rather than being discarded as stale.
   const [tails, setTails] = useState<Record<string, ChartTrack[]>>({});
   const [tailReading, setTailReading] = useState<Record<string, boolean>>({});
   const [tailFailures, setTailFailures] = useState<Record<string, boolean>>({});
@@ -248,12 +243,7 @@ export function useChartTracks(
   }, [initialChart, countryCode, commit]);
 
   // Asked for by reading that far, so landing on a country still costs no round
-  // trip. Once per country per session: a second ask while one is in flight, or
-  // after it landed or failed, does nothing.
-  //
-  // No staleness check on the way back: the rows are filed under the country
-  // they were asked for, so a read landing after the listener moved on is kept
-  // for that country rather than thrown away.
+  // trip. Once per country per session, however the first ask ended.
   const askedTail = useRef(new Set<string>());
   const readTail = useCallback(() => {
     if (askedTail.current.has(countryCode)) return;
