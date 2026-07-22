@@ -393,4 +393,51 @@ describe("ChartSheet chart modes", () => {
       vi.useRealTimers();
     }
   });
+
+  test("the empty state opens a playlist chart in one action", () => {
+    const open = vi.fn();
+    const shared = [song(1, 4), song(2, 9)];
+    renderSheet(
+      { tracks: shared, tail: [], open },
+      { ...COUNTRY, tracks: shared },
+    );
+
+    openOnlyHere();
+    fireEvent.click(screen.getByRole("button", { name: "Open Everywhere" }));
+
+    expect(open).toHaveBeenCalledWith(PLAYLIST_ID);
+  });
+
+  test("a country carrying no playlists still reads as an answer", () => {
+    const shared = [song(1, 4)];
+    renderSheet(
+      { tracks: shared, tail: [] },
+      { name: "Testland", valid: true, tracks: shared },
+    );
+
+    openOnlyHere();
+
+    expect(screen.queryByText("Nothing is only here today")).not.toBeNull();
+    expect(screen.queryByRole("button", { name: /^Open / })).toBeNull();
+  });
+
+  test("a single exclusive track is listed rather than called nothing", () => {
+    const one = [song(1, 4), song(2, 1)];
+    renderSheet({ tracks: one, tail: [] }, { ...COUNTRY, tracks: one });
+
+    openOnlyHere();
+
+    expect(listedNames()).toEqual(["Song 2"]);
+    expect(screen.queryByText("Nothing is only here today")).toBeNull();
+  });
+
+  test("most played is reachable from the empty state", () => {
+    const shared = [song(1, 4)];
+    renderSheet({ tracks: shared, tail: [] }, { ...COUNTRY, tracks: shared });
+
+    openOnlyHere();
+    fireEvent.click(screen.getByRole("button", { name: "Most played" }));
+
+    expect(listedNames()).toEqual(["Song 1"]);
+  });
 });

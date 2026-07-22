@@ -922,7 +922,11 @@ export function ChartSheet({
           </li>
         ) : null}
         {modeIsEmpty ? (
-          <ModeEmpty countryName={country.name} hasPlaylists={hasRail} />
+          <ModeEmpty
+            countryName={country.name}
+            playlist={country.playlists?.[0] ?? null}
+            onOpenPlaylist={chart.open}
+          />
         ) : null}
         {rows.map((track, index) => (
           <TrackRow
