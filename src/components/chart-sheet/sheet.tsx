@@ -924,6 +924,8 @@ export function ChartSheet({
         {modeIsEmpty ? (
           <ModeEmpty
             countryName={country.name}
+            // The first as the rail orders them, which is the storefront's own
+            // ranking, so the offer is the one the rail leads with too.
             playlist={country.playlists?.[0] ?? null}
             onOpenPlaylist={chart.open}
           />

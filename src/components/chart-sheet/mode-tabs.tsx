@@ -26,7 +26,8 @@ export interface ModeTabsProps {
  */
 export function ModeTabs({ current, waiting, onOpen }: ModeTabsProps) {
   const railRef = useRef<HTMLDivElement | null>(null);
-  const [underline, setUnderline] = useState({ left: 0, width: 0 });
+  // `span` is a scaleX factor over the bar's one pixel, not a width.
+  const [underline, setUnderline] = useState({ left: 0, span: 0 });
 
   // Measured after layout so the bar paints in place rather than travelling from
   // the left edge on arrival, and re-measured on a resize, the labels reflowing
@@ -37,7 +38,7 @@ export function ModeTabs({ current, waiting, onOpen }: ModeTabsProps) {
     const place = () => {
       const active = rail.querySelector<HTMLElement>('[aria-pressed="true"]');
       if (active) {
-        setUnderline({ left: active.offsetLeft, width: active.offsetWidth });
+        setUnderline({ left: active.offsetLeft, span: active.offsetWidth });
       }
     };
     place();
@@ -69,13 +70,13 @@ export function ModeTabs({ current, waiting, onOpen }: ModeTabsProps) {
         );
       })}
       {/* Sits on the group's own bottom rule, so the two read as one edge. One
-          pixel wide and scaled to the label, so travelling between two labels of
-          different widths stays on the compositor rather than laying out the
-          sheet on every frame. */}
+          pixel wide and scaled to the label it is under, so travelling between
+          two labels of different widths animates transform alone rather than
+          resizing the bar every frame. */}
       <span
         aria-hidden
         style={{
-          transform: `translateX(${underline.left}px) scaleX(${underline.width})`,
+          transform: `translateX(${underline.left}px) scaleX(${underline.span})`,
         }}
         className="bg-sunrise absolute -bottom-px left-0 h-0.5 w-px origin-left transition-transform duration-200 ease-[var(--ease-spring)] motion-reduce:transition-none"
       />

@@ -96,13 +96,9 @@ export const PlaylistFileSchema = z.object({
 /**
  * A country's chart beyond the eager rows, published as its own file and read
  * when a listener reads that far. Ranks continue from where the payload stops,
- * so the two halves concatenate into one chart.
- */
-/**
- * The rows a country's songs chart carries past the ones that travel eagerly.
- * Empty is a valid answer, meaning the chart stops where the payload does: the
- * file is published for every country crawled, so it says what is true now
- * rather than leaving an earlier run's rows to be read as current.
+ * so the two halves concatenate into one chart. Empty is a valid answer, the
+ * file being published for every country crawled so that it says what is true
+ * this run rather than leaving an earlier one's rows to be read as current.
  */
 export const SongsTailFileSchema = z.object({
   code: z.string().regex(/^[a-z]{2}$/),

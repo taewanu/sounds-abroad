@@ -412,7 +412,7 @@ describe("ChartSheet chart modes", () => {
     const shared = [song(1, 4)];
     renderSheet(
       { tracks: shared, tail: [] },
-      { name: "Testland", valid: true, tracks: shared },
+      { ...COUNTRY, tracks: shared, playlists: [] },
     );
 
     openOnlyHere();

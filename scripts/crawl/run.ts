@@ -293,12 +293,6 @@ export function bakeCommentary(
 }
 
 /**
- * Back-fills each track's spread: how many countries' charts contain a track
- * with the same cross-country key (ADR-0013). Recomputed from scratch every
- * crawl, so a track's spread always reflects this run's charts, including
- * any carried-forward country.
- */
-/**
  * Splits each country's chart into the part that travels eagerly and the part
  * published beside it, uploading the latter.
  *
@@ -334,6 +328,12 @@ async function publishSongsTails(
   }
 }
 
+/**
+ * Back-fills each track's spread: how many countries' charts contain a track
+ * with the same cross-country key (ADR-0013). Recomputed from scratch every
+ * crawl, so a track's spread always reflects this run's charts, including
+ * any carried-forward country.
+ */
 export function bakeSpread(countries: ChartFile["countries"]): void {
   const countryCountByKey = new Map<string, number>();
   for (const country of Object.values(countries)) {
