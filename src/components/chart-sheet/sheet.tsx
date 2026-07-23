@@ -735,9 +735,16 @@ export function ChartSheet({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  // Bumped when a ranked row starts a track, so a tap on a partly-clipped row
+  // can nudge it into view. Distinct from a step or a reopen: a tap reveals only
+  // when the row is clipped, and only the minimal distance, never realigning a
+  // row already in view.
+  const [tapSignal, setTapSignal] = useState(0);
+
   const prevSnapRef = useRef(snap);
   const prevSignalRef = useRef(scrollSignal);
   const prevStepRef = useRef(stepSignal);
+  const prevTapRef = useRef(tapSignal);
   const prevListKeyRef = useRef(listKey);
 
   useEffect(() => {
@@ -745,6 +752,8 @@ export function ChartSheet({
       prevSnapRef.current === "closed" || prevSnapRef.current === "hidden";
     const signalChanged = prevSignalRef.current !== scrollSignal;
     const stepChanged = prevStepRef.current !== stepSignal;
+    const tapped = prevTapRef.current !== tapSignal;
+    prevTapRef.current = tapSignal;
     // The <ol> is keyed by the chart, so opening another one remounts the list.
     const listSwapped = prevListKeyRef.current !== listKey;
     prevSnapRef.current = snap;
@@ -780,7 +789,7 @@ export function ChartSheet({
     // again. Reached only while the playing chart is on screen, so this fires for
     // a mode change or an arrival onto that chart, never for browsing away; the
     // visibility gate below still spares an already-visible row.
-    if (!isReopen && !stepChanged && !listSwapped) return;
+    if (!isReopen && !stepChanged && !listSwapped && !tapped) return;
 
     const scrollToRow = () => {
       const ol = olRef.current;
@@ -790,7 +799,9 @@ export function ChartSheet({
       if (!ol || !el) return;
       if (!isReopen && isRowFullyVisible(el, ol)) return;
       el.scrollIntoView({
-        block: snap === "peek" ? "start" : "center",
+        // A tap only clears the clip, so it settles the row to the nearest edge;
+        // an indirect reveal centres it (or tops it at peek) to bring context.
+        block: tapped ? "nearest" : snap === "peek" ? "start" : "center",
         behavior: "smooth",
       });
     };
@@ -811,6 +822,7 @@ export function ChartSheet({
     currentTrackRank,
     scrollSignal,
     stepSignal,
+    tapSignal,
     listKey,
     otherChartPlaying,
   ]);
@@ -948,6 +960,7 @@ export function ChartSheet({
             dimmed={focusedRank !== null && track.rank !== focusedRank}
             onOpenCommentary={() => setFocusedRank(track.rank)}
             onCloseCommentary={() => setFocusedRank(null)}
+            onPlay={() => setTapSignal((n) => n + 1)}
           />
         ))}
         {tailUnread ? <TailUnread /> : null}

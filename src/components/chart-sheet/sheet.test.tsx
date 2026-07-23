@@ -123,6 +123,36 @@ function playingAtPeek(mode: "most_played" | "only_here") {
   );
 }
 
+// The ranked row's play button for a track, not the gem card's: the gem
+// duplicates one track's name, so a bare name query can match two buttons.
+function playButtonFor(track: { name: string; artist: string }) {
+  const list = document.querySelector("ol");
+  if (!list) throw new Error("the track list has not rendered");
+  return within(list).getByRole("button", {
+    name: `Play preview of ${track.name} by ${track.artist}`,
+  });
+}
+
+function renderAtPeek(country: Country, currentTrackRank: number) {
+  const store = createAudioStore(() => makeMockAudio());
+  return render(
+    <AudioStoreContext.Provider value={store}>
+      <ChartSheet
+        country={country}
+        chart={staticChart(country)}
+        countryCode="kr"
+        mode="most_played"
+        onModeChange={vi.fn()}
+        snap="peek"
+        onSnapChange={vi.fn()}
+        currentCountryCode="kr"
+        currentChartRef={SONGS_CHART}
+        currentTrackRank={currentTrackRank}
+      />
+    </AudioStoreContext.Provider>,
+  );
+}
+
 function renderSheet(snap: SnapState) {
   const onSnapChange = vi.fn();
   const store = createAudioStore(() => makeMockAudio());
@@ -401,6 +431,54 @@ describe("ChartSheet", () => {
     rerender(playingAtPeek("most_played"));
     await frames(2);
 
+    expect(scrollIntoViewMock).not.toHaveBeenCalled();
+  });
+
+  test("nudges a clipped row into view when it is tapped at peek", async () => {
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
+    renderAtPeek(SPREAD_COUNTRY, 3);
+    scrollIntoViewMock.mockClear();
+    // The tapped row sits below the viewport, clipped.
+    stubRects(rect(0, 100), rect(200, 240));
+
+    fireEvent.click(playButtonFor(SPREAD_COUNTRY.tracks[2]));
+    await frames(1);
+
+    expect(scrollIntoViewMock).toHaveBeenCalledWith({
+      block: "nearest",
+      behavior: "smooth",
+    });
+  });
+
+  test("leaves a fully-visible tapped row where it is", async () => {
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
+    renderAtPeek(SPREAD_COUNTRY, 3);
+    scrollIntoViewMock.mockClear();
+    stubRects(rect(0, 300), rect(40, 80));
+
+    fireEvent.click(playButtonFor(SPREAD_COUNTRY.tracks[2]));
+    await frames(1);
+
+    expect(scrollIntoViewMock).not.toHaveBeenCalled();
+  });
+
+  test("a gem play does not scroll the list to its ranked-row duplicate", async () => {
+    const selection = selectGem(COUNTRY_KR.tracks);
+    if (!selection) throw new Error("fixture has tracks; expected a gem");
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
+    renderAtPeek(COUNTRY_KR, selection.gem.rank);
+    scrollIntoViewMock.mockClear();
+    // The gem's ranked duplicate is below the fold, so a reveal would yank to it.
+    stubRects(rect(0, 100), rect(200, 240));
+
+    const region = screen.getByRole("region", { name: /local gem/i });
+    fireEvent.click(within(region).getByRole("button", { name: /play/i }));
+    await frames(1);
+
+    // The gem card carries no onPlay, so its tap raises no reveal signal.
     expect(scrollIntoViewMock).not.toHaveBeenCalled();
   });
 

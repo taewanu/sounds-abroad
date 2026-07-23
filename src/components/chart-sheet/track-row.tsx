@@ -44,6 +44,10 @@ export interface TrackRowProps {
   dimmed?: boolean;
   onOpenCommentary?: () => void;
   onCloseCommentary?: () => void;
+  // Fired when this row starts a track, so the sheet can nudge a partly-clipped
+  // row into view. Only ranked rows carry it; the gem card does not, so a gem
+  // play never scrolls the list to its ranked-row duplicate.
+  onPlay?: () => void;
 }
 
 export function TrackRow({
@@ -57,6 +61,7 @@ export function TrackRow({
   dimmed = false,
   onOpenCommentary,
   onCloseCommentary,
+  onPlay,
 }: TrackRowProps) {
   const isCurrent = useAudioStore(
     (s) =>
@@ -148,9 +153,10 @@ export function TrackRow({
         <button
           type="button"
           disabled={!hasPreview}
-          onClick={() =>
-            toggle(track, { countryCode, chartRef, mode }, "track_row")
-          }
+          onClick={() => {
+            toggle(track, { countryCode, chartRef, mode }, "track_row");
+            onPlay?.();
+          }}
           aria-label={`${isPlaying ? "Pause" : "Play"} preview of ${track.name} by ${track.artist}`}
           className="focus-visible:outline-aurora flex min-w-0 flex-1 items-center gap-[14px] text-left transition-transform duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none"
         >
