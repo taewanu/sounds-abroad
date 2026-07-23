@@ -309,13 +309,29 @@ function ChartScreenInner({
   }, [settleSignal]);
 
   const handleMiniTap = useCallback(() => {
-    const source = audioStore.getState().currentCountryCode;
-    if (source && source !== countryCode) {
-      window.history.pushState(null, "", `?cc=${source}`);
+    // Return to what is playing, whole: the country, the chart within it, and
+    // the mode it is heard in. Country and chart ride the URL, which the sheet
+    // reopens from; the mode rides local state, not being in the URL yet (#303).
+    // Written only when the shown chart is not already the playing one, so a tap
+    // while looking at it just reopens the sheet without a spurious history
+    // entry. The scroll signal then reveals the now-restored row.
+    const { currentCountryCode, currentChartRef, currentMode } =
+      audioStore.getState();
+    if (currentCountryCode && currentChartRef) {
+      const onPlayingChart =
+        currentCountryCode === countryCode && currentChartRef === chartRef;
+      if (!onPlayingChart) {
+        window.history.pushState(
+          null,
+          "",
+          chartQuery(currentCountryCode, currentChartRef),
+        );
+      }
+      if (currentMode) setMode(currentMode);
     }
     setSnap((s) => (s === "hidden" || s === "closed" ? "peek" : s));
     setScrollSignal((n) => n + 1);
-  }, [audioStore, countryCode]);
+  }, [audioStore, countryCode, chartRef]);
 
   // The badge rides the same reopen path as a strip tap, then asks the sheet to
   // expand the now-playing row's commentary card. The rank is the playing

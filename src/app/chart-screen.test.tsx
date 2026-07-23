@@ -1169,6 +1169,44 @@ describe("ChartScreen playlist playback", () => {
     expect(miniPlayerTrackName()).toBe(FIRST_TAIL.name);
   });
 
+  test("tapping the mini-player returns to the playing chart, not the browsed one", async () => {
+    const pushState = vi
+      .spyOn(window.history, "pushState")
+      .mockImplementation(() => {});
+    render(
+      <ChartScreen charts={PLAYLIST_CHARTS} defaultCountryCode={PL_CODE} />,
+    );
+    await openChart(PL_FIRST_LABEL);
+    playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
+
+    await openChart("Top Songs");
+    fireEvent.click(screen.getByRole("button", { name: "Reopen chart" }));
+
+    // The playing chart is a playlist within the same country, so the return is
+    // the chart, not merely the country: the URL names both.
+    expect(pushState).toHaveBeenLastCalledWith(
+      null,
+      "",
+      `?cc=${PL_CODE}&chart=${PL_FIRST}`,
+    );
+  });
+
+  test("tapping the mini-player while on the playing chart writes no history", async () => {
+    const pushState = vi
+      .spyOn(window.history, "pushState")
+      .mockImplementation(() => {});
+    render(
+      <ChartScreen charts={PLAYLIST_CHARTS} defaultCountryCode={PL_CODE} />,
+    );
+    await openChart(PL_FIRST_LABEL);
+    playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
+
+    fireEvent.click(screen.getByRole("button", { name: "Reopen chart" }));
+
+    // Already looking at the playing chart, so the tap only reopens the sheet.
+    expect(pushState).not.toHaveBeenCalled();
+  });
+
   test("browsing another chart leaves playback in the one it started from", async () => {
     const { container } = render(
       <ChartScreen charts={PLAYLIST_CHARTS} defaultCountryCode={PL_CODE} />,
@@ -1719,6 +1757,41 @@ describe("ChartScreen stepping past the eager rows", () => {
     // lands on 4 exactly as it would have without moving.
     expect(screen.queryByText("Deep 4")).not.toBeNull();
     expect(screen.queryByText("Deep 3")).toBeNull();
+  });
+
+  test("returning by the mini-player restores the mode the track is heard in", async () => {
+    vi.spyOn(window.history, "pushState").mockImplementation(() => {});
+    const { reach } = stubObserver();
+    const { rerender } = render(
+      <ChartScreen charts={DEEP_CHARTS} defaultCountryCode={DEEP_CODE} />,
+    );
+    await act(async () => {
+      reach();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Only here" }));
+    play("Deep 2", "Deep artist 2");
+
+    // Browse elsewhere and re-aim the mode there, so the mode on screen and the
+    // mode playback carries have parted. The URL write is mocked, so the return
+    // navigation is simulated by hand.
+    mockSearchParams.value = new URLSearchParams(`cc=${AWAY_CODE}`);
+    rerender(
+      <ChartScreen charts={DEEP_CHARTS} defaultCountryCode={DEEP_CODE} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Most played" }));
+    fireEvent.click(screen.getByRole("button", { name: "Reopen chart" }));
+    mockSearchParams.value = new URLSearchParams(`cc=${DEEP_CODE}`);
+    rerender(
+      <ChartScreen charts={DEEP_CHARTS} defaultCountryCode={DEEP_CODE} />,
+    );
+
+    // The track was heard in Only here, so the return lands in it, over the Most
+    // played the listener had re-aimed the screen to while away.
+    expect(
+      screen
+        .getByRole("button", { name: "Only here" })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
   });
 
   test("changing the mode elsewhere leaves the playing chart in its own", async () => {
