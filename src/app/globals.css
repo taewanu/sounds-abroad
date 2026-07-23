@@ -111,6 +111,16 @@
   initial-value: 0;
 }
 
+/* The height the mode row occupies above the track list, which the peek clamp
+   subtracts. Registered so it interpolates: the row leaves by collapsing, and a
+   clamp that jumped to the new height would snap the list while the row above it
+   was still moving. */
+@property --mode-h {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
 @layer base {
   html,
   body {
@@ -1193,7 +1203,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   /* Keep the recede, drop the breathing: the state still reads, nothing moves. */
-  [data-chart-waiting] > li {
+  [data-chart-waiting] > li,
+  [data-chart-waiting][data-chart-waiting] > li {
     animation: none;
     opacity: 0.42;
   }
@@ -1202,5 +1213,55 @@
   .chart-tab-waiting {
     animation: none;
     background-color: color-mix(in srgb, var(--color-fg-1) 4%, transparent);
+  }
+}
+
+/* A list arriving under a new heading: the rows rise into place rather than
+   cutting in, so a mode switch reads as the same chart re-answering rather than
+   a different one appearing. Staggered by row, capped a few rows in so a chart
+   of a hundred does not take seconds to land. */
+@keyframes chart-rows-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+[data-rows-entering] > li {
+  animation: chart-rows-in 320ms var(--ease-spring) both;
+  animation-delay: calc(20ms * var(--enter-index, 0));
+}
+
+/* A list still being read is not one that has arrived, so the wait outranks the
+   arrival where a switch lands on a chart that is still coming. Doubled for the
+   specificity alone; the two rules set the same property. */
+[data-chart-waiting][data-chart-waiting] > li {
+  animation: chart-row-wait var(--row-wait-dur, 3s) var(--ease-in-out)
+    var(--row-wait-delay, 0s) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The rows still arrive, they just do not travel to get there. */
+  [data-rows-entering] > li {
+    animation: none;
+  }
+}
+
+/* The track list's clamp moves on two clocks: its own height as the sheet
+   settles, and the mode row's as that row leaves. Declared here rather than on
+   the sheet, whose inline transition the drag code owns and overwrites. */
+.chart-list {
+  transition:
+    max-height 300ms ease-out,
+    --mode-h 280ms var(--ease-spring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chart-list {
+    transition: none;
   }
 }

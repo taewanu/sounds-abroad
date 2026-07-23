@@ -26,6 +26,7 @@ import {
   uploadCharts,
   uploadPlaylistFile,
   uploadPreviousCharts,
+  uploadSongsTail,
 } from "./upload-blob";
 
 assertObjectStoreEnv("Set them as workflow secrets.");
@@ -97,6 +98,7 @@ try {
         lookupTracks: itunes.lookupTracks,
         spotify,
         uploadCharts,
+        uploadSongsTail,
         // Never rejects: a lost snapshot generation only lags the movement
         // diff one run, which must not abort a finished crawl. It still pages,
         // because a silently dead snapshot is how the triggers went inert.

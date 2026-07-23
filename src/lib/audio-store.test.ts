@@ -1,5 +1,6 @@
 import { assert, beforeEach, describe, expect, test, vi } from "vitest";
 
+import { DEFAULT_CHART_MODE } from "@/lib/chart-mode";
 import { SONGS_CHART, type ChartRef } from "@/lib/chart-ref";
 import type { Track } from "@/lib/chart-schema";
 
@@ -25,7 +26,7 @@ const PLAYLIST_REF = "pl.other";
 
 // A playback location, defaulting to the chart every country carries.
 function at(countryCode: string, chartRef: ChartRef = SONGS_CHART) {
-  return { countryCode, chartRef };
+  return { countryCode, chartRef, mode: DEFAULT_CHART_MODE };
 }
 
 type EventType = "ended" | "error" | "play" | "pause";

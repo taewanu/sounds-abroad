@@ -26,7 +26,7 @@ function fakeFetch(response: {
     })) as typeof fetch;
 }
 
-test("parses the captured kr fixture into 25 ranked tracks", async () => {
+test("ranks every result the storefront returns", async () => {
   const body = await loadFixture();
   const raw = JSON.parse(body).feed.results[0];
   const tracks = await fetchAppleRss("kr", {
@@ -68,7 +68,7 @@ test("hits the canonical rss.marketingtools.apple.com endpoint", async () => {
 
   expect(seen).toHaveLength(1);
   expect(seen[0]).toBe(
-    "https://rss.marketingtools.apple.com/api/v2/kr/music/most-played/25/songs.json",
+    "https://rss.marketingtools.apple.com/api/v2/kr/music/most-played/100/songs.json",
   );
 });
 
@@ -103,12 +103,26 @@ test("throws AppleRssError on shape mismatch", async () => {
   ).rejects.toBeInstanceOf(AppleRssError);
 });
 
-test("requires exactly 25 results", async () => {
+test("accepts a storefront that ranks fewer songs than the depth asked for", async () => {
   const body = await loadFixture();
   const fixture = JSON.parse(body);
   assert.equal(fixture.feed.results.length, 25);
 
   fixture.feed.results.pop();
+
+  const tracks = await fetchAppleRss("kr", {
+    fetch: fakeFetch({ ok: true, body: JSON.stringify(fixture) }),
+  });
+
+  expect(tracks).toHaveLength(24);
+  expect(tracks.at(-1)?.rank).toBe(24);
+});
+
+test("rejects a feed longer than the depth asked for", async () => {
+  const body = await loadFixture();
+  const fixture = JSON.parse(body);
+  const one = fixture.feed.results[0];
+  fixture.feed.results = Array.from({ length: 101 }, () => ({ ...one }));
 
   await expect(
     fetchAppleRss("kr", {

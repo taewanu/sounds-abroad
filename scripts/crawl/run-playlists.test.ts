@@ -234,6 +234,7 @@ function makeDeps(input: {
       fetchRss: vi.fn(async (cc: string) => rssFor(cc)),
       lookupTracks,
       uploadCharts: vi.fn(async () => "https://blob/charts.json"),
+      uploadSongsTail: vi.fn(async () => {}),
       triggerRevalidate: vi.fn(async () => {}),
       fetchPrevious: input.fetchPrevious,
       now: () => new Date("2026-07-20T00:00:00.000Z"),

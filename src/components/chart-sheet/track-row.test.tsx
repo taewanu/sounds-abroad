@@ -49,7 +49,12 @@ function renderTrackRow(
   const utils = render(
     <AudioStoreContext.Provider value={store}>
       <ul>
-        <TrackRow track={track} countryCode={countryCode} chartRef={chartRef} />
+        <TrackRow
+          track={track}
+          countryCode={countryCode}
+          chartRef={chartRef}
+          mode="most_played"
+        />
       </ul>
     </AudioStoreContext.Provider>,
   );
@@ -126,7 +131,12 @@ describe("TrackRow", () => {
     rerender(
       <AudioStoreContext.Provider value={store}>
         <ul>
-          <TrackRow track={track} countryCode="kr" chartRef={SONGS_CHART} />
+          <TrackRow
+            track={track}
+            countryCode="kr"
+            chartRef={SONGS_CHART}
+            mode="most_played"
+          />
         </ul>
       </AudioStoreContext.Provider>,
     );
@@ -141,7 +151,12 @@ describe("TrackRow", () => {
     rerender(
       <AudioStoreContext.Provider value={store}>
         <ul>
-          <TrackRow track={track} countryCode="kr" chartRef={SONGS_CHART} />
+          <TrackRow
+            track={track}
+            countryCode="kr"
+            chartRef={SONGS_CHART}
+            mode="most_played"
+          />
         </ul>
       </AudioStoreContext.Provider>,
     );
@@ -156,7 +171,12 @@ describe("TrackRow", () => {
     rerender(
       <AudioStoreContext.Provider value={store}>
         <ul>
-          <TrackRow track={track} countryCode="kr" chartRef={SONGS_CHART} />
+          <TrackRow
+            track={track}
+            countryCode="kr"
+            chartRef={SONGS_CHART}
+            mode="most_played"
+          />
         </ul>
       </AudioStoreContext.Provider>,
     );
@@ -413,6 +433,7 @@ describe("TrackRow commentary focus card", () => {
             track={makeTrack({ commentary: COMMENTARY })}
             countryCode="kr"
             chartRef={SONGS_CHART}
+            mode="most_played"
             focused={over.focused ?? false}
             dimmed={over.dimmed ?? false}
             onOpenCommentary={onOpenCommentary}

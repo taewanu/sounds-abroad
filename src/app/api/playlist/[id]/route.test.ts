@@ -1,17 +1,18 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import {
-  PlaylistFetchError,
-  PlaylistValidationError,
+  ChartPartFetchError,
+  ChartPartValidationError,
   fetchPlaylistFile,
-} from "@/lib/playlist-client";
+} from "@/lib/chart-parts";
 
 import { readPlaylist } from "./route";
 
-vi.mock("@/lib/playlist-client", async () => {
-  const actual = await vi.importActual<typeof import("@/lib/playlist-client")>(
-    "@/lib/playlist-client",
-  );
+vi.mock("@/lib/chart-parts", async () => {
+  const actual =
+    await vi.importActual<typeof import("@/lib/chart-parts")>(
+      "@/lib/chart-parts",
+    );
   return { ...actual, fetchPlaylistFile: vi.fn() };
 });
 
@@ -64,7 +65,7 @@ test("returns the track list for a playlist that resolves", async () => {
 
 test("passes an upstream not-found through as a not-found", async () => {
   fetchPlaylistFileMock.mockRejectedValue(
-    new PlaylistFetchError(PLAYLIST_ID, 404, "missing"),
+    new ChartPartFetchError(PLAYLIST_ID, 404, "missing"),
   );
 
   const res = await readPlaylist(makeReq(), params(PLAYLIST_ID));
@@ -74,7 +75,7 @@ test("passes an upstream not-found through as a not-found", async () => {
 
 test("reports an upstream server error as a bad gateway", async () => {
   fetchPlaylistFileMock.mockRejectedValue(
-    new PlaylistFetchError(PLAYLIST_ID, 500, "upstream exploded"),
+    new ChartPartFetchError(PLAYLIST_ID, 500, "upstream exploded"),
   );
 
   const res = await readPlaylist(makeReq(), params(PLAYLIST_ID));
@@ -84,7 +85,7 @@ test("reports an upstream server error as a bad gateway", async () => {
 
 test("reports a payload that fails validation as a bad gateway", async () => {
   fetchPlaylistFileMock.mockRejectedValue(
-    new PlaylistValidationError(PLAYLIST_ID, [], "bad shape"),
+    new ChartPartValidationError(PLAYLIST_ID, [], "bad shape"),
   );
 
   const res = await readPlaylist(makeReq(), params(PLAYLIST_ID));

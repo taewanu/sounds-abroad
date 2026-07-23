@@ -18,6 +18,7 @@ import {
   uploadCharts,
   uploadPlaylistFile,
   uploadPreviousCharts,
+  uploadSongsTail,
 } from "./upload-blob";
 
 // Spotify resolution for local debug: enabled only when both credentials are in
@@ -102,6 +103,7 @@ async function runAllCountries(): Promise<void> {
     lookupTracks: itunes.lookupTracks,
     spotify: spotifyFromEnv(),
     uploadCharts,
+    uploadSongsTail,
     fetchPrevious: previousUrl
       ? () => fetchPublishedCharts(previousUrl)
       : undefined,

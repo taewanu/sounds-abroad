@@ -11,9 +11,19 @@ import {
 import { track as trackEvent } from "@/lib/analytics";
 import { SONGS_CHART, isPlaylistRef, type ChartRef } from "@/lib/chart-ref";
 import type { ChartTrack, Country } from "@/lib/chart-schema";
-import { PlaylistFileSchema } from "@/lib/chart-schema";
+import { PlaylistFileSchema, SongsTailFileSchema } from "@/lib/chart-schema";
 
 export interface ChartTracksState {
+  /** The songs chart beyond the eager rows, once read. */
+  tail: ChartTrack[] | null;
+  /** True while the deeper rows are being read. */
+  tailPending: boolean;
+  /** True when the deeper rows would not load. */
+  tailFailed: boolean;
+  /** Asks for the deeper rows, once per country per session. */
+  readTail: () => void;
+  /** Any country's deeper rows once read, else null. */
+  peekTail: (countryCode: string) => ChartTrack[] | null;
   /** The chart whose tracks are on screen. Never a chart still in flight. */
   ref: ChartRef;
   tracks: ChartTrack[];
@@ -34,6 +44,17 @@ export interface ChartTracksState {
  * a timeout raced against the server's own bound.
  */
 const READ_TIMEOUT_MS = 15_000;
+
+async function readSongsTail(countryCode: string): Promise<ChartTrack[]> {
+  const res = await fetch(`/api/songs/${encodeURIComponent(countryCode)}`, {
+    signal: AbortSignal.timeout(READ_TIMEOUT_MS),
+  });
+  // The route answers 404 for a chart that was never published deeper, which is
+  // an answer rather than a failure: the chart ends where the payload does.
+  if (res.status === 404) return [];
+  if (!res.ok) throw new Error(`songs tail ${countryCode}: ${res.status}`);
+  return SongsTailFileSchema.parse(await res.json()).tracks;
+}
 
 async function readPlaylistTracks(id: string): Promise<ChartTrack[]> {
   const res = await fetch(`/api/playlist/${encodeURIComponent(id)}`, {
@@ -64,6 +85,18 @@ export function useChartTracks(
   );
   const [failed, setFailed] = useState<ReadonlySet<ChartRef>>(new Set());
   const [tracks, setTracks] = useState<ChartTrack[]>(country.tracks);
+  // The rows past the eager ones, by country, kept for the session the same way
+  // playlist track lists are: playback follows the track rather than the screen,
+  // so a chart left behind has to stay whole for the next step taken in it.
+  // Keyed by country, so a read landing late fills the country it was asked for
+  // rather than being discarded as stale.
+  const [tails, setTails] = useState<Record<string, ChartTrack[]>>({});
+  const [tailReading, setTailReading] = useState<Record<string, boolean>>({});
+  const [tailFailures, setTailFailures] = useState<Record<string, boolean>>({});
+
+  const tail = tails[countryCode] ?? null;
+  const tailPending = tailReading[countryCode] === true;
+  const tailFailed = tailFailures[countryCode] === true;
 
   // Which read is still wanted. Tapping a second chart before the first lands
   // must not let the first overwrite the list the listener has moved on from.
@@ -212,5 +245,40 @@ export function useChartTracks(
     }
   }, [initialChart, countryCode, commit]);
 
-  return { ref, tracks, pending, failed, open, peek, read };
+  // Asked for by reading that far, so landing on a country still costs no round
+  // trip. Once per country per session, however the first ask ended.
+  const askedTail = useRef(new Set<string>());
+  const readTail = useCallback(() => {
+    if (askedTail.current.has(countryCode)) return;
+    askedTail.current.add(countryCode);
+    setTailReading((reading) => ({ ...reading, [countryCode]: true }));
+    readSongsTail(countryCode)
+      .then((rows) => {
+        if (!mounted.current) return;
+        setTailReading((reading) => ({ ...reading, [countryCode]: false }));
+        setTails((read) => ({ ...read, [countryCode]: rows }));
+      })
+      .catch(() => {
+        if (!mounted.current) return;
+        setTailReading((reading) => ({ ...reading, [countryCode]: false }));
+        setTailFailures((failed) => ({ ...failed, [countryCode]: true }));
+      });
+  }, [countryCode]);
+
+  const peekTail = useCallback((code: string) => tails[code] ?? null, [tails]);
+
+  return {
+    ref,
+    tracks,
+    pending,
+    failed,
+    open,
+    peek,
+    read,
+    tail,
+    tailPending,
+    tailFailed,
+    readTail,
+    peekTail,
+  };
 }

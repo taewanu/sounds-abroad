@@ -1,9 +1,11 @@
-import type {
-  ChartFile,
-  Country,
-  Playlist,
-  PlaylistFile,
-  Track,
+import {
+  EAGER_TRACK_COUNT,
+  type ChartFile,
+  type Country,
+  type Playlist,
+  type PlaylistFile,
+  type SongsTailFile,
+  type Track,
 } from "../../src/lib/chart-schema";
 import {
   DEFAULT_LANG,
@@ -64,6 +66,10 @@ export interface CrawlAllDeps {
   lookupTracks: BatchLookup;
   spotify?: SpotifyResolution;
   uploadCharts: (chartFile: ChartFile) => Promise<string>;
+  // Publishes one country's chart beyond the eager rows. Called before the
+  // charts payload, so a failure aborts rather than advertising a chart deeper
+  // than the store can serve.
+  uploadSongsTail: (file: SongsTailFile) => Promise<unknown>;
   triggerRevalidate: () => Promise<void>;
   // Source for carrying forward a country that fails this run. Must resolve
   // null (never reject) when unavailable, which skips carry-forward.
@@ -287,6 +293,42 @@ export function bakeCommentary(
 }
 
 /**
+ * Splits each country's chart into the part that travels eagerly and the part
+ * published beside it, uploading the latter.
+ *
+ * Runs after spread is baked, so both halves carry counts taken over the whole
+ * chart, and before the charts payload is written, so a failed upload aborts
+ * rather than advertising a chart deeper than the store can serve.
+ *
+ * Every country crawled this run publishes one, empty where its chart stops at
+ * the eager rows: skipping the write would leave an earlier run's rows in the
+ * store for a reader to find and take as current. A country carried forward
+ * writes nothing, its chart being that earlier run's, so the tail it left still
+ * belongs to the rows the payload carries.
+ */
+async function publishSongsTails(
+  countriesMap: ChartFile["countries"],
+  carriedCodes: readonly string[],
+  upload: CrawlAllDeps["uploadSongsTail"],
+  now: () => Date,
+): Promise<void> {
+  const carried = new Set(carriedCodes);
+  for (const [code, country] of Object.entries(countriesMap)) {
+    if (carried.has(code)) continue;
+    const tail = country.tracks.slice(EAGER_TRACK_COUNT);
+    countriesMap[code] = {
+      ...country,
+      tracks: country.tracks.slice(0, EAGER_TRACK_COUNT),
+    };
+    await upload({
+      code,
+      lastUpdated: now().toISOString(),
+      tracks: tail,
+    });
+  }
+}
+
+/**
  * Back-fills each track's spread: how many countries' charts contain a track
  * with the same cross-country key (ADR-0013). Recomputed from scratch every
  * crawl, so a track's spread always reflects this run's charts, including
@@ -460,7 +502,16 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
     );
   }
 
+  // Before the split, so a track appearing deep in two countries is counted.
+  // Spread describes the whole chart, not the part that travels eagerly.
   bakeSpread(countriesMap);
+
+  await publishSongsTails(
+    countriesMap,
+    carriedCodes,
+    deps.uploadSongsTail,
+    now,
+  );
 
   const playlistAxisRun = deps.playlistAxis
     ? await crawlPlaylistAxis({

@@ -9,8 +9,23 @@ A ranked track list belonging to one country. A country carries a songs chart an
 _Avoid_: using "chart" for the whole published payload (that is the charts file); treating the songs chart as the country's chart and the rest as something else.
 
 **Songs chart**:
-The 25-track chart of what a country is playing, drawn from the storefront's own ranking. Every country has exactly one, ranks mean the same thing across countries, and it is the chart a country opens on. Its tracks carry spread and may carry commentary.
-_Avoid_: "top chart" or "main chart", both of which imply the playlist charts are subordinate.
+The hundred-track chart of what a country is playing, drawn from the storefront's own ranking. Every country has exactly one, ranks mean the same thing across countries, and it is the chart a country opens on. Its tracks carry spread and may carry commentary. Only its first twenty five travel in the payload; see eager rows.
+_Avoid_: "top chart" or "main chart", both of which imply the playlist charts are subordinate; calling it a 25-track chart, which describes what travels rather than what it is.
+
+**Eager rows** / **chart tail**:
+The split a songs chart travels in. The eager rows are the first twenty five, carried in the payload so a globe spin paints with no round trip; the tail is the rest, published per country and read when a listener reaches the end of the list. Both halves carry spread counted over the whole chart. See ADR-0016.
+_Avoid_: treating the eager rows as the chart, which is what makes a stepping or filtering rule answer for a hundred rows from twenty five.
+
+**Chart mode**:
+Which question a songs chart is answering. One chart read two ways rather than two charts, so the chart selection is untouched by a switch. A mode outlives a country change, a playlist chart has none, and playback carries the mode it was started in.
+_Avoid_: "filter" or "view", which cast most played as the real chart and only here as something applied to it.
+
+**Most played**:
+The mode listing a songs chart in the storefront's own order, and the mode a chart opens on.
+
+**Only here**:
+The mode listing only the tracks whose spread is exactly one, meaning no other country's chart carries them. A country where nothing qualifies is an answer, not an empty state.
+_Avoid_: reading it as "local music". It names where a track charts, not where it comes from, so a global artist's track that only one country charts belongs to it.
 
 **Playlist chart**:
 A chart whose tracks come from one Apple storefront playlist that survived the crawl's locality filter. Meaningful in exactly one country, since a playlist appearing across many storefronts is excluded as global. Its tracks carry neither spread nor commentary, and it may run to a hundred tracks or more.

@@ -8,6 +8,7 @@ import { PlayIcon } from "@/components/icons/play";
 import { SpotifyIcon } from "@/components/icons/spotify";
 import { useOverflowMarquee } from "@/components/use-overflow-marquee";
 import { track as trackEvent } from "@/lib/analytics";
+import type { ChartMode } from "@/lib/chart-mode";
 import type { ChartRef } from "@/lib/chart-ref";
 import type { ChartTrack } from "@/lib/chart-schema";
 import { spotifySearchUrl } from "@/lib/spotify-search-url";
@@ -16,12 +17,23 @@ import { useAudioStore } from "@/providers/audio-store-provider";
 
 import { TrackCommentary } from "./track-commentary";
 
+// How many rows the entrance stagger runs across before every later row lands
+// together. Past this the delay would outlast the motion it is spacing.
+const ENTER_STAGGER_ROWS = 7;
+
 export interface TrackRowProps {
   track: ChartTrack;
   countryCode: string;
   // Which of the country's charts this row is listed in. Playback is located by
   // the pair, so the same song listed in two of them keeps one playing state.
   chartRef: ChartRef;
+  // The reading the row is listed under, stamped onto playback it starts so the
+  // chart plays on in the mode it was heard in.
+  mode: ChartMode;
+  // Where the row sits in the list it arrived with, for the entrance stagger.
+  // Capped a few rows in, so a chart of a hundred lands in one motion rather
+  // than trickling for seconds.
+  enterIndex?: number;
   // True on the first commentary-bearing row of the current country: the one
   // row eligible for the one-time discovery pulse.
   isHintTarget?: boolean;
@@ -38,6 +50,8 @@ export function TrackRow({
   track,
   countryCode,
   chartRef,
+  mode,
+  enterIndex = 0,
   isHintTarget,
   focused = false,
   dimmed = false,
@@ -125,6 +139,7 @@ export function TrackRow({
         {
           "--row-wait-dur": `${2400 + ((track.rank * 37) % 23) * 100}ms`,
           "--row-wait-delay": `-${((track.rank * 53) % 20) * 100}ms`,
+          "--enter-index": Math.min(enterIndex, ENTER_STAGGER_ROWS),
         } as CSSProperties
       }
       className={`${baseClass} ${stateClass}`}
@@ -133,7 +148,9 @@ export function TrackRow({
         <button
           type="button"
           disabled={!hasPreview}
-          onClick={() => toggle(track, { countryCode, chartRef }, "track_row")}
+          onClick={() =>
+            toggle(track, { countryCode, chartRef, mode }, "track_row")
+          }
           aria-label={`${isPlaying ? "Pause" : "Play"} preview of ${track.name} by ${track.artist}`}
           className="focus-visible:outline-aurora flex min-w-0 flex-1 items-center gap-[14px] text-left transition-transform duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none"
         >

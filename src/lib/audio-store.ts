@@ -7,6 +7,7 @@ import {
   type AudioEngineFactory,
   createBrowserAudioEngine,
 } from "@/lib/audio-engine";
+import type { ChartMode } from "@/lib/chart-mode";
 import type { ChartRef } from "@/lib/chart-ref";
 import type { ChartTrack } from "@/lib/chart-schema";
 import {
@@ -22,18 +23,22 @@ export interface AudioError {
 }
 
 /**
- * Where a track is being played from: a country plus one of its charts. The
- * pair travels together because neither half locates a track list on its own.
+ * Where a track is being played from: a country, one of its charts, and the mode
+ * that chart is read in. All three travel together because none locates a track
+ * list on its own.
  */
 export interface PlaybackLocation {
   countryCode: string;
   chartRef: ChartRef;
+  mode: ChartMode;
 }
 
 export interface AudioState {
   currentTrack: ChartTrack | null;
   currentCountryCode: string | null;
   currentChartRef: ChartRef | null;
+  /** The mode the playing chart is being read in. */
+  currentMode: ChartMode | null;
   isPlaying: boolean;
   volume: number;
   lastError: AudioError | null;
@@ -52,6 +57,12 @@ export interface AudioState {
     location?: PlaybackLocation,
     source?: AnalyticsEvent["track_played"]["source"],
   ) => void;
+  /**
+   * Re-aims the playing chart's mode while the listener is looking at that chart,
+   * the list in front of them being the one next and prev walk. Leaving stops
+   * the syncing, which is what freezes the mode playback carries.
+   */
+  setCurrentMode: (mode: ChartMode) => void;
   signalStep: (dir: 1 | -1) => void;
   setVolume: (value: number) => void;
   pause: () => void;
@@ -157,11 +168,13 @@ export function createAudioStore(
       currentTrack: null,
       currentCountryCode: null,
       currentChartRef: null,
+      currentMode: null,
       isPlaying: false,
       volume: 1,
       lastError: null,
       endedSignal: 0,
       lastStep: null,
+      setCurrentMode: (mode) => set({ currentMode: mode }),
       signalStep: (dir) =>
         set((state) => ({
           lastStep: { dir, nonce: (state.lastStep?.nonce ?? 0) + 1 },
@@ -200,6 +213,7 @@ export function createAudioStore(
           currentTrack: track,
           currentCountryCode: location?.countryCode ?? null,
           currentChartRef: location?.chartRef ?? null,
+          currentMode: location?.mode ?? null,
           isPlaying: true,
           lastError: null,
         });
@@ -228,6 +242,7 @@ export function createAudioStore(
           currentTrack: null,
           currentCountryCode: null,
           currentChartRef: null,
+          currentMode: null,
           isPlaying: false,
           lastError: null,
         });

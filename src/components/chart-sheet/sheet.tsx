@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import { track as trackEvent } from "@/lib/analytics";
+import { songsChartRows, type ChartMode } from "@/lib/chart-mode";
 import { SONGS_CHART, type ChartRef } from "@/lib/chart-ref";
 import type { Country } from "@/lib/chart-schema";
 import { selectGem } from "@/lib/select-gem";
@@ -19,6 +20,9 @@ import { ChartRail } from "./chart-rail";
 import { CHART_PANEL_ID, chartTabId } from "./chart-tabs";
 import { firstCommentaryRank } from "./first-commentary-rank";
 import { GemCard } from "./gem-card";
+import { ModeEmpty } from "./mode-empty";
+import { ModeTabs } from "./mode-tabs";
+import { TailUnread } from "./tail-unread";
 import { TrackRow } from "./track-row";
 import type { ChartTracksState } from "./use-chart-tracks";
 
@@ -30,6 +34,10 @@ export interface ChartSheetProps {
   // between them. Held above the sheet because playback reads it too.
   chart: ChartTracksState;
   countryCode: string;
+  // Held above the sheet for the same reason the chart selection is: playback
+  // resolves against it.
+  mode: ChartMode;
+  onModeChange: (mode: ChartMode) => void;
   snap: SnapState;
   onSnapChange: (snap: SnapState) => void;
   currentTrackRank?: number | null;
@@ -77,6 +85,10 @@ function isRowFullyVisible(row: HTMLElement, viewport: HTMLElement): boolean {
   const v = viewport.getBoundingClientRect();
   return r.top >= v.top - 1 && r.bottom <= v.bottom + 1;
 }
+
+// How long the row arrival runs in total: its own length plus the stagger across
+// the rows that carry one. Mirrors chart-rows-in and ENTER_STAGGER_ROWS.
+export const ROWS_ENTER_TOTAL_MS = 320 + 7 * 20;
 
 const SNAP_ORDER: SnapState[] = ["full", "peek", "closed", "hidden"];
 
@@ -141,6 +153,8 @@ export function ChartSheet({
   country,
   chart,
   countryCode,
+  mode,
+  onModeChange,
   snap,
   onSnapChange,
   currentTrackRank = null,
@@ -167,9 +181,102 @@ export function ChartSheet({
     currentCountryCode !== null &&
     (currentCountryCode !== countryCode || currentChartRef !== chart.ref);
 
+  // A playlist chart travels whole and carries no spread, so it is shown as it
+  // arrived; the songs chart is assembled to the mode.
+  const onlyHereMode = onSongsChart && mode === "only_here";
+  const rows = useMemo(
+    () =>
+      onSongsChart
+        ? songsChartRows(mode, chart.tracks, chart.tail)
+        : chart.tracks,
+    [onSongsChart, mode, chart.tracks, chart.tail],
+  );
+
+  // Only the songs chart has more to fetch, and only until it has been fetched
+  // or has failed. The sentinel sits under the last row, so reading that far is
+  // the ask: no button, and nothing fetched for a listener who never gets there.
+  const tailReachable =
+    onSongsChart && chart.tail === null && !chart.tailFailed;
+  const tailSentinelRef = useRef<HTMLLIElement | null>(null);
+  const { readTail } = chart;
+  useEffect(() => {
+    const el = tailSentinelRef.current;
+    if (!tailReachable || !el) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) readTail();
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [tailReachable, readTail, chart.ref]);
+
+  // Being in Only here is the ask for the rest of the chart. An effect, not the
+  // switch handler: the mode outlives a country change, so arriving already in
+  // it is the other way in. Idempotent per country.
+  useEffect(() => {
+    if (onlyHereMode && tailReachable) readTail();
+  }, [onlyHereMode, tailReachable, readTail]);
+
+  // Recorded on the ask, so a mode whose rows never landed still counts. Landing
+  // on a country is already chart_opened, so only a switch is a mode opening.
+  const openMode = useCallback(
+    (next: ChartMode) => {
+      if (next === mode) return;
+      onModeChange(next);
+      trackEvent("chart_mode_opened", { country: countryCode, mode: next });
+    },
+    [mode, onModeChange, countryCode],
+  );
+
+  // The chart stops short of what it names, the rest having failed to load.
+  const tailUnread = onSongsChart && chart.tailFailed;
+
+  // An answer, but only from a whole chart: still arriving, an empty list is one
+  // still loading; never arrived, the mode would answer for a hundred rows from
+  // the twenty five it has.
+  const modeIsEmpty =
+    onlyHereMode && rows.length === 0 && !chart.tailPending && !tailUnread;
+
+  // Until the rest lands, Only here is filtering a quarter of the chart, which
+  // would otherwise read as a short answer rather than an unfinished one.
+  const waitingMode: ChartMode | null =
+    onlyHereMode && chart.tailPending ? "only_here" : null;
+
+  // Only a list that arrived at once moves: one the listener waited for has
+  // already been announced by the wait, and a fresh country by the globe.
+  const [shownList, setShownList] = useState({
+    countryCode,
+    chartRef: chart.ref,
+    mode,
+  });
+  const [rowsEntering, setRowsEntering] = useState(false);
+  // Remembered rather than read off `pending`, which is null again by the time
+  // the chart it was waiting for is the one on screen.
+  const [waitedForList, setWaitedForList] = useState(false);
+  if (chart.pending !== null && !waitedForList) setWaitedForList(true);
+  if (
+    shownList.countryCode !== countryCode ||
+    shownList.chartRef !== chart.ref ||
+    shownList.mode !== mode
+  ) {
+    setRowsEntering(shownList.countryCode === countryCode && !waitedForList);
+    setWaitedForList(false);
+    setShownList({ countryCode, chartRef: chart.ref, mode });
+  }
+
+  // Cleared once the rows have landed: left on, it would animate the deeper rows
+  // appended to this same list later, which arrive rather than replace.
+  useEffect(() => {
+    if (!rowsEntering) return;
+    const id = setTimeout(() => setRowsEntering(false), ROWS_ENTER_TOTAL_MS);
+    return () => clearTimeout(id);
+  }, [rowsEntering]);
+
   // One key per chart, so the list remounts whenever the tracks under it are
-  // replaced rather than reusing rows across two unrelated rankings.
-  const listKey = `${countryCode}:${chart.ref}`;
+  // replaced rather than reusing rows across two unrelated rankings. The mode is
+  // part of it: the two modes are different rankings of the same chart, so the
+  // list starts at the top rather than holding a scroll position measured
+  // against rows that are no longer there.
+  const listKey = `${countryCode}:${chart.ref}:${mode}`;
 
   // The one row eligible for the commentary discovery pulse, recomputed per
   // country (the <ol> remounts on country change, resetting the hint).
@@ -183,9 +290,13 @@ export function ChartSheet({
   // is reachable via both a random landing and a direct ?cc=); otherwise it
   // always returns a gem, so the card renders on every landing with real
   // tracks, regardless of how it was reached.
+  //
+  // Not in Only here: the gem's weakest tier stands in when nothing on the chart
+  // is exclusive, which is the very claim that mode makes, so the two contradict
+  // each other on screen. Loudest where it matters least, over an empty list.
   const gemSelection = useMemo(
-    () => (onSongsChart ? selectGem(country.tracks) : null),
-    [onSongsChart, country.tracks],
+    () => (onSongsChart && !onlyHereMode ? selectGem(country.tracks) : null),
+    [onSongsChart, onlyHereMode, country.tracks],
   );
 
   // Lifts the peek max-height clamp so the list fills the sheet while it's
@@ -718,10 +829,6 @@ export function ChartSheet({
         ...(hasMiniPlayer ? SHEET_STYLE_WITH_MINI : SHEET_STYLE_NO_MINI),
         transform: `translateY(${SNAP_Y[initialSnap]})`,
         willChange: "transform",
-        // The peek clamp sizes the list against the header above it, so it has
-        // to know whether a rail is there. Declared rather than measured: the
-        // rail is one row of fixed height.
-        ...({ "--rail-h": hasRail ? "46px" : "0px" } as CSSProperties),
       }}
       // Explicit z so the edge-tap hint can bracket the sheet: its aurora rails
       // sit below (a lower z) and its sheet-dim above, reproducing the backdrop
@@ -745,6 +852,23 @@ export function ChartSheet({
           failed={chart.failed}
           onOpen={chart.open}
         />
+        {/* Only the songs axis bakes a spread per track, so only its chart can
+            be read either way; a playlist chart has one reading and no toggle.
+            Kept mounted while it leaves, a removed row having nothing to
+            collapse; 1fr to 0fr because auto heights do not animate. */}
+        <div
+          data-gone={!onSongsChart || undefined}
+          // Out of reach as well as out of sight while it is gone: it stays in
+          // the tree only so it can collapse, and a control nobody can see must
+          // not still answer to a keyboard or a screen reader.
+          aria-hidden={!onSongsChart || undefined}
+          inert={!onSongsChart}
+          className="grid grid-rows-[1fr] transition-[grid-template-rows,opacity] duration-[280ms] ease-[var(--ease-spring)] data-[gone]:grid-rows-[0fr] data-[gone]:opacity-0 motion-reduce:transition-none"
+        >
+          <div className="min-h-0 overflow-hidden">
+            <ModeTabs current={mode} waiting={waitingMode} onOpen={openMode} />
+          </div>
+        </div>
       </div>
       {/* Native list scroll is enabled only at full (touch-pan-y); at the
           partial snaps a vertical drag drives the sheet instead, so the list
@@ -763,8 +887,20 @@ export function ChartSheet({
         data-peek={(snap === "peek" && !isDragging) || undefined}
         // The chart on screen is on its way out; its rows recede and breathe
         // until the next one lands, or until a failed read leaves it in place.
-        data-chart-waiting={chart.pending !== null || undefined}
-        className="min-h-0 flex-1 touch-none [scrollbar-width:none] overflow-y-auto overscroll-y-contain px-4 pb-12 transition-[max-height] duration-300 ease-out [-ms-overflow-style:none] group-data-[snap=full]:touch-pan-y data-[peek]:max-h-[calc(35dvh-62px-var(--rail-h))] [&::-webkit-scrollbar]:hidden"
+        data-chart-waiting={
+          chart.pending !== null || waitingMode !== null || undefined
+        }
+        data-rows-entering={rowsEntering || undefined}
+        // The peek clamp sizes the list against the header above it, so it has
+        // to know whether a rail and a mode row are there. Declared rather than
+        // measured: each is one row of fixed height.
+        style={
+          {
+            "--rail-h": hasRail ? "46px" : "0px",
+            "--mode-h": onSongsChart ? "45px" : "0px",
+          } as CSSProperties
+        }
+        className="chart-list min-h-0 flex-1 touch-none [scrollbar-width:none] overflow-y-auto overscroll-y-contain px-4 pb-12 [-ms-overflow-style:none] group-data-[snap=full]:touch-pan-y data-[peek]:max-h-[calc(35dvh-62px-var(--rail-h)-var(--mode-h))] [&::-webkit-scrollbar]:hidden"
       >
         {gemSelection ? (
           <li
@@ -785,12 +921,23 @@ export function ChartSheet({
             />
           </li>
         ) : null}
-        {chart.tracks.map((track) => (
+        {modeIsEmpty ? (
+          <ModeEmpty
+            countryName={country.name}
+            // The first as the rail orders them, which is the storefront's own
+            // ranking, so the offer is the one the rail leads with too.
+            playlist={country.playlists?.[0] ?? null}
+            onOpenPlaylist={chart.open}
+          />
+        ) : null}
+        {rows.map((track, index) => (
           <TrackRow
             key={track.rank}
             track={track}
+            enterIndex={index}
             countryCode={countryCode}
             chartRef={chart.ref}
+            mode={mode}
             isHintTarget={track.rank === hintRank}
             focused={track.rank === focusedRank}
             dimmed={focusedRank !== null && track.rank !== focusedRank}
@@ -798,6 +945,15 @@ export function ChartSheet({
             onCloseCommentary={() => setFocusedRank(null)}
           />
         ))}
+        {tailUnread ? <TailUnread /> : null}
+        {tailReachable ? (
+          <li
+            ref={tailSentinelRef}
+            data-testid="chart-tail-sentinel"
+            aria-hidden
+            className="h-px"
+          />
+        ) : null}
       </ol>
     </section>
   );

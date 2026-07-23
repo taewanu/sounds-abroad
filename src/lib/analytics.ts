@@ -44,6 +44,14 @@ export interface AnalyticsEvent {
     cached: boolean;
   };
 
+  // Whether the second mode is read at all is the evidence the deeper crawl is
+  // judged on, that crawl costing every run whether or not anyone opens it.
+  // Reported on the ask, so a mode whose rows never landed still counts.
+  chart_mode_opened: {
+    country: string;
+    mode: "most_played" | "only_here";
+  };
+
   // A preview failed to play. `reason` splits the detectable causes; `errorName`
   // carries the DOMException name when present, to tell the iOS silent-audio bug
   // (#148, a rejected play) apart from a plain load failure.
