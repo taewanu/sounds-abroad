@@ -65,9 +65,9 @@ export function useRowTransitions(
     } else {
       const wasByRank = new Set(prevRows.current.map((t) => t.rank));
       const nowByRank = new Set(rows.map((t) => t.rank));
-      const leaving = prevRows.current
-        .filter((t) => !nowByRank.has(t.rank))
-        .map((track): DisplayRow => ({ track, transition: "leaving" }));
+      const leaving = prevRows.current.flatMap((track): DisplayRow[] =>
+        nowByRank.has(track.rank) ? [] : [{ track, transition: "leaving" }],
+      );
       const arriving = rows.map((track): DisplayRow => ({
         track,
         transition: wasByRank.has(track.rank) ? "stable" : "entering",
