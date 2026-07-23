@@ -1182,6 +1182,32 @@ describe("ChartSheet commentary focus", () => {
     expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
   });
 
+  test("a mode switch closes an open commentary card", () => {
+    const store = createAudioStore(() => makeMockAudio());
+    const view = (mode: "most_played" | "only_here") => (
+      <AudioStoreContext.Provider value={store}>
+        <ChartSheet
+          country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
+          countryCode="kr"
+          mode={mode}
+          onModeChange={vi.fn()}
+          snap="full"
+          onSnapChange={vi.fn()}
+        />
+      </AudioStoreContext.Provider>
+    );
+    const { container, rerender } = render(view("most_played"));
+    fireEvent.click(firstTeaser(container)!);
+    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+
+    // The card is taller than a collapsing row can hold, and its row may be one
+    // the switch drops, so the switch closes it rather than clip it.
+    rerender(view("only_here"));
+
+    expect(container.querySelector("[data-commentary-card]")).toBeNull();
+  });
+
   test("dimmed siblings and the gem card recede and go inert", () => {
     const { container } = renderSheet("full");
     fireEvent.click(firstTeaser(container)!);

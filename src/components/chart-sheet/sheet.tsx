@@ -316,6 +316,10 @@ export function ChartSheet({
   // on return to that country).
   const [focusedRank, setFocusedRank] = useState<number | null>(null);
   const [focusCountry, setFocusCountry] = useState(countryCode);
+  // A mode switch closes an open card too: the row it sits in may be one the
+  // switch drops, and a focused card is taller than a row's collapse can hold,
+  // so it would clip on the way out.
+  const [focusMode, setFocusMode] = useState(mode);
   // Fire commentary_opened when a card opens or switches, never on close.
   const prevFocusedRef = useRef<number | null>(null);
   useEffect(() => {
@@ -328,8 +332,9 @@ export function ChartSheet({
       });
     }
   }, [focusedRank, countryCode]);
-  if (focusCountry !== countryCode) {
+  if (focusCountry !== countryCode || focusMode !== mode) {
     setFocusCountry(countryCode);
+    setFocusMode(mode);
     setFocusedRank(null);
   }
 

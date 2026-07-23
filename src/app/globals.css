@@ -1238,8 +1238,10 @@
 /* A mode switch keeps the list and moves only its difference: the rows the mode
    drops collapse away, the rows it adds open into place, so the switch reads as
    the chart narrowing or widening rather than a new list appearing. The height
-   is a cap over the tallest ordinary row, not the row's height, so the clip
-   opens to reveal the row's own height and never forces it taller. */
+   is a ceiling the animation interpolates, not each row's own height, since CSS
+   cannot animate to auto; it clears the tallest row a switch can carry, a
+   commentary row shown with its teaser. A focused card is taller, so the sheet
+   closes any open card on a switch rather than collapse one that would clip. */
 [data-row-transition="leaving"] {
   overflow: hidden;
   pointer-events: none;
@@ -1251,7 +1253,7 @@
 }
 @keyframes chart-row-collapse {
   from {
-    max-height: 120px;
+    max-height: 180px;
     opacity: 1;
   }
   to {
@@ -1269,7 +1271,7 @@
     opacity: 0;
   }
   to {
-    max-height: 120px;
+    max-height: 180px;
     opacity: 1;
   }
 }
