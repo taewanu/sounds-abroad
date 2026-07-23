@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { COUNTRY_KR, COUNTRY_US } from "@/lib/__fixtures__";
@@ -14,6 +14,7 @@ import {
 
 import { ChartSheet, type SnapState } from "./sheet";
 import type { ChartTracksState } from "./use-chart-tracks";
+import { ROW_COLLAPSE_MS } from "./use-row-transitions";
 
 function makeMockAudio(): AudioEngine {
   return {
@@ -405,33 +406,49 @@ describe("ChartSheet", () => {
     expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
   });
 
-  test("reveals the playing row when a mode switch re-ranks it off screen", async () => {
-    const scrollIntoViewMock = vi.fn();
-    Element.prototype.scrollIntoView = scrollIntoViewMock;
-    const { rerender } = render(playingAtPeek("only_here"));
-    scrollIntoViewMock.mockClear();
-    // The row is pushed below the viewport, as the re-rank does; jsdom has no
-    // layout, so the clip must be stubbed or the row reads as visible.
-    stubRects(rect(0, 100), rect(200, 240));
+  test("reveals the playing row when a mode switch re-ranks it off screen", () => {
+    vi.useFakeTimers();
+    try {
+      const scrollIntoViewMock = vi.fn();
+      Element.prototype.scrollIntoView = scrollIntoViewMock;
+      const { rerender } = render(playingAtPeek("only_here"));
+      scrollIntoViewMock.mockClear();
+      // The row is pushed below the viewport, as the re-rank does; jsdom has no
+      // layout, so the clip must be stubbed or the row reads as visible.
+      stubRects(rect(0, 100), rect(200, 240));
 
-    rerender(playingAtPeek("most_played"));
-    await frames(2);
+      rerender(playingAtPeek("most_played"));
+      // The reveal waits for the collapse/expand to settle before it measures,
+      // so the scroll lands on final positions rather than a layout in motion.
+      act(() => {
+        vi.advanceTimersByTime(ROW_COLLAPSE_MS);
+      });
 
-    expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+      expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
-  test("leaves an already-visible playing row where it is on a mode switch", async () => {
-    const scrollIntoViewMock = vi.fn();
-    Element.prototype.scrollIntoView = scrollIntoViewMock;
-    const { rerender } = render(playingAtPeek("only_here"));
-    scrollIntoViewMock.mockClear();
-    // The row sits inside the viewport, so the switch has no reason to move it.
-    stubRects(rect(0, 300), rect(40, 80));
+  test("leaves an already-visible playing row where it is on a mode switch", () => {
+    vi.useFakeTimers();
+    try {
+      const scrollIntoViewMock = vi.fn();
+      Element.prototype.scrollIntoView = scrollIntoViewMock;
+      const { rerender } = render(playingAtPeek("only_here"));
+      scrollIntoViewMock.mockClear();
+      // The row sits inside the viewport, so the switch has no reason to move it.
+      stubRects(rect(0, 300), rect(40, 80));
 
-    rerender(playingAtPeek("most_played"));
-    await frames(2);
+      rerender(playingAtPeek("most_played"));
+      act(() => {
+        vi.advanceTimersByTime(ROW_COLLAPSE_MS);
+      });
 
-    expect(scrollIntoViewMock).not.toHaveBeenCalled();
+      expect(scrollIntoViewMock).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   test("nudges a clipped row into view when it is tapped at peek", async () => {

@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 
+import { usePrefersReducedMotion } from "@/components/use-prefers-reduced-motion";
 import { track as trackEvent } from "@/lib/analytics";
 import { songsChartRows, type ChartMode } from "@/lib/chart-mode";
 import { SONGS_CHART, type ChartRef } from "@/lib/chart-ref";
@@ -25,6 +26,7 @@ import { ModeTabs } from "./mode-tabs";
 import { TailUnread } from "./tail-unread";
 import { TrackRow } from "./track-row";
 import type { ChartTracksState } from "./use-chart-tracks";
+import { ROW_COLLAPSE_MS, useRowTransitions } from "./use-row-transitions";
 
 export type SnapState = "hidden" | "closed" | "peek" | "full";
 
@@ -167,6 +169,7 @@ export function ChartSheet({
 }: ChartSheetProps) {
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const olRef = useRef<HTMLOListElement | null>(null);
+  const reducedMotion = usePrefersReducedMotion();
 
   // Both derive from the songs chart rather than the open one. Commentary and
   // spread are carried by the songs axis alone, so a playlist chart has neither
@@ -241,12 +244,13 @@ export function ChartSheet({
   const waitingMode: ChartMode | null =
     onlyHereMode && chart.tailPending ? "only_here" : null;
 
-  // Only a list that arrived at once moves: one the listener waited for has
-  // already been announced by the wait, and a fresh country by the globe.
+  // Only a whole list that arrived at once moves: one the listener waited for
+  // has already been announced by the wait, and a fresh country by the globe. A
+  // mode switch is not a new list, so it is left out here and moved as a diff
+  // below (its rows collapse and open rather than re-entering as one).
   const [shownList, setShownList] = useState({
     countryCode,
     chartRef: chart.ref,
-    mode,
   });
   const [rowsEntering, setRowsEntering] = useState(false);
   // Remembered rather than read off `pending`, which is null again by the time
@@ -255,12 +259,11 @@ export function ChartSheet({
   if (chart.pending !== null && !waitedForList) setWaitedForList(true);
   if (
     shownList.countryCode !== countryCode ||
-    shownList.chartRef !== chart.ref ||
-    shownList.mode !== mode
+    shownList.chartRef !== chart.ref
   ) {
     setRowsEntering(shownList.countryCode === countryCode && !waitedForList);
     setWaitedForList(false);
-    setShownList({ countryCode, chartRef: chart.ref, mode });
+    setShownList({ countryCode, chartRef: chart.ref });
   }
 
   // Cleared once the rows have landed: left on, it would animate the deeper rows
@@ -271,12 +274,15 @@ export function ChartSheet({
     return () => clearTimeout(id);
   }, [rowsEntering]);
 
-  // One key per chart, so the list remounts whenever the tracks under it are
-  // replaced rather than reusing rows across two unrelated rankings. The mode is
-  // part of it: the two modes are different rankings of the same chart, so the
-  // list starts at the top rather than holding a scroll position measured
-  // against rows that are no longer there.
-  const listKey = `${countryCode}:${chart.ref}:${mode}`;
+  // The list remounts on a country or chart change, so two unrelated rankings
+  // never reuse rows; a mode switch keeps the mount and moves its diff, so it is
+  // left out of the mount key. The reveal still watches a mode change through
+  // listKey below, which does carry it.
+  const listMountKey = `${countryCode}:${chart.ref}`;
+  const listKey = `${listMountKey}:${mode}`;
+
+  // The rows to render, each tagged for the collapse/expand a mode switch plays.
+  const displayRows = useRowTransitions(rows, listMountKey, mode);
 
   // The one row eligible for the commentary discovery pulse, recomputed per
   // country (the <ol> remounts on country change, resetting the hint).
@@ -746,6 +752,7 @@ export function ChartSheet({
   const prevStepRef = useRef(stepSignal);
   const prevTapRef = useRef(tapSignal);
   const prevListKeyRef = useRef(listKey);
+  const prevMountKeyRef = useRef(listMountKey);
 
   useEffect(() => {
     const wasMin =
@@ -754,10 +761,15 @@ export function ChartSheet({
     const stepChanged = prevStepRef.current !== stepSignal;
     const tapped = prevTapRef.current !== tapSignal;
     prevTapRef.current = tapSignal;
-    // The <ol> is keyed by the chart, so opening another one remounts the list.
+    // A mode switch keeps the mount and moves only the diff; a country or chart
+    // change remounts the whole list. Both change listKey, only the second
+    // changes the mount key, so the two are told apart by which changed.
     const listSwapped = prevListKeyRef.current !== listKey;
+    const remounted = prevMountKeyRef.current !== listMountKey;
+    const modeSwitched = listSwapped && !remounted;
     prevSnapRef.current = snap;
     prevListKeyRef.current = listKey;
+    prevMountKeyRef.current = listMountKey;
     // Hold both asks while another chart's track plays, the same idiom as the
     // focus nonce above: a reopen tap and an end-of-chart roll each land their
     // signal a render before the route swaps the displayed country over, so
@@ -806,17 +818,29 @@ export function ChartSheet({
       });
     };
 
-    // One frame so the new snap/country is in the DOM before the query; a second
-    // when the list remounted, because the row exists a frame before the
-    // remounted list's layout settles and measuring there lands wrong.
+    // A mode switch collapses and opens rows over ROW_COLLAPSE_MS, so measuring
+    // before that settles reads a layout still in motion and the row drifts off
+    // after landing; wait for it to finish. Otherwise one frame so the new
+    // snap/country is in the DOM before the query, a second when the list
+    // remounted, whose layout settles a frame after the row exists.
     let frame = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const waitFrames = (n: number, run: () => void) => {
       frame = requestAnimationFrame(
         n <= 1 ? run : () => waitFrames(n - 1, run),
       );
     };
-    waitFrames(listSwapped ? 2 : 1, scrollToRow);
-    return () => cancelAnimationFrame(frame);
+    if (modeSwitched && !reducedMotion) {
+      timer = setTimeout(scrollToRow, ROW_COLLAPSE_MS);
+    } else {
+      // No collapse to wait out under reduced motion, where the rows change at
+      // once, so the reveal need not hold for an animation that never runs.
+      waitFrames(remounted ? 2 : 1, scrollToRow);
+    }
+    return () => {
+      cancelAnimationFrame(frame);
+      if (timer !== undefined) clearTimeout(timer);
+    };
   }, [
     snap,
     currentTrackRank,
@@ -824,6 +848,8 @@ export function ChartSheet({
     stepSignal,
     tapSignal,
     listKey,
+    listMountKey,
+    reducedMotion,
     otherChartPlaying,
   ]);
 
@@ -899,7 +925,7 @@ export function ChartSheet({
         role={hasRail ? "tabpanel" : undefined}
         aria-labelledby={hasRail ? chartTabId(chart.ref) : undefined}
         tabIndex={hasRail ? 0 : undefined}
-        key={listKey}
+        key={listMountKey}
         ref={olRef}
         data-peek={(snap === "peek" && !isDragging) || undefined}
         // The chart on screen is on its way out; its rows recede and breathe
@@ -947,7 +973,7 @@ export function ChartSheet({
             onOpenPlaylist={chart.open}
           />
         ) : null}
-        {rows.map((track, index) => (
+        {displayRows.map(({ track, transition }, index) => (
           <TrackRow
             key={track.rank}
             track={track}
@@ -955,6 +981,7 @@ export function ChartSheet({
             countryCode={countryCode}
             chartRef={chart.ref}
             mode={mode}
+            transition={transition}
             isHintTarget={track.rank === hintRank}
             focused={track.rank === focusedRank}
             dimmed={focusedRank !== null && track.rank !== focusedRank}
