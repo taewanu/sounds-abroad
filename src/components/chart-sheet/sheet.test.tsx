@@ -1217,10 +1217,11 @@ describe("ChartSheet commentary focus", () => {
     );
     expect(sibling?.hasAttribute("inert")).toBe(true);
 
-    // The gem card is the one ranked-list <li> without a data-rank.
+    // The gem card is the one ranked-list <li> without a data-rank; its recede
+    // sits on the inner wrapper, the <li> itself carrying the fold-collapse.
     const gemLi = container.querySelector("ol > li:not([data-rank])");
-    expect(gemLi?.className).toContain("opacity-40");
     expect(gemLi?.hasAttribute("inert")).toBe(true);
+    expect(gemLi?.querySelector("div")?.className).toContain("opacity-40");
   });
 
   test("Escape closes the focused card without collapsing the sheet", () => {

@@ -283,14 +283,31 @@ describe("ChartSheet chart modes", () => {
     expect(screen.queryByRole("button", { name: "Only here" })).toBeNull();
   });
 
-  test("shows no gem in only here, whose claim its weakest tier contradicts", () => {
-    renderSheet({ tail: TAIL });
+  test("folds the gem away in only here, whose claim its weakest tier contradicts", () => {
+    const { container } = renderSheet({ tail: TAIL });
 
-    expect(screen.queryByText(/Local Gem/i)).not.toBeNull();
+    // Shown on most played, then folded away rather than removed, so it can
+    // collapse on the switch; hidden and out of reach once folded.
+    expect(container.querySelector("[data-gem-gone]")).toBeNull();
 
     openOnlyHere();
 
-    expect(screen.queryByText(/Local Gem/i)).toBeNull();
+    const gem = container.querySelector("[data-gem-gone]");
+    expect(gem).not.toBeNull();
+    expect(gem?.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  test("the gem returns to its place when widening back to most played", () => {
+    const { container } = renderSheet({ tail: TAIL });
+
+    openOnlyHere();
+    expect(container.querySelector("[data-gem-gone]")).not.toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Most played" }));
+
+    // Kept in the tree the whole time, so it opens back out rather than
+    // reappearing from nothing.
+    expect(container.querySelector("[data-gem-gone]")).toBeNull();
   });
 
   test("an empty only here says so rather than looking unloaded", () => {

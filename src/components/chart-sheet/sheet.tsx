@@ -297,12 +297,13 @@ export function ChartSheet({
   // always returns a gem, so the card renders on every landing with real
   // tracks, regardless of how it was reached.
   //
-  // Not in Only here: the gem's weakest tier stands in when nothing on the chart
-  // is exclusive, which is the very claim that mode makes, so the two contradict
-  // each other on screen. Loudest where it matters least, over an empty list.
+  // Kept out of Only here, whose claim its weakest tier would contradict: that
+  // tier stands in when nothing on the chart is exclusive, the very thing that
+  // mode says. Computed all the same and hidden by collapse rather than nulled,
+  // so it folds away with the rows on a switch instead of vanishing.
   const gemSelection = useMemo(
-    () => (onSongsChart && !onlyHereMode ? selectGem(country.tracks) : null),
-    [onSongsChart, onlyHereMode, country.tracks],
+    () => (onSongsChart ? selectGem(country.tracks) : null),
+    [onSongsChart, country.tracks],
   );
 
   // Lifts the peek max-height clamp so the list fills the sheet while it's
@@ -952,21 +953,31 @@ export function ChartSheet({
       >
         {gemSelection ? (
           <li
-            // Recede with the rest of the list while a track's card is focused,
-            // and go inert so its play / commentary can't fire (or, being outside
-            // the card, collapse it) mid-read.
-            className={
-              focusedRank !== null
-                ? "pointer-events-none opacity-40 transition-opacity duration-[240ms] ease-[var(--ease-out)] motion-reduce:transition-none"
-                : undefined
-            }
-            inert={focusedRank !== null}
+            // Only here has no gem, so on a switch into it the card folds away
+            // like the rows it sits above: grid-rows 1fr to 0fr because its
+            // height is tall and not fixed, unlike a row's capped collapse. Out
+            // of reach as well as out of sight once folded.
+            data-gem-gone={onlyHereMode || undefined}
+            aria-hidden={onlyHereMode || undefined}
+            inert={onlyHereMode || focusedRank !== null}
+            className="grid grid-rows-[1fr] transition-[grid-template-rows,opacity] duration-300 ease-[var(--ease-out)] data-[gem-gone]:grid-rows-[0fr] data-[gem-gone]:opacity-0 motion-reduce:transition-none"
           >
-            <GemCard
-              track={gemSelection.gem}
-              tier={gemSelection.tier}
-              countryCode={countryCode}
-            />
+            <div
+              // Recede with the rest of the list while a track's card is focused,
+              // so its play / commentary can't fire mid-read. Min-height-0 lets
+              // the grid row above collapse it to nothing.
+              className={`min-h-0 overflow-hidden ${
+                focusedRank !== null
+                  ? "pointer-events-none opacity-40 transition-opacity duration-[240ms] ease-[var(--ease-out)] motion-reduce:transition-none"
+                  : ""
+              }`}
+            >
+              <GemCard
+                track={gemSelection.gem}
+                tier={gemSelection.tier}
+                countryCode={countryCode}
+              />
+            </div>
           </li>
         ) : null}
         {modeIsEmpty ? (
