@@ -775,7 +775,12 @@ export function ChartSheet({
     // to it (which for the gem hero would scroll to its ranked-row duplicate).
     // A step to an already-visible neighbour still holds, gated below.
     const isReopen = wasMin || signalChanged;
-    if (!isReopen && !stepChanged) return;
+    // A mode switch re-ranks the whole list under a still-playing track, which
+    // at peek can carry the playing row off screen, so a swapped list reveals it
+    // again. Reached only while the playing chart is on screen, so this fires for
+    // a mode change or an arrival onto that chart, never for browsing away; the
+    // visibility gate below still spares an already-visible row.
+    if (!isReopen && !stepChanged && !listSwapped) return;
 
     const scrollToRow = () => {
       const ol = olRef.current;

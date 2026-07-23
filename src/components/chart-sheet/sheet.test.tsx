@@ -90,6 +90,39 @@ function staticChart(country: Country): ChartTracksState {
   };
 }
 
+// A songs chart carrying one exclusive track (spread 1) among shared ones, so a
+// mode switch re-ranks it: Only here lists it near the top, Most played pushes
+// it down behind the shared rows. Rendered at peek with that track playing on
+// the chart shown, the setup the mode-switch reveal turns on.
+const SPREAD_COUNTRY: Country = {
+  name: "Testland",
+  valid: true,
+  tracks: [
+    { ...COUNTRY_KR.tracks[0], rank: 1, spread: 9 },
+    { ...COUNTRY_KR.tracks[1], rank: 2, spread: 4 },
+    { ...COUNTRY_KR.tracks[2], rank: 3, spread: 1 },
+  ],
+};
+
+function playingAtPeek(mode: "most_played" | "only_here") {
+  return (
+    <AudioStoreProvider>
+      <ChartSheet
+        country={SPREAD_COUNTRY}
+        chart={staticChart(SPREAD_COUNTRY)}
+        countryCode="kr"
+        mode={mode}
+        onModeChange={vi.fn()}
+        snap="peek"
+        onSnapChange={vi.fn()}
+        currentCountryCode="kr"
+        currentChartRef={SONGS_CHART}
+        currentTrackRank={3}
+      />
+    </AudioStoreProvider>
+  );
+}
+
 function renderSheet(snap: SnapState) {
   const onSnapChange = vi.fn();
   const store = createAudioStore(() => makeMockAudio());
@@ -340,6 +373,35 @@ describe("ChartSheet", () => {
     await new Promise<void>((r) => requestAnimationFrame(() => r()));
 
     expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("reveals the playing row when a mode switch re-ranks it off screen", async () => {
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
+    const { rerender } = render(playingAtPeek("only_here"));
+    scrollIntoViewMock.mockClear();
+    // The row is pushed below the viewport, as the re-rank does; jsdom has no
+    // layout, so the clip must be stubbed or the row reads as visible.
+    stubRects(rect(0, 100), rect(200, 240));
+
+    rerender(playingAtPeek("most_played"));
+    await frames(2);
+
+    expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("leaves an already-visible playing row where it is on a mode switch", async () => {
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
+    const { rerender } = render(playingAtPeek("only_here"));
+    scrollIntoViewMock.mockClear();
+    // The row sits inside the viewport, so the switch has no reason to move it.
+    stubRects(rect(0, 300), rect(40, 80));
+
+    rerender(playingAtPeek("most_played"));
+    await frames(2);
+
+    expect(scrollIntoViewMock).not.toHaveBeenCalled();
   });
 
   test("does not scroll when transitioning between peek and full", async () => {
