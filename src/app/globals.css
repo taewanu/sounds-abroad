@@ -1241,7 +1241,10 @@
    is a ceiling the animation interpolates, not each row's own height, since CSS
    cannot animate to auto; it clears the tallest row a switch can carry, a
    commentary row shown with its teaser. A focused card is taller, so the sheet
-   closes any open card on a switch rather than collapse one that would clip. */
+   closes any open card on a switch rather than collapse one that would clip.
+
+   The 300ms below mirrors ROW_COLLAPSE_MS in use-row-transitions.ts, which the
+   hook's drop timer and the reveal timer both key on; keep the three in step. */
 [data-row-transition="leaving"] {
   overflow: hidden;
   pointer-events: none;
