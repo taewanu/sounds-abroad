@@ -1,8 +1,8 @@
 version: 2
 
 updates:
-  # Keeps SHA-pinned action refs current: without this, pinning freezes the
-  # workflows at whatever commit was pinned and patches never arrive.
+  # Keeps pinned action refs current: without this, pinning freezes the
+  # workflows at whatever version was pinned and patches never arrive.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
