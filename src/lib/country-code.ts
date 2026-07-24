@@ -6,10 +6,10 @@ const BY_CODE: ReadonlyMap<string, CountryEntry> = new Map(
 
 const ALL_CODES: ReadonlySet<string> = new Set(BY_CODE.keys());
 
-// Normalize a raw ?cc= value to its canonical lowercase code, or null when it
-// is missing or not a known country. Defaults to the full country set; callers
-// with a narrower source (the codes present in a given chart payload) pass their
-// own set.
+// Normalize a raw country code (a query value or a path segment) to its
+// canonical lowercase code, or null when it is missing or not a known country.
+// Defaults to the full country set; callers with a narrower source (the codes
+// present in a given chart payload) pass their own set.
 export function validateCountryCode(
   raw: string | null,
   validCodes: ReadonlySet<string> = ALL_CODES,

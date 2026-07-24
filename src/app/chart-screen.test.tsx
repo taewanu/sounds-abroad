@@ -12,10 +12,21 @@ import { globeChartStore } from "@/lib/globe-chart-store";
 const mockSearchParams = vi.hoisted(() => ({
   value: new URLSearchParams(),
 }));
+const mockPathname = vi.hoisted(() => ({
+  value: "/",
+}));
 
 vi.mock("next/navigation", () => ({
+  usePathname: () => mockPathname.value,
   useSearchParams: () => mockSearchParams.value,
 }));
+
+// Every test starts from a bare home arrival; a test that wants a country in
+// the URL sets the path (canonical) or a ?cc= query (legacy) itself.
+beforeEach(() => {
+  mockPathname.value = "/";
+  mockSearchParams.value = new URLSearchParams();
+});
 
 // The landing country is rolled client-side after mount; pin the roll so each
 // test controls where the screen lands when no ?cc= is present.
@@ -241,8 +252,8 @@ describe("ChartScreen", () => {
     replaceState.mockRestore();
   });
 
-  test("renders the chart for a valid ?cc= without touching the URL", () => {
-    mockSearchParams.value = new URLSearchParams(`cc=${CODE_US}`);
+  test("renders the chart for a country path arrival without touching the URL", () => {
+    mockPathname.value = `/c/${CODE_US}`;
 
     renderChartScreen(CHARTS, CODE_BR);
 
@@ -252,13 +263,36 @@ describe("ChartScreen", () => {
     expect(replaceState).not.toHaveBeenCalled();
   });
 
-  test("rolls a landing country and writes it to the URL when ?cc= is absent", () => {
+  test("relabels a legacy ?cc= arrival to its path form", () => {
+    mockSearchParams.value = new URLSearchParams(`cc=${CODE_US}`);
+
+    renderChartScreen(CHARTS, CODE_BR);
+
+    expect(
+      screen.getAllByText(COUNTRY_US.tracks[0].name).length,
+    ).toBeGreaterThan(0);
+    expect(replaceState).toHaveBeenCalledWith(null, "", `/c/${CODE_US}`);
+  });
+
+  test("an explicit ?cc= outranks the path segment", () => {
+    mockPathname.value = `/c/${CODE_BR}`;
+    mockSearchParams.value = new URLSearchParams(`cc=${CODE_US}`);
+
+    renderChartScreen(CHARTS, CODE_BR);
+
+    expect(
+      screen.getAllByText(COUNTRY_US.tracks[0].name).length,
+    ).toBeGreaterThan(0);
+    expect(replaceState).toHaveBeenCalledWith(null, "", `/c/${CODE_US}`);
+  });
+
+  test("rolls a landing country and writes it to the URL when the URL names no country", () => {
     renderChartScreen(CHARTS, CODE_US);
 
     expect(
       screen.getAllByText(COUNTRY_US.tracks[0].name).length,
     ).toBeGreaterThan(0);
-    expect(replaceState).toHaveBeenCalledWith(null, "", `?cc=${CODE_US}`);
+    expect(replaceState).toHaveBeenCalledWith(null, "", `/c/${CODE_US}`);
   });
 
   test("rolls a landing country for an invalid ?cc=", () => {
@@ -269,7 +303,18 @@ describe("ChartScreen", () => {
     expect(
       screen.getAllByText(COUNTRY_US.tracks[0].name).length,
     ).toBeGreaterThan(0);
-    expect(replaceState).toHaveBeenCalledWith(null, "", `?cc=${CODE_US}`);
+    expect(replaceState).toHaveBeenCalledWith(null, "", `/c/${CODE_US}`);
+  });
+
+  test("rolls a landing country for an invalid path code", () => {
+    mockPathname.value = "/c/xx";
+
+    renderChartScreen(CHARTS, CODE_US);
+
+    expect(
+      screen.getAllByText(COUNTRY_US.tracks[0].name).length,
+    ).toBeGreaterThan(0);
+    expect(replaceState).toHaveBeenCalledWith(null, "", `/c/${CODE_US}`);
   });
 
   test("canonicalizes an uppercase ?cc= in the URL", () => {
@@ -280,13 +325,13 @@ describe("ChartScreen", () => {
     expect(
       screen.getAllByText(COUNTRY_US.tracks[0].name).length,
     ).toBeGreaterThan(0);
-    expect(replaceState).toHaveBeenCalledWith(null, "", `?cc=${CODE_US}`);
+    expect(replaceState).toHaveBeenCalledWith(null, "", `/c/${CODE_US}`);
   });
 });
 
 describe("ChartScreen globe coupling", () => {
   beforeEach(() => {
-    mockSearchParams.value = new URLSearchParams(`cc=${CODE_US}`);
+    mockPathname.value = `/c/${CODE_US}`;
     globeChartStore.setState({
       readMode: false,
       settleSignal: 0,
@@ -299,16 +344,16 @@ describe("ChartScreen globe coupling", () => {
     vi.restoreAllMocks();
   });
 
-  test("publishes the resolved ?cc= country to the globe", () => {
-    mockSearchParams.value = new URLSearchParams(`cc=${CODE_US}`);
+  test("publishes the resolved URL country to the globe", () => {
+    mockPathname.value = `/c/${CODE_US}`;
 
     renderChartScreen(CHARTS, CODE_BR);
 
     expect(globeChartStore.getState().selectedCountry).toBe(CODE_US);
   });
 
-  test("publishes the rolled landing country to the globe when ?cc= is absent", () => {
-    mockSearchParams.value = new URLSearchParams();
+  test("publishes the rolled landing country to the globe when the URL names none", () => {
+    mockPathname.value = "/";
 
     renderChartScreen(CHARTS, CODE_BR);
 
@@ -394,7 +439,7 @@ describe("ChartScreen commentary badge", () => {
   )!;
 
   beforeEach(() => {
-    mockSearchParams.value = new URLSearchParams(`cc=${CODE_US}`);
+    mockPathname.value = `/c/${CODE_US}`;
     audioEngine.reset();
     vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
   });
@@ -451,7 +496,7 @@ describe("ChartScreen edge-skip cues", () => {
   }
 
   beforeEach(() => {
-    mockSearchParams.value = new URLSearchParams(`cc=${CODE_US}`);
+    mockPathname.value = `/c/${CODE_US}`;
     localStorage.clear();
     audioEngine.reset();
     // The cues are touch-only; without a coarse pointer they'd stay hidden for
@@ -510,7 +555,7 @@ describe("ChartScreen directional cue", () => {
   }
 
   beforeEach(() => {
-    mockSearchParams.value = new URLSearchParams(`cc=${ADJ_CODE}`);
+    mockPathname.value = `/c/${ADJ_CODE}`;
     audioEngine.reset();
     vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
   });
@@ -607,7 +652,7 @@ describe("ChartScreen directional cue", () => {
 
 describe("ChartScreen auto-advance", () => {
   beforeEach(() => {
-    mockSearchParams.value = new URLSearchParams(`cc=${ADJ_CODE}`);
+    mockPathname.value = `/c/${ADJ_CODE}`;
     audioEngine.reset();
     vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
   });
@@ -647,7 +692,7 @@ describe("ChartScreen auto-advance", () => {
   });
 
   test("auto-advance keys on identity when two rows share one preview asset", () => {
-    mockSearchParams.value = new URLSearchParams(`cc=${SHARED_CODE}`);
+    mockPathname.value = `/c/${SHARED_CODE}`;
     const { container } = renderChartScreen(ADJACENCY_CHARTS, SHARED_CODE);
     // Play the tail, whose preview asset also belongs to the head. A
     // previewUrl-keyed walk would resolve the current track to the head and
@@ -689,7 +734,7 @@ describe("ChartScreen end-of-chart roll", () => {
   let replaceState: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    mockSearchParams.value = new URLSearchParams(`cc=${ADJ_CODE}`);
+    mockPathname.value = `/c/${ADJ_CODE}`;
     audioEngine.reset();
     globeChartStore.setState({
       selectedCountry: null,
@@ -733,7 +778,7 @@ describe("ChartScreen end-of-chart roll", () => {
 
     expect(screen.getByText(LANDING_START)).toBeTruthy();
     expect(globeChartStore.getState().selectedCountry).toBe(DRAW_1);
-    expect(replaceState).toHaveBeenCalledWith(null, "", `?cc=${DRAW_1}`);
+    expect(replaceState).toHaveBeenCalledWith(null, "", `/c/${DRAW_1}`);
     const icon = flashIcon(container);
     expect(icon).not.toBeNull();
     expect(icon!.getAttribute("class") ?? "").not.toContain("-scale-x-100");
@@ -850,7 +895,7 @@ describe("ChartScreen end-of-chart roll", () => {
 
     expect(playingRank(container)).toBe("3");
     expect(globeChartStore.getState().selectedCountry).toBe(ADJ_CODE);
-    expect(replaceState).toHaveBeenCalledWith(null, "", `?cc=${ADJ_CODE}`);
+    expect(replaceState).toHaveBeenCalledWith(null, "", `/c/${ADJ_CODE}`);
     expect(flashIcon(container)!.getAttribute("class") ?? "").toContain(
       "-scale-x-100",
     );
@@ -945,7 +990,7 @@ function playlistResponse(): Response {
 
 describe("ChartScreen chart rail", () => {
   beforeEach(() => {
-    mockSearchParams.value = new URLSearchParams(`cc=${RAIL_CODE}`);
+    mockPathname.value = `/c/${RAIL_CODE}`;
     vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
     vi.stubGlobal(
       "fetch",
@@ -1066,7 +1111,7 @@ describe("ChartScreen playlist playback", () => {
   };
 
   beforeEach(() => {
-    mockSearchParams.value = new URLSearchParams(`cc=${PL_CODE}`);
+    mockPathname.value = `/c/${PL_CODE}`;
     audioEngine.reset();
     globeChartStore.setState({
       selectedCountry: null,
@@ -1224,7 +1269,7 @@ describe("ChartScreen chart in the URL", () => {
   });
 
   test("names the chart in the URL once one is opened", async () => {
-    mockSearchParams.value = new URLSearchParams(`cc=${RAIL_CODE}`);
+    mockPathname.value = `/c/${RAIL_CODE}`;
     renderChartScreen(chartsWithPlaylist(), RAIL_CODE);
 
     await act(async () => {
@@ -1234,14 +1279,13 @@ describe("ChartScreen chart in the URL", () => {
     expect(replaceState).toHaveBeenLastCalledWith(
       null,
       "",
-      `?cc=${RAIL_CODE}&chart=${PL_ID}`,
+      `/c/${RAIL_CODE}?chart=${PL_ID}`,
     );
   });
 
   test("a link naming a chart opens it", async () => {
-    mockSearchParams.value = new URLSearchParams(
-      `cc=${RAIL_CODE}&chart=${PL_ID}`,
-    );
+    mockPathname.value = `/c/${RAIL_CODE}`;
+    mockSearchParams.value = new URLSearchParams(`chart=${PL_ID}`);
     renderChartScreen(chartsWithPlaylist(), RAIL_CODE);
 
     await act(async () => {});
@@ -1250,9 +1294,8 @@ describe("ChartScreen chart in the URL", () => {
   });
 
   test("a chart the country does not carry falls back to its songs chart", async () => {
-    mockSearchParams.value = new URLSearchParams(
-      `cc=${RAIL_CODE}&chart=pl.elsewhere`,
-    );
+    mockPathname.value = `/c/${RAIL_CODE}`;
+    mockSearchParams.value = new URLSearchParams("chart=pl.elsewhere");
     const charts = chartsWithPlaylist();
     renderChartScreen(charts, RAIL_CODE);
 
@@ -1262,13 +1305,12 @@ describe("ChartScreen chart in the URL", () => {
       screen.getAllByText(charts.countries[RAIL_CODE].tracks[0].name).length,
     ).toBeGreaterThan(0);
     expect(fetch).not.toHaveBeenCalled();
-    expect(replaceState).toHaveBeenLastCalledWith(null, "", `?cc=${RAIL_CODE}`);
+    expect(replaceState).toHaveBeenLastCalledWith(null, "", `/c/${RAIL_CODE}`);
   });
 
   test("a URL already naming the open chart is left alone", async () => {
-    mockSearchParams.value = new URLSearchParams(
-      `cc=${RAIL_CODE}&chart=${PL_ID}`,
-    );
+    mockPathname.value = `/c/${RAIL_CODE}`;
+    mockSearchParams.value = new URLSearchParams(`chart=${PL_ID}`);
     renderChartScreen(chartsWithPlaylist(), RAIL_CODE);
 
     await act(async () => {});
@@ -1279,7 +1321,7 @@ describe("ChartScreen chart in the URL", () => {
 
 describe("ChartScreen while a chart is read", () => {
   beforeEach(() => {
-    mockSearchParams.value = new URLSearchParams(`cc=${RAIL_CODE}`);
+    mockPathname.value = `/c/${RAIL_CODE}`;
     vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
   });
 
@@ -1342,7 +1384,7 @@ describe("ChartScreen while a chart is read", () => {
 
 describe("ChartScreen rail and panel", () => {
   beforeEach(() => {
-    mockSearchParams.value = new URLSearchParams(`cc=${RAIL_CODE}`);
+    mockPathname.value = `/c/${RAIL_CODE}`;
     vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
   });
 
@@ -1408,7 +1450,7 @@ describe("ChartScreen deeper rows", () => {
   }
 
   beforeEach(() => {
-    mockSearchParams.value = new URLSearchParams(`cc=${RAIL_CODE}`);
+    mockPathname.value = `/c/${RAIL_CODE}`;
     vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
   });
 
@@ -1575,7 +1617,7 @@ describe("ChartScreen stepping past the eager rows", () => {
   }
 
   beforeEach(() => {
-    mockSearchParams.value = new URLSearchParams(`cc=${DEEP_CODE}`);
+    mockPathname.value = `/c/${DEEP_CODE}`;
     audioEngine.reset();
     stubTailFetch();
     vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
@@ -1642,7 +1684,7 @@ describe("ChartScreen stepping past the eager rows", () => {
     play("Deep 2", "Deep artist 2");
 
     // Stand somewhere else; the chart playing is the one left behind.
-    mockSearchParams.value = new URLSearchParams(`cc=${AWAY_CODE}`);
+    mockPathname.value = `/c/${AWAY_CODE}`;
     rerender(<ChartScreen charts={DEEP_CHARTS} />);
     expect(screen.getByText("Away country")).not.toBeNull();
 
@@ -1664,7 +1706,7 @@ describe("ChartScreen stepping past the eager rows", () => {
     fireEvent.click(screen.getByRole("button", { name: "Only here" }));
     play("Deep 2", "Deep artist 2");
 
-    mockSearchParams.value = new URLSearchParams(`cc=${AWAY_CODE}`);
+    mockPathname.value = `/c/${AWAY_CODE}`;
     rerender(<ChartScreen charts={DEEP_CHARTS} />);
     // Re-aim what is on screen; what is playing was started in the other mode.
     fireEvent.click(screen.getByRole("button", { name: "Most played" }));

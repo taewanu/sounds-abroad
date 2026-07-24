@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 
+import { countryPath } from "@/lib/chart-url";
 import { COUNTRIES } from "@/lib/countries";
 import { countryByCode } from "@/lib/country-code";
 import { globeChartStore, useGlobeChart } from "@/lib/globe-chart-store";
@@ -40,7 +41,7 @@ function flagEmoji(code: string): string {
 export function CountrySelector() {
   // The selected country comes from the store, not useSearchParams: this badge
   // is a layout backdrop, where that hook is frozen to its first value and
-  // never sees a client-side ?cc= change. The chart publishes the resolved
+  // never sees a client-side country change. The chart publishes the resolved
   // country to the store; the globe and this badge read it from there.
   const currentCode = useGlobeChart((s) => s.selectedCountry);
   const current = currentCode ? countryByCode(currentCode) : null;
@@ -70,7 +71,7 @@ export function CountrySelector() {
     // useSearchParams can't see this), replaceState keeps the shareable URL in
     // step without flooding history. Stay open so the grid is still there.
     globeChartStore.getState().setSelectedCountry(code);
-    window.history.replaceState(null, "", `?cc=${code}`);
+    window.history.replaceState(null, "", countryPath(code));
     setAnnouncement(`Now showing ${name}`);
   };
 

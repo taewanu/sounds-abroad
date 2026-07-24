@@ -57,14 +57,14 @@ describe("CountrySelector", () => {
     }
   });
 
-  test("selecting a country drives the globe via the store, mirrors ?cc=, and announces it", () => {
+  test("selecting a country drives the globe via the store, mirrors the URL, and announces it", () => {
     render(<CountrySelector />);
     openList();
 
     fireEvent.click(screen.getByRole("button", { name: "France" }));
 
     expect(globeChartStore.getState().selectedCountry).toBe("fr");
-    expect(replaceState).toHaveBeenCalledWith(null, "", "?cc=fr");
+    expect(replaceState).toHaveBeenCalledWith(null, "", "/c/fr");
     expect(screen.getByRole("status").textContent).toContain("France");
   });
 

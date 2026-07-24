@@ -4,25 +4,25 @@ import { createStore } from "zustand/vanilla";
 // Couples the two independent client trees that the URL can't: the globe
 // (a fixed backdrop in the layout) and the chart sheet (page children). Read
 // mode and "a landing happened" aren't shareable state, so they don't belong
-// in ?cc=. A module singleton, not a provider store, because this is app-global
+// in the URL. A module singleton, not a provider store, because this is app-global
 // client-only UI state with no request scope — and the globe lives outside the
 // audio provider anyway.
 export interface GlobeChartState {
-  // The resolved country the globe centers on. The URL ?cc= is the shareable
+  // The resolved country the globe centers on. The country URL is the shareable
   // mirror, but a layout component's useSearchParams is frozen to its first
   // value (it never re-renders on a client-side replaceState), so the globe
-  // can't read the URL back. The chart, a page child, resolves cc (?cc= or the
-  // default) and publishes it here; the globe reads it across the layout seam.
+  // can't read the URL back. The chart, a page child, resolves the country (URL or the
+  // landing roll) and publishes it here; the globe reads it across the layout seam.
   selectedCountry: string | null;
   // The sheet is at full, covering the globe: the controller suspends its spin
   // so a leftover fling can't settle a new country out from under the reader.
   readMode: boolean;
   // Monotonic counter the globe bumps on every settle. The chart diffs it to
   // raise a dismissed sheet, so re-landing on the same country still raises
-  // (a plain ?cc= diff would miss that).
+  // (a plain country diff would miss that).
   settleSignal: number;
   // Whether the most recent settle came from a bare globe tap (vs a fling, an
-  // external ?cc=/list pick, or a snap). The onboarding tour's gesture beat
+  // external URL/list pick, or a snap). The onboarding tour's gesture beat
   // reads this so an accidental tap-select does not count as performing the
   // flick it teaches; a real fling or a deliberate list pick still advances.
   lastSettleViaTap: boolean;
