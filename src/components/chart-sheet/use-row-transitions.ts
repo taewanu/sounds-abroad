@@ -14,8 +14,9 @@ export interface DisplayRow {
 
 /**
  * How long a leaving row is held in the list while it collapses, after which it
- * is dropped from the rendered set. Mirrors the chart-row-collapse duration in
- * globals.css and the sheet's reveal timer; keep the three in step.
+ * is dropped from the rendered set. Three other sites must match: the
+ * chart-row-collapse keyframe and the gem fold in globals.css and sheet.tsx,
+ * and the sheet's reveal timer that waits this out to measure a settled list.
  */
 export const ROW_COLLAPSE_MS = 300;
 
