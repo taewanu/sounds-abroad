@@ -1,6 +1,8 @@
 import { useStore } from "zustand";
 import { createStore } from "zustand/vanilla";
 
+import { DEFAULT_CHART_MODE, type ChartMode } from "./chart-mode";
+
 // Couples the two independent client trees that the URL can't: the globe
 // (a fixed backdrop in the layout) and the chart sheet (page children). Read
 // mode and "a landing happened" aren't shareable state, so they don't belong
@@ -31,6 +33,11 @@ export interface GlobeChartState {
   // the page's provider, which the layout-backdrop globe can't read, so the
   // chart mirrors the gate here alongside selectedCountry.
   listening: boolean;
+  // The songs-chart mode (most played / only here) the chart is reading in. The
+  // URL is its shareable mirror, but the globe writes that URL on every settle
+  // and a layout backdrop can't read the query back, so the chart publishes the
+  // mode here for the globe to carry through a landing rather than drop it.
+  chartMode: ChartMode;
   // The globe's edge-tap skip-intent, a plain data signal: `dir` is the
   // direction (prev -1 / next +1) and `nonce` bumps on each tap so a repeat
   // direction still fires (a plain `dir` diff would miss next-after-next). The
@@ -58,6 +65,7 @@ export interface GlobeChartState {
   setSelectedCountry: (code: string | null) => void;
   setVisited: (visited: ReadonlySet<string>) => void;
   setReadMode: (readMode: boolean) => void;
+  setChartMode: (mode: ChartMode) => void;
   signalSettle: (viaTap?: boolean) => void;
   setListening: (listening: boolean) => void;
   signalSkip: (dir: 1 | -1) => void;
@@ -72,6 +80,7 @@ export const globeChartStore = createStore<GlobeChartState>()((set) => ({
   settleSignal: 0,
   lastSettleViaTap: false,
   listening: false,
+  chartMode: DEFAULT_CHART_MODE,
   skipIntent: { dir: 1, nonce: 0 },
   visited: new Set<string>(),
   shuffleSignal: 0,
@@ -79,6 +88,7 @@ export const globeChartStore = createStore<GlobeChartState>()((set) => ({
   setSelectedCountry: (selectedCountry) => set({ selectedCountry }),
   setVisited: (visited) => set({ visited }),
   setReadMode: (readMode) => set({ readMode }),
+  setChartMode: (chartMode) => set({ chartMode }),
   signalSettle: (viaTap = false) =>
     set((state) => ({
       settleSignal: state.settleSignal + 1,

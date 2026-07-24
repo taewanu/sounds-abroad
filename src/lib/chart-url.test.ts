@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 
+import { DEFAULT_CHART_MODE } from "./chart-mode";
 import { SONGS_CHART } from "./chart-ref";
 import type { Country } from "./chart-schema";
 import {
@@ -7,6 +8,7 @@ import {
   chartPath,
   countryCodeFromPath,
   countryPath,
+  modeFromUrl,
 } from "./chart-url";
 
 function country(playlistIds: string[]): Country {
@@ -32,6 +34,22 @@ test("names only the country while its songs chart is open", () => {
 
 test("names the chart open beside the country", () => {
   expect(chartPath("br", "pl.a")).toBe("/c/br?chart=pl.a");
+});
+
+test("leaves the default mode unspelled, as it does the songs chart", () => {
+  expect(chartPath("br", SONGS_CHART, DEFAULT_CHART_MODE)).toBe("/c/br");
+});
+
+test("names a non-default mode on the songs chart", () => {
+  expect(chartPath("br", SONGS_CHART, "only_here")).toBe(
+    "/c/br?mode=only_here",
+  );
+});
+
+test("names both the chart and a non-default mode together", () => {
+  expect(chartPath("br", "pl.a", "only_here")).toBe(
+    "/c/br?chart=pl.a&mode=only_here",
+  );
 });
 
 test("escapes a chart id so it cannot reshape the query", () => {
@@ -73,4 +91,17 @@ test("falls back for a country carrying no playlists at all", () => {
   expect(chartFromUrl("pl.a", { name: "A", valid: true, tracks: [] })).toBe(
     SONGS_CHART,
   );
+});
+
+test("reads back the mode a query names", () => {
+  expect(modeFromUrl("only_here")).toBe("only_here");
+});
+
+test("falls back to the default mode when the query names none", () => {
+  expect(modeFromUrl(null)).toBe(DEFAULT_CHART_MODE);
+});
+
+test("falls back to the default mode for an unrecognised value", () => {
+  expect(modeFromUrl("sideways")).toBe(DEFAULT_CHART_MODE);
+  expect(modeFromUrl("")).toBe(DEFAULT_CHART_MODE);
 });

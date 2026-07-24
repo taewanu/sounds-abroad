@@ -4,7 +4,8 @@ import { Suspense, use, useCallback, useEffect, useRef, useState } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { PerspectiveCamera } from "three";
 
-import { countryPath } from "@/lib/chart-url";
+import { SONGS_CHART } from "@/lib/chart-ref";
+import { chartPath } from "@/lib/chart-url";
 import { COUNTRIES } from "@/lib/countries";
 import { addVisited, pickShuffleCountry } from "@/lib/fairness-draw";
 import { globeChartStore, useGlobeChart } from "@/lib/globe-chart-store";
@@ -18,6 +19,7 @@ import { CountryFill } from "./country-fill";
 import { CountryOutlinesLayer } from "./country-outlines";
 import { CountryPins } from "./country-pins";
 import { triggerLandingHaptic } from "./landing-haptic";
+import type { SettleOrigin } from "./spin-gesture";
 import { SpinSnapControls } from "./spin-snap-controls";
 import { StarBackdrop } from "./star-backdrop";
 
@@ -84,22 +86,32 @@ function SceneContent() {
   });
   const visited = useGlobeChart((s) => s.visited);
 
-  // A landing is a selection: buzz where supported, write the country path
-  // (replaceState, so rapid flinging doesn't flood history), record the country
-  // as visited, and signal the chart tree so a dismissed sheet resurfaces the
-  // result.
+  // A landing is a selection: buzz where supported, write the country path,
+  // record the country as visited, and signal the chart tree so a dismissed
+  // sheet resurfaces the result. A landing opens the country's songs chart but
+  // keeps the mode the listener is reading in, so a fling in only here relabels
+  // to only here rather than dropping to the default. A gesture landing is a
+  // fresh destination the listener chose, so it pushes a history entry and the
+  // back button returns to the country before it; an external settle (a shared
+  // link, a programmatic roll) relabels in place, since its own writer owns the
+  // history and a roll must not trap the listener behind every auto-advance.
   const handleSettle = useCallback(
-    (code: string, changed: boolean, viaTap: boolean) => {
+    (code: string, changed: boolean, viaTap: boolean, origin: SettleOrigin) => {
       // Every settle resurfaces the result (raises a dismissed sheet, re-arms
       // the tour hint), even when the country is unchanged. viaTap rides along
       // so the tour can tell a tap-select from the flick it teaches.
       globeChartStore.getState().signalSettle(viaTap);
       if (!changed) return;
       triggerLandingHaptic();
-      const { setSelectedCountry, visited, setVisited } =
+      const { setSelectedCountry, visited, setVisited, chartMode } =
         globeChartStore.getState();
       setSelectedCountry(code);
-      window.history.replaceState(null, "", countryPath(code));
+      const url = chartPath(code, SONGS_CHART, chartMode);
+      if (origin === "gesture") {
+        window.history.pushState(null, "", url);
+      } else {
+        window.history.replaceState(null, "", url);
+      }
       setVisited(addVisited(visited, code));
     },
     [],

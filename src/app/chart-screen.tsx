@@ -36,6 +36,8 @@ import {
   chartPath,
   countryCodeFromPath,
   countryPath,
+  MODE_PARAM,
+  modeFromUrl,
 } from "@/lib/chart-url";
 import {
   backRollTarget,
@@ -88,6 +90,7 @@ export function ChartScreen({ charts }: ChartScreenProps) {
   const searchParams = useSearchParams();
   const rawCc = searchParams.get("cc");
   const rawChart = searchParams.get(CHART_PARAM);
+  const rawMode = searchParams.get(MODE_PARAM);
   // An explicit ?cc= outranks the path segment: legacy links carry the query,
   // and honouring it keeps them landing where they point even when they reach
   // the client unredirected; the canonical writer then relabels to the path.
@@ -119,6 +122,11 @@ export function ChartScreen({ charts }: ChartScreenProps) {
   // canonical check fails for a bare `/`, an invalid code, a leftover ?cc=
   // query, or a chart parameter this country does not carry.
   const urlChartParam = isPlaylistRef(urlChart) ? urlChart : null;
+  const urlMode = modeFromUrl(rawMode);
+  // What the URL would have to carry to already name this mode: the default is
+  // left unspelled, the same way the songs chart is, so a bare path stays
+  // canonical.
+  const urlModeParam = urlMode === DEFAULT_CHART_MODE ? null : urlMode;
 
   return (
     <AudioStoreProvider>
@@ -127,10 +135,12 @@ export function ChartScreen({ charts }: ChartScreenProps) {
         countryCode={countryCode}
         charts={charts}
         urlChart={urlChart}
+        urlMode={urlMode}
         urlIsCanonical={
           rawCc === null &&
           pathname === countryPath(countryCode) &&
-          rawChart === urlChartParam
+          rawChart === urlChartParam &&
+          rawMode === urlModeParam
         }
       />
     </AudioStoreProvider>
@@ -142,12 +152,14 @@ function ChartScreenInner({
   countryCode,
   charts,
   urlChart,
+  urlMode,
   urlIsCanonical,
 }: {
   country: Country;
   countryCode: string;
   charts: ChartFile;
   urlChart: ChartRef;
+  urlMode: ChartMode;
   urlIsCanonical: boolean;
 }) {
   // Which of the country's charts is open. Held here rather than in the sheet
@@ -161,11 +173,18 @@ function ChartScreenInner({
   // reading.
   const chartRef = chart.ref;
   const chartFailed = chart.failed.has(urlChart);
+  // Which question the songs chart is answering. Held here, not in the sheet,
+  // because next and prev step against the same rows the screen shows: were the
+  // list and the step walk to read different modes, a step could land on a row
+  // the mode has filtered off screen. Seeded from the URL so a shared link or a
+  // reload reads in the mode it names, then carried in the URL alongside the
+  // chart so switching it neither navigates nor refetches the eager payload.
+  const [mode, setMode] = useState<ChartMode>(urlMode);
   // What the URL already says. A ref, not the search params, because
   // replaceState leaves those stale, so after the first write they would keep
   // reporting the arrival query.
   const urlSays = useRef<string | null>(
-    urlIsCanonical ? chartPath(countryCode, urlChart) : null,
+    urlIsCanonical ? chartPath(countryCode, urlChart, urlMode) : null,
   );
   // Whether the chart the arrival URL named has been honoured. Until it is, the
   // displayed chart is still the songs chart, and writing would drop the very
@@ -176,18 +195,12 @@ function ChartScreenInner({
       if (chartRef !== urlChart && !chartFailed) return;
       arrivalHonoured.current = true;
     }
-    const want = chartPath(countryCode, chartRef);
+    const want = chartPath(countryCode, chartRef, mode);
     if (urlSays.current === want) return;
     urlSays.current = want;
     window.history.replaceState(null, "", want);
-  }, [urlChart, chartFailed, chartRef, countryCode]);
+  }, [urlChart, chartFailed, chartRef, countryCode, mode]);
   const { peek: peekChart, read: readChart, open: openChart, peekTail } = chart;
-
-  // Which question the songs chart is answering. Held here rather than in the
-  // sheet because playback resolves against it: the rows next and prev walk are
-  // the rows on screen, so the mode governs both or the chart it names is one
-  // the buttons can step straight out of.
-  const [mode, setMode] = useState<ChartMode>(DEFAULT_CHART_MODE);
 
   // Follows the mode on screen while the listener is looking at the playing
   // chart, and holds where they left it once they are not.
@@ -349,8 +362,7 @@ function ChartScreenInner({
 
   const handleMiniTap = useCallback(() => {
     // Return to what is playing, whole: the country, the chart within it, and
-    // the mode it is heard in. Country and chart ride the URL, which the sheet
-    // reopens from; the mode rides local state, not being in the URL yet (#303).
+    // the mode it is heard in, all of which ride the URL the sheet reopens from.
     // Written only when the shown chart is not already the playing one, so a tap
     // while looking at it just reopens the sheet without a spurious history
     // entry. The scroll signal then reveals the now-restored row.
@@ -363,7 +375,11 @@ function ChartScreenInner({
         window.history.pushState(
           null,
           "",
-          chartPath(currentCountryCode, currentChartRef),
+          chartPath(
+            currentCountryCode,
+            currentChartRef,
+            currentMode ?? DEFAULT_CHART_MODE,
+          ),
         );
       }
       if (currentMode) setMode(currentMode);
@@ -427,11 +443,12 @@ function ChartScreenInner({
       // Spelled here rather than left to the sync effect: this screen's country
       // comes from the URL, which the store selection alone does not touch, so
       // a landing would otherwise go unrecorded there. Routed through the
-      // shared path so the chart is dropped rather than silently left behind.
+      // shared path so the chart is dropped rather than silently left behind,
+      // while the mode carries, so a roll in only here lands in only here.
       window.history.replaceState(
         null,
         "",
-        chartPath(landing.code, SONGS_CHART),
+        chartPath(landing.code, SONGS_CHART, heardIn()),
       );
       signalStep(1);
       flashSkip(1);
@@ -595,7 +612,7 @@ function ChartScreenInner({
       window.history.replaceState(
         null,
         "",
-        chartPath(back.countryCode, SONGS_CHART),
+        chartPath(back.countryCode, SONGS_CHART, heardIn()),
       );
       signalStep(dir);
       flashSkip(-1);
@@ -704,6 +721,14 @@ function ChartScreenInner({
     globeChartStore.getState().setListening(hasCurrentTrack);
     return () => globeChartStore.getState().setListening(false);
   }, [hasCurrentTrack]);
+
+  // Mirror the mode to the globe for the same reason: the globe writes the
+  // country URL on every settle and can't read the query back, so without this
+  // a fling landing would relabel to the default mode and drop the one the
+  // listener is reading in.
+  useEffect(() => {
+    globeChartStore.getState().setChartMode(mode);
+  }, [mode]);
 
   // A globe edge-tap raises a skip-intent; the chart owns adjacency, so it runs
   // the shared step and flashes only on a real track change. Reacting inside the

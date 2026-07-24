@@ -110,10 +110,23 @@ export type GestureEvent =
   | { type: "externalSelect"; code: string | null }
   | { type: "frame"; dt: number; rng: () => number };
 
+// Whether the listener chose this settle as a destination. A gesture (a
+// completed fling or tap) did, so it earns a history entry; everything else is
+// "external" and relabels in place: a followed URL or shared link, a
+// programmatic roll, or an interrupted touch snapping back to the nearest
+// country, none of which is a landing the listener aimed for.
+export type SettleOrigin = "gesture" | "external";
+
 // Impure work the shell runs after each reduce. The reducer names the effect;
 // the shell owns how it reaches the DOM, timers, and chart store.
 export type GestureCommand =
-  | { kind: "settle"; code: string; changed: boolean; viaTap: boolean }
+  | {
+      kind: "settle";
+      code: string;
+      changed: boolean;
+      viaTap: boolean;
+      origin: SettleOrigin;
+    }
   | { kind: "signalSkip"; dir: 1 | -1 }
   | { kind: "capturePointer"; id: number }
   | { kind: "releasePointer"; id: number };
@@ -165,6 +178,7 @@ function settleTo(
   cfg: GestureConfig,
   code: string | null,
   viaTap = false,
+  origin: SettleOrigin = "gesture",
 ): void {
   const country = code ? COUNTRY_BY_CODE.get(code) : null;
   if (!country) {
@@ -183,6 +197,7 @@ function settleTo(
     code: country.code,
     changed,
     viaTap,
+    origin,
   });
 
   if (cfg.reducedMotion) {
@@ -347,11 +362,15 @@ export function reduce(
       s.activePointerId = null;
       commands.push({ kind: "releasePointer", id: event.id });
       s.lastEdgeTapAt = null;
+      // The snap-back is recovery, not a chosen landing, so it relabels in place
+      // rather than pushing a history entry the back button would have to undo.
       settleTo(
         s,
         commands,
         cfg,
         pickSnapCountry(s.el, s.az, cfg.visited, cfg.fair, event.rng),
+        false,
+        "external",
       );
       break;
     }
@@ -363,7 +382,7 @@ export function reduce(
       // window so a following tap isn't misread as a second tap.
       if (event.code && event.code !== s.settledCode) {
         s.lastEdgeTapAt = null;
-        settleTo(s, commands, cfg, event.code);
+        settleTo(s, commands, cfg, event.code, false, "external");
       }
       break;
     }
