@@ -1216,10 +1216,9 @@
   }
 }
 
-/* A list arriving under a new heading: the rows rise into place rather than
-   cutting in, so a mode switch reads as the same chart re-answering rather than
-   a different one appearing. Staggered by row, capped a few rows in so a chart
-   of a hundred does not take seconds to land. */
+/* A chart arriving at once rises into place rather than cutting in, so a cached
+   reopen reads as the same chart re-answering. Staggered by row, capped a few
+   rows in so a chart of a hundred does not take seconds to land. */
 @keyframes chart-rows-in {
   from {
     opacity: 0;
@@ -1236,6 +1235,51 @@
   animation-delay: calc(20ms * var(--enter-index, 0));
 }
 
+/* A mode switch keeps the list and moves only its difference: the rows the mode
+   drops collapse away, the rows it adds open into place, so the switch reads as
+   the chart narrowing or widening rather than a new list appearing. The height
+   is a ceiling the animation interpolates, not each row's own height, since CSS
+   cannot animate to auto; it clears the tallest row a switch can carry, a
+   commentary row shown with its teaser. A focused card is taller, so the sheet
+   closes any open card on a switch rather than collapse one that would clip.
+
+   The 300ms below mirrors ROW_COLLAPSE_MS in use-row-transitions.ts, which the
+   hook's drop timer and the reveal timer both key on, along with the gem's own
+   fold in sheet.tsx; keep the four in step. */
+[data-row-transition="leaving"] {
+  overflow: hidden;
+  pointer-events: none;
+  animation: chart-row-collapse 300ms var(--ease-out) forwards;
+}
+[data-row-transition="entering"] {
+  overflow: hidden;
+  animation: chart-row-expand 300ms var(--ease-out) both;
+}
+@keyframes chart-row-collapse {
+  from {
+    max-height: 180px;
+    opacity: 1;
+  }
+  to {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
+  }
+}
+@keyframes chart-row-expand {
+  from {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
+  }
+  to {
+    max-height: 180px;
+    opacity: 1;
+  }
+}
+
 /* A list still being read is not one that has arrived, so the wait outranks the
    arrival where a switch lands on a chart that is still coming. Doubled for the
    specificity alone; the two rules set the same property. */
@@ -1245,9 +1289,17 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* The rows still arrive, they just do not travel to get there. */
-  [data-rows-entering] > li {
+  /* The rows still arrive and leave, they just do not travel or collapse to do
+     it: an entrance is a plain appearance, a departure a plain removal. */
+  [data-rows-entering] > li,
+  [data-row-transition="entering"] {
     animation: none;
+  }
+  /* A leaving row cannot linger with no motion, or it would sit at full height;
+     hide it at once so the list closes over it. */
+  [data-row-transition="leaving"] {
+    animation: none;
+    display: none;
   }
 }
 

@@ -9,8 +9,9 @@ import { SONGS_CHART, type ChartRef } from "@/lib/chart-ref";
 import type { ChartTrack, Country, Track } from "@/lib/chart-schema";
 import { AudioStoreContext } from "@/providers/audio-store-provider";
 
-import { ChartSheet, ROWS_ENTER_TOTAL_MS } from "./sheet";
+import { ChartSheet } from "./sheet";
 import type { ChartTracksState } from "./use-chart-tracks";
+import { ROW_COLLAPSE_MS } from "./use-row-transitions";
 
 const trackEvent = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/analytics", () => ({ track: trackEvent }));
@@ -150,13 +151,19 @@ function openOnlyHere() {
   fireEvent.click(screen.getByRole("button", { name: "Only here" }));
 }
 
-/** The track names on screen, in the order the list shows them. */
+/**
+ * The track names the list settles on, in order. Rows collapsing out of a mode
+ * switch are excluded: they are on their way off, not part of the answer.
+ */
 function listedNames(): string[] {
   return screen
     .getAllByRole("listitem")
     .flatMap((row) => {
       const rank = row.getAttribute("data-rank");
-      return rank ? [`Song ${rank}`] : [];
+      if (!rank || row.getAttribute("data-row-transition") === "leaving") {
+        return [];
+      }
+      return [`Song ${rank}`];
     })
     .filter((name, index, all) => all.indexOf(name) === index);
 }
@@ -276,14 +283,31 @@ describe("ChartSheet chart modes", () => {
     expect(screen.queryByRole("button", { name: "Only here" })).toBeNull();
   });
 
-  test("shows no gem in only here, whose claim its weakest tier contradicts", () => {
-    renderSheet({ tail: TAIL });
+  test("folds the gem away in only here, whose claim its weakest tier contradicts", () => {
+    const { container } = renderSheet({ tail: TAIL });
 
-    expect(screen.queryByText(/Local Gem/i)).not.toBeNull();
+    // Shown on most played, then folded away rather than removed, so it can
+    // collapse on the switch; hidden and out of reach once folded.
+    expect(container.querySelector("[data-gem-gone]")).toBeNull();
 
     openOnlyHere();
 
-    expect(screen.queryByText(/Local Gem/i)).toBeNull();
+    const gem = container.querySelector("[data-gem-gone]");
+    expect(gem).not.toBeNull();
+    expect(gem?.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  test("the gem returns to its place when widening back to most played", () => {
+    const { container } = renderSheet({ tail: TAIL });
+
+    openOnlyHere();
+    expect(container.querySelector("[data-gem-gone]")).not.toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Most played" }));
+
+    // Kept in the tree the whole time, so it opens back out rather than
+    // reappearing from nothing.
+    expect(container.querySelector("[data-gem-gone]")).toBeNull();
   });
 
   test("an empty only here says so rather than looking unloaded", () => {
@@ -308,12 +332,45 @@ describe("ChartSheet chart modes", () => {
     expect(screen.queryByText("Nothing is only here today")).toBeNull();
   });
 
-  test("the rows arrive when the mode switches", () => {
+  function transitionStates(container: HTMLElement): Set<string | null> {
+    return new Set(
+      [...container.querySelectorAll("[data-row-transition]")].map((el) =>
+        el.getAttribute("data-row-transition"),
+      ),
+    );
+  }
+
+  test("narrowing to only here collapses the rows it drops", () => {
     const { container } = renderSheet({ tail: TAIL });
 
     openOnlyHere();
 
-    expect(rowsEntering(container)).toBe(true);
+    // Only here is a subset, so the switch only ever removes rows: the shared
+    // ones collapse away, none open in. That one-sidedness is the direction.
+    const states = transitionStates(container);
+    expect(states.has("leaving")).toBe(true);
+    expect(states.has("entering")).toBe(false);
+  });
+
+  test("widening to most played opens the rows it adds", () => {
+    const { container } = renderSheet({ tail: TAIL });
+
+    openOnlyHere();
+    fireEvent.click(screen.getByRole("button", { name: "Most played" }));
+
+    const states = transitionStates(container);
+    expect(states.has("entering")).toBe(true);
+    expect(states.has("leaving")).toBe(false);
+  });
+
+  test("a mode switch does not re-enter the whole list", () => {
+    const { container } = renderSheet({ tail: TAIL });
+
+    openOnlyHere();
+
+    // The list is kept and only its difference moves, so the arrival that plays
+    // for a fresh list never fires here.
+    expect(rowsEntering(container)).toBe(false);
   });
 
   test("the rows do not arrive when a chart had to be read first", () => {
@@ -372,7 +429,7 @@ describe("ChartSheet chart modes", () => {
     ).not.toBeNull();
   });
 
-  test("the arrival stops once the rows have landed", () => {
+  test("the collapsing rows are dropped once the switch has run", () => {
     vi.useFakeTimers();
     try {
       const { container } = renderSheet({ tail: TAIL });
@@ -380,15 +437,19 @@ describe("ChartSheet chart modes", () => {
       act(() => {
         fireEvent.click(screen.getByRole("button", { name: "Only here" }));
       });
-      expect(rowsEntering(container)).toBe(true);
+      expect(
+        container.querySelector('[data-row-transition="leaving"]'),
+      ).not.toBeNull();
 
       act(() => {
-        vi.advanceTimersByTime(ROWS_ENTER_TOTAL_MS);
+        vi.advanceTimersByTime(ROW_COLLAPSE_MS);
       });
 
-      // Rows read in later join this same list rather than replacing it, so a
-      // flag left on would animate them as though the question had changed.
-      expect(rowsEntering(container)).toBe(false);
+      // The rows the mode dropped are held only through their collapse, then
+      // removed, so the list settles to the tracks the mode keeps.
+      expect(
+        container.querySelector('[data-row-transition="leaving"]'),
+      ).toBeNull();
     } finally {
       vi.useRealTimers();
     }

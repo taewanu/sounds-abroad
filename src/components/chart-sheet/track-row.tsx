@@ -16,6 +16,7 @@ import { sameTrack } from "@/lib/track-identity";
 import { useAudioStore } from "@/providers/audio-store-provider";
 
 import { TrackCommentary } from "./track-commentary";
+import type { RowTransition } from "./use-row-transitions";
 
 // How many rows the entrance stagger runs across before every later row lands
 // together. Past this the delay would outlast the motion it is spacing.
@@ -44,6 +45,13 @@ export interface TrackRowProps {
   dimmed?: boolean;
   onOpenCommentary?: () => void;
   onCloseCommentary?: () => void;
+  // Fired when this row starts a track, so the sheet can nudge a partly-clipped
+  // row into view. Only ranked rows carry it; the gem card does not, so a gem
+  // play never scrolls the list to its ranked-row duplicate.
+  onPlay?: () => void;
+  // How the row is moving through a mode switch: collapsing away, opening in, or
+  // holding still. Drives the collapse/expand motion in globals.css.
+  transition?: RowTransition;
 }
 
 export function TrackRow({
@@ -57,6 +65,8 @@ export function TrackRow({
   dimmed = false,
   onOpenCommentary,
   onCloseCommentary,
+  onPlay,
+  transition = "stable",
 }: TrackRowProps) {
   const isCurrent = useAudioStore(
     (s) =>
@@ -123,6 +133,7 @@ export function TrackRow({
     <li
       data-rank={track.rank}
       data-state={state}
+      data-row-transition={transition === "stable" ? undefined : transition}
       data-disabled={!hasPreview || undefined}
       data-commentary-card={focused || undefined}
       // A dimmed sibling is inert as well as pointer-dead, so keyboard and
@@ -148,9 +159,10 @@ export function TrackRow({
         <button
           type="button"
           disabled={!hasPreview}
-          onClick={() =>
-            toggle(track, { countryCode, chartRef, mode }, "track_row")
-          }
+          onClick={() => {
+            toggle(track, { countryCode, chartRef, mode }, "track_row");
+            onPlay?.();
+          }}
           aria-label={`${isPlaying ? "Pause" : "Play"} preview of ${track.name} by ${track.artist}`}
           className="focus-visible:outline-aurora flex min-w-0 flex-1 items-center gap-[14px] text-left transition-transform duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none"
         >

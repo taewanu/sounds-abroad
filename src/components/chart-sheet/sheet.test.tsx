@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { COUNTRY_KR, COUNTRY_US } from "@/lib/__fixtures__";
@@ -14,6 +14,7 @@ import {
 
 import { ChartSheet, type SnapState } from "./sheet";
 import type { ChartTracksState } from "./use-chart-tracks";
+import { ROW_COLLAPSE_MS } from "./use-row-transitions";
 
 function makeMockAudio(): AudioEngine {
   return {
@@ -88,6 +89,69 @@ function staticChart(country: Country): ChartTracksState {
     readTail: () => {},
     peekTail: () => null,
   };
+}
+
+// A songs chart carrying one exclusive track (spread 1) among shared ones, so a
+// mode switch re-ranks it: Only here lists it near the top, Most played pushes
+// it down behind the shared rows. Rendered at peek with that track playing on
+// the chart shown, the setup the mode-switch reveal turns on.
+const SPREAD_COUNTRY: Country = {
+  name: "Testland",
+  valid: true,
+  tracks: [
+    { ...COUNTRY_KR.tracks[0], rank: 1, spread: 9 },
+    { ...COUNTRY_KR.tracks[1], rank: 2, spread: 4 },
+    { ...COUNTRY_KR.tracks[2], rank: 3, spread: 1 },
+  ],
+};
+
+function playingAtPeek(mode: "most_played" | "only_here") {
+  return (
+    <AudioStoreProvider>
+      <ChartSheet
+        country={SPREAD_COUNTRY}
+        chart={staticChart(SPREAD_COUNTRY)}
+        countryCode="kr"
+        mode={mode}
+        onModeChange={vi.fn()}
+        snap="peek"
+        onSnapChange={vi.fn()}
+        currentCountryCode="kr"
+        currentChartRef={SONGS_CHART}
+        currentTrackRank={3}
+      />
+    </AudioStoreProvider>
+  );
+}
+
+// The ranked row's play button for a track, not the gem card's: the gem
+// duplicates one track's name, so a bare name query can match two buttons.
+function playButtonFor(track: { name: string; artist: string }) {
+  const list = document.querySelector("ol");
+  if (!list) throw new Error("the track list has not rendered");
+  return within(list).getByRole("button", {
+    name: `Play preview of ${track.name} by ${track.artist}`,
+  });
+}
+
+function renderAtPeek(country: Country, currentTrackRank: number) {
+  const store = createAudioStore(() => makeMockAudio());
+  return render(
+    <AudioStoreContext.Provider value={store}>
+      <ChartSheet
+        country={country}
+        chart={staticChart(country)}
+        countryCode="kr"
+        mode="most_played"
+        onModeChange={vi.fn()}
+        snap="peek"
+        onSnapChange={vi.fn()}
+        currentCountryCode="kr"
+        currentChartRef={SONGS_CHART}
+        currentTrackRank={currentTrackRank}
+      />
+    </AudioStoreContext.Provider>,
+  );
 }
 
 function renderSheet(snap: SnapState) {
@@ -340,6 +404,99 @@ describe("ChartSheet", () => {
     await new Promise<void>((r) => requestAnimationFrame(() => r()));
 
     expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("reveals the playing row when a mode switch re-ranks it off screen", () => {
+    vi.useFakeTimers();
+    try {
+      const scrollIntoViewMock = vi.fn();
+      Element.prototype.scrollIntoView = scrollIntoViewMock;
+      const { rerender } = render(playingAtPeek("only_here"));
+      scrollIntoViewMock.mockClear();
+      // The row is pushed below the viewport, as the re-rank does; jsdom has no
+      // layout, so the clip must be stubbed or the row reads as visible.
+      stubRects(rect(0, 100), rect(200, 240));
+
+      rerender(playingAtPeek("most_played"));
+      // The reveal waits for the collapse/expand to settle before it measures,
+      // so the scroll lands on final positions rather than a layout in motion.
+      act(() => {
+        vi.advanceTimersByTime(ROW_COLLAPSE_MS);
+      });
+
+      expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("leaves an already-visible playing row where it is on a mode switch", () => {
+    vi.useFakeTimers();
+    try {
+      const scrollIntoViewMock = vi.fn();
+      Element.prototype.scrollIntoView = scrollIntoViewMock;
+      const { rerender } = render(playingAtPeek("only_here"));
+      scrollIntoViewMock.mockClear();
+      // The row sits inside the viewport, so the switch has no reason to move it.
+      stubRects(rect(0, 300), rect(40, 80));
+
+      rerender(playingAtPeek("most_played"));
+      act(() => {
+        vi.advanceTimersByTime(ROW_COLLAPSE_MS);
+      });
+
+      expect(scrollIntoViewMock).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("nudges a clipped row into view when it is tapped at peek", async () => {
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
+    renderAtPeek(SPREAD_COUNTRY, 3);
+    scrollIntoViewMock.mockClear();
+    // The tapped row sits below the viewport, clipped.
+    stubRects(rect(0, 100), rect(200, 240));
+
+    fireEvent.click(playButtonFor(SPREAD_COUNTRY.tracks[2]));
+    await frames(1);
+
+    expect(scrollIntoViewMock).toHaveBeenCalledWith({
+      block: "nearest",
+      behavior: "smooth",
+    });
+  });
+
+  test("leaves a fully-visible tapped row where it is", async () => {
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
+    renderAtPeek(SPREAD_COUNTRY, 3);
+    scrollIntoViewMock.mockClear();
+    stubRects(rect(0, 300), rect(40, 80));
+
+    fireEvent.click(playButtonFor(SPREAD_COUNTRY.tracks[2]));
+    await frames(1);
+
+    expect(scrollIntoViewMock).not.toHaveBeenCalled();
+  });
+
+  test("a gem play does not scroll the list to its ranked-row duplicate", async () => {
+    const selection = selectGem(COUNTRY_KR.tracks);
+    if (!selection) throw new Error("fixture has tracks; expected a gem");
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
+    renderAtPeek(COUNTRY_KR, selection.gem.rank);
+    scrollIntoViewMock.mockClear();
+    // The gem's ranked duplicate is below the fold, so a reveal would yank to it.
+    stubRects(rect(0, 100), rect(200, 240));
+
+    const region = screen.getByRole("region", { name: /local gem/i });
+    fireEvent.click(within(region).getByRole("button", { name: /play/i }));
+    await frames(1);
+
+    // The gem card carries no onPlay, so its tap raises no reveal signal.
+    expect(scrollIntoViewMock).not.toHaveBeenCalled();
   });
 
   test("does not scroll when transitioning between peek and full", async () => {
@@ -1025,6 +1182,32 @@ describe("ChartSheet commentary focus", () => {
     expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
   });
 
+  test("a mode switch closes an open commentary card", () => {
+    const store = createAudioStore(() => makeMockAudio());
+    const view = (mode: "most_played" | "only_here") => (
+      <AudioStoreContext.Provider value={store}>
+        <ChartSheet
+          country={COUNTRY_KR}
+          chart={staticChart(COUNTRY_KR)}
+          countryCode="kr"
+          mode={mode}
+          onModeChange={vi.fn()}
+          snap="full"
+          onSnapChange={vi.fn()}
+        />
+      </AudioStoreContext.Provider>
+    );
+    const { container, rerender } = render(view("most_played"));
+    fireEvent.click(firstTeaser(container)!);
+    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+
+    // The card is taller than a collapsing row can hold, and its row may be one
+    // the switch drops, so the switch closes it rather than clip it.
+    rerender(view("only_here"));
+
+    expect(container.querySelector("[data-commentary-card]")).toBeNull();
+  });
+
   test("dimmed siblings and the gem card recede and go inert", () => {
     const { container } = renderSheet("full");
     fireEvent.click(firstTeaser(container)!);
@@ -1034,10 +1217,11 @@ describe("ChartSheet commentary focus", () => {
     );
     expect(sibling?.hasAttribute("inert")).toBe(true);
 
-    // The gem card is the one ranked-list <li> without a data-rank.
+    // The gem card is the one ranked-list <li> without a data-rank; its recede
+    // sits on the inner wrapper, the <li> itself carrying the fold-collapse.
     const gemLi = container.querySelector("ol > li:not([data-rank])");
-    expect(gemLi?.className).toContain("opacity-40");
     expect(gemLi?.hasAttribute("inert")).toBe(true);
+    expect(gemLi?.querySelector("div")?.className).toContain("opacity-40");
   });
 
   test("Escape closes the focused card without collapsing the sheet", () => {
