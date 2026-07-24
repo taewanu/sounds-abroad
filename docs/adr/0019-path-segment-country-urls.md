@@ -11,8 +11,8 @@ read the served HTML and never run JS. The per-country share cards ADR-0004 had
 promised on `?cc=` (issue #309) therefore need per-country _documents_, and the
 only cost-compatible way to get them is to prerender one document per country.
 
-`?cc=` was never load-bearing for the server after ADR-0018 — the client
-resolves it — but it was the shipped URL scheme, named by ADR-0011 as the
+`?cc=` was never load-bearing for the server after ADR-0018 (the client
+resolves it), but it was the shipped URL scheme, named by ADR-0011 as the
 single write channel for country selection.
 
 ## Decision
@@ -28,7 +28,7 @@ never a render.
   the single source of truth; only its spelling changed. ChartScreen resolves
   the country as `?cc=` query → path segment → client landing roll.
 - **No redirect for legacy `?cc=` links.** A `/?cc=xx` arrival still lands on
-  the right country — the query outranks the path in the client resolver, and
+  the right country: the query outranks the path in the client resolver, and
   the canonical writer relabels to `/c/xx` after hydration. A routing-layer
   redirect was built and rejected: a permanent 308 is browser-cached past any
   future scheme change, Next re-appends the consumed query to the destination
@@ -37,7 +37,7 @@ never a render.
   Cost of keeping the fallback client-side: old links show the generic OG card.
 - **The fallback timer is priced per route.** The hourly `revalidate` that is a
   safety net on one home page multiplies into a fleet here: 64 routes × hourly
-  × ~250KB is ~11.5GB/month worst case — above the cap that caused the
+  × ~250KB is ~11.5GB/month worst case, above the cap that caused the
   ADR-0018 incident. Country pages therefore revalidate daily; freshness comes
   from the crawl's `revalidateTag`, which expires all 64 pages at once because
   they share one tagged fetch. Worst case with the daily timer: ~0.7GB/month.
@@ -46,7 +46,7 @@ never a render.
 
 **Positive**
 
-- Per-country share cards return, on static pages — the ADR-0004 feature at
+- Per-country share cards return, on static pages: the ADR-0004 feature at
   ADR-0018 cost.
 - A country page is a plain document URL: linkable, prerendered, CDN-served.
 
@@ -64,3 +64,5 @@ never a render.
   always shareable.
 - The sitemap still lists only `/`; per-country indexing remains a separate
   SEO decision.
+- A trailing-slash arrival (`/c/br/`) resolves the country but fails the
+  canonical check, so the client relabels it once to `/c/br`.

@@ -1,6 +1,6 @@
 # ADR-0011: Globe-as-output gesture model
 
-**Status:** Accepted (2026-06-19)
+**Status:** Accepted (2026-06-19); amended by ADR-0019 (2026-07-24): the selection write channel is now the `/c/<code>` path, not `?cc=`
 
 ## Context
 

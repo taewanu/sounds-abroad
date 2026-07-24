@@ -1,6 +1,6 @@
 # ADR-0018: Static home route with a client-side landing roll
 
-**Status:** Accepted (2026-07-24). Supersedes ADR-0004.
+**Status:** Accepted (2026-07-24). Supersedes ADR-0004; amended by ADR-0019 (2026-07-24): the per-country restructure it deferred shipped as path-segment pages.
 
 ## Context
 
