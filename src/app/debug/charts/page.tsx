@@ -2,8 +2,6 @@ import { notFound } from "next/navigation";
 
 import { fetchCharts } from "@/lib/charts-client";
 
-export const dynamic = "force-dynamic";
-
 export default async function DebugChartsPage() {
   if (process.env.ENABLE_DEBUG !== "1") {
     notFound();

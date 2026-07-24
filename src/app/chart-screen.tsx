@@ -7,6 +7,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { useSearchParams } from "next/navigation";
 
@@ -44,6 +45,7 @@ import {
   globeChartStore,
   useGlobeChart,
 } from "@/lib/globe-chart-store";
+import { randomCountryCode } from "@/lib/landing-code";
 import { setSkipHandlers } from "@/lib/media-session";
 import { sameTrack } from "@/lib/track-identity";
 import {
@@ -63,28 +65,48 @@ function validateUrlCode(
 
 export interface ChartScreenProps {
   charts: ChartFile;
-  defaultCountryCode: string;
 }
 
-export function ChartScreen({ charts, defaultCountryCode }: ChartScreenProps) {
+const emptySubscribe = () => () => {};
+const serverLandingSnapshot = () => null;
+
+// The landing roll must happen once per visit and only in the browser: rolling
+// during prerender would bake one pick into the cached HTML for every visitor.
+function createLandingRoll(codes: readonly string[]) {
+  let rolled: string | null = null;
+  return () => (rolled ??= randomCountryCode(codes));
+}
+
+export function ChartScreen({ charts }: ChartScreenProps) {
   const searchParams = useSearchParams();
   const rawCc = searchParams.get("cc");
   const rawChart = searchParams.get(CHART_PARAM);
-  const countryCode =
-    validateUrlCode(rawCc, charts.countries) ?? defaultCountryCode;
-
-  const urlChart = chartFromUrl(rawChart, charts.countries[countryCode]);
-  // What the URL would have to carry to already name this chart, so the write
-  // below fires for a bare `/`, an invalid code, a non-canonical case, or a
-  // chart parameter this country does not carry.
-  const urlChartParam = isPlaylistRef(urlChart) ? urlChart : null;
+  const urlCode = validateUrlCode(rawCc, charts.countries);
+  const [clientLandingSnapshot] = useState(() =>
+    createLandingRoll(Object.keys(charts.countries)),
+  );
+  const landingCode = useSyncExternalStore(
+    emptySubscribe,
+    clientLandingSnapshot,
+    serverLandingSnapshot,
+  );
+  const countryCode = urlCode ?? landingCode;
 
   // Publish the resolved country to the globe. The globe is a layout backdrop,
   // so its own useSearchParams never sees a client-side ?cc= change; this page
   // child does, and forwards it across the globe-chart store.
   useEffect(() => {
+    if (countryCode === null) return;
     globeChartStore.getState().setSelectedCountry(countryCode);
   }, [countryCode]);
+
+  if (countryCode === null) return null;
+
+  const urlChart = chartFromUrl(rawChart, charts.countries[countryCode]);
+  // What the URL would have to carry to already name this chart, so the
+  // canonical check fails for a bare `/`, an invalid code, a non-canonical
+  // case, or a chart parameter this country does not carry.
+  const urlChartParam = isPlaylistRef(urlChart) ? urlChart : null;
 
   return (
     <AudioStoreProvider>
