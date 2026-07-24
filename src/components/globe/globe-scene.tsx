@@ -4,6 +4,7 @@ import { Suspense, use, useCallback, useEffect, useRef, useState } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { PerspectiveCamera } from "three";
 
+import { countryPath } from "@/lib/chart-url";
 import { COUNTRIES } from "@/lib/countries";
 import { addVisited, pickShuffleCountry } from "@/lib/fairness-draw";
 import { globeChartStore, useGlobeChart } from "@/lib/globe-chart-store";
@@ -56,8 +57,8 @@ function CountryLayers({
 
 function SceneContent() {
   // Not useSearchParams: the globe is a layout backdrop, where that hook is
-  // frozen to its first value and never sees a client-side ?cc= change. The
-  // chart (a page child) resolves cc and publishes it here.
+  // frozen to its first value and never sees a client-side country change. The
+  // chart (a page child) resolves the country and publishes it here.
   const selectedCode = useGlobeChart((s) => s.selectedCountry);
   const reducedMotion = usePrefersReducedMotion();
   const readMode = useGlobeChart((s) => s.readMode);
@@ -83,9 +84,10 @@ function SceneContent() {
   });
   const visited = useGlobeChart((s) => s.visited);
 
-  // A landing is a selection: buzz where supported, write ?cc= (replaceState,
-  // so rapid flinging doesn't flood history), record the country as visited,
-  // and signal the chart tree so a dismissed sheet resurfaces the result.
+  // A landing is a selection: buzz where supported, write the country path
+  // (replaceState, so rapid flinging doesn't flood history), record the country
+  // as visited, and signal the chart tree so a dismissed sheet resurfaces the
+  // result.
   const handleSettle = useCallback(
     (code: string, changed: boolean, viaTap: boolean) => {
       // Every settle resurfaces the result (raises a dismissed sheet, re-arms
@@ -97,7 +99,7 @@ function SceneContent() {
       const { setSelectedCountry, visited, setVisited } =
         globeChartStore.getState();
       setSelectedCountry(code);
-      window.history.replaceState(null, "", `?cc=${code}`);
+      window.history.replaceState(null, "", countryPath(code));
       setVisited(addVisited(visited, code));
     },
     [],
@@ -105,7 +107,7 @@ function SceneContent() {
 
   // "Surprise me": on a bumped shuffle signal, draw a fair random country and
   // publish it via shuffleTo — sets selectedCountry (the globe's targetCode
-  // effect then settles to it, handleSettle owns the ?cc= write, visited, and
+  // effect then settles to it, handleSettle owns the URL write, visited, and
   // haptic) and records the landing so the button announces this shuffle's own
   // pick, not whatever selection changes next. Ref-gated so only a real bump
   // acts, never the mount value or a visited/selection re-render. Excluding the

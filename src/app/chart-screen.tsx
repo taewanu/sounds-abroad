@@ -7,8 +7,9 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 import { ChartSheet, type SnapState } from "@/components/chart-sheet/sheet";
 import { useChartTracks } from "@/components/chart-sheet/use-chart-tracks";
@@ -29,7 +30,13 @@ import {
 } from "@/lib/chart-mode";
 import { isPlaylistRef, SONGS_CHART, type ChartRef } from "@/lib/chart-ref";
 import type { ChartFile, ChartTrack, Country } from "@/lib/chart-schema";
-import { CHART_PARAM, chartFromUrl, chartQuery } from "@/lib/chart-url";
+import {
+  CHART_PARAM,
+  chartFromUrl,
+  chartPath,
+  countryCodeFromPath,
+  countryPath,
+} from "@/lib/chart-url";
 import {
   backRollTarget,
   planChartContinuation,
@@ -44,6 +51,7 @@ import {
   globeChartStore,
   useGlobeChart,
 } from "@/lib/globe-chart-store";
+import { randomCountryCode } from "@/lib/landing-code";
 import { setSkipHandlers } from "@/lib/media-session";
 import { sameTrack } from "@/lib/track-identity";
 import {
@@ -63,28 +71,54 @@ function validateUrlCode(
 
 export interface ChartScreenProps {
   charts: ChartFile;
-  defaultCountryCode: string;
 }
 
-export function ChartScreen({ charts, defaultCountryCode }: ChartScreenProps) {
+const emptySubscribe = () => () => {};
+const serverLandingSnapshot = () => null;
+
+// The landing roll must happen once per visit and only in the browser: rolling
+// during prerender would bake one pick into the cached HTML for every visitor.
+function createLandingSnapshot(codes: readonly string[]) {
+  let rolled: string | null = null;
+  return () => (rolled ??= randomCountryCode(codes));
+}
+
+export function ChartScreen({ charts }: ChartScreenProps) {
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const rawCc = searchParams.get("cc");
   const rawChart = searchParams.get(CHART_PARAM);
-  const countryCode =
-    validateUrlCode(rawCc, charts.countries) ?? defaultCountryCode;
-
-  const urlChart = chartFromUrl(rawChart, charts.countries[countryCode]);
-  // What the URL would have to carry to already name this chart, so the write
-  // below fires for a bare `/`, an invalid code, a non-canonical case, or a
-  // chart parameter this country does not carry.
-  const urlChartParam = isPlaylistRef(urlChart) ? urlChart : null;
+  // An explicit ?cc= outranks the path segment: legacy links carry the query,
+  // and honouring it keeps them landing where they point even when they reach
+  // the client unredirected; the canonical writer then relabels to the path.
+  const urlCode =
+    validateUrlCode(rawCc, charts.countries) ??
+    validateUrlCode(countryCodeFromPath(pathname), charts.countries);
+  const [clientLandingSnapshot] = useState(() =>
+    createLandingSnapshot(Object.keys(charts.countries)),
+  );
+  const landingCode = useSyncExternalStore(
+    emptySubscribe,
+    clientLandingSnapshot,
+    serverLandingSnapshot,
+  );
+  const countryCode = urlCode ?? landingCode;
 
   // Publish the resolved country to the globe. The globe is a layout backdrop,
-  // so its own useSearchParams never sees a client-side ?cc= change; this page
+  // so its own URL hooks never see a client-side country change; this page
   // child does, and forwards it across the globe-chart store.
   useEffect(() => {
+    if (countryCode === null) return;
     globeChartStore.getState().setSelectedCountry(countryCode);
   }, [countryCode]);
+
+  if (countryCode === null) return null;
+
+  const urlChart = chartFromUrl(rawChart, charts.countries[countryCode]);
+  // What the URL would have to carry to already name this chart, so the
+  // canonical check fails for a bare `/`, an invalid code, a leftover ?cc=
+  // query, or a chart parameter this country does not carry.
+  const urlChartParam = isPlaylistRef(urlChart) ? urlChart : null;
 
   return (
     <AudioStoreProvider>
@@ -93,7 +127,11 @@ export function ChartScreen({ charts, defaultCountryCode }: ChartScreenProps) {
         countryCode={countryCode}
         charts={charts}
         urlChart={urlChart}
-        urlIsCanonical={rawCc === countryCode && rawChart === urlChartParam}
+        urlIsCanonical={
+          rawCc === null &&
+          pathname === countryPath(countryCode) &&
+          rawChart === urlChartParam
+        }
       />
     </AudioStoreProvider>
   );
@@ -119,14 +157,15 @@ function ChartScreenInner({
   // Keeps the URL naming what is on screen, so a chart can be linked to and a
   // reload restores one. replaceState relabels without navigating, so switching
   // charts costs no refetch. Written here rather than beside the country alone,
-  // because a bare `?cc=` write would drop the chart the listener is reading.
+  // because a bare country-path write would drop the chart the listener is
+  // reading.
   const chartRef = chart.ref;
   const chartFailed = chart.failed.has(urlChart);
   // What the URL already says. A ref, not the search params, because
   // replaceState leaves those stale, so after the first write they would keep
   // reporting the arrival query.
   const urlSays = useRef<string | null>(
-    urlIsCanonical ? chartQuery(countryCode, urlChart) : null,
+    urlIsCanonical ? chartPath(countryCode, urlChart) : null,
   );
   // Whether the chart the arrival URL named has been honoured. Until it is, the
   // displayed chart is still the songs chart, and writing would drop the very
@@ -137,7 +176,7 @@ function ChartScreenInner({
       if (chartRef !== urlChart && !chartFailed) return;
       arrivalHonoured.current = true;
     }
-    const want = chartQuery(countryCode, chartRef);
+    const want = chartPath(countryCode, chartRef);
     if (urlSays.current === want) return;
     urlSays.current = want;
     window.history.replaceState(null, "", want);
@@ -324,7 +363,7 @@ function ChartScreenInner({
         window.history.pushState(
           null,
           "",
-          chartQuery(currentCountryCode, currentChartRef),
+          chartPath(currentCountryCode, currentChartRef),
         );
       }
       if (currentMode) setMode(currentMode);
@@ -386,13 +425,13 @@ function ChartScreenInner({
       if (landing.code !== selectedCountry) suppressResurfaceRef.current = true;
       setSelectedCountry(landing.code);
       // Spelled here rather than left to the sync effect: this screen's country
-      // comes from the search params, which replaceState does not update, so a
-      // landing is invisible to it. Routed through the shared query so the
-      // chart is dropped rather than silently left behind.
+      // comes from the URL, which the store selection alone does not touch, so
+      // a landing would otherwise go unrecorded there. Routed through the
+      // shared path so the chart is dropped rather than silently left behind.
       window.history.replaceState(
         null,
         "",
-        chartQuery(landing.code, SONGS_CHART),
+        chartPath(landing.code, SONGS_CHART),
       );
       signalStep(1);
       flashSkip(1);
@@ -556,7 +595,7 @@ function ChartScreenInner({
       window.history.replaceState(
         null,
         "",
-        chartQuery(back.countryCode, SONGS_CHART),
+        chartPath(back.countryCode, SONGS_CHART),
       );
       signalStep(dir);
       flashSkip(-1);

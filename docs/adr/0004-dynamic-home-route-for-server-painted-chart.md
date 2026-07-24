@@ -1,6 +1,6 @@
 # ADR-0004: Dynamic rendering of the home route for a server-painted chart
 
-**Status:** Accepted (2026-06-07); amended 2026-07-10 (#200)
+**Status:** Superseded by ADR-0018 (2026-07-24). Accepted (2026-06-07); amended 2026-07-10 (#200)
 
 ## Amendment (2026-07-10, #200)
 

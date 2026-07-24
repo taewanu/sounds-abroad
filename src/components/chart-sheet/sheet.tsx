@@ -293,7 +293,7 @@ export function ChartSheet({
 
   // selectGem returns null for an empty track list (a failed crawl with no
   // carried-forward snapshot can leave a country with none, and that country
-  // is reachable via both a random landing and a direct ?cc=); otherwise it
+  // is reachable via both a random landing and a direct country link); otherwise it
   // always returns a gem, so the card renders on every landing with real
   // tracks, regardless of how it was reached.
   //
