@@ -329,6 +329,9 @@ export async function GET(request: Request) {
   return new ImageResponse(element, {
     width: 1200,
     height: square ? 1200 : 630,
+    headers: {
+      "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800",
+    },
     fonts: [
       { name: "Poppins", data: poppins, weight: 500, style: "normal" },
       {

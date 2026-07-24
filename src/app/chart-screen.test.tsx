@@ -17,6 +17,14 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => mockSearchParams.value,
 }));
 
+// The landing country is rolled client-side after mount; pin the roll so each
+// test controls where the screen lands when no ?cc= is present.
+const landingPick = vi.hoisted(() => ({ value: "" }));
+
+vi.mock("@/lib/landing-code", () => ({
+  randomCountryCode: () => landingPick.value,
+}));
+
 // A controllable stand-in for the browser audio engine so the component tree
 // can play and end a track under happy-dom, which has no AudioContext.
 const audioEngine = vi.hoisted(() => {
@@ -54,6 +62,12 @@ vi.mock("@/lib/audio-engine", () => ({
 }));
 
 import { ChartScreen } from "./chart-screen";
+
+// Plumbing only: pin the landing roll, then render without a ?cc= dependency.
+function renderChartScreen(charts: ChartFile, landing: string) {
+  landingPick.value = landing;
+  return render(<ChartScreen charts={charts} />);
+}
 
 // A chart whose middle track has no preview, so the correct next track from #1
 // is #3. Any "next" that walks a bare index would land on the unplayable #2.
@@ -201,9 +215,7 @@ function playingRank(container: HTMLElement): string | null {
 // the rank left playing.
 function advanceFromHead(advance: () => void): string | null {
   audioEngine.reset();
-  const { container, unmount } = render(
-    <ChartScreen charts={ADJACENCY_CHARTS} defaultCountryCode={ADJ_CODE} />,
-  );
+  const { container, unmount } = renderChartScreen(ADJACENCY_CHARTS, ADJ_CODE);
   fireEvent.click(
     screen.getByRole("button", {
       name: "Play preview of Playable head by Head artist",
@@ -232,7 +244,7 @@ describe("ChartScreen", () => {
   test("renders the chart for a valid ?cc= without touching the URL", () => {
     mockSearchParams.value = new URLSearchParams(`cc=${CODE_US}`);
 
-    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
+    renderChartScreen(CHARTS, CODE_BR);
 
     expect(
       screen.getAllByText(COUNTRY_US.tracks[0].name).length,
@@ -240,8 +252,8 @@ describe("ChartScreen", () => {
     expect(replaceState).not.toHaveBeenCalled();
   });
 
-  test("falls back to defaultCountryCode and writes it to the URL when ?cc= is absent", () => {
-    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_US} />);
+  test("rolls a landing country and writes it to the URL when ?cc= is absent", () => {
+    renderChartScreen(CHARTS, CODE_US);
 
     expect(
       screen.getAllByText(COUNTRY_US.tracks[0].name).length,
@@ -249,10 +261,10 @@ describe("ChartScreen", () => {
     expect(replaceState).toHaveBeenCalledWith(null, "", `?cc=${CODE_US}`);
   });
 
-  test("falls back to defaultCountryCode for an invalid ?cc=", () => {
+  test("rolls a landing country for an invalid ?cc=", () => {
     mockSearchParams.value = new URLSearchParams("cc=xx");
 
-    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_US} />);
+    renderChartScreen(CHARTS, CODE_US);
 
     expect(
       screen.getAllByText(COUNTRY_US.tracks[0].name).length,
@@ -263,7 +275,7 @@ describe("ChartScreen", () => {
   test("canonicalizes an uppercase ?cc= in the URL", () => {
     mockSearchParams.value = new URLSearchParams(`cc=${CODE_US.toUpperCase()}`);
 
-    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
+    renderChartScreen(CHARTS, CODE_BR);
 
     expect(
       screen.getAllByText(COUNTRY_US.tracks[0].name).length,
@@ -290,21 +302,21 @@ describe("ChartScreen globe coupling", () => {
   test("publishes the resolved ?cc= country to the globe", () => {
     mockSearchParams.value = new URLSearchParams(`cc=${CODE_US}`);
 
-    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
+    renderChartScreen(CHARTS, CODE_BR);
 
     expect(globeChartStore.getState().selectedCountry).toBe(CODE_US);
   });
 
-  test("publishes the default country to the globe when ?cc= is absent", () => {
+  test("publishes the rolled landing country to the globe when ?cc= is absent", () => {
     mockSearchParams.value = new URLSearchParams();
 
-    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
+    renderChartScreen(CHARTS, CODE_BR);
 
     expect(globeChartStore.getState().selectedCountry).toBe(CODE_BR);
   });
 
   test("publishes read mode to the globe at full and clears it back at peek", () => {
-    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
+    renderChartScreen(CHARTS, CODE_BR);
 
     expect(globeChartStore.getState().readMode).toBe(false);
 
@@ -316,7 +328,7 @@ describe("ChartScreen globe coupling", () => {
   });
 
   test("a settle raises a dismissed sheet back to peek", () => {
-    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
+    renderChartScreen(CHARTS, CODE_BR);
     const sheet = screen.getByTestId("chart-sheet");
 
     fireEvent.keyDown(document, { key: "Escape" });
@@ -329,7 +341,7 @@ describe("ChartScreen globe coupling", () => {
   });
 
   test("a settle leaves an open sheet where it is", () => {
-    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
+    renderChartScreen(CHARTS, CODE_BR);
     const sheet = screen.getByTestId("chart-sheet");
 
     expect(sheet.dataset.snap).toBe("peek");
@@ -340,9 +352,7 @@ describe("ChartScreen globe coupling", () => {
   });
 
   test("releases read mode when the chart unmounts", () => {
-    const { unmount } = render(
-      <ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />,
-    );
+    const { unmount } = renderChartScreen(CHARTS, CODE_BR);
     fireEvent.click(screen.getByRole("button", { name: "Expand chart" }));
     expect(globeChartStore.getState().readMode).toBe(true);
 
@@ -352,7 +362,7 @@ describe("ChartScreen globe coupling", () => {
 
   test("an edge-skip gesture latches the hint record's used flag", () => {
     localStorage.clear();
-    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
+    renderChartScreen(CHARTS, CODE_BR);
     expect(readRecord().used).toBe(false);
 
     act(() => {
@@ -365,7 +375,7 @@ describe("ChartScreen globe coupling", () => {
   });
 
   test("a settle never starts audio on its own", () => {
-    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_BR} />);
+    renderChartScreen(CHARTS, CODE_BR);
 
     act(() => {
       globeChartStore.getState().signalSettle();
@@ -394,7 +404,7 @@ describe("ChartScreen commentary badge", () => {
   });
 
   test("no badge renders while the playing track has no commentary", () => {
-    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_US} />);
+    renderChartScreen(CHARTS, CODE_US);
 
     fireEvent.click(
       screen.getByRole("button", {
@@ -408,7 +418,7 @@ describe("ChartScreen commentary badge", () => {
   });
 
   test("the badge reopens the sheet and expands the now-playing row's commentary card", () => {
-    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_US} />);
+    renderChartScreen(CHARTS, CODE_US);
     const sheet = screen.getByTestId("chart-sheet");
     fireEvent.click(
       screen.getByRole("button", {
@@ -463,7 +473,7 @@ describe("ChartScreen edge-skip cues", () => {
   });
 
   test("playing a track while the tour still has gestures to teach surfaces no cue", () => {
-    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_US} />);
+    renderChartScreen(CHARTS, CODE_US);
 
     playFromTheChart();
 
@@ -472,7 +482,7 @@ describe("ChartScreen edge-skip cues", () => {
   });
 
   test("a track played mid-tour spends none of the hint's capped shows", () => {
-    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_US} />);
+    renderChartScreen(CHARTS, CODE_US);
 
     playFromTheChart();
 
@@ -482,7 +492,7 @@ describe("ChartScreen edge-skip cues", () => {
   test("the cues surface once the tour has concluded", () => {
     writeTourRecord({ learned: [], shows: 0, dismissed: true });
 
-    render(<ChartScreen charts={CHARTS} defaultCountryCode={CODE_US} />);
+    renderChartScreen(CHARTS, CODE_US);
     playFromTheChart();
 
     expect(screen.getByTestId("edge-tap-badge")).toBeTruthy();
@@ -510,9 +520,7 @@ describe("ChartScreen directional cue", () => {
   });
 
   test("starting playback carries no directional cue", () => {
-    const { container } = render(
-      <ChartScreen charts={ADJACENCY_CHARTS} defaultCountryCode={ADJ_CODE} />,
-    );
+    const { container } = renderChartScreen(ADJACENCY_CHARTS, ADJ_CODE);
 
     fireEvent.click(
       screen.getByRole("button", {
@@ -524,9 +532,7 @@ describe("ChartScreen directional cue", () => {
   });
 
   test("the next button publishes the forward direction", () => {
-    const { container } = render(
-      <ChartScreen charts={ADJACENCY_CHARTS} defaultCountryCode={ADJ_CODE} />,
-    );
+    const { container } = renderChartScreen(ADJACENCY_CHARTS, ADJ_CODE);
     fireEvent.click(
       screen.getByRole("button", {
         name: "Play preview of Playable head by Head artist",
@@ -539,9 +545,7 @@ describe("ChartScreen directional cue", () => {
   });
 
   test("the prev button publishes the backward direction", () => {
-    const { container } = render(
-      <ChartScreen charts={ADJACENCY_CHARTS} defaultCountryCode={ADJ_CODE} />,
-    );
+    const { container } = renderChartScreen(ADJACENCY_CHARTS, ADJ_CODE);
     fireEvent.click(
       screen.getByRole("button", {
         name: "Play preview of Playable tail by Tail artist",
@@ -554,9 +558,7 @@ describe("ChartScreen directional cue", () => {
   });
 
   test("auto-advance publishes the forward direction through the same step", () => {
-    const { container } = render(
-      <ChartScreen charts={ADJACENCY_CHARTS} defaultCountryCode={ADJ_CODE} />,
-    );
+    const { container } = renderChartScreen(ADJACENCY_CHARTS, ADJ_CODE);
     fireEvent.click(
       screen.getByRole("button", {
         name: "Play preview of Playable head by Head artist",
@@ -571,9 +573,7 @@ describe("ChartScreen directional cue", () => {
   });
 
   test("a globe skip-intent publishes its direction through the same step", () => {
-    const { container } = render(
-      <ChartScreen charts={ADJACENCY_CHARTS} defaultCountryCode={ADJ_CODE} />,
-    );
+    const { container } = renderChartScreen(ADJACENCY_CHARTS, ADJ_CODE);
     fireEvent.click(
       screen.getByRole("button", {
         name: "Play preview of Playable head by Head artist",
@@ -588,9 +588,7 @@ describe("ChartScreen directional cue", () => {
   });
 
   test("a direct row tap changes the track without a directional cue", () => {
-    const { container } = render(
-      <ChartScreen charts={ADJACENCY_CHARTS} defaultCountryCode={ADJ_CODE} />,
-    );
+    const { container } = renderChartScreen(ADJACENCY_CHARTS, ADJ_CODE);
     fireEvent.click(
       screen.getByRole("button", {
         name: "Play preview of Playable head by Head artist",
@@ -619,9 +617,7 @@ describe("ChartScreen auto-advance", () => {
   });
 
   test("a track ending advances to the next playable track, skipping one with no preview", () => {
-    const { container } = render(
-      <ChartScreen charts={ADJACENCY_CHARTS} defaultCountryCode={ADJ_CODE} />,
-    );
+    const { container } = renderChartScreen(ADJACENCY_CHARTS, ADJ_CODE);
     fireEvent.click(
       screen.getByRole("button", {
         name: "Play preview of Playable head by Head artist",
@@ -652,12 +648,7 @@ describe("ChartScreen auto-advance", () => {
 
   test("auto-advance keys on identity when two rows share one preview asset", () => {
     mockSearchParams.value = new URLSearchParams(`cc=${SHARED_CODE}`);
-    const { container } = render(
-      <ChartScreen
-        charts={ADJACENCY_CHARTS}
-        defaultCountryCode={SHARED_CODE}
-      />,
-    );
+    const { container } = renderChartScreen(ADJACENCY_CHARTS, SHARED_CODE);
     // Play the tail, whose preview asset also belongs to the head. A
     // previewUrl-keyed walk would resolve the current track to the head and
     // wrongly re-advance; identity resolves it to the tail, which has no next.
@@ -676,9 +667,7 @@ describe("ChartScreen auto-advance", () => {
   });
 
   test("ending the last playable track falls silent instead of wrapping to the head", () => {
-    const { container } = render(
-      <ChartScreen charts={ADJACENCY_CHARTS} defaultCountryCode={ADJ_CODE} />,
-    );
+    const { container } = renderChartScreen(ADJACENCY_CHARTS, ADJ_CODE);
     fireEvent.click(
       screen.getByRole("button", {
         name: "Play preview of Playable tail by Tail artist",
@@ -722,9 +711,7 @@ describe("ChartScreen end-of-chart roll", () => {
   // Render the chart and start its last playable track, the seat every roll
   // begins from.
   function playLastPlayable(charts: ChartFile) {
-    const rendered = render(
-      <ChartScreen charts={charts} defaultCountryCode={ADJ_CODE} />,
-    );
+    const rendered = renderChartScreen(charts, ADJ_CODE);
     fireEvent.click(
       screen.getByRole("button", {
         name: "Play preview of Playable tail by Tail artist",
@@ -814,9 +801,7 @@ describe("ChartScreen end-of-chart roll", () => {
   });
 
   test("an edge-tap skip intent mid-chart still advances and flashes", () => {
-    const { container } = render(
-      <ChartScreen charts={ROLL_CHARTS} defaultCountryCode={ADJ_CODE} />,
-    );
+    const { container } = renderChartScreen(ROLL_CHARTS, ADJ_CODE);
     fireEvent.click(
       screen.getByRole("button", {
         name: "Play preview of Playable head by Head artist",
@@ -974,12 +959,7 @@ describe("ChartScreen chart rail", () => {
   });
 
   test("lists every chart the country carries without fetching any of them", () => {
-    render(
-      <ChartScreen
-        charts={chartsWithPlaylist()}
-        defaultCountryCode={RAIL_CODE}
-      />,
-    );
+    renderChartScreen(chartsWithPlaylist(), RAIL_CODE);
 
     expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual([
       "Top Songs",
@@ -990,7 +970,7 @@ describe("ChartScreen chart rail", () => {
 
   test("opening a playlist chart replaces the list with its tracks", async () => {
     const charts = chartsWithPlaylist();
-    render(<ChartScreen charts={charts} defaultCountryCode={RAIL_CODE} />);
+    renderChartScreen(charts, RAIL_CODE);
     const songsTrack = charts.countries[RAIL_CODE].tracks[0].name;
 
     await act(async () => {
@@ -1003,7 +983,7 @@ describe("ChartScreen chart rail", () => {
 
   test("returning to the songs chart costs no second read", async () => {
     const charts = chartsWithPlaylist();
-    render(<ChartScreen charts={charts} defaultCountryCode={RAIL_CODE} />);
+    renderChartScreen(charts, RAIL_CODE);
     const songsTrack = charts.countries[RAIL_CODE].tracks[0].name;
 
     await act(async () => {
@@ -1018,7 +998,7 @@ describe("ChartScreen chart rail", () => {
   });
 
   test("a country carrying no playlists renders no rail", () => {
-    render(<ChartScreen charts={CHARTS} defaultCountryCode={RAIL_CODE} />);
+    renderChartScreen(CHARTS, RAIL_CODE);
 
     expect(screen.queryByRole("tablist")).toBeNull();
   });
@@ -1146,9 +1126,7 @@ describe("ChartScreen playlist playback", () => {
   }
 
   test("a track of a playlist chart plays through the preview pipeline", async () => {
-    const { container } = render(
-      <ChartScreen charts={PLAYLIST_CHARTS} defaultCountryCode={PL_CODE} />,
-    );
+    const { container } = renderChartScreen(PLAYLIST_CHARTS, PL_CODE);
     await openChart(PL_FIRST_LABEL);
 
     playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
@@ -1157,9 +1135,7 @@ describe("ChartScreen playlist playback", () => {
   });
 
   test("next moves within the playing chart", async () => {
-    const { container } = render(
-      <ChartScreen charts={PLAYLIST_CHARTS} defaultCountryCode={PL_CODE} />,
-    );
+    const { container } = renderChartScreen(PLAYLIST_CHARTS, PL_CODE);
     await openChart(PL_FIRST_LABEL);
     playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
 
@@ -1170,9 +1146,7 @@ describe("ChartScreen playlist playback", () => {
   });
 
   test("browsing another chart leaves playback in the one it started from", async () => {
-    const { container } = render(
-      <ChartScreen charts={PLAYLIST_CHARTS} defaultCountryCode={PL_CODE} />,
-    );
+    const { container } = renderChartScreen(PLAYLIST_CHARTS, PL_CODE);
     await openChart(PL_FIRST_LABEL);
     playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
 
@@ -1188,9 +1162,7 @@ describe("ChartScreen playlist playback", () => {
   });
 
   test("the end of a playlist chart continues into the country's next one", async () => {
-    render(
-      <ChartScreen charts={PLAYLIST_CHARTS} defaultCountryCode={PL_CODE} />,
-    );
+    renderChartScreen(PLAYLIST_CHARTS, PL_CODE);
     await openChart(PL_FIRST_LABEL);
     playPreview(FIRST_TAIL.name, FIRST_TAIL.artist);
 
@@ -1208,9 +1180,7 @@ describe("ChartScreen playlist playback", () => {
   });
 
   test("a country whose playlist charts are exhausted rolls into another country", async () => {
-    render(
-      <ChartScreen charts={PLAYLIST_CHARTS} defaultCountryCode={PL_CODE} />,
-    );
+    renderChartScreen(PLAYLIST_CHARTS, PL_CODE);
     await openChart(PL_SECOND_LABEL);
     playPreview(SECOND_ONLY.name, SECOND_ONLY.artist);
 
@@ -1223,9 +1193,7 @@ describe("ChartScreen playlist playback", () => {
   });
 
   test("the songs chart's end still rolls out of a country carrying playlists", async () => {
-    render(
-      <ChartScreen charts={PLAYLIST_CHARTS} defaultCountryCode={PL_CODE} />,
-    );
+    renderChartScreen(PLAYLIST_CHARTS, PL_CODE);
     playPreview(SONGS_ONLY, `${SONGS_ONLY} artist`);
 
     await act(async () => {
@@ -1257,12 +1225,7 @@ describe("ChartScreen chart in the URL", () => {
 
   test("names the chart in the URL once one is opened", async () => {
     mockSearchParams.value = new URLSearchParams(`cc=${RAIL_CODE}`);
-    render(
-      <ChartScreen
-        charts={chartsWithPlaylist()}
-        defaultCountryCode={RAIL_CODE}
-      />,
-    );
+    renderChartScreen(chartsWithPlaylist(), RAIL_CODE);
 
     await act(async () => {
       fireEvent.click(screen.getByRole("tab", { name: "A playlist chart" }));
@@ -1279,12 +1242,7 @@ describe("ChartScreen chart in the URL", () => {
     mockSearchParams.value = new URLSearchParams(
       `cc=${RAIL_CODE}&chart=${PL_ID}`,
     );
-    render(
-      <ChartScreen
-        charts={chartsWithPlaylist()}
-        defaultCountryCode={RAIL_CODE}
-      />,
-    );
+    renderChartScreen(chartsWithPlaylist(), RAIL_CODE);
 
     await act(async () => {});
 
@@ -1296,7 +1254,7 @@ describe("ChartScreen chart in the URL", () => {
       `cc=${RAIL_CODE}&chart=pl.elsewhere`,
     );
     const charts = chartsWithPlaylist();
-    render(<ChartScreen charts={charts} defaultCountryCode={RAIL_CODE} />);
+    renderChartScreen(charts, RAIL_CODE);
 
     await act(async () => {});
 
@@ -1311,12 +1269,7 @@ describe("ChartScreen chart in the URL", () => {
     mockSearchParams.value = new URLSearchParams(
       `cc=${RAIL_CODE}&chart=${PL_ID}`,
     );
-    render(
-      <ChartScreen
-        charts={chartsWithPlaylist()}
-        defaultCountryCode={RAIL_CODE}
-      />,
-    );
+    renderChartScreen(chartsWithPlaylist(), RAIL_CODE);
 
     await act(async () => {});
 
@@ -1347,9 +1300,7 @@ describe("ChartScreen while a chart is read", () => {
       ),
     );
     const charts = chartsWithPlaylist();
-    const { container } = render(
-      <ChartScreen charts={charts} defaultCountryCode={RAIL_CODE} />,
-    );
+    const { container } = renderChartScreen(charts, RAIL_CODE);
     const songsTrack = charts.countries[RAIL_CODE].tracks[0].name;
 
     fireEvent.click(screen.getByRole("tab", { name: "A playlist chart" }));
@@ -1370,9 +1321,7 @@ describe("ChartScreen while a chart is read", () => {
       vi.fn(async () => new Response("", { status: 404 })),
     );
     const charts = chartsWithPlaylist();
-    const { container } = render(
-      <ChartScreen charts={charts} defaultCountryCode={RAIL_CODE} />,
-    );
+    const { container } = renderChartScreen(charts, RAIL_CODE);
     const songsTrack = charts.countries[RAIL_CODE].tracks[0].name;
 
     await act(async () => {
@@ -1402,12 +1351,7 @@ describe("ChartScreen rail and panel", () => {
   });
 
   test("the track list is the panel the open chart's tab controls", () => {
-    render(
-      <ChartScreen
-        charts={chartsWithPlaylist()}
-        defaultCountryCode={RAIL_CODE}
-      />,
-    );
+    renderChartScreen(chartsWithPlaylist(), RAIL_CODE);
 
     const panel = screen.getByRole("tabpanel");
     const open = screen.getByRole("tab", { selected: true });
@@ -1417,7 +1361,7 @@ describe("ChartScreen rail and panel", () => {
   });
 
   test("a country with no rail exposes no panel", () => {
-    render(<ChartScreen charts={CHARTS} defaultCountryCode={RAIL_CODE} />);
+    renderChartScreen(CHARTS, RAIL_CODE);
 
     expect(screen.queryByRole("tabpanel")).toBeNull();
   });
@@ -1478,7 +1422,7 @@ describe("ChartScreen deeper rows", () => {
     vi.stubGlobal("fetch", spy);
     stubObserver();
 
-    render(<ChartScreen charts={CHARTS} defaultCountryCode={RAIL_CODE} />);
+    renderChartScreen(CHARTS, RAIL_CODE);
 
     expect(spy).not.toHaveBeenCalled();
   });
@@ -1499,7 +1443,7 @@ describe("ChartScreen deeper rows", () => {
       ),
     );
     const { reach } = stubObserver();
-    render(<ChartScreen charts={CHARTS} defaultCountryCode={RAIL_CODE} />);
+    renderChartScreen(CHARTS, RAIL_CODE);
 
     expect(screen.queryByText(DEEP_TRACK.name)).toBeNull();
 
@@ -1519,7 +1463,7 @@ describe("ChartScreen deeper rows", () => {
     );
     const { reach } = stubObserver();
     const charts = CHARTS;
-    render(<ChartScreen charts={charts} defaultCountryCode={RAIL_CODE} />);
+    renderChartScreen(charts, RAIL_CODE);
     const eager = charts.countries[RAIL_CODE].tracks[0].name;
 
     await act(async () => {
@@ -1644,9 +1588,7 @@ describe("ChartScreen stepping past the eager rows", () => {
 
   test("next continues into the rows read past the payload", async () => {
     const { reach } = stubObserver();
-    const { container } = render(
-      <ChartScreen charts={DEEP_CHARTS} defaultCountryCode={DEEP_CODE} />,
-    );
+    const { container } = renderChartScreen(DEEP_CHARTS, DEEP_CODE);
     await act(async () => {
       reach();
     });
@@ -1660,9 +1602,7 @@ describe("ChartScreen stepping past the eager rows", () => {
 
   test("next walks the mode on screen, not the rows it hides", async () => {
     const { reach } = stubObserver();
-    const { container } = render(
-      <ChartScreen charts={DEEP_CHARTS} defaultCountryCode={DEEP_CODE} />,
-    );
+    const { container } = renderChartScreen(DEEP_CHARTS, DEEP_CODE);
     await act(async () => {
       reach();
     });
@@ -1677,9 +1617,7 @@ describe("ChartScreen stepping past the eager rows", () => {
 
   test("a track the mode hides still steps to the mode's next row", async () => {
     const { reach } = stubObserver();
-    const { container } = render(
-      <ChartScreen charts={DEEP_CHARTS} defaultCountryCode={DEEP_CODE} />,
-    );
+    const { container } = renderChartScreen(DEEP_CHARTS, DEEP_CODE);
     await act(async () => {
       reach();
     });
@@ -1696,9 +1634,7 @@ describe("ChartScreen stepping past the eager rows", () => {
 
   test("the mode still governs a chart playing on in a country left behind", async () => {
     const { reach } = stubObserver();
-    const { rerender } = render(
-      <ChartScreen charts={DEEP_CHARTS} defaultCountryCode={DEEP_CODE} />,
-    );
+    const { rerender } = renderChartScreen(DEEP_CHARTS, DEEP_CODE);
     await act(async () => {
       reach();
     });
@@ -1707,9 +1643,7 @@ describe("ChartScreen stepping past the eager rows", () => {
 
     // Stand somewhere else; the chart playing is the one left behind.
     mockSearchParams.value = new URLSearchParams(`cc=${AWAY_CODE}`);
-    rerender(
-      <ChartScreen charts={DEEP_CHARTS} defaultCountryCode={DEEP_CODE} />,
-    );
+    rerender(<ChartScreen charts={DEEP_CHARTS} />);
     expect(screen.getByText("Away country")).not.toBeNull();
 
     next();
@@ -1723,9 +1657,7 @@ describe("ChartScreen stepping past the eager rows", () => {
 
   test("changing the mode elsewhere leaves the playing chart in its own", async () => {
     const { reach } = stubObserver();
-    const { rerender } = render(
-      <ChartScreen charts={DEEP_CHARTS} defaultCountryCode={DEEP_CODE} />,
-    );
+    const { rerender } = renderChartScreen(DEEP_CHARTS, DEEP_CODE);
     await act(async () => {
       reach();
     });
@@ -1733,9 +1665,7 @@ describe("ChartScreen stepping past the eager rows", () => {
     play("Deep 2", "Deep artist 2");
 
     mockSearchParams.value = new URLSearchParams(`cc=${AWAY_CODE}`);
-    rerender(
-      <ChartScreen charts={DEEP_CHARTS} defaultCountryCode={DEEP_CODE} />,
-    );
+    rerender(<ChartScreen charts={DEEP_CHARTS} />);
     // Re-aim what is on screen; what is playing was started in the other mode.
     fireEvent.click(screen.getByRole("button", { name: "Most played" }));
     next();
@@ -1746,9 +1676,7 @@ describe("ChartScreen stepping past the eager rows", () => {
 
   test("switching mode on the playing chart re-aims what next walks", async () => {
     const { reach } = stubObserver();
-    const { container } = render(
-      <ChartScreen charts={DEEP_CHARTS} defaultCountryCode={DEEP_CODE} />,
-    );
+    const { container } = renderChartScreen(DEEP_CHARTS, DEEP_CODE);
     await act(async () => {
       reach();
     });
@@ -1765,9 +1693,7 @@ describe("ChartScreen stepping past the eager rows", () => {
 
   test("stepping back and forth stays on the mode in front of the listener", async () => {
     const { reach } = stubObserver();
-    const { container } = render(
-      <ChartScreen charts={DEEP_CHARTS} defaultCountryCode={DEEP_CODE} />,
-    );
+    const { container } = renderChartScreen(DEEP_CHARTS, DEEP_CODE);
     await act(async () => {
       reach();
     });
