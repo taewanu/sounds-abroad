@@ -184,6 +184,7 @@ test("a center tap selects the hit country and settles to it", () => {
     code: "ca",
     changed: true,
     viaTap: true,
+    origin: "gesture",
   });
 });
 
@@ -207,6 +208,7 @@ test("an ocean tap re-centres the current country instead of jumping away", () =
     code: START,
     changed: false,
     viaTap: true,
+    origin: "gesture",
   });
 });
 
@@ -241,6 +243,7 @@ test("a tap landing during an in-flight settle redirects to the tapped country",
     code: "mx",
     changed: true,
     viaTap: true,
+    origin: "gesture",
   });
 });
 
@@ -286,6 +289,7 @@ test("a side-third tap on a pin selects immediately instead of arming a skip", (
     code: "ca",
     changed: true,
     viaTap: true,
+    origin: "gesture",
   });
 });
 
@@ -316,6 +320,7 @@ test("a second side tap landing on a pin selects rather than skips", () => {
     code: "ca",
     changed: true,
     viaTap: true,
+    origin: "gesture",
   });
   expect(commands.some((c) => c.kind === "signalSkip")).toBe(false);
 });
@@ -363,7 +368,11 @@ test("pointerCancel snaps to a country so it never rests on open ocean", () => {
     CFG,
   );
 
-  expect(commands.some((c) => c.kind === "settle")).toBe(true);
+  const settle = commands.find((c) => c.kind === "settle");
+  expect(settle).toBeDefined();
+  // An interrupted touch is recovery, not a chosen landing, so it must not push
+  // a history entry the back button would then have to undo.
+  expect(settle).toMatchObject({ origin: "external" });
   expect(commands).toContainEqual({ kind: "releasePointer", id: 1 });
 });
 
@@ -393,6 +402,7 @@ test("externalSelect settles to a new ?cc= country", () => {
     code: "mx",
     changed: true,
     viaTap: false,
+    origin: "external",
   });
 });
 

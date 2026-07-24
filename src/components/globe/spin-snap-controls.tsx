@@ -9,6 +9,7 @@ import {
   type GestureCommand,
   type GestureConfig,
   type GestureEvent,
+  type SettleOrigin,
   initGestureState,
   reduce,
 } from "./spin-gesture";
@@ -35,8 +36,15 @@ interface SpinSnapControlsProps {
   // `changed` is false when the settle re-lands the country already shown, so
   // the caller can fire on every settle but gate country-change side effects.
   // `viaTap` is true only for a bare tap-select, so the tour can tell an
-  // accidental tap from the flick it teaches.
-  onSettle: (code: string, changed: boolean, viaTap: boolean) => void;
+  // accidental tap from the flick it teaches. `origin` is "gesture" for a fling
+  // or tap and "external" for a URL/list/programmatic settle, so the caller can
+  // push a history entry for the first and relabel in place for the second.
+  onSettle: (
+    code: string,
+    changed: boolean,
+    viaTap: boolean,
+    origin: SettleOrigin,
+  ) => void;
 }
 
 // Drives the camera as a spun globe: drag to rotate, release to fling with
@@ -111,7 +119,12 @@ export function SpinSnapControls({
     (command: GestureCommand, el: HTMLCanvasElement) => {
       switch (command.kind) {
         case "settle":
-          onSettleRef.current(command.code, command.changed, command.viaTap);
+          onSettleRef.current(
+            command.code,
+            command.changed,
+            command.viaTap,
+            command.origin,
+          );
           break;
         case "signalSkip":
           globeChartStore.getState().signalSkip(command.dir);
