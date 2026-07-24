@@ -72,7 +72,7 @@ const serverLandingSnapshot = () => null;
 
 // The landing roll must happen once per visit and only in the browser: rolling
 // during prerender would bake one pick into the cached HTML for every visitor.
-function createLandingRoll(codes: readonly string[]) {
+function createLandingSnapshot(codes: readonly string[]) {
   let rolled: string | null = null;
   return () => (rolled ??= randomCountryCode(codes));
 }
@@ -83,7 +83,7 @@ export function ChartScreen({ charts }: ChartScreenProps) {
   const rawChart = searchParams.get(CHART_PARAM);
   const urlCode = validateUrlCode(rawCc, charts.countries);
   const [clientLandingSnapshot] = useState(() =>
-    createLandingRoll(Object.keys(charts.countries)),
+    createLandingSnapshot(Object.keys(charts.countries)),
   );
   const landingCode = useSyncExternalStore(
     emptySubscribe,

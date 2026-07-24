@@ -2,6 +2,10 @@ import { notFound } from "next/navigation";
 
 import { fetchCharts } from "@/lib/charts-client";
 
+// The charts payload exceeds the data cache's 2MB item cap, so tag
+// revalidation alone can't refresh this page; the timer keeps it honest.
+export const revalidate = 3600;
+
 export default async function DebugChartsPage() {
   if (process.env.ENABLE_DEBUG !== "1") {
     notFound();
