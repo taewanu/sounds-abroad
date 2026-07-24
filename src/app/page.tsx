@@ -1,9 +1,6 @@
-import { Suspense } from "react";
 import type { Metadata } from "next";
 
-import { fetchCharts } from "@/lib/charts-client";
-
-import { ChartScreen } from "./chart-screen";
+import { ChartsBody } from "./charts-body";
 
 // Safety net alongside tag-based revalidation: the charts payload exceeds the
 // data cache's 2MB item cap, so the tag path alone can't be trusted to refresh
@@ -33,19 +30,4 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function Home() {
-  const url = process.env.CHARTS_BLOB_URL;
-  if (!url) {
-    throw new Error("CHARTS_BLOB_URL is not configured");
-  }
-
-  const charts = await fetchCharts(url);
-
-  return (
-    <main className="min-h-dvh">
-      <Suspense>
-        <ChartScreen charts={charts} />
-      </Suspense>
-    </main>
-  );
-}
+export { ChartsBody as default };

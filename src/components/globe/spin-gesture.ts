@@ -106,7 +106,7 @@ export type GestureEvent =
       listening: boolean;
     }
   | { type: "pointerCancel"; id: number; rng: () => number }
-  // ?cc= changed: the a11y country list or a shared link drives the globe.
+  // The URL country changed: the a11y list or a shared link drives the globe.
   | { type: "externalSelect"; code: string | null }
   | { type: "frame"; dt: number; rng: () => number };
 
@@ -155,7 +155,7 @@ export function initGestureState(code: string): GestureState {
 const owns = (s: GestureState, id: number) => s.activePointerId === id;
 
 // Aim at a country: record the landing, notify via a `settle` command no matter
-// how we got here (fling, tap, external ?cc=), then either cut instantly
+// how we got here (fling, tap, external URL pick), then either cut instantly
 // (reduced motion) or hand off to the snap spring the `frame` event runs.
 // Mutates the draft `s` and appends to `commands`; both are call-local copies,
 // so `reduce` stays pure. A null/unknown code just parks at idle.
@@ -175,7 +175,7 @@ function settleTo(
   s.settleEl = country.lat * DEG;
   // Notify on every settle, even re-landing the same country, so the chart
   // resurfaces and the tour re-arms its hint; `changed` lets the shell gate the
-  // country-change side effects (?cc=, visited, haptic).
+  // country-change side effects (URL, visited, haptic).
   const changed = s.settledCode !== country.code;
   s.settledCode = country.code;
   commands.push({
@@ -201,7 +201,7 @@ function settleTo(
 // Select the tapped country, re-centring the current one on an ocean miss so a
 // tap never jumps away. Bails when the situation forbids moving the globe: read
 // mode holds it still under the reader, and mode "settle" means an external
-// ?cc= already landed a selection.
+// URL pick already landed a selection.
 function runSelect(
   s: GestureState,
   commands: GestureCommand[],
@@ -357,8 +357,8 @@ export function reduce(
     }
 
     case "externalSelect": {
-      // Follow ?cc=: settle to it like a gesture would when we aren't there. A
-      // gesture's own settle wrote ?cc= first, so code === settledCode by the
+      // Follow the URL country: settle to it like a gesture would when we aren't
+      // there. A gesture's own settle wrote the URL first, so code === settledCode by the
       // time this runs and it no-ops, no feedback loop. Drop any armed skip
       // window so a following tap isn't misread as a second tap.
       if (event.code && event.code !== s.settledCode) {
@@ -374,7 +374,7 @@ export function reduce(
       // fling can't drift and settle a new country under the reader. Park an
       // in-flight fling outright (drop its momentum so it doesn't resume on
       // collapse), but leave a settle alone: a settle is an intentional landing
-      // (a gesture, or an external ?cc= pick), so let it resume and land when
+      // (a gesture, or an external URL pick), so let it resume and land when
       // the sheet collapses. A fling can't reach settle while reading, so
       // mode === "settle" here is always a real selection, never stray momentum.
       if (cfg.readMode) {

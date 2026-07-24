@@ -20,7 +20,7 @@ const TAP_HIT_PX = 44; // a tap beyond this from every country pin selects nothi
 
 interface SpinSnapControlsProps {
   initialCode: string;
-  // The externally-selected country (?cc=); the globe settles to it when it
+  // The externally-selected country (from the URL); the globe settles to it when it
   // changes, so the a11y list and shared links drive the globe like a gesture.
   targetCode: string | null;
   // OS "reduce motion": replaces the snap spring with an instant cut.
@@ -141,9 +141,9 @@ export function SpinSnapControls({
     [gl, runCommand],
   );
 
-  // Follow external selection: when ?cc= changes (the a11y country list, a
+  // Follow external selection: when the URL country changes (the a11y list, a
   // shared link) settle to it like a gesture would. A gesture's own settle
-  // writes ?cc= first, so the reducer no-ops when it already matches.
+  // writes the URL first, so the reducer no-ops when it already matches.
   useEffect(() => {
     dispatch({ type: "externalSelect", code: targetCode });
   }, [targetCode, dispatch]);
