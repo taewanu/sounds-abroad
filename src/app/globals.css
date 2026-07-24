@@ -1244,7 +1244,8 @@
    closes any open card on a switch rather than collapse one that would clip.
 
    The 300ms below mirrors ROW_COLLAPSE_MS in use-row-transitions.ts, which the
-   hook's drop timer and the reveal timer both key on; keep the three in step. */
+   hook's drop timer and the reveal timer both key on, along with the gem's own
+   fold in sheet.tsx; keep the four in step. */
 [data-row-transition="leaving"] {
   overflow: hidden;
   pointer-events: none;

@@ -956,7 +956,9 @@ export function ChartSheet({
             // Only here has no gem, so on a switch into it the card folds away
             // like the rows it sits above: grid-rows 1fr to 0fr because its
             // height is tall and not fixed, unlike a row's capped collapse. Out
-            // of reach as well as out of sight once folded.
+            // of reach as well as out of sight once folded. The 300ms below
+            // mirrors ROW_COLLAPSE_MS, which the reveal waits on to measure a
+            // settled list.
             data-gem-gone={onlyHereMode || undefined}
             aria-hidden={onlyHereMode || undefined}
             inert={onlyHereMode || focusedRank !== null}
