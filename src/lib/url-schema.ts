@@ -1,14 +1,14 @@
 import { z } from "zod";
 
 /**
- * What a URL is allowed to be, in one place.
+ * What a URL or a playlist id is allowed to be, in one place.
  *
  * A bare URL validator accepts `javascript:` and `data:`, so the schemas said
- * "some URL" while those values went on to become link targets and an image
- * source. Nothing else stands between the charts store and the document, which
- * is why the rule lives here rather than per field: two copies of it drift, and
- * the drift is silent. The serving schemas and the crawl's ingestion schemas
- * both read from here.
+ * "some URL" while those values went on to become a link target and an inline
+ * style rule. Nothing else stands between the charts store and the document,
+ * which is why the rule lives here rather than per field: two copies of it
+ * drift, and the drift is silent. The serving schemas and the crawl's ingestion
+ * schemas both read from here.
  */
 
 /** A URL on the named host, over TLS. */
@@ -41,9 +41,9 @@ function exactly(host: string): RegExp {
  * separate judgement with its own module, and restating any part of it here
  * would create a second list to keep in step.
  */
-export const HttpsUrlSchema = z.url({
+export const CitationUrlSchema = z.url({
   protocol: /^https$/,
-  error: "must be an https URL",
+  error: "must be an https citation URL",
 });
 
 /** The page a listener opens to play a track. */
@@ -53,19 +53,23 @@ export const AppleStorefrontUrlSchema = httpsUrlOn(
 );
 
 /**
- * Cover art, pinned to the image domain rather than to one shard: the shard
- * varies per URL, so pinning one would refuse a healthy chart the day a run met
- * another. Also covers artwork whose dimensions are still placeholders, which
- * sit in the final path segment and so leave the host checkable.
+ * Cover art, pinned to the image domain rather than to one host: the shard in an
+ * artwork URL varies, so pinning one would refuse a healthy chart the day a run
+ * met another. Also covers artwork whose dimensions are still placeholders,
+ * which sit in the final path segment and so leave the host checkable.
  */
 export const AppleArtworkUrlSchema = httpsUrlOn(
   domainAndSubdomains("mzstatic.com"),
   "artwork",
 );
 
-/** An audio preview, on the storefront's media domain. */
+/**
+ * An audio preview. Pinned to one host, unlike artwork: previews carry no shard,
+ * so allowing subdomains here would buy nothing and accept a host the storefront
+ * never serves from.
+ */
 export const ApplePreviewUrlSchema = httpsUrlOn(
-  domainAndSubdomains("itunes.apple.com"),
+  exactly("audio-ssl.itunes.apple.com"),
   "preview",
 );
 
@@ -86,4 +90,4 @@ export const SpotifyUrlSchema = httpsUrlOn(
  */
 export const PlaylistIdSchema = z
   .string()
-  .regex(/^pl\.[0-9a-f]{32}$/, "must be a playlist id");
+  .regex(/^pl\.[0-9a-f]{32}$/, "must be a storefront playlist id");

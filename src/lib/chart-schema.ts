@@ -4,7 +4,7 @@ import {
   AppleArtworkUrlSchema,
   ApplePreviewUrlSchema,
   AppleStorefrontUrlSchema,
-  HttpsUrlSchema,
+  CitationUrlSchema,
   PlaylistIdSchema,
   SpotifyUrlSchema,
 } from "./url-schema";
@@ -23,7 +23,7 @@ export const CommentarySchema = z.object({
   claim: ClaimSchema,
   // Any host, because a citation names an outside publication. Which ones are
   // citable is decided by the source-authority rules, not here.
-  sources: z.array(HttpsUrlSchema).min(1),
+  sources: z.array(CitationUrlSchema).min(1),
   generatedAt: z.iso.datetime(),
 });
 

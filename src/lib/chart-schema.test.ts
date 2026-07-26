@@ -336,7 +336,7 @@ test.each([
 ])(
   "a chart whose track $field is $value fails to parse",
   ({ field, value }) => {
-    const payload = {
+    const chartWith = (overrides: Record<string, unknown>) => ({
       lastUpdated: "2026-05-16T00:00:00.000Z",
       countries: {
         kr: {
@@ -351,14 +351,19 @@ test.each([
               artworkUrl: "https://is1-ssl.mzstatic.com/600x600bb.jpg",
               appleUrl: "https://music.apple.com/kr/1",
               spotifyUrl: "https://open.spotify.com/track/1",
-              [field]: value,
+              ...overrides,
             },
           ],
         },
       },
-    };
+    });
 
-    expect(ChartFileSchema.safeParse(payload).success).toBe(false);
+    // Without the mutation the same payload has to parse, or the refusal says
+    // nothing about the field under test.
+    expect(ChartFileSchema.safeParse(chartWith({})).success).toBe(true);
+    expect(
+      ChartFileSchema.safeParse(chartWith({ [field]: value })).success,
+    ).toBe(false);
   },
 );
 
@@ -367,8 +372,8 @@ test.each([
 test.each(["../../commentary/v1/commentary", "pl.not-a-playlist-id", "pl."])(
   "a playlist chart whose id is %j fails to parse",
   (id) => {
-    const payload = {
-      id,
+    const playlistWith = (playlistId: string) => ({
+      id: playlistId,
       lastUpdated: "2026-05-16T00:00:00.000Z",
       tracks: [
         {
@@ -380,8 +385,13 @@ test.each(["../../commentary/v1/commentary", "pl.not-a-playlist-id", "pl."])(
           appleUrl: "https://music.apple.com/kr/1",
         },
       ],
-    };
+    });
 
-    expect(PlaylistFileSchema.safeParse(payload).success).toBe(false);
+    expect(
+      PlaylistFileSchema.safeParse(
+        playlistWith("pl.d838905f50af4200a2ebbc614922dee9"),
+      ).success,
+    ).toBe(true);
+    expect(PlaylistFileSchema.safeParse(playlistWith(id)).success).toBe(false);
   },
 );

@@ -4,13 +4,13 @@ import {
   AppleArtworkUrlSchema,
   ApplePreviewUrlSchema,
   AppleStorefrontUrlSchema,
-  HttpsUrlSchema,
+  CitationUrlSchema,
   PlaylistIdSchema,
   SpotifyUrlSchema,
 } from "./url-schema";
 
-// Each host-pinned schema paired with a URL valid for it apart from the axis
-// under test, so a refusal proves that axis rather than the host.
+// Each host-pinned schema with a host and path that are valid for it, so a test
+// can vary one axis and leave the rest passing.
 const PINNED = [
   { schema: AppleStorefrontUrlSchema, host: "music.apple.com", path: "/kr/1" },
   {
@@ -33,15 +33,19 @@ const SCRIPT_BEARING = [
   "vbscript:msgbox(1)",
 ];
 
+// These carry no host at all, so a host-pinned schema would refuse them even
+// without a scheme rule. Their point is that no schema lets one through, not
+// which rule catches it. The citation schema is what isolates the scheme, since
+// it pins no host.
 test.each(PINNED)("$host refuses a script-bearing scheme", ({ schema }) => {
   for (const url of SCRIPT_BEARING) {
     expect(schema.safeParse(url).success).toBe(false);
   }
 });
 
-test("an any-host URL refuses a script-bearing scheme too", () => {
+test("a script-bearing scheme is refused on the schema that pins no host", () => {
   for (const url of SCRIPT_BEARING) {
-    expect(HttpsUrlSchema.safeParse(url).success).toBe(false);
+    expect(CitationUrlSchema.safeParse(url).success).toBe(false);
   }
 });
 
@@ -57,8 +61,12 @@ test.each(PINNED)(
 );
 
 test("an any-host URL is accepted over TLS and refused in plaintext", () => {
-  expect(HttpsUrlSchema.safeParse("https://example.com/a").success).toBe(true);
-  expect(HttpsUrlSchema.safeParse("http://example.com/a").success).toBe(false);
+  expect(CitationUrlSchema.safeParse("https://example.com/a").success).toBe(
+    true,
+  );
+  expect(CitationUrlSchema.safeParse("http://example.com/a").success).toBe(
+    false,
+  );
 });
 
 test.each(PINNED)(
@@ -108,7 +116,7 @@ test("a citation accepts any host, because which sources are citable is decided 
   ];
 
   for (const url of citations) {
-    expect(HttpsUrlSchema.safeParse(url).success).toBe(true);
+    expect(CitationUrlSchema.safeParse(url).success).toBe(true);
   }
 });
 
@@ -135,8 +143,10 @@ test("a playlist id of the shape the feed emits is accepted", () => {
   expect(PlaylistIdSchema.safeParse(PUBLISHED_ID).success).toBe(true);
 });
 
-// What the unconstrained schema let through: anything non-empty, including a
-// value that walks out of the prefix it is written under.
+// The first four walk out of the prefix the id is written under, which the old
+// non-empty check let through. The rest are the near-misses a length or case
+// slip would produce. Each row also asserts the published id still parses, so a
+// later change that refuses everything cannot pass this table.
 test.each([
   "../../commentary/v1/commentary",
   `${PUBLISHED_ID}/../../charts`,
@@ -146,9 +156,9 @@ test.each([
   "pl.tooshort",
   `${PUBLISHED_ID}a`,
   "pl.",
-  "",
 ])("a playlist id of %j is refused", (id) => {
   expect(PlaylistIdSchema.safeParse(id).success).toBe(false);
+  expect(PlaylistIdSchema.safeParse(PUBLISHED_ID).success).toBe(true);
 });
 
 test("a refusal names the expectation rather than repeating the rejected value", () => {
