@@ -32,7 +32,10 @@ function fakeFetch(response: {
 }
 
 function trackRecord(id: number): { trackId: number; previewUrl: string } {
-  return { trackId: id, previewUrl: `https://preview/${id}.m4a` };
+  return {
+    trackId: id,
+    previewUrl: `https://audio-ssl.itunes.apple.com/${id}.m4a`,
+  };
 }
 
 function responseBody(records: unknown[]): string {

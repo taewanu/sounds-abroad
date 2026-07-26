@@ -186,3 +186,37 @@ test("fetchPlaylistPage requests the playlist's own URL", async () => {
 
   expect(seen).toEqual([appleUrl]);
 });
+
+// The URL rules are wired into the track schema, so a lockup carrying a value
+// they refuse stops being usable. The parser's existing contract decides what
+// that costs: one unusable item is skipped, a section with nothing left throws.
+test("a track whose storefront URL is refused is skipped, keeping its section-mates", async () => {
+  const data = JSON.parse(await loadServerData());
+  const items = data.data[0].data.sections[1].items;
+  items[0].contentDescriptor.url = "javascript:alert(1)";
+
+  const tracks = parsePlaylistPage(pageHtml(JSON.stringify(data)), PLAYLIST_ID);
+
+  expect(tracks).toHaveLength(items.length - 1);
+});
+
+test("a track whose artwork host is refused is skipped, keeping its section-mates", async () => {
+  const data = JSON.parse(await loadServerData());
+  const items = data.data[0].data.sections[1].items;
+  items[0].artwork.dictionary.url = "https://evil.test/{w}x{h}bb.{f}";
+
+  const tracks = parsePlaylistPage(pageHtml(JSON.stringify(data)), PLAYLIST_ID);
+
+  expect(tracks).toHaveLength(items.length - 1);
+});
+
+test("a track section left with nothing usable is a broken contract, not an empty playlist", async () => {
+  const data = JSON.parse(await loadServerData());
+  for (const item of data.data[0].data.sections[1].items) {
+    item.contentDescriptor.url = "javascript:alert(1)";
+  }
+
+  expect(() =>
+    parsePlaylistPage(pageHtml(JSON.stringify(data)), PLAYLIST_ID),
+  ).toThrow(PlaylistPageError);
+});

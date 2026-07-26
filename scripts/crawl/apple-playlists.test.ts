@@ -124,3 +124,27 @@ test("every fixture artwork URL resizes to the requested dimensions", async () =
 
   expect(resized.every((url: string) => url.includes("/600x600"))).toBe(true);
 });
+
+// The URL and id rules are wired into this schema, so a feed carrying a value
+// they refuse must fail the storefront rather than reach the store. Traversal is
+// the one worth naming: an id becomes the key a playlist is written under.
+test.each([
+  { field: "id", value: "../../commentary/v1/commentary" },
+  { field: "id", value: "pl.not-a-playlist-id" },
+  { field: "url", value: "javascript:alert(1)" },
+  { field: "url", value: "https://evil.test/kr/playlist/1" },
+  { field: "artworkUrl100", value: "javascript:alert(1)" },
+  { field: "artworkUrl100", value: "https://evil.test/600x600bb.jpg" },
+])(
+  "a feed whose $field is $value fails the storefront",
+  async ({ field, value }) => {
+    const feed = JSON.parse(await loadFixture());
+    feed.feed.results[0][field] = value;
+
+    await expect(
+      fetchPlaylists("kr", {
+        fetch: fakeFetch({ ok: true, body: JSON.stringify(feed) }),
+      }),
+    ).rejects.toThrow(ApplePlaylistsError);
+  },
+);

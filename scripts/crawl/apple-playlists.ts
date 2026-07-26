@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+import {
+  AppleArtworkUrlSchema,
+  AppleStorefrontUrlSchema,
+  PlaylistIdSchema,
+} from "../../src/lib/url-schema";
+
 export interface ApplePlaylist {
   id: string;
   name: string;
@@ -26,11 +32,14 @@ const FEED_DEPTH = 100;
 
 const ARTWORK_SIZE = 600;
 
+// The id is constrained here rather than where the store key is built, because
+// this is where it enters the pipeline: one check covers the key, the published
+// payload, and the read path alike.
 const PlaylistSchema = z.object({
-  id: z.string().min(1),
+  id: PlaylistIdSchema,
   name: z.string().min(1),
-  url: z.url(),
-  artworkUrl100: z.url(),
+  url: AppleStorefrontUrlSchema,
+  artworkUrl100: AppleArtworkUrlSchema,
 });
 
 const PlaylistsResponseSchema = z.object({

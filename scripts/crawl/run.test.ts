@@ -33,7 +33,7 @@ function sampleRssTracks(): AppleRssTrack[] {
       name: "REDRED",
       artist: "코르티스",
       appleUrl: "https://music.apple.com/kr/album/1",
-      artworkUrl: "https://art/1/600x600bb.jpg",
+      artworkUrl: "https://is1-ssl.mzstatic.com/1/600x600bb.jpg",
     },
     {
       rank: 2,
@@ -41,7 +41,7 @@ function sampleRssTracks(): AppleRssTrack[] {
       name: "It's Me",
       artist: "아일릿",
       appleUrl: "https://music.apple.com/kr/album/2",
-      artworkUrl: "https://art/2/600x600bb.jpg",
+      artworkUrl: "https://is1-ssl.mzstatic.com/2/600x600bb.jpg",
     },
     {
       rank: 3,
@@ -49,7 +49,7 @@ function sampleRssTracks(): AppleRssTrack[] {
       name: "TICK TOCK",
       artist: "BLOCKERS",
       appleUrl: "https://music.apple.com/kr/album/3",
-      artworkUrl: "https://art/3/600x600bb.jpg",
+      artworkUrl: "https://is1-ssl.mzstatic.com/3/600x600bb.jpg",
     },
   ];
 }
@@ -270,7 +270,7 @@ function deepRssFor(cc: string, count: number): AppleRssTrack[] {
     name: `${cc} song ${i + 1}`,
     artist: `${cc} artist`,
     appleUrl: `https://music.apple.com/${cc}/album/${i + 1}`,
-    artworkUrl: `https://art/${cc}/${i + 1}/600x600bb.jpg`,
+    artworkUrl: `https://is1-ssl.mzstatic.com/${cc}/${i + 1}/600x600bb.jpg`,
   }));
 }
 
@@ -282,7 +282,7 @@ function fakeRssFor(cc: string): AppleRssTrack[] {
       name: `${cc} song`,
       artist: `${cc} artist`,
       appleUrl: `https://music.apple.com/${cc}/album/1`,
-      artworkUrl: `https://art/${cc}/1/600x600bb.jpg`,
+      artworkUrl: `https://is1-ssl.mzstatic.com/${cc}/1/600x600bb.jpg`,
     },
   ];
 }
@@ -294,7 +294,11 @@ function countryPreviews(
   return new Map(
     ids.map((id) => [
       id,
-      { id, previewUrl: `https://preview/${cc}/${id}.m4a`, genre: null },
+      {
+        id,
+        previewUrl: `https://audio-ssl.itunes.apple.com/${cc}/${id}.m4a`,
+        genre: null,
+      },
     ]),
   );
 }
@@ -321,7 +325,7 @@ function makeCrawlAllDeps(input: {
               id,
               {
                 id,
-                previewUrl: `https://preview/${cc}/${id}.m4a`,
+                previewUrl: `https://audio-ssl.itunes.apple.com/${cc}/${id}.m4a`,
                 genre: null,
               },
             ]),
@@ -372,8 +376,8 @@ function priorCountry(name: string, trackCount: number): Country {
       rank: i + 1,
       name: `prior song ${i + 1}`,
       artist: `prior artist ${i + 1}`,
-      previewUrl: `https://prior/preview/${i + 1}.m4a`,
-      artworkUrl: `https://prior/art/${i + 1}/600x600bb.jpg`,
+      previewUrl: `https://audio-ssl.itunes.apple.com/preview/${i + 1}.m4a`,
+      artworkUrl: `https://is1-ssl.mzstatic.com/art/${i + 1}/600x600bb.jpg`,
       appleUrl: `https://music.apple.com/prior/${i + 1}`,
       spotifyUrl: `https://open.spotify.com/search/prior${i + 1}`,
     })),
@@ -640,7 +644,7 @@ test("crawlAll bakes spread as the count of countries whose chart contains a mat
     name: "Shared Song",
     artist: "Shared Artist",
     appleUrl: `https://music.apple.com/${cc}/album/1?i=999999`,
-    artworkUrl: `https://art/${cc}/1/600x600bb.jpg`,
+    artworkUrl: `https://is1-ssl.mzstatic.com/${cc}/1/600x600bb.jpg`,
   });
   const onlyKrTrack: AppleRssTrack = {
     rank: 2,
@@ -648,7 +652,7 @@ test("crawlAll bakes spread as the count of countries whose chart contains a mat
     name: "KR Only Song",
     artist: "KR Only Artist",
     appleUrl: "https://music.apple.com/kr/album/2?i=111111",
-    artworkUrl: "https://art/kr/2/600x600bb.jpg",
+    artworkUrl: "https://is1-ssl.mzstatic.com/kr/2/600x600bb.jpg",
   };
   const fetchRss = vi.fn(async (cc: string) =>
     cc === "kr" ? [sharedTrack(cc), onlyKrTrack] : [sharedTrack(cc)],
@@ -709,7 +713,7 @@ test("crawlAll clears a stale blurb carried forward from a failed country", asyn
         name: "ng song",
         artist: "ng artist",
         previewUrl: null,
-        artworkUrl: "https://prior/art/1/600x600bb.jpg",
+        artworkUrl: "https://is1-ssl.mzstatic.com/art/1/600x600bb.jpg",
         appleUrl: "https://music.apple.com/prior/1",
         spotifyUrl: "https://open.spotify.com/search/prior1",
         commentary: commentaryEntry("stale blurb."),

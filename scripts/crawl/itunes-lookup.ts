@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { ApplePreviewUrlSchema } from "../../src/lib/url-schema";
+
 export interface LookupResult {
   id: string;
   previewUrl: string;
@@ -43,7 +45,7 @@ export const LOOKUP_BATCH_MAX = 200;
 
 const LookupTrackSchema = z.object({
   trackId: z.number().int(),
-  previewUrl: z.url(),
+  previewUrl: ApplePreviewUrlSchema,
   primaryGenreName: z.string().min(1).optional(),
 });
 

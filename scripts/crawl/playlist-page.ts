@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+import {
+  AppleArtworkUrlSchema,
+  AppleStorefrontUrlSchema,
+} from "../../src/lib/url-schema";
+
 export interface PlaylistTrack {
   rank: number;
   id: string;
@@ -45,10 +50,12 @@ const TrackLockupSchema = z.object({
   artistName: z.string().min(1),
   contentDescriptor: z.object({
     identifiers: z.object({ storeAdamID: z.string().min(1) }),
-    url: z.url(),
+    url: AppleStorefrontUrlSchema,
   }),
   artwork: z.object({
-    dictionary: z.object({ url: z.string().min(1) }),
+    // Still a template here, its dimensions unfilled. The placeholders sit in
+    // the final path segment, so the host is checkable before rendering.
+    dictionary: z.object({ url: AppleArtworkUrlSchema }),
   }),
 });
 
