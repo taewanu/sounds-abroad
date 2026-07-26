@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+import {
+  AppleArtworkUrlSchema,
+  AppleStorefrontUrlSchema,
+} from "../../src/lib/url-schema";
+
 export interface AppleRssTrack {
   rank: number;
   id: string;
@@ -27,8 +32,8 @@ const RssTrackSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   artistName: z.string().min(1),
-  url: z.url(),
-  artworkUrl100: z.url(),
+  url: AppleStorefrontUrlSchema,
+  artworkUrl100: AppleArtworkUrlSchema,
 });
 
 /**

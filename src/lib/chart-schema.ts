@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+import {
+  AppleArtworkUrlSchema,
+  ApplePreviewUrlSchema,
+  AppleStorefrontUrlSchema,
+  HttpsUrlSchema,
+  PlaylistIdSchema,
+  SpotifyUrlSchema,
+} from "./url-schema";
+
 /**
  * Which kind of claim a blurb makes, set at authoring time. `what-it-is` is a
  * stable note about the song itself; `why-charting` is a time-sensitive note
@@ -12,7 +21,9 @@ export const CommentarySchema = z.object({
   detail: z.string().min(1).optional(),
   tag: z.string().min(1),
   claim: ClaimSchema,
-  sources: z.array(z.url()).min(1),
+  // Any host, because a citation names an outside publication. Which ones are
+  // citable is decided by the source-authority rules, not here.
+  sources: z.array(HttpsUrlSchema).min(1),
   generatedAt: z.iso.datetime(),
 });
 
@@ -28,10 +39,10 @@ const TrackSchema = z.object({
   rank: z.number().int().min(1).max(100),
   name: z.string().min(1),
   artist: z.string().min(1),
-  previewUrl: z.url().nullable(),
-  artworkUrl: z.url(),
-  appleUrl: z.url(),
-  spotifyUrl: z.url(),
+  previewUrl: ApplePreviewUrlSchema.nullable(),
+  artworkUrl: AppleArtworkUrlSchema,
+  appleUrl: AppleStorefrontUrlSchema,
+  spotifyUrl: SpotifyUrlSchema,
   commentary: CommentarySchema.nullable().optional(),
   spread: z.number().int().min(1).optional(),
 });
@@ -53,10 +64,10 @@ export const PlaylistGenreSchema = z.object({
  * with no fetch; the track list travels separately (ADR-0016).
  */
 export const PlaylistSchema = z.object({
-  id: z.string().min(1),
+  id: PlaylistIdSchema,
   name: z.string().min(1),
-  appleUrl: z.url(),
-  artworkUrl: z.url(),
+  appleUrl: AppleStorefrontUrlSchema,
+  artworkUrl: AppleArtworkUrlSchema,
   genres: z.array(PlaylistGenreSchema),
   trackCount: z.number().int().min(1),
   spread: z.number().int().min(1).optional(),
@@ -77,18 +88,18 @@ const PlaylistTrackSchema = z.object({
   rank: z.number().int().min(1),
   name: z.string().min(1),
   artist: z.string().min(1),
-  previewUrl: z.url().nullable(),
-  artworkUrl: z.url(),
-  appleUrl: z.url(),
+  previewUrl: ApplePreviewUrlSchema.nullable(),
+  artworkUrl: AppleArtworkUrlSchema,
+  appleUrl: AppleStorefrontUrlSchema,
   // The search form only: an exact /track/{id} costs a Spotify call per track,
   // which this axis carries too many tracks to afford. Optional like every
   // other additive field here, so blobs written before it still parse.
-  spotifyUrl: z.url().optional(),
+  spotifyUrl: SpotifyUrlSchema.optional(),
 });
 
 /** One playlist's track list, published as its own blob (ADR-0016). */
 export const PlaylistFileSchema = z.object({
-  id: z.string().min(1),
+  id: PlaylistIdSchema,
   lastUpdated: z.iso.datetime(),
   tracks: z.array(PlaylistTrackSchema).min(1),
 });

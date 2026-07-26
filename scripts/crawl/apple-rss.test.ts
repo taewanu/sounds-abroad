@@ -140,3 +140,24 @@ test("throws AppleRssError when fetch itself rejects", async () => {
     fetchAppleRss("kr", { fetch: failingFetch }),
   ).rejects.toBeInstanceOf(AppleRssError);
 });
+
+// The URL rules are wired into this schema, so a feed carrying a value they
+// refuse must fail the storefront rather than reach the store.
+test.each([
+  { field: "url", value: "javascript:alert(1)" },
+  { field: "url", value: "https://evil.test/kr/song/1" },
+  { field: "artworkUrl100", value: "data:image/svg+xml,<svg/onload=alert(1)>" },
+  { field: "artworkUrl100", value: "https://evil.test/100x100bb.jpg" },
+])(
+  "a feed whose $field is $value fails the storefront",
+  async ({ field, value }) => {
+    const feed = JSON.parse(await loadFixture());
+    feed.feed.results[0][field] = value;
+
+    await expect(
+      fetchAppleRss("kr", {
+        fetch: fakeFetch({ ok: true, body: JSON.stringify(feed) }),
+      }),
+    ).rejects.toThrow(AppleRssError);
+  },
+);

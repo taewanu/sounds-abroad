@@ -20,7 +20,7 @@ test("ChartFileSchema accepts null previewUrl (placeholder for lookup-failed tra
             name: "Test",
             artist: "Test Artist",
             previewUrl: null,
-            artworkUrl: "https://art/600x600bb.jpg",
+            artworkUrl: "https://is1-ssl.mzstatic.com/600x600bb.jpg",
             appleUrl: "https://music.apple.com/kr/1",
             spotifyUrl: "https://open.spotify.com/search/Test",
           },
@@ -45,7 +45,7 @@ test("ChartFileSchema accepts null commentary (track skipped or failed generatio
             name: "Test",
             artist: "Test Artist",
             previewUrl: null,
-            artworkUrl: "https://art/600x600bb.jpg",
+            artworkUrl: "https://is1-ssl.mzstatic.com/600x600bb.jpg",
             appleUrl: "https://music.apple.com/kr/1",
             spotifyUrl: "https://open.spotify.com/search/Test",
             commentary: null,
@@ -71,7 +71,7 @@ test("ChartFileSchema rejects commentary missing the required lead", () => {
             name: "Test",
             artist: "Test Artist",
             previewUrl: null,
-            artworkUrl: "https://art/600x600bb.jpg",
+            artworkUrl: "https://is1-ssl.mzstatic.com/600x600bb.jpg",
             appleUrl: "https://music.apple.com/kr/1",
             spotifyUrl: "https://open.spotify.com/search/Test",
             commentary: {
@@ -103,7 +103,7 @@ test("ChartFileSchema rejects commentary with an empty sources array", () => {
             name: "Test",
             artist: "Test Artist",
             previewUrl: null,
-            artworkUrl: "https://art/600x600bb.jpg",
+            artworkUrl: "https://is1-ssl.mzstatic.com/600x600bb.jpg",
             appleUrl: "https://music.apple.com/kr/1",
             spotifyUrl: "https://open.spotify.com/search/Test",
             commentary: {
@@ -135,7 +135,7 @@ test("ChartFileSchema rejects commentary missing the required tag", () => {
             name: "Test",
             artist: "Test Artist",
             previewUrl: null,
-            artworkUrl: "https://art/600x600bb.jpg",
+            artworkUrl: "https://is1-ssl.mzstatic.com/600x600bb.jpg",
             appleUrl: "https://music.apple.com/kr/1",
             spotifyUrl: "https://open.spotify.com/search/Test",
             commentary: {
@@ -166,7 +166,7 @@ test("ChartFileSchema rejects commentary missing the required claim", () => {
             name: "Test",
             artist: "Test Artist",
             previewUrl: null,
-            artworkUrl: "https://art/600x600bb.jpg",
+            artworkUrl: "https://is1-ssl.mzstatic.com/600x600bb.jpg",
             appleUrl: "https://music.apple.com/kr/1",
             spotifyUrl: "https://open.spotify.com/search/Test",
             commentary: {
@@ -197,7 +197,7 @@ test("ChartFileSchema rejects a claim outside the allowed set", () => {
             name: "Test",
             artist: "Test Artist",
             previewUrl: null,
-            artworkUrl: "https://art/600x600bb.jpg",
+            artworkUrl: "https://is1-ssl.mzstatic.com/600x600bb.jpg",
             appleUrl: "https://music.apple.com/kr/1",
             spotifyUrl: "https://open.spotify.com/search/Test",
             commentary: {
@@ -229,7 +229,7 @@ test("ChartFileSchema accepts both allowed claim values", () => {
             name: "What It Is",
             artist: "Test Artist",
             previewUrl: null,
-            artworkUrl: "https://art/600x600bb.jpg",
+            artworkUrl: "https://is1-ssl.mzstatic.com/600x600bb.jpg",
             appleUrl: "https://music.apple.com/kr/1",
             spotifyUrl: "https://open.spotify.com/search/WhatItIs",
             commentary: {
@@ -245,7 +245,7 @@ test("ChartFileSchema accepts both allowed claim values", () => {
             name: "Why Charting",
             artist: "Test Artist",
             previewUrl: null,
-            artworkUrl: "https://art/600x600bb.jpg",
+            artworkUrl: "https://is1-ssl.mzstatic.com/600x600bb.jpg",
             appleUrl: "https://music.apple.com/kr/2",
             spotifyUrl: "https://open.spotify.com/search/WhyCharting",
             commentary: {
@@ -277,7 +277,7 @@ test("ChartFileSchema accepts a track with a baked spread", () => {
             name: "Test",
             artist: "Test Artist",
             previewUrl: null,
-            artworkUrl: "https://art/600x600bb.jpg",
+            artworkUrl: "https://is1-ssl.mzstatic.com/600x600bb.jpg",
             appleUrl: "https://music.apple.com/kr/1",
             spotifyUrl: "https://open.spotify.com/search/Test",
             spread: 3,
@@ -312,8 +312,8 @@ test("PlaylistFileSchema parses a blob written before spotifyUrl existed", () =>
         rank: 1,
         name: "Ice Cream",
         artist: "연준",
-        previewUrl: "https://preview/1.m4a",
-        artworkUrl: "https://art/1/600x600bb.jpg",
+        previewUrl: "https://audio-ssl.itunes.apple.com/1.m4a",
+        artworkUrl: "https://is1-ssl.mzstatic.com/1/600x600bb.jpg",
         appleUrl: "https://music.apple.com/kr/album/x?i=1",
       },
     ],
@@ -321,3 +321,67 @@ test("PlaylistFileSchema parses a blob written before spotifyUrl existed", () =>
 
   expect(PlaylistFileSchema.safeParse(published).success).toBe(true);
 });
+
+// The URL and id rules are wired into these schemas, so a payload carrying a
+// value they refuse must fail to parse rather than reach a rendered row. The
+// store is the only thing between a crawl and the document, which is what makes
+// the read side worth fencing as well as the write side.
+test.each([
+  { field: "artworkUrl", value: "javascript:alert(1)" },
+  { field: "artworkUrl", value: "https://evil.test/600x600bb.jpg" },
+  { field: "appleUrl", value: "javascript:alert(1)" },
+  { field: "appleUrl", value: "https://evil.test/kr/song/1" },
+  { field: "previewUrl", value: "javascript:alert(1)" },
+  { field: "spotifyUrl", value: "https://evil.test/track/1" },
+])(
+  "a chart whose track $field is $value fails to parse",
+  ({ field, value }) => {
+    const payload = {
+      lastUpdated: "2026-05-16T00:00:00.000Z",
+      countries: {
+        kr: {
+          name: "South Korea",
+          valid: true,
+          tracks: [
+            {
+              rank: 1,
+              name: "Test",
+              artist: "Test Artist",
+              previewUrl: "https://audio-ssl.itunes.apple.com/1.m4a",
+              artworkUrl: "https://is1-ssl.mzstatic.com/600x600bb.jpg",
+              appleUrl: "https://music.apple.com/kr/1",
+              spotifyUrl: "https://open.spotify.com/track/1",
+              [field]: value,
+            },
+          ],
+        },
+      },
+    };
+
+    expect(ChartFileSchema.safeParse(payload).success).toBe(false);
+  },
+);
+
+// Traversal is the risk the id rule closes: an id becomes the key a playlist
+// chart is written under and read from.
+test.each(["../../commentary/v1/commentary", "pl.not-a-playlist-id", "pl."])(
+  "a playlist chart whose id is %j fails to parse",
+  (id) => {
+    const payload = {
+      id,
+      lastUpdated: "2026-05-16T00:00:00.000Z",
+      tracks: [
+        {
+          rank: 1,
+          name: "Test",
+          artist: "Test Artist",
+          previewUrl: "https://audio-ssl.itunes.apple.com/1.m4a",
+          artworkUrl: "https://is1-ssl.mzstatic.com/600x600bb.jpg",
+          appleUrl: "https://music.apple.com/kr/1",
+        },
+      ],
+    };
+
+    expect(PlaylistFileSchema.safeParse(payload).success).toBe(false);
+  },
+);

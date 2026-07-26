@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { SpotifyUrlSchema } from "../../src/lib/url-schema";
+
 export type SpotifyResolveErrorKind =
   "miss" | "http" | "json" | "shape" | "network" | "auth";
 
@@ -22,7 +24,7 @@ const SearchSchema = z.object({
   tracks: z.object({
     items: z.array(
       z.object({
-        external_urls: z.object({ spotify: z.url() }),
+        external_urls: z.object({ spotify: SpotifyUrlSchema }),
       }),
     ),
   }),

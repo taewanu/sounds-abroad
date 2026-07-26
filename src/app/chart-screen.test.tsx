@@ -101,8 +101,8 @@ const ADJACENCY_CHARTS: ChartFile = {
           rank: 1,
           name: "Playable head",
           artist: "Head artist",
-          previewUrl: "https://example.com/head.m4a",
-          artworkUrl: "https://example.com/head.jpg",
+          previewUrl: "https://audio-ssl.itunes.apple.com/head.m4a",
+          artworkUrl: "https://is1-ssl.mzstatic.com/head.jpg",
           appleUrl: "https://music.apple.com/x/head",
           spotifyUrl: "https://open.spotify.com/x/head",
         },
@@ -111,7 +111,7 @@ const ADJACENCY_CHARTS: ChartFile = {
           name: "Unplayable gap",
           artist: "Gap artist",
           previewUrl: null,
-          artworkUrl: "https://example.com/gap.jpg",
+          artworkUrl: "https://is1-ssl.mzstatic.com/gap.jpg",
           appleUrl: "https://music.apple.com/x/gap",
           spotifyUrl: "https://open.spotify.com/x/gap",
         },
@@ -119,8 +119,8 @@ const ADJACENCY_CHARTS: ChartFile = {
           rank: 3,
           name: "Playable tail",
           artist: "Tail artist",
-          previewUrl: "https://example.com/tail.m4a",
-          artworkUrl: "https://example.com/tail.jpg",
+          previewUrl: "https://audio-ssl.itunes.apple.com/tail.m4a",
+          artworkUrl: "https://is1-ssl.mzstatic.com/tail.jpg",
           appleUrl: "https://music.apple.com/x/tail",
           spotifyUrl: "https://open.spotify.com/x/tail",
         },
@@ -135,7 +135,7 @@ const ADJACENCY_CHARTS: ChartFile = {
           name: "Shared head",
           artist: "Shared head artist",
           previewUrl: SHARED_PREVIEW,
-          artworkUrl: "https://example.com/sh-head.jpg",
+          artworkUrl: "https://is1-ssl.mzstatic.com/sh-head.jpg",
           appleUrl: "https://music.apple.com/x/album?i=201",
           spotifyUrl: "https://open.spotify.com/x/sh-head",
         },
@@ -144,7 +144,7 @@ const ADJACENCY_CHARTS: ChartFile = {
           name: "Shared tail",
           artist: "Shared tail artist",
           previewUrl: SHARED_PREVIEW,
-          artworkUrl: "https://example.com/sh-tail.jpg",
+          artworkUrl: "https://is1-ssl.mzstatic.com/sh-tail.jpg",
           appleUrl: "https://music.apple.com/x/album?i=202",
           spotifyUrl: "https://open.spotify.com/x/sh-tail",
         },
@@ -174,7 +174,7 @@ function rollTrack(
     name,
     artist: `${name} artist`,
     previewUrl,
-    artworkUrl: "https://example.com/roll.jpg",
+    artworkUrl: "https://is1-ssl.mzstatic.com/roll.jpg",
     appleUrl: "https://music.apple.com/x/roll",
     spotifyUrl: "https://open.spotify.com/x/roll",
   };
@@ -937,7 +937,7 @@ describe("ChartScreen end-of-chart roll", () => {
 // One country carrying one playlist chart, for the blocks below that exercise
 // the rail, the URL, and the wait. The id is shared so a stubbed read matches
 // whichever block is running.
-const PL_ID = "pl.under-test";
+const PL_ID = `pl.${"1".repeat(32)}`;
 const RAIL_CODE = "br";
 
 function chartsWithPlaylist(): ChartFile {
@@ -953,7 +953,7 @@ function chartsWithPlaylist(): ChartFile {
             id: PL_ID,
             name: "A playlist chart",
             appleUrl: `https://music.apple.com/br/playlist/${PL_ID}`,
-            artworkUrl: "https://art.test/p.jpg",
+            artworkUrl: "https://is1-ssl.mzstatic.com/p.jpg",
             genres: [],
             trackCount: 1,
           },
@@ -969,7 +969,7 @@ const PLAYLIST_TRACK = {
   name: "Only on the playlist",
   artist: "Playlist artist",
   previewUrl: null,
-  artworkUrl: "https://art.test/t.jpg",
+  artworkUrl: "https://is1-ssl.mzstatic.com/t.jpg",
   appleUrl: "https://music.apple.com/br/song/x?i=99",
 };
 
@@ -1052,8 +1052,8 @@ describe("ChartScreen chart rail", () => {
 
 describe("ChartScreen playlist playback", () => {
   const PL_CODE = "zz";
-  const PL_FIRST = "pl.first";
-  const PL_SECOND = "pl.second";
+  const PL_FIRST = `pl.${"a".repeat(32)}`;
+  const PL_SECOND = `pl.${"b".repeat(32)}`;
   const PL_FIRST_LABEL = "First playlist";
   const PL_SECOND_LABEL = "Second playlist";
   const SONGS_ONLY = "Songs only";
@@ -1063,8 +1063,8 @@ describe("ChartScreen playlist playback", () => {
       rank,
       name,
       artist: `${name} artist`,
-      previewUrl: `https://example.com/${rank}-${name}.m4a`,
-      artworkUrl: "https://example.com/pl.jpg",
+      previewUrl: `https://audio-ssl.itunes.apple.com/${rank}-${name}.m4a`,
+      artworkUrl: "https://is1-ssl.mzstatic.com/pl.jpg",
       appleUrl: `https://music.apple.com/x/song?i=90${rank}${name.length}`,
     };
   }
@@ -1084,7 +1084,7 @@ describe("ChartScreen playlist playback", () => {
       id,
       name,
       appleUrl: `https://music.apple.com/x/playlist/${id}`,
-      artworkUrl: "https://example.com/pl-art.jpg",
+      artworkUrl: "https://is1-ssl.mzstatic.com/pl-art.jpg",
       genres: [],
       trackCount: TRACKS_BY_CHART[id].length,
     };
@@ -1451,7 +1451,7 @@ describe("ChartScreen deeper rows", () => {
     name: "Only past the eager rows",
     artist: "A deeper artist",
     previewUrl: null,
-    artworkUrl: "https://art.test/deep.jpg",
+    artworkUrl: "https://is1-ssl.mzstatic.com/deep.jpg",
     appleUrl: "https://music.apple.com/br/song/26?i=26",
     spotifyUrl: "https://open.spotify.com/search/deep",
   };
@@ -1561,8 +1561,8 @@ describe("ChartScreen stepping past the eager rows", () => {
       rank,
       name: `Deep ${rank}`,
       artist: `Deep artist ${rank}`,
-      previewUrl: `https://example.com/deep-${rank}.m4a`,
-      artworkUrl: "https://example.com/deep.jpg",
+      previewUrl: `https://audio-ssl.itunes.apple.com/deep-${rank}.m4a`,
+      artworkUrl: "https://is1-ssl.mzstatic.com/deep.jpg",
       appleUrl: `https://music.apple.com/x/deep-${rank}`,
       spotifyUrl: `https://open.spotify.com/x/deep-${rank}`,
       spread,
