@@ -21,14 +21,17 @@ Vendored skills (used under the MIT License reproduced below):
 - to-tickets
 - triage
 
-Three deliberate departures from upstream, so a sync diff isn't mistaken for drift:
+Two deliberate departures from upstream, so a sync diff isn't mistaken for drift:
 
-- `to-spec` publishes without a triage label. Upstream applies `ready-for-agent`
-  directly; this repo classifies via `/triage` first.
 - `domain-modeling/ADR-FORMAT.md` carries this repo's ADR template. Upstream's is
   a title plus one paragraph, which no ADR in `docs/adr/` looks like.
 - Each skill's `agents/openai.yaml` is dropped. It is Codex picker metadata,
   inert under Claude Code.
+
+`to-spec` was a third until it was reverted to upstream: the edit had to be
+re-applied by hand after every refresh, and twice it silently was not. Where a
+skill and this repo's conventions disagree, the convention belongs in the
+document that states it, not in a patch to the skill.
 
 Everything else is byte-identical to upstream, kept that way by the
 `.claude/skills` entry in `.prettierignore`.
