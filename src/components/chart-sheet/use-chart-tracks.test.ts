@@ -584,3 +584,40 @@ test("takes a run of landed reads to the screen together", async () => {
   // the cost the read-ahead exists to remove.
   expect(renders).toBeLessThan(6);
 });
+
+/** An idle callback the test holds, so a teardown can cancel one mid-flight. */
+function heldIdle() {
+  const queued: Array<{ run: () => void; cancelled: boolean }> = [];
+  vi.stubGlobal("requestIdleCallback", (run: () => void) => {
+    queued.push({ run, cancelled: false });
+    return queued.length;
+  });
+  vi.stubGlobal("cancelIdleCallback", (handle: number) => {
+    const slot = queued[handle - 1];
+    if (slot) slot.cancelled = true;
+  });
+  return {
+    runPending: () =>
+      queued.filter((slot) => !slot.cancelled).forEach((slot) => slot.run()),
+  };
+}
+
+test("schedules the read-ahead again when the effect runs a second time", async () => {
+  const underTest = country("Country under test", []);
+  const idle = heldIdle();
+  const spy = tailsFor();
+  vi.stubGlobal("fetch", spy);
+  const { result, rerender } = renderHook(
+    ({ codes }) => useChartTracks("cc", underTest, SONGS_CHART, codes),
+    { initialProps: { codes: ["cc", "bb"] } },
+  );
+
+  // Strict mode mounts, tears down, and mounts again, which cancels the first
+  // pass's idle work before it can run. The second pass has to schedule its own
+  // or the rows are never read at all.
+  rerender({ codes: ["cc", "bb"] });
+  idle.runPending();
+
+  await waitFor(() => expect(result.current.peekTail("bb")).not.toBeNull());
+  expect(spy).toHaveBeenCalledTimes(2);
+});

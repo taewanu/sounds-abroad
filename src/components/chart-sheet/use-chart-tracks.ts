@@ -325,17 +325,17 @@ export function useChartTracks(
   //
   // Per country rather than one bundle: a country that fails to read leaves the
   // other sixty-two whole, and the files are already published this way.
-  const prefetched = useRef(false);
+  //
+  // Guarded by the same set the on-demand read uses, and nothing else: a country
+  // is marked when its read starts, so a run cancelled before it started leaves
+  // nothing marked and the next run picks it up. A ref set on entry would call
+  // that cancelled run the only one, and strict mode's mount-teardown-mount
+  // would leave the rows unread for the whole session.
   useEffect(() => {
-    if (prefetched.current || prefetchCodes.length === 0) return;
-    prefetched.current = true;
-    const pending = prefetchCodes.filter(
-      (code) => !askedTail.current.has(code),
-    );
-    if (pending.length === 0) return;
+    if (prefetchCodes.length === 0) return;
     let live = true;
     const cancel = whenIdle(() => {
-      for (const code of pending) {
+      for (const code of prefetchCodes) {
         if (askedTail.current.has(code)) continue;
         askedTail.current.add(code);
         readSongsTail(code)
