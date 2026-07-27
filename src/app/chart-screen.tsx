@@ -41,11 +41,13 @@ import {
 } from "@/lib/chart-url";
 import {
   backRollTarget,
+  landingTrack,
   planChartContinuation,
   planRoll,
   playlistsAfter,
   recordAfterSelection,
   type RollRecord,
+  type SeatOf,
 } from "@/lib/end-of-chart-roll";
 import { pickShuffleCountry } from "@/lib/fairness-draw";
 import {
@@ -162,9 +164,16 @@ function ChartScreenInner({
   urlMode: ChartMode;
   urlIsCanonical: boolean;
 }) {
+  // Every country the payload carries, for the deeper rows to be read ahead
+  // against. Memoized because it is an effect dependency and a fresh array each
+  // render would restart the read.
+  const chartedCodes = useMemo(
+    () => Object.keys(charts.countries),
+    [charts.countries],
+  );
   // Which of the country's charts is open. Held here rather than in the sheet
   // because playback resolves against it too.
-  const chart = useChartTracks(countryCode, country, urlChart);
+  const chart = useChartTracks(countryCode, country, urlChart, chartedCodes);
 
   // Keeps the URL naming what is on screen, so a chart can be linked to and a
   // reload restores one. replaceState relabels without navigating, so switching
@@ -229,6 +238,16 @@ function ChartScreenInner({
       );
     },
     [charts.countries, peekChart, peekTail, currentMode, mode],
+  );
+
+  // What a country offers a roll in one mode. Curried on the mode because a
+  // step reads the mode playback carries while a render reads the one on
+  // screen, and the two part company whenever the listener browses elsewhere.
+  const seatIn = useCallback(
+    (asked: ChartMode): SeatOf =>
+      (code) =>
+        landingTrack(charts.countries[code], asked, peekTail(code)),
+    [charts.countries, peekTail],
   );
 
   // What is on screen, for the deferred half of a continuation to read at the
@@ -413,7 +432,7 @@ function ChartScreenInner({
       const { toggle, signalStep } = audioStore.getState();
       const { visited, selectedCountry, setSelectedCountry } =
         globeChartStore.getState();
-      const landing = planRoll(charts.countries, fromCode, (exclude) =>
+      const landing = planRoll(fromCode, seatIn(heardIn()), (exclude) =>
         pickShuffleCountry(visited, exclude),
       );
       if (!landing) return null;
@@ -460,7 +479,7 @@ function ChartScreenInner({
       });
       return "rolled";
     },
-    [audioStore, charts.countries, flashSkip, heardIn],
+    [audioStore, flashSkip, heardIn, seatIn],
   );
 
   // Continue into the next chart of the same country, reading candidates in
@@ -593,10 +612,10 @@ function ChartScreenInner({
       }
       const back = backRollTarget(
         rollRecord,
-        charts.countries,
         currentTrack,
         currentCountryCode,
         currentChartRef,
+        seatIn(heardIn()),
       );
       if (!back) return null;
       toggle(back.track, {
@@ -631,6 +650,7 @@ function ChartScreenInner({
       rollRecord,
       flashSkip,
       tracksOf,
+      seatIn,
       continueWithinCountry,
       rollOutOfCountry,
     ],
@@ -668,19 +688,21 @@ function ChartScreenInner({
     return (
       backRollTarget(
         rollRecord,
-        charts.countries,
         currentTrack,
         currentCountryCode,
         currentChartRef,
+        seatIn(currentMode ?? mode),
       ) !== null
     );
   }, [
     currentTrack,
     currentCountryCode,
     currentChartRef,
-    charts.countries,
     rollRecord,
     tracksOf,
+    seatIn,
+    currentMode,
+    mode,
   ]);
   // Next never dead-ends while listening: past the last playable the step
   // continues into the country's next chart and then into a fresh country, and

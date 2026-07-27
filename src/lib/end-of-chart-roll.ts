@@ -1,5 +1,6 @@
+import { songsChartRows, type ChartMode } from "./chart-mode";
 import { isPlaylistRef, SONGS_CHART, type ChartRef } from "./chart-ref";
-import type { ChartFile, ChartTrack, Country } from "./chart-schema";
+import type { ChartTrack, Country } from "./chart-schema";
 import { sameTrack } from "./track-identity";
 
 // Redraw bound for a roll whose drawn chart can't continue playback (absent
@@ -26,27 +27,55 @@ export function firstPlayable(tracks: ChartTrack[]): ChartTrack | null {
   return null;
 }
 
+/**
+ * The track a roll lands playback on in the given mode, or null when the chart
+ * offers none.
+ *
+ * The one definition of a roll's seat, so the forward roll that takes it and the
+ * back-roll that asks whether playback still sits there cannot disagree. Two
+ * definitions would let a roll land where prev has no return to offer.
+ *
+ * Assembled the way the sheet lists the chart, so the seat is a row the listener
+ * can see. `deeper` is null until that country's rows past the payload have been
+ * read: a mode that filters can only answer from what it has, and the rows it
+ * has rank above the ones it does not.
+ */
+export function landingTrack(
+  country: Country | undefined,
+  mode: ChartMode,
+  deeper: readonly ChartTrack[] | null,
+): ChartTrack | null {
+  if (!country) return null;
+  return firstPlayable(songsChartRows(mode, country.tracks, deeper));
+}
+
 export interface RollLanding {
   code: string;
   track: ChartTrack;
 }
 
+/** What a country offers a roll: its seat, or null when it offers none. */
+export type SeatOf = (countryCode: string) => ChartTrack | null;
+
 /**
  * The country a forward roll lands in and the track it starts, or null for a
  * dead stop. `draw` is the fairness draw; each attempt excludes the origin and
  * every candidate that already failed, so a redraw can't repeat a dead chart.
+ *
+ * Takes the seat lookup rather than the charts and the mode, so which rows a
+ * seat is read from stays the caller's business and this reads as the draw loop
+ * it is.
  */
 export function planRoll(
-  countries: ChartFile["countries"],
   originCountryCode: string,
+  seatOf: SeatOf,
   draw: (exclude: readonly string[]) => string,
   maxAttempts: number = MAX_ROLL_ATTEMPTS,
 ): RollLanding | null {
   const exclude = [originCountryCode];
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const code = draw(exclude);
-    const country = countries[code];
-    const track = country ? firstPlayable(country.tracks) : null;
+    const track = seatOf(code);
     if (track) return { code, track };
     exclude.push(code);
   }
@@ -103,10 +132,10 @@ export async function planChartContinuation(
  */
 export function backRollTarget(
   record: RollRecord | null,
-  countries: ChartFile["countries"],
   currentTrack: ChartTrack | null,
   currentCountryCode: string | null,
   currentChartRef: ChartRef | null,
+  seatOf: SeatOf,
 ): { countryCode: string; chartRef: ChartRef; track: ChartTrack } | null {
   if (record === null || currentTrack === null) return null;
   if (currentCountryCode !== record.rolledToCode) return null;
@@ -114,9 +143,8 @@ export function backRollTarget(
   // another of the country's charts is past the seat the return path was
   // offered from, even where the two charts share a track.
   if (currentChartRef !== SONGS_CHART) return null;
-  const rolled = countries[record.rolledToCode];
-  const first = rolled ? firstPlayable(rolled.tracks) : null;
-  if (first === null || !sameTrack(first, currentTrack)) return null;
+  const seat = seatOf(record.rolledToCode);
+  if (seat === null || !sameTrack(seat, currentTrack)) return null;
   return {
     countryCode: record.originCountryCode,
     chartRef: record.originChartRef,
