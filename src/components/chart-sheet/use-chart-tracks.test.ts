@@ -481,3 +481,143 @@ test("a country's deeper rows stay reachable from another country", async () => 
   expect(result.current.peekTail("cc")).toHaveLength(1);
   expect(result.current.peekTail("other")).toBeNull();
 });
+
+/** An idle callback the test drives, so the read-ahead runs when it says. */
+function immediateIdle() {
+  vi.stubGlobal("requestIdleCallback", (run: () => void) => {
+    run();
+    return 1;
+  });
+  vi.stubGlobal("cancelIdleCallback", () => {});
+}
+
+/** Deeper rows for whichever country the request names. */
+function tailsFor(status: Record<string, number> = {}) {
+  return vi.fn(async (input: string | URL | Request) => {
+    const code = String(input).split("/").pop() ?? "";
+    const code_ = status[code];
+    if (code_ !== undefined) return new Response("", { status: code_ });
+    return new Response(
+      JSON.stringify({
+        code,
+        lastUpdated: "2026-07-25T00:00:00.000Z",
+        tracks: [track(26, `${code} deep`)],
+      }),
+      { status: 200, headers: { "content-type": "application/json" } },
+    );
+  });
+}
+
+test("reads every charted country's deeper rows once the page is idle", async () => {
+  const underTest = country("Country under test", []);
+  immediateIdle();
+  const spy = tailsFor();
+  vi.stubGlobal("fetch", spy);
+
+  const { result } = renderHook(() =>
+    useChartTracks("cc", underTest, SONGS_CHART, ["cc", "bb", "dd"]),
+  );
+
+  await waitFor(() => expect(result.current.peekTail("dd")).not.toBeNull());
+  expect(result.current.peekTail("cc")).toHaveLength(1);
+  expect(result.current.peekTail("bb")).toHaveLength(1);
+  expect(spy).toHaveBeenCalledTimes(3);
+});
+
+test("a country that will not load leaves the others whole", async () => {
+  const underTest = country("Country under test", []);
+  immediateIdle();
+  vi.stubGlobal("fetch", tailsFor({ bb: 502 }));
+
+  const { result } = renderHook(() =>
+    useChartTracks("cc", underTest, SONGS_CHART, ["cc", "bb", "dd"]),
+  );
+
+  await waitFor(() => expect(result.current.peekTail("dd")).not.toBeNull());
+  expect(result.current.peekTail("cc")).not.toBeNull();
+  expect(result.current.peekTail("bb")).toBeNull();
+});
+
+test("reads a country the listener already asked for exactly once", async () => {
+  const underTest = country("Country under test", []);
+  const spy = tailsFor();
+  vi.stubGlobal("fetch", spy);
+  // Idle only after the listener's own read is in flight, the order a country
+  // reached before the page settles arrives in.
+  const { result, rerender } = renderHook(
+    ({ codes }) => useChartTracks("cc", underTest, SONGS_CHART, codes),
+    { initialProps: { codes: [] as string[] } },
+  );
+  await act(async () => {
+    result.current.readTail();
+  });
+  await waitFor(() => expect(result.current.tail).not.toBeNull());
+
+  immediateIdle();
+  rerender({ codes: ["cc", "bb"] });
+
+  await waitFor(() => expect(result.current.peekTail("bb")).not.toBeNull());
+  expect(spy).toHaveBeenCalledTimes(2);
+});
+
+test("takes a run of landed reads to the screen together", async () => {
+  const underTest = country("Country under test", []);
+  immediateIdle();
+  vi.stubGlobal("fetch", tailsFor());
+  let renders = 0;
+
+  const { result } = renderHook(() => {
+    renders += 1;
+    return useChartTracks("cc", underTest, SONGS_CHART, [
+      "cc",
+      "bb",
+      "dd",
+      "ee",
+      "ff",
+      "gg",
+    ]);
+  });
+
+  await waitFor(() => expect(result.current.peekTail("gg")).not.toBeNull());
+
+  // One commit for the run, not one per country: sixty-odd separate ones are
+  // the cost the read-ahead exists to remove.
+  expect(renders).toBeLessThan(6);
+});
+
+/** An idle callback the test holds, so a teardown can cancel one mid-flight. */
+function heldIdle() {
+  const queued: Array<{ run: () => void; cancelled: boolean }> = [];
+  vi.stubGlobal("requestIdleCallback", (run: () => void) => {
+    queued.push({ run, cancelled: false });
+    return queued.length;
+  });
+  vi.stubGlobal("cancelIdleCallback", (handle: number) => {
+    const slot = queued[handle - 1];
+    if (slot) slot.cancelled = true;
+  });
+  return {
+    runPending: () =>
+      queued.filter((slot) => !slot.cancelled).forEach((slot) => slot.run()),
+  };
+}
+
+test("schedules the read-ahead again when the effect runs a second time", async () => {
+  const underTest = country("Country under test", []);
+  const idle = heldIdle();
+  const spy = tailsFor();
+  vi.stubGlobal("fetch", spy);
+  const { result, rerender } = renderHook(
+    ({ codes }) => useChartTracks("cc", underTest, SONGS_CHART, codes),
+    { initialProps: { codes: ["cc", "bb"] } },
+  );
+
+  // Strict mode mounts, tears down, and mounts again, which cancels the first
+  // pass's idle work before it can run. The second pass has to schedule its own
+  // or the rows are never read at all.
+  rerender({ codes: ["cc", "bb"] });
+  idle.runPending();
+
+  await waitFor(() => expect(result.current.peekTail("bb")).not.toBeNull());
+  expect(spy).toHaveBeenCalledTimes(2);
+});

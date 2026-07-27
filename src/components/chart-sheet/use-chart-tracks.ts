@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  startTransition,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -45,6 +46,36 @@ export interface ChartTracksState {
  */
 const READ_TIMEOUT_MS = 15_000;
 
+/**
+ * How long a landed background read waits for its neighbours before taking the
+ * screen. The prefetch resolves sixty-odd times over about half a second, and
+ * one commit each would repaint every consumer of this hook that many times,
+ * which is the cost the prefetch exists to remove. Long enough to collect a run
+ * of them, short enough that a country reached mid-prefetch still fills
+ * promptly.
+ */
+const PREFETCH_FLUSH_MS = 80;
+
+/**
+ * Runs the callback when the browser is idle, or soon, where it cannot say.
+ *
+ * Both halves are taken now rather than at cleanup: a browser that schedules
+ * idle work need not also offer the cancel, and reaching for it later would
+ * throw on the way out.
+ */
+function whenIdle(run: () => void): () => void {
+  const schedule =
+    typeof requestIdleCallback === "function" ? requestIdleCallback : null;
+  const drop =
+    typeof cancelIdleCallback === "function" ? cancelIdleCallback : null;
+  if (schedule) {
+    const handle = schedule(run, { timeout: 2_000 });
+    return () => drop?.(handle);
+  }
+  const handle = setTimeout(run, 1_000);
+  return () => clearTimeout(handle);
+}
+
 async function readSongsTail(countryCode: string): Promise<ChartTrack[]> {
   const res = await fetch(`/api/songs/${encodeURIComponent(countryCode)}`, {
     signal: AbortSignal.timeout(READ_TIMEOUT_MS),
@@ -78,6 +109,8 @@ export function useChartTracks(
   country: Country,
   /** The chart the URL asked for on arrival, opened once. */
   initialChart: ChartRef = SONGS_CHART,
+  /** Every country the chart file carries, read ahead once the page is idle. */
+  prefetchCodes: readonly string[] = [],
 ): ChartTracksState {
   const [ref, setRef] = useState<ChartRef>(SONGS_CHART);
   const [pending, setPending] = useState<ChartRef | null>(
@@ -264,6 +297,64 @@ export function useChartTracks(
         setTailFailures((failed) => ({ ...failed, [countryCode]: true }));
       });
   }, [countryCode]);
+
+  // Landed background reads waiting to take the screen together. A ref because
+  // collecting them must not paint; only the flush below does.
+  const inbox = useRef<Record<string, ChartTrack[]>>({});
+  const flushing = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flushSoon = useCallback(() => {
+    if (flushing.current !== null) return;
+    flushing.current = setTimeout(() => {
+      flushing.current = null;
+      const landed = inbox.current;
+      inbox.current = {};
+      if (!mounted.current || Object.keys(landed).length === 0) return;
+      // A read the listener waited for wins over one read ahead for them: it
+      // answered the country they are looking at, and both carry the same rows.
+      // Non-urgent, so a spin in flight keeps its frames (ADR-0011).
+      startTransition(() => setTails((read) => ({ ...landed, ...read })));
+    }, PREFETCH_FLUSH_MS);
+  }, []);
+
+  // Reads every country's deeper rows once, after first paint.
+  //
+  // Only here filters the whole hundred, so without this a country change in it
+  // pays a read the globe spin cannot wait for. Reading them all while the page
+  // is idle moves that cost off every spin onto one quiet moment, and lets a
+  // roll pick a landing the mode actually lists rather than one it filters away.
+  //
+  // Per country rather than one bundle: a country that fails to read leaves the
+  // other sixty-two whole, and the files are already published this way.
+  //
+  // Guarded by the same set the on-demand read uses, and nothing else: a country
+  // is marked when its read starts, so a run cancelled before it started leaves
+  // nothing marked and the next run picks it up. A ref set on entry would call
+  // that cancelled run the only one, and strict mode's mount-teardown-mount
+  // would leave the rows unread for the whole session.
+  useEffect(() => {
+    if (prefetchCodes.length === 0) return;
+    let live = true;
+    const cancel = whenIdle(() => {
+      for (const code of prefetchCodes) {
+        if (askedTail.current.has(code)) continue;
+        askedTail.current.add(code);
+        readSongsTail(code)
+          .then((rows) => {
+            if (!live || !mounted.current) return;
+            inbox.current[code] = rows;
+            flushSoon();
+          })
+          .catch(() => {
+            if (!live || !mounted.current) return;
+            setTailFailures((failed) => ({ ...failed, [code]: true }));
+          });
+      }
+    });
+    return () => {
+      live = false;
+      cancel();
+    };
+  }, [prefetchCodes, flushSoon]);
 
   const peekTail = useCallback((code: string) => tails[code] ?? null, [tails]);
 
