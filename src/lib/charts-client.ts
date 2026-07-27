@@ -1,5 +1,6 @@
 import { MUSIC_CHARTS_TAG } from "./cache-tags";
 import { ChartFileSchema, type ChartFile } from "./chart-schema";
+import { chartsStoreHeaders } from "./charts-store-fetch";
 
 export class ChartsFetchError extends Error {
   constructor(
@@ -27,6 +28,7 @@ export async function fetchCharts(url: string): Promise<ChartFile> {
     res = await fetch(url, {
       cache: "force-cache",
       next: { tags: [MUSIC_CHARTS_TAG] },
+      headers: chartsStoreHeaders(),
     });
   } catch (err) {
     throw new ChartsFetchError(
