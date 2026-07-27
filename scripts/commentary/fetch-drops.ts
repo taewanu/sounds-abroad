@@ -1,3 +1,5 @@
+import { fetchChartsStore } from "../../src/lib/charts-store-fetch";
+
 import { DropsStoreSchema, type DropsStore } from "./drops";
 
 /**
@@ -10,7 +12,7 @@ import { DropsStoreSchema, type DropsStore } from "./drops";
  */
 export async function fetchDrops(
   url: string,
-  fetchImpl: typeof fetch = globalThis.fetch,
+  fetchImpl: typeof fetch = fetchChartsStore,
 ): Promise<DropsStore> {
   const res = await fetchImpl(url);
   if (res.status === 404) return {};

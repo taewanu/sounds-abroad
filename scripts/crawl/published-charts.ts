@@ -1,4 +1,5 @@
 import { ChartFileSchema, type ChartFile } from "../../src/lib/chart-schema";
+import { fetchChartsStore } from "../../src/lib/charts-store-fetch";
 
 /**
  * Reads the last published payload so a failed crawl can carry forward
@@ -7,7 +8,7 @@ import { ChartFileSchema, type ChartFile } from "../../src/lib/chart-schema";
  */
 export async function fetchPublishedCharts(
   url: string,
-  fetchImpl: typeof fetch = globalThis.fetch,
+  fetchImpl: typeof fetch = fetchChartsStore,
 ): Promise<ChartFile | null> {
   try {
     const res = await fetchImpl(url);
