@@ -23,6 +23,11 @@ function captureFetch() {
   return seen;
 }
 
+/** What the request ended up carrying, whichever form the caller passed in. */
+function sentHeaders(init: RequestInit): Record<string, string> {
+  return Object.fromEntries(new Headers(init.headers));
+}
+
 test("the header carries the configured key", () => {
   process.env.CHARTS_READ_KEY = "a-secret";
 
@@ -45,7 +50,7 @@ test("a store read carries the key", async () => {
 
   await fetchChartsStore("https://store.test/charts.json");
 
-  expect(seen[0].headers).toMatchObject({
+  expect(sentHeaders(seen[0])).toMatchObject({
     [CHARTS_STORE_KEY_HEADER]: "a-secret",
   });
 });
@@ -56,7 +61,7 @@ test("a store read without a key configured is still made, unauthenticated", asy
 
   await fetchChartsStore("https://store.test/charts.json");
 
-  expect(seen[0].headers).toEqual({});
+  expect(sentHeaders(seen[0])).toEqual({});
 });
 
 // The caller's own options decide caching and timeouts; attaching a credential
@@ -74,7 +79,7 @@ test("a caller's request options survive alongside the key", async () => {
 
   expect(seen[0].cache).toBe("force-cache");
   expect(seen[0].signal).toBe(signal);
-  expect(seen[0].headers).toEqual({
+  expect(sentHeaders(seen[0])).toEqual({
     accept: "application/json",
     [CHARTS_STORE_KEY_HEADER]: "a-secret",
   });
@@ -88,8 +93,30 @@ test("the key is read per request, so rotating it does not need a restart", asyn
   process.env.CHARTS_READ_KEY = "second";
   await fetchChartsStore("https://store.test/charts.json");
 
-  expect(seen[0].headers).toMatchObject({ [CHARTS_STORE_KEY_HEADER]: "first" });
-  expect(seen[1].headers).toMatchObject({
+  expect(sentHeaders(seen[0])).toMatchObject({
+    [CHARTS_STORE_KEY_HEADER]: "first",
+  });
+  expect(sentHeaders(seen[1])).toMatchObject({
     [CHARTS_STORE_KEY_HEADER]: "second",
+  });
+});
+
+// `fetch` accepts headers in three forms and the type here promises all three.
+// An object spread preserves only the first: it empties a `Headers` instance and
+// turns an array of pairs into numeric keys, so a caller's headers vanish with
+// no error.
+test.each([
+  { form: "record", headers: { accept: "application/json" } as HeadersInit },
+  { form: "Headers", headers: new Headers({ accept: "application/json" }) },
+  { form: "pairs", headers: [["accept", "application/json"]] as HeadersInit },
+])("a caller's headers survive when passed as $form", async ({ headers }) => {
+  process.env.CHARTS_READ_KEY = "a-secret";
+  const seen = captureFetch();
+
+  await fetchChartsStore("https://store.test/charts.json", { headers });
+
+  expect(sentHeaders(seen[0])).toEqual({
+    accept: "application/json",
+    [CHARTS_STORE_KEY_HEADER]: "a-secret",
   });
 });

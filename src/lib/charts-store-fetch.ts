@@ -31,9 +31,17 @@ export function chartsStoreHeaders(): Record<string, string> {
  * `fetch` with the credential attached, for callers that pass no request options
  * of their own. Callers that do build their own options merge
  * `chartsStoreHeaders()` in instead, so the caching and timeout they set survive.
+ *
+ * Headers go through `Headers` rather than an object spread, because a caller
+ * may pass any of the three forms `fetch` accepts and a spread only preserves
+ * one of them: it empties a `Headers` instance and turns an array of pairs into
+ * numeric keys. Silently dropping a caller's headers is the failure that shape
+ * produces.
  */
-export const fetchChartsStore: typeof fetch = (input, init) =>
-  globalThis.fetch(input, {
-    ...init,
-    headers: { ...init?.headers, ...chartsStoreHeaders() },
-  });
+export const fetchChartsStore: typeof fetch = (input, init) => {
+  const headers = new Headers(init?.headers);
+  for (const [name, value] of Object.entries(chartsStoreHeaders())) {
+    headers.set(name, value);
+  }
+  return globalThis.fetch(input, { ...init, headers });
+};
