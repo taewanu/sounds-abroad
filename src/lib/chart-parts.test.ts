@@ -1,4 +1,4 @@
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { MUSIC_CHARTS_TAG } from "./cache-tags";
 import {
@@ -16,6 +16,21 @@ const PLAYLIST_ID = "pl.48229b41bbfc47d7af39dae8e8b5276e";
 
 afterEach(() => {
   vi.restoreAllMocks();
+});
+
+// The helper reads `process.env` per request, so a key present in the shell or in
+// CI would make the no-key assertions below expect an empty header set while the
+// request correctly carried one. Cleared per test and restored after, rather than
+// saved by hand inside each test, so a later test cannot forget to.
+const KEY_OUTSIDE = process.env.CHARTS_READ_KEY;
+
+beforeEach(() => {
+  delete process.env.CHARTS_READ_KEY;
+});
+
+afterEach(() => {
+  if (KEY_OUTSIDE === undefined) delete process.env.CHARTS_READ_KEY;
+  else process.env.CHARTS_READ_KEY = KEY_OUTSIDE;
 });
 
 function playlistFile(id = PLAYLIST_ID): PlaylistFile {
@@ -188,7 +203,6 @@ test("rejects a deeper chart published for a different country", async () => {
 // edge rule checks. A listener sees nothing of this: the browser never contacts
 // the store, which is why these routes exist.
 test("a part read carries the store credential when one is configured", async () => {
-  const previous = process.env.CHARTS_READ_KEY;
   process.env.CHARTS_READ_KEY = "a-secret";
   const spy = mockJson({
     id: PLAYLIST_ID,
@@ -205,12 +219,7 @@ test("a part read carries the store credential when one is configured", async ()
     ],
   } satisfies PlaylistFile);
 
-  try {
-    await fetchPlaylistFile(CHARTS_URL, PLAYLIST_ID);
-  } finally {
-    if (previous === undefined) delete process.env.CHARTS_READ_KEY;
-    else process.env.CHARTS_READ_KEY = previous;
-  }
+  await fetchPlaylistFile(CHARTS_URL, PLAYLIST_ID);
 
   const init = spy.mock.calls[0][1] as RequestInit;
   expect(init.headers).toMatchObject({ "x-charts-key": "a-secret" });

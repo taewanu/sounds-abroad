@@ -1,4 +1,4 @@
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import fixture from "./__fixtures__/charts.json";
 import { MUSIC_CHARTS_TAG } from "./cache-tags";
@@ -12,6 +12,21 @@ const FIXTURE_URL = "https://data.example.com/charts/v1/charts.json";
 
 afterEach(() => {
   vi.restoreAllMocks();
+});
+
+// The helper reads `process.env` per request, so a key present in the shell or in
+// CI would make the no-key assertions below expect an empty header set while the
+// request correctly carried one. Cleared per test and restored after, rather than
+// saved by hand inside each test, so a later test cannot forget to.
+const KEY_OUTSIDE = process.env.CHARTS_READ_KEY;
+
+beforeEach(() => {
+  delete process.env.CHARTS_READ_KEY;
+});
+
+afterEach(() => {
+  if (KEY_OUTSIDE === undefined) delete process.env.CHARTS_READ_KEY;
+  else process.env.CHARTS_READ_KEY = KEY_OUTSIDE;
 });
 
 function mockFetch(response: Response): void {
@@ -89,7 +104,6 @@ test("fetchCharts throws ChartsFetchError when body is not valid JSON", async ()
 // a credential missing here breaks the home route and every country page rather
 // than a single chart. It was missing until review caught it.
 test("fetchCharts carries the store credential when one is configured", async () => {
-  const previous = process.env.CHARTS_READ_KEY;
   process.env.CHARTS_READ_KEY = "a-secret";
   const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
     new Response(JSON.stringify(fixture), {
@@ -98,12 +112,7 @@ test("fetchCharts carries the store credential when one is configured", async ()
     }),
   );
 
-  try {
-    await fetchCharts(FIXTURE_URL);
-  } finally {
-    if (previous === undefined) delete process.env.CHARTS_READ_KEY;
-    else process.env.CHARTS_READ_KEY = previous;
-  }
+  await fetchCharts(FIXTURE_URL);
 
   const init = spy.mock.calls[0][1] as RequestInit;
   expect(init.headers).toMatchObject({ "x-charts-key": "a-secret" });
