@@ -7,6 +7,7 @@ import {
   type PlaylistFile,
   type SongsTailFile,
 } from "./chart-schema";
+import { chartsStoreHeaders } from "./charts-store-fetch";
 
 /**
  * How long the server waits on the store. Without a bound a hung connection
@@ -86,6 +87,7 @@ async function fetchChartPart<T>(
       cache: "force-cache",
       next: { tags: [MUSIC_CHARTS_TAG] },
       signal: AbortSignal.timeout(READ_TIMEOUT_MS),
+      headers: chartsStoreHeaders(),
     });
   } catch (err) {
     throw new ChartPartFetchError(

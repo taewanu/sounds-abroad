@@ -1,4 +1,4 @@
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { MUSIC_CHARTS_TAG } from "./cache-tags";
 import {
@@ -16,6 +16,21 @@ const PLAYLIST_ID = "pl.48229b41bbfc47d7af39dae8e8b5276e";
 
 afterEach(() => {
   vi.restoreAllMocks();
+});
+
+// The helper reads `process.env` per request, so a key present in the shell or in
+// CI would make the no-key assertions below expect an empty header set while the
+// request correctly carried one. Cleared per test and restored after, rather than
+// saved by hand inside each test, so a later test cannot forget to.
+const KEY_OUTSIDE = process.env.CHARTS_READ_KEY;
+
+beforeEach(() => {
+  delete process.env.CHARTS_READ_KEY;
+});
+
+afterEach(() => {
+  if (KEY_OUTSIDE === undefined) delete process.env.CHARTS_READ_KEY;
+  else process.env.CHARTS_READ_KEY = KEY_OUTSIDE;
 });
 
 function playlistFile(id = PLAYLIST_ID): PlaylistFile {
@@ -79,6 +94,9 @@ test("returns the parsed track list when the body matches the schema", async () 
       cache: "force-cache",
       next: { tags: [MUSIC_CHARTS_TAG] },
       signal: expect.any(AbortSignal),
+      // Empty with no key configured, which is how this suite runs. What the
+      // header carries when one is set has its own test below.
+      headers: {},
     },
   );
 });
@@ -179,4 +197,33 @@ test("rejects a deeper chart published for a different country", async () => {
   await expect(fetchSongsTail(CHARTS_URL, "kr")).rejects.toBeInstanceOf(
     ChartPartValidationError,
   );
+});
+
+// The store answers over a public domain, so the read carries a credential an
+// edge rule checks. A listener sees nothing of this: the browser never contacts
+// the store, which is why these routes exist.
+test("a part read carries the store credential when one is configured", async () => {
+  process.env.CHARTS_READ_KEY = "a-secret";
+  const spy = mockJson({
+    id: PLAYLIST_ID,
+    lastUpdated: "2026-05-16T00:00:00.000Z",
+    tracks: [
+      {
+        rank: 1,
+        name: "Test",
+        artist: "Test Artist",
+        previewUrl: "https://audio-ssl.itunes.apple.com/1.m4a",
+        artworkUrl: "https://is1-ssl.mzstatic.com/600x600bb.jpg",
+        appleUrl: "https://music.apple.com/kr/1",
+      },
+    ],
+  } satisfies PlaylistFile);
+
+  await fetchPlaylistFile(CHARTS_URL, PLAYLIST_ID);
+
+  const init = spy.mock.calls[0][1] as RequestInit;
+  expect(init.headers).toMatchObject({ "x-charts-key": "a-secret" });
+  // The credential must not cost the caching or the timeout the read sets.
+  expect(init.cache).toBe("force-cache");
+  expect(init.signal).toBeInstanceOf(AbortSignal);
 });

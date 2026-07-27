@@ -1,4 +1,5 @@
 import { CommentarySchema } from "../../src/lib/chart-schema";
+import { fetchChartsStore } from "../../src/lib/charts-store-fetch";
 import { type CommentaryStore } from "../../src/lib/commentary-store";
 
 export interface SalvagedStore {
@@ -39,7 +40,7 @@ export function salvageCommentaryStore(raw: object): SalvagedStore {
  */
 export async function fetchCommentaryStore(
   url: string,
-  fetchImpl: typeof fetch = globalThis.fetch,
+  fetchImpl: typeof fetch = fetchChartsStore,
 ): Promise<CommentaryStore | null> {
   try {
     const res = await fetchImpl(url);
@@ -93,7 +94,7 @@ export function withCommentaryDegradationSignal(
  */
 export async function fetchCommentaryStoreRaw(
   url: string,
-  fetchImpl: typeof fetch = globalThis.fetch,
+  fetchImpl: typeof fetch = fetchChartsStore,
 ): Promise<CommentaryStore> {
   const res = await fetchImpl(url);
   if (!res.ok) {
