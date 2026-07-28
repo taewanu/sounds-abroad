@@ -184,8 +184,10 @@ if (Object.keys(merged).length < Object.keys(existing).length) {
 }
 
 // Snapshot the live store before overwriting, so a bad batch can be undone.
-// Absent only if commentary has never been published.
-if (commentaryUrl) {
+// Gated on there being cards to lose, not on the URL being configured: the
+// snapshot copies the stored object, which the store rejects when nothing has
+// been published there, and a store with no cards has nothing to roll back to.
+if (commentaryUrl && Object.keys(existing).length > 0) {
   const backupUrl = await backupCommentary(generatedAt);
   console.log(`Backed up current store -> ${backupUrl}`);
 }
