@@ -75,6 +75,14 @@ test("describeSubprocessFailure names a timeout, so a batch log says to raise th
   );
 });
 
+test("describeSubprocessFailure names the signal when it was not the budget's own kill", () => {
+  const interrupted = { killed: true, signal: "SIGKILL", stderr: "" };
+
+  expect(describeSubprocessFailure(interrupted, 180_000)).toBe(
+    "drafter killed by SIGKILL",
+  );
+});
+
 test("describeSubprocessFailure names a non-zero exit and its last stderr line", () => {
   const exited = {
     killed: false,
@@ -103,4 +111,14 @@ test("describeSubprocessFailure falls back to the thrown value when it carries n
   expect(
     describeSubprocessFailure(new Error("spawn ENOENT"), 180_000),
   ).toContain("spawn ENOENT");
+});
+
+test("describeSubprocessFailure keeps a startup failure's own words, which name it", () => {
+  // A string code is the startup shape, whose message is short and specific;
+  // only the numeric-code shape carries the command, and that never reaches here.
+  const missingBinary = Object.assign(new Error("spawn claude ENOENT"), {
+    code: "ENOENT",
+  });
+
+  expect(describeSubprocessFailure(missingBinary, 180_000)).toContain("ENOENT");
 });

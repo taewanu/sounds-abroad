@@ -55,13 +55,29 @@ export function describeSubprocessFailure(
   error: unknown,
   timeoutMs: number,
 ): string {
-  const e = error as { killed?: boolean; code?: unknown; stderr?: unknown };
+  const e = error as {
+    killed?: boolean;
+    signal?: unknown;
+    code?: unknown;
+    stderr?: unknown;
+  };
   const stderr =
     typeof e.stderr === "string" ? e.stderr.trim().split("\n").at(-1) : "";
   const tail = stderr ? `: ${stderr}` : "";
-  // A timeout is killed rather than exited, which is the one distinction worth
-  // acting on: it says raise the budget or slow the batch, not fix the call.
-  if (e.killed) return `drafter timed out after ${timeoutMs / 1000}s${tail}`;
+  // Killed says a signal ended it, not which one sent it. The budget's own kill
+  // is SIGTERM, and so is an operator or a supervisor stopping the batch, so a
+  // signal that is not SIGTERM cannot have been the budget and is named as
+  // itself rather than blamed on a timeout that did not happen.
+  if (e.killed) {
+    const signal = typeof e.signal === "string" ? e.signal : null;
+    return signal && signal !== "SIGTERM"
+      ? `drafter killed by ${signal}${tail}`
+      : `drafter timed out after ${timeoutMs / 1000}s${tail}`;
+  }
+  // Node puts the whole command in the message, so only a shape that carries the
+  // cause elsewhere may fall through to it. A numeric code is the exit-status
+  // shape, whose message is the prompt; a string code is a startup or stream
+  // failure, whose message is short and names itself.
   if (typeof e.code === "number") {
     return `drafter exited ${e.code}${tail}`;
   }
