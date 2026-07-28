@@ -7,6 +7,7 @@ import {
   type GroundingClient,
   type GroundingVerdict,
 } from "../../src/lib/grounding";
+import { assertAllowedTarget, guardedFetch } from "../lib/outbound-fetch";
 
 /**
  * The grounding shell: the network-and-subprocess half of the check whose pure
@@ -34,16 +35,16 @@ const JUDGE_SCHEMA = JSON.stringify({
 
 /**
  * Fetch a cited source and reduce it to plain text for the judge. Strips markup
- * and collapses whitespace — crude on purpose, since the judge reads prose, not
+ * and collapses whitespace, crude on purpose, since the judge reads prose, not
  * HTML. Returns null on any failure (bad status, network error, empty body) so
  * the caller can fail closed rather than judge a claim against nothing.
  */
 export async function fetchSourceText(
   url: string,
-  fetchImpl: typeof fetch = globalThis.fetch,
+  fetchImpl?: typeof fetch,
 ): Promise<string | null> {
   try {
-    const res = await fetchImpl(url);
+    const res = await (fetchImpl ? fetchImpl(url) : guardedFetch(url));
     if (!res.ok) return null;
     const text = (await res.text())
       .replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -152,6 +153,22 @@ export async function groundEntry(
   entry: Commentary,
   deps: GroundEntryDeps,
 ): Promise<GroundingVerdict> {
+  // A refused target fails the whole entry before anything is fetched: a blurb
+  // citing an address the pipeline must not dial is suspect as a whole, so its
+  // acceptable-looking neighbours are not fetched either.
+  for (const url of entry.sources) {
+    try {
+      assertAllowedTarget(url);
+    } catch (err) {
+      return {
+        grounded: false,
+        reason: `Cited source is a refused target: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      };
+    }
+  }
+
   const texts = await Promise.all(
     entry.sources.map(async (url) => {
       try {

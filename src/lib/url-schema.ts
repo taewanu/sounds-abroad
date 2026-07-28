@@ -46,9 +46,15 @@ export const CitationUrlSchema = z.url({
   error: "must be an https citation URL",
 });
 
+/**
+ * The storefront host, exported for the fetch-site guard so the pin has one
+ * definition to drift from.
+ */
+export const APPLE_STOREFRONT_HOST = exactly("music.apple.com");
+
 /** The page a listener opens to play a track. */
 export const AppleStorefrontUrlSchema = httpsUrlOn(
-  exactly("music.apple.com"),
+  APPLE_STOREFRONT_HOST,
   "storefront",
 );
 
