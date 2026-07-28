@@ -43,6 +43,48 @@ const RAW_DRAFT_SCHEMA = JSON.stringify({
 });
 
 /**
+ * Names why the drafter subprocess failed, in one line.
+ *
+ * Node reports a timeout and a non-zero exit with the same "Command failed"
+ * text, and appends the whole command, which for this call is the entire prompt.
+ * The cause is on the error object rather than in its message, so a batch log
+ * shows the prompt back and not what went wrong. This reads the cause and
+ * leaves the prompt out.
+ */
+export function describeSubprocessFailure(
+  error: unknown,
+  timeoutMs: number,
+): string {
+  const e = error as {
+    killed?: boolean;
+    signal?: unknown;
+    code?: unknown;
+    stderr?: unknown;
+  };
+  const stderr =
+    typeof e.stderr === "string" ? e.stderr.trim().split("\n").at(-1) : "";
+  const tail = stderr ? `: ${stderr}` : "";
+  // Killed says a signal ended it, not which one sent it. The budget's own kill
+  // is SIGTERM, and so is an operator or a supervisor stopping the batch, so a
+  // signal that is not SIGTERM cannot have been the budget and is named as
+  // itself rather than blamed on a timeout that did not happen.
+  if (e.killed) {
+    const signal = typeof e.signal === "string" ? e.signal : null;
+    return signal && signal !== "SIGTERM"
+      ? `drafter killed by ${signal}${tail}`
+      : `drafter timed out after ${timeoutMs / 1000}s${tail}`;
+  }
+  // Node puts the whole command in the message, so only a shape that carries the
+  // cause elsewhere may fall through to it. A numeric code is the exit-status
+  // shape, whose message is the prompt; a string code is a startup or stream
+  // failure, whose message is short and names itself.
+  if (typeof e.code === "number") {
+    return `drafter exited ${e.code}${tail}`;
+  }
+  return `drafter failed${tail || `: ${String(error)}`}`;
+}
+
+/**
  * A DraftClient backed by the local Claude Code binary. Unlike the grounding
  * judge, the drafter must research before writing, so it keeps the web tools:
  * `--tools` makes only WebSearch and WebFetch available, and `--allowedTools`
@@ -60,24 +102,29 @@ const RAW_DRAFT_SCHEMA = JSON.stringify({
  */
 export function createClaudeDrafter(timeoutMs = 180_000): DraftClient {
   return async (prompt) => {
-    const { stdout } = await execFileAsync(
-      "claude",
-      [
-        "-p",
-        prompt,
-        "--output-format",
-        "json",
-        "--json-schema",
-        RAW_DRAFT_SCHEMA,
-        "--tools",
-        "WebSearch,WebFetch",
-        "--allowedTools",
-        "WebSearch,WebFetch",
-        "--setting-sources",
-        "",
-      ],
-      { timeout: timeoutMs, maxBuffer: 8 * 1024 * 1024 },
-    );
+    let stdout: string;
+    try {
+      ({ stdout } = await execFileAsync(
+        "claude",
+        [
+          "-p",
+          prompt,
+          "--output-format",
+          "json",
+          "--json-schema",
+          RAW_DRAFT_SCHEMA,
+          "--tools",
+          "WebSearch,WebFetch",
+          "--allowedTools",
+          "WebSearch,WebFetch",
+          "--setting-sources",
+          "",
+        ],
+        { timeout: timeoutMs, maxBuffer: 8 * 1024 * 1024 },
+      ));
+    } catch (error) {
+      throw new Error(describeSubprocessFailure(error, timeoutMs));
+    }
     const envelope = JSON.parse(stdout) as {
       is_error?: boolean;
       structured_output?: unknown;
