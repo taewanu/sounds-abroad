@@ -220,3 +220,18 @@ test("a track section left with nothing usable is a broken contract, not an empt
     parsePlaylistPage(pageHtml(JSON.stringify(data)), PLAYLIST_ID),
   ).toThrow(PlaylistPageError);
 });
+
+test("fetchPlaylistPage refuses a target off the storefront host before fetching", async () => {
+  let called = false;
+  const recording = (async () => {
+    called = true;
+    return new Response("");
+  }) as typeof fetch;
+
+  await expect(
+    fetchPlaylistPage(PLAYLIST_ID, "https://evil.test/playlist", {
+      fetch: recording,
+    }),
+  ).rejects.toMatchObject({ name: "PlaylistPageError", kind: "refused" });
+  expect(called).toBe(false);
+});

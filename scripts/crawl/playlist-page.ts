@@ -1,9 +1,15 @@
 import { z } from "zod";
 
 import {
+  APPLE_STOREFRONT_HOST,
   AppleArtworkUrlSchema,
   AppleStorefrontUrlSchema,
 } from "../../src/lib/url-schema";
+import {
+  assertAllowedTarget,
+  guardedFetch,
+  RefusedTargetError,
+} from "../lib/outbound-fetch";
 
 export interface PlaylistTrack {
   rank: number;
@@ -15,7 +21,7 @@ export interface PlaylistTrack {
 }
 
 export type PlaylistPageErrorKind =
-  "network" | "http" | "missing-block" | "json" | "shape";
+  "network" | "http" | "missing-block" | "json" | "shape" | "refused";
 
 export class PlaylistPageError extends Error {
   constructor(
@@ -166,12 +172,21 @@ export async function fetchPlaylistPage(
   appleUrl: string,
   options: FetchPlaylistPageOptions = {},
 ): Promise<PlaylistTrack[]> {
-  const doFetch = options.fetch ?? globalThis.fetch;
+  const doFetch =
+    options.fetch ??
+    ((url: string) =>
+      guardedFetch(url, { expectedHost: APPLE_STOREFRONT_HOST }));
 
   let res: Response;
   try {
+    // Asserted here as well as at ingestion, so an injected fetch never dials
+    // a host the feed was not supposed to name.
+    assertAllowedTarget(appleUrl, { expectedHost: APPLE_STOREFRONT_HOST });
     res = await doFetch(appleUrl);
   } catch (err) {
+    if (err instanceof RefusedTargetError) {
+      throw new PlaylistPageError(playlistId, "refused", err.message);
+    }
     throw new PlaylistPageError(
       playlistId,
       "network",

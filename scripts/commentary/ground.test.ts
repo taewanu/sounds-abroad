@@ -1,7 +1,8 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 
 import type { Commentary } from "../../src/lib/chart-schema";
 import type { GroundingClient } from "../../src/lib/grounding";
+import { RefusedTargetError } from "../lib/outbound-fetch";
 
 import {
   combineSourceTexts,
@@ -105,4 +106,54 @@ test("groundEntry fails closed when the judge throws", async () => {
   );
 
   expect(verdict.grounded).toBe(false);
+});
+
+test("groundEntry fetches no source when any cited target is refused", async () => {
+  const fetched: string[] = [];
+  const deps: GroundEntryDeps = {
+    fetchSourceText: async (url) => {
+      fetched.push(url);
+      return "a body";
+    },
+    judge: groundedJudge,
+  };
+
+  const verdict = await groundEntry(
+    entry("what-it-is", [
+      "https://www.billboard.com/article",
+      "https://10.0.0.5/internal",
+    ]),
+    deps,
+  );
+
+  expect(verdict.grounded).toBe(false);
+  expect(fetched).toEqual([]);
+});
+
+test("groundEntry drops the card when a cited host is refused at connect time", async () => {
+  const judge = vi.fn(groundedJudge);
+  const deps: GroundEntryDeps = {
+    fetchSourceText: async (url) => {
+      if (url.includes("rebinding")) {
+        throw new RefusedTargetError(
+          "address",
+          "rebinding.test resolves to forbidden address 10.0.0.5",
+        );
+      }
+      return "a body";
+    },
+    judge,
+  };
+
+  const verdict = await groundEntry(
+    entry("what-it-is", [
+      "https://www.billboard.com/article",
+      "https://rebinding.test/page",
+    ]),
+    deps,
+  );
+
+  expect(verdict.grounded).toBe(false);
+  expect(verdict.reason).toMatch(/refused target/);
+  expect(judge).not.toHaveBeenCalled();
 });
