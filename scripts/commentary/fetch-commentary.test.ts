@@ -138,6 +138,15 @@ test("fetchCommentaryStoreRaw throws on a failed read rather than returning empt
   ).rejects.toThrow();
 });
 
+test("fetchCommentaryStoreRaw starts from empty when no store has been published", async () => {
+  const store = await fetchCommentaryStoreRaw(
+    URL,
+    fakeFetch({ ok: false, status: 404, body: "" }),
+  );
+
+  expect(store).toEqual({});
+});
+
 test("fetchCommentaryStoreRaw throws on a non-object payload rather than merging it", async () => {
   await expect(
     fetchCommentaryStoreRaw(URL, fakeFetch({ body: JSON.stringify([]) })),
