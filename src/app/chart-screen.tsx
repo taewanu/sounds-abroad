@@ -381,20 +381,16 @@ function ChartScreenInner({
 
   const handleMiniTap = useCallback(() => {
     // Return to what is playing, whole: the country, the chart within it, and
-    // the mode it is heard in. The URL is written only when the shown chart is
-    // not already the playing one, so a tap while looking at it just reopens the
-    // sheet without a spurious history entry. The scroll signal then reveals the
-    // now-restored row.
-    //
-    // Each axis is restored where it lives rather than left to the URL to carry:
-    // the country through the path the screen resolves from, the mode through
-    // the state that holds it, and the chart through the sheet's own open. The
-    // URL names a chart only on arrival, so a write this late reaches nothing.
+    // the mode it is heard in. The chart is restored through the sheet's own
+    // open rather than through the path, because the URL names a chart only on
+    // arrival and a write this late reaches nothing. The URL is written only
+    // when the shown chart is not already the playing one, so a tap while
+    // looking at it adds no history entry.
     const { currentCountryCode, currentChartRef, currentMode } =
       audioStore.getState();
     if (currentCountryCode && currentChartRef) {
-      const onPlayingChart =
-        currentCountryCode === countryCode && currentChartRef === chartRef;
+      const onPlayingCountry = currentCountryCode === countryCode;
+      const onPlayingChart = onPlayingCountry && currentChartRef === chartRef;
       if (!onPlayingChart) {
         window.history.pushState(
           null,
@@ -407,10 +403,12 @@ function ChartScreenInner({
         );
       }
       if (currentMode) setMode(currentMode);
-      // Only within the country already on screen. A tap that also moves country
-      // lands on that country's songs chart, which the sheet resets to anyway,
-      // and its playlists belong to a country this screen has not read yet.
-      if (currentCountryCode === countryCode && currentChartRef !== chartRef) {
+      // Restored only within the country already on screen. A tap that also
+      // moves country would have to outrun the reset that runs during the next
+      // render, which returns the sheet to the songs chart (ADR-0017) and marks
+      // a read for the outgoing country stale; sequencing against it is its own
+      // change.
+      if (!onPlayingChart && onPlayingCountry) {
         openChart(currentChartRef);
       }
     }

@@ -1223,8 +1223,8 @@ describe("ChartScreen playlist playback", () => {
       fireEvent.click(screen.getByRole("button", { name: "Reopen chart" }));
     });
 
-    // The URL naming the playing chart is half the return; the other half is the
-    // sheet showing it, which is what the listener taps for.
+    // The selected tab, not the URL: the URL write was the half that already
+    // worked while the chart on screen stayed behind.
     expect(
       screen
         .getByRole("tab", { name: PL_FIRST_LABEL })
