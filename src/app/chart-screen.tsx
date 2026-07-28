@@ -381,15 +381,16 @@ function ChartScreenInner({
 
   const handleMiniTap = useCallback(() => {
     // Return to what is playing, whole: the country, the chart within it, and
-    // the mode it is heard in, all of which ride the URL the sheet reopens from.
-    // Written only when the shown chart is not already the playing one, so a tap
-    // while looking at it just reopens the sheet without a spurious history
-    // entry. The scroll signal then reveals the now-restored row.
+    // the mode it is heard in. The chart is restored through the sheet's own
+    // open rather than through the path, because the URL names a chart only on
+    // arrival and a write this late reaches nothing. The URL is written only
+    // when the shown chart is not already the playing one, so a tap while
+    // looking at it adds no history entry.
     const { currentCountryCode, currentChartRef, currentMode } =
       audioStore.getState();
     if (currentCountryCode && currentChartRef) {
-      const onPlayingChart =
-        currentCountryCode === countryCode && currentChartRef === chartRef;
+      const onPlayingCountry = currentCountryCode === countryCode;
+      const onPlayingChart = onPlayingCountry && currentChartRef === chartRef;
       if (!onPlayingChart) {
         window.history.pushState(
           null,
@@ -402,10 +403,18 @@ function ChartScreenInner({
         );
       }
       if (currentMode) setMode(currentMode);
+      // Restored only within the country already on screen. A tap that also
+      // moves country would have to outrun the reset that runs during the next
+      // render, which returns the sheet to the songs chart (ADR-0017) and marks
+      // a read for the outgoing country stale; sequencing against it is its own
+      // change.
+      if (!onPlayingChart && onPlayingCountry) {
+        openChart(currentChartRef);
+      }
     }
     setSnap((s) => (s === "hidden" || s === "closed" ? "peek" : s));
     setScrollSignal((n) => n + 1);
-  }, [audioStore, countryCode, chartRef]);
+  }, [audioStore, countryCode, chartRef, openChart]);
 
   // The badge rides the same reopen path as a strip tap, then asks the sheet to
   // expand the now-playing row's commentary card. The rank is the playing
