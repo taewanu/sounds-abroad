@@ -1212,6 +1212,26 @@ describe("ChartScreen playlist playback", () => {
     );
   });
 
+  test("tapping the mini-player puts the playing chart back on screen", async () => {
+    vi.spyOn(window.history, "pushState").mockImplementation(() => {});
+    renderChartScreen(PLAYLIST_CHARTS, PL_CODE);
+    await openChart(PL_FIRST_LABEL);
+    playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
+
+    await openChart("Top Songs");
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Reopen chart" }));
+    });
+
+    // The URL naming the playing chart is half the return; the other half is the
+    // sheet showing it, which is what the listener taps for.
+    expect(
+      screen
+        .getByRole("tab", { name: PL_FIRST_LABEL })
+        .getAttribute("aria-selected"),
+    ).toBe("true");
+  });
+
   test("tapping the mini-player while on the playing chart writes no history", async () => {
     const pushState = vi
       .spyOn(window.history, "pushState")

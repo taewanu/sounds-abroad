@@ -381,10 +381,15 @@ function ChartScreenInner({
 
   const handleMiniTap = useCallback(() => {
     // Return to what is playing, whole: the country, the chart within it, and
-    // the mode it is heard in, all of which ride the URL the sheet reopens from.
-    // Written only when the shown chart is not already the playing one, so a tap
-    // while looking at it just reopens the sheet without a spurious history
-    // entry. The scroll signal then reveals the now-restored row.
+    // the mode it is heard in. The URL is written only when the shown chart is
+    // not already the playing one, so a tap while looking at it just reopens the
+    // sheet without a spurious history entry. The scroll signal then reveals the
+    // now-restored row.
+    //
+    // Each axis is restored where it lives rather than left to the URL to carry:
+    // the country through the path the screen resolves from, the mode through
+    // the state that holds it, and the chart through the sheet's own open. The
+    // URL names a chart only on arrival, so a write this late reaches nothing.
     const { currentCountryCode, currentChartRef, currentMode } =
       audioStore.getState();
     if (currentCountryCode && currentChartRef) {
@@ -402,10 +407,16 @@ function ChartScreenInner({
         );
       }
       if (currentMode) setMode(currentMode);
+      // Only within the country already on screen. A tap that also moves country
+      // lands on that country's songs chart, which the sheet resets to anyway,
+      // and its playlists belong to a country this screen has not read yet.
+      if (currentCountryCode === countryCode && currentChartRef !== chartRef) {
+        openChart(currentChartRef);
+      }
     }
     setSnap((s) => (s === "hidden" || s === "closed" ? "peek" : s));
     setScrollSignal((n) => n + 1);
-  }, [audioStore, countryCode, chartRef]);
+  }, [audioStore, countryCode, chartRef, openChart]);
 
   // The badge rides the same reopen path as a strip tap, then asks the sheet to
   // expand the now-playing row's commentary card. The rank is the playing
