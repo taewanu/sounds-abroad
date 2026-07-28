@@ -97,6 +97,11 @@ export async function fetchCommentaryStoreRaw(
   fetchImpl: typeof fetch = fetchChartsStore,
 ): Promise<CommentaryStore> {
   const res = await fetchImpl(url);
+  // A 404 means the store has never been written (a first run), so it starts
+  // empty, the same boundary the drop ledger beside it already draws. There are
+  // no cards to wipe, so aborting would guard nothing and would only stop the
+  // first batch from ever writing one.
+  if (res.status === 404) return {};
   if (!res.ok) {
     throw new Error(`Commentary store read failed (${res.status}) at ${url}.`);
   }
