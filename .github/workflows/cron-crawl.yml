@@ -46,6 +46,7 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
           CHARTS_BLOB_URL: ${{ secrets.CHARTS_BLOB_URL }}
+          CHARTS_READ_KEY: ${{ secrets.CHARTS_READ_KEY }}
           COMMENTARY_BLOB_URL: ${{ secrets.COMMENTARY_BLOB_URL }}
           SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
           SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}

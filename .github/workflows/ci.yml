@@ -45,4 +45,5 @@ jobs:
       - name: Build
         env:
           CHARTS_BLOB_URL: ${{ secrets.CHARTS_BLOB_URL }}
+          CHARTS_READ_KEY: ${{ secrets.CHARTS_READ_KEY }}
         run: mise exec -- pnpm build
