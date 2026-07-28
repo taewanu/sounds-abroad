@@ -141,3 +141,25 @@ test("guardedFetch rethrows a connect-time refusal out of a wrapped fetch failur
     guardedFetch("https://example.com/", { fetchImpl: failing }),
   ).rejects.toBe(refusal);
 });
+
+test.each([
+  ["::ffff:7f00:1", "hex-serialized IPv4-mapped loopback"],
+  ["::ffff:a00:1", "hex-serialized IPv4-mapped private"],
+])("refuses %s (%s)", (address) => {
+  expect(isForbiddenAddress(address)).toBe(true);
+});
+
+test.each([
+  ["https://[::ffff:127.0.0.1]/", "IPv4-mapped loopback in a URL"],
+  ["https://[::ffff:10.0.0.1]/", "IPv4-mapped private in a URL"],
+])("assertAllowedTarget refuses %s (%s)", (url) => {
+  expect(() => assertAllowedTarget(url)).toThrowError(/address/);
+});
+
+test.each([
+  ["::7f00:1", "deprecated IPv4-compatible form of a loopback address"],
+  ["64:ff9b::7f00:1", "NAT64 well-known prefix wrapping a loopback address"],
+  ["64:ff9b::a00:1", "NAT64 well-known prefix wrapping a private address"],
+])("refuses %s (%s)", (address) => {
+  expect(isForbiddenAddress(address)).toBe(true);
+});

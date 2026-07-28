@@ -7,7 +7,11 @@ import {
   type GroundingClient,
   type GroundingVerdict,
 } from "../../src/lib/grounding";
-import { assertAllowedTarget, guardedFetch } from "../lib/outbound-fetch";
+import {
+  assertAllowedTarget,
+  guardedFetch,
+  RefusedTargetError,
+} from "../lib/outbound-fetch";
 
 /**
  * The grounding shell: the network-and-subprocess half of the check whose pure
@@ -37,7 +41,10 @@ const JUDGE_SCHEMA = JSON.stringify({
  * Fetch a cited source and reduce it to plain text for the judge. Strips markup
  * and collapses whitespace, crude on purpose, since the judge reads prose, not
  * HTML. Returns null on any failure (bad status, network error, empty body) so
- * the caller can fail closed rather than judge a claim against nothing.
+ * the caller can fail closed rather than judge a claim against nothing. A
+ * refused target is the exception: it throws, because a citation the guard
+ * turned away is a different fact about the entry than a source that happened
+ * to be down, and the caller has to be able to tell them apart.
  */
 export async function fetchSourceText(
   url: string,
@@ -53,7 +60,8 @@ export async function fetchSourceText(
       .replace(/\s+/g, " ")
       .trim();
     return text.length > 0 ? text : null;
-  } catch {
+  } catch (err) {
+    if (err instanceof RefusedTargetError) throw err;
     return null;
   }
 }
@@ -136,6 +144,15 @@ export function combineSourceTexts(
   };
 }
 
+function refusedVerdict(err: unknown): GroundingVerdict {
+  return {
+    grounded: false,
+    reason: `Cited source is a refused target: ${
+      err instanceof Error ? err.message : String(err)
+    }`,
+  };
+}
+
 export interface GroundEntryDeps {
   fetchSourceText: (url: string) => Promise<string | null>;
   judge: GroundingClient;
@@ -147,37 +164,43 @@ export interface GroundEntryDeps {
  * grounded the same way, and a not-grounded verdict drops the card rather than
  * routing to a person. This function is the fail-closed boundary: a throw from
  * either dependency drops only this card, never aborting the publish pass. A
- * thrown fetch is treated as an unreachable source, the same as a null.
+ * thrown fetch is treated as an unreachable source, the same as a null, except
+ * for a refusal, which drops the card.
  */
 export async function groundEntry(
   entry: Commentary,
   deps: GroundEntryDeps,
 ): Promise<GroundingVerdict> {
-  // A refused target fails the whole entry before anything is fetched: a blurb
-  // citing an address the pipeline must not dial is suspect as a whole, so its
-  // acceptable-looking neighbours are not fetched either.
+  // A refused citation drops the whole entry: a blurb citing a target the
+  // pipeline must not dial is suspect as a whole, so no verdict is reached on
+  // its acceptable-looking neighbours either. What the URL alone reveals is
+  // caught here, before any fetch; a host that only reveals itself when it
+  // resolves is caught below, once the guard refuses the connection.
   for (const url of entry.sources) {
     try {
       assertAllowedTarget(url);
     } catch (err) {
-      return {
-        grounded: false,
-        reason: `Cited source is a refused target: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      };
+      return refusedVerdict(err);
     }
   }
 
-  const texts = await Promise.all(
-    entry.sources.map(async (url) => {
-      try {
-        return await deps.fetchSourceText(url);
-      } catch {
-        return null;
-      }
-    }),
-  );
+  let texts: Array<string | null>;
+  try {
+    texts = await Promise.all(
+      entry.sources.map(async (url) => {
+        try {
+          return await deps.fetchSourceText(url);
+        } catch (err) {
+          if (err instanceof RefusedTargetError) throw err;
+          return null;
+        }
+      }),
+    );
+  } catch (err) {
+    if (!(err instanceof RefusedTargetError)) throw err;
+    return refusedVerdict(err);
+  }
+
   const combined = combineSourceTexts(texts);
   if (!combined.ok) return combined.verdict;
   try {

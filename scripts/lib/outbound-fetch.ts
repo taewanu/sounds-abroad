@@ -69,10 +69,22 @@ export function assertAllowedTarget(
   }
 }
 
-/** Unwraps an IPv4-mapped IPv6 address (`::ffff:a.b.c.d`) to its IPv4 form. */
+/**
+ * Unwraps an IPv4-mapped IPv6 address to its IPv4 form. Both spellings have to
+ * be handled: a URL constructor rewrites the dotted `::ffff:127.0.0.1` into the
+ * hex `::ffff:7f00:1`, so matching only the readable form would let the
+ * rewritten one through.
+ */
 function unmapIpv4(address: string): string {
-  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(address);
-  return mapped ? mapped[1] : address;
+  const dotted = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(address);
+  if (dotted) return dotted[1];
+
+  const hex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i.exec(address);
+  if (!hex) return address;
+
+  const high = Number.parseInt(hex[1], 16);
+  const low = Number.parseInt(hex[2], 16);
+  return [high >> 8, high & 0xff, low >> 8, low & 0xff].join(".");
 }
 
 /**
@@ -93,7 +105,14 @@ export function isForbiddenAddress(address: string): boolean {
   if (ip === "::" || ip === "::1") return true;
   // fe80::/10 spans fe80-febf; fc00::/7 spans fc00-fdff.
   if (/^fe[89ab]/.test(ip)) return true;
-  return ip.startsWith("fc") || ip.startsWith("fd");
+  if (ip.startsWith("fc") || ip.startsWith("fd")) return true;
+
+  // Two prefixes that wrap an IPv4 address rather than being one: ::/96, the
+  // deprecated IPv4-compatible form, and 64:ff9b::/96, the NAT64 translation
+  // prefix. Whether either reaches the wrapped address depends on the network
+  // rather than on this code, and neither has any business in a citation or a
+  // storefront link, so both are refused without inspecting what they wrap.
+  return ip.startsWith("::") || ip.startsWith("64:ff9b:");
 }
 
 /**
