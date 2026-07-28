@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 
 import type { DraftClient, RawDraft } from "../../src/lib/drafting";
 
-import { draftEntry, toDraftInput } from "./draft";
+import { describeSubprocessFailure, draftEntry, toDraftInput } from "./draft";
 import type { WorklistItem } from "./worklist";
 
 // The claude -p subprocess stays out of these tests (the injectable drafter
@@ -65,4 +65,42 @@ test("draftEntry returns null when the draft fails the schema", async () => {
     ({ lead: "", tag: "x", claim: "why-charting", sources: [] }) as RawDraft;
 
   expect(await draftEntry(item(), TS, badDrafter)).toBeNull();
+});
+
+test("describeSubprocessFailure names a timeout, so a batch log says to raise the budget", () => {
+  const killed = { killed: true, code: null, stderr: "" };
+
+  expect(describeSubprocessFailure(killed, 180_000)).toBe(
+    "drafter timed out after 180s",
+  );
+});
+
+test("describeSubprocessFailure names a non-zero exit and its last stderr line", () => {
+  const exited = {
+    killed: false,
+    code: 1,
+    stderr: "warming up\nrate limit reached",
+  };
+
+  expect(describeSubprocessFailure(exited, 180_000)).toBe(
+    "drafter exited 1: rate limit reached",
+  );
+});
+
+test("describeSubprocessFailure leaves the command out of the message", () => {
+  const withCommand = {
+    killed: true,
+    message: `Command failed: claude -p ${"prompt text ".repeat(200)}`,
+    stderr: "",
+  };
+
+  expect(describeSubprocessFailure(withCommand, 180_000)).not.toContain(
+    "prompt text",
+  );
+});
+
+test("describeSubprocessFailure falls back to the thrown value when it carries no cause", () => {
+  expect(
+    describeSubprocessFailure(new Error("spawn ENOENT"), 180_000),
+  ).toContain("spawn ENOENT");
 });
