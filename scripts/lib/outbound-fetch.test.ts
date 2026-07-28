@@ -127,3 +127,17 @@ test("guardedFetch returns the response of an allowed target", async () => {
 
   expect(await res.text()).toBe("body");
 });
+
+test("guardedFetch rethrows a connect-time refusal out of a wrapped fetch failure", async () => {
+  const refusal = new RefusedTargetError(
+    "address",
+    "host resolves to forbidden address ::1",
+  );
+  const failing: typeof fetch = async () => {
+    throw new TypeError("fetch failed", { cause: refusal });
+  };
+
+  await expect(
+    guardedFetch("https://example.com/", { fetchImpl: failing }),
+  ).rejects.toBe(refusal);
+});
