@@ -195,14 +195,15 @@ function ChartScreenInner({
   const urlSays = useRef<string | null>(
     urlIsCanonical ? chartPath(countryCode, urlChart, urlMode) : null,
   );
-  // Whether the chart the arrival URL named has been honoured. Until it is, the
-  // displayed chart is still the songs chart, and writing would drop the very
-  // chart being read.
-  const arrivalHonoured = useRef(urlChart === SONGS_CHART);
+  // Whether the chart the URL names is the one on screen. While it is not, the
+  // sheet is still on the songs chart and writing would drop the very chart
+  // being read. Lowered wherever the URL is written ahead of the sheet opening
+  // what it names, arrival being the first such place and not the only one.
+  const urlChartHonoured = useRef(urlChart === SONGS_CHART);
   useEffect(() => {
-    if (!arrivalHonoured.current) {
+    if (!urlChartHonoured.current) {
       if (chartRef !== urlChart && !chartFailed) return;
-      arrivalHonoured.current = true;
+      urlChartHonoured.current = true;
     }
     const want = chartPath(countryCode, chartRef, mode);
     if (urlSays.current === want) return;
@@ -379,6 +380,22 @@ function ChartScreenInner({
     setSnap((s) => (s === "hidden" || s === "closed" ? "peek" : s));
   }, [settleSignal]);
 
+  // A chart waiting for its country to arrive, recorded by a mini-player tap
+  // that crosses countries. A ref rather than state: writing it need not paint,
+  // and the arrival that spends it repaints on its own.
+  const pendingRestore = useRef<{ code: string; ref: ChartRef } | null>(null);
+  const openRestored = useEffectEvent((next: ChartRef) => openChart(next));
+  // Spent by the first country change after it was recorded, whichever country
+  // that is. Honoured when it is the one the record names, dropped otherwise:
+  // the listener has gone somewhere else, and a record left lying would open
+  // this chart on some later arrival that never asked for it.
+  useEffect(() => {
+    const wanted = pendingRestore.current;
+    if (wanted === null) return;
+    pendingRestore.current = null;
+    if (wanted.code === countryCode) openRestored(wanted.ref);
+  }, [countryCode]);
+
   const handleMiniTap = useCallback(() => {
     // Return to what is playing, whole: the country, the chart within it, and
     // the mode it is heard in. The chart is restored through the sheet's own
@@ -401,15 +418,25 @@ function ChartScreenInner({
             currentMode ?? DEFAULT_CHART_MODE,
           ),
         );
+        // The URL now names a chart the sheet has yet to open, so hold the
+        // canonical writer until it does. Without this it would relabel to
+        // whatever the sheet shows meanwhile and correct itself a render
+        // later, showing a path nobody asked for in between.
+        urlChartHonoured.current = false;
       }
       if (currentMode) setMode(currentMode);
-      // Restored only within the country already on screen. A tap that also
-      // moves country would have to outrun the reset that runs during the next
-      // render, which returns the sheet to the songs chart (ADR-0017) and marks
-      // a read for the outgoing country stale; sequencing against it is its own
-      // change.
-      if (!onPlayingChart && onPlayingCountry) {
-        openChart(currentChartRef);
+      if (!onPlayingChart) {
+        // Within the country already on screen the chart opens straight away.
+        // A tap that also moves country cannot: the country arrives through the
+        // URL, and the sheet resets to the songs chart during that render
+        // (ADR-0017). So the chart is recorded and opened once the country it
+        // belongs to is the one on screen.
+        if (onPlayingCountry) openChart(currentChartRef);
+        else
+          pendingRestore.current = {
+            code: currentCountryCode,
+            ref: currentChartRef,
+          };
       }
     }
     setSnap((s) => (s === "hidden" || s === "closed" ? "peek" : s));
