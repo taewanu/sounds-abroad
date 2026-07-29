@@ -5,6 +5,7 @@ import { readRecord } from "@/components/globe/edge-hint-record";
 import { writeRecord as writeTourRecord } from "@/components/tour/tour-record-store";
 import { CHARTS, CODE_BR, CODE_US, COUNTRY_US } from "@/lib/__fixtures__";
 import type { AudioEngine } from "@/lib/audio-engine";
+import { SONGS_CHART } from "@/lib/chart-ref";
 import type { ChartFile, Country, Track } from "@/lib/chart-schema";
 import { chartPath } from "@/lib/chart-url";
 import { COUNTRIES } from "@/lib/countries";
@@ -1303,6 +1304,147 @@ describe("ChartScreen playlist playback", () => {
 
     expect(globeChartStore.getState().selectedCountry).toBe(DRAW_1);
     expect(miniPlayerTrackName()).toBe(LANDING_START);
+  });
+
+  // The screen reads its country from the URL, so a history write is what moves
+  // it. These stand in for the router integration that re-resolves the URL in
+  // the browser: the writes land in the mocked hooks, and repaint re-reads them.
+  function followHistoryWrites() {
+    const apply = (url: string) => {
+      const [path, query = ""] = url.split("?");
+      mockPathname.value = path;
+      mockSearchParams.value = new URLSearchParams(query);
+    };
+    vi.spyOn(window.history, "pushState").mockImplementation(
+      (_data, _title, url) => apply(String(url)),
+    );
+    return vi
+      .spyOn(window.history, "replaceState")
+      .mockImplementation((_data, _title, url) => apply(String(url)));
+  }
+
+  /** The URL the mocked router hooks now resolve, as one path. */
+  function urlNow(): string {
+    const query = mockSearchParams.value.toString();
+    return query ? `${mockPathname.value}?${query}` : mockPathname.value;
+  }
+
+  // Plumbing only: renders, and binds the two moves these tests make to the
+  // repaint that carries a URL change into the tree. The country is read by the
+  // outer component, which a state change inside the sheet never repaints.
+  function browsing() {
+    const { rerender } = renderChartScreen(PLAYLIST_CHARTS, PL_CODE);
+    const repaint = async () => {
+      await act(async () => {
+        rerender(<ChartScreen charts={PLAYLIST_CHARTS} />);
+      });
+    };
+    return {
+      browseTo: async (code: string) => {
+        mockPathname.value = `/c/${code}`;
+        mockSearchParams.value = new URLSearchParams();
+        await repaint();
+      },
+      tapMiniPlayer: async () => {
+        await act(async () => {
+          fireEvent.click(screen.getByRole("button", { name: "Reopen chart" }));
+        });
+        await repaint();
+      },
+    };
+  }
+
+  function selectedTab(): string | null {
+    return (
+      screen
+        .queryAllByRole("tab")
+        .find((tab) => tab.getAttribute("aria-selected") === "true")
+        ?.textContent ?? null
+    );
+  }
+
+  test("tapping the mini-player returns to a playlist playing in another country", async () => {
+    followHistoryWrites();
+    const { browseTo, tapMiniPlayer } = browsing();
+    await openChart(PL_FIRST_LABEL);
+    playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
+
+    await browseTo(DRAW_1);
+    await tapMiniPlayer();
+
+    expect(selectedTab()).toBe(PL_FIRST_LABEL);
+    // A row of the restored chart too, since a selected tab over an empty list
+    // is the shape a chart that arrived without its tracks would take.
+    expect(
+      screen.getByRole("button", {
+        name: `Play preview of ${FIRST_TAIL.name} by ${FIRST_TAIL.artist}`,
+      }),
+    ).toBeTruthy();
+  });
+
+  test("tapping the mini-player returns to a songs chart playing in another country", async () => {
+    followHistoryWrites();
+    const { browseTo, tapMiniPlayer } = browsing();
+    playPreview(SONGS_ONLY, `${SONGS_ONLY} artist`);
+
+    await browseTo(DRAW_1);
+    await tapMiniPlayer();
+
+    expect(selectedTab()).toBe("Top Songs");
+    expect(miniPlayerTrackName()).toBe(SONGS_ONLY);
+  });
+
+  test("the restored chart reaches the URL without a write correcting it", async () => {
+    const replaceState = followHistoryWrites();
+    const { browseTo, tapMiniPlayer } = browsing();
+    await openChart(PL_FIRST_LABEL);
+    playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
+
+    await browseTo(DRAW_1);
+    replaceState.mockClear();
+    await tapMiniPlayer();
+
+    expect(urlNow()).toBe(chartPath(PL_CODE, PL_FIRST));
+    // Asserted apart from the settled URL above, which a write corrected a
+    // render later would still satisfy: the reset the country change runs lands
+    // on the songs chart, and relabelling to it would put a path nobody asked
+    // for in the address bar on the way.
+    expect(replaceState).not.toHaveBeenCalledWith(
+      null,
+      "",
+      chartPath(PL_CODE, SONGS_CHART),
+    );
+  });
+
+  test("a country reached without a restore opens on its songs chart", async () => {
+    followHistoryWrites();
+    const { browseTo } = browsing();
+    await openChart(PL_FIRST_LABEL);
+
+    await browseTo(DRAW_1);
+    await browseTo(PL_CODE);
+
+    // Returning to a country whose playlist was open leaves it on the songs
+    // chart, which is where any country opens (ADR-0017). Pinned here so the
+    // restore above cannot quietly become how every country change behaves.
+    expect(selectedTab()).toBe("Top Songs");
+  });
+
+  test("a spent restore does not reopen its chart on a later arrival", async () => {
+    followHistoryWrites();
+    const { browseTo, tapMiniPlayer } = browsing();
+    await openChart(PL_FIRST_LABEL);
+    playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
+
+    await browseTo(DRAW_1);
+    await tapMiniPlayer();
+    await browseTo(DRAW_1);
+    await browseTo(PL_CODE);
+
+    // The record a tap leaves is spent by the arrival it was made for. Were it
+    // to survive, every later arrival at that country would open the chart
+    // instead of its songs chart, which is ADR-0017 reversed by the back door.
+    expect(selectedTab()).toBe("Top Songs");
   });
 });
 
