@@ -381,48 +381,51 @@ test.each([
   { field: "name", flaw: "carrying a C1 control", value: "x\u0085y" },
   { field: "artist", flaw: "carrying a line separator", value: "x\u2028y" },
   { field: "artist", flaw: "carrying a null byte", value: "x\u0000y" },
-])("a track $field $flaw fails to parse on both axes", ({ field, value }) => {
-  const tailWith = (overrides: Record<string, unknown>) => ({
-    code: "kr",
-    lastUpdated: "2026-05-16T00:00:00.000Z",
-    tracks: [
-      {
-        rank: 26,
-        name: "Test",
-        artist: "Test Artist",
-        previewUrl: null,
-        artworkUrl: "https://is1-ssl.mzstatic.com/600x600bb.jpg",
-        appleUrl: "https://music.apple.com/kr/1",
-        spotifyUrl: "https://open.spotify.com/track/1",
-        ...overrides,
-      },
-    ],
-  });
-  const playlistWith = (overrides: Record<string, unknown>) => ({
-    id: "pl.d838905f50af4200a2ebbc614922dee9",
-    lastUpdated: "2026-05-16T00:00:00.000Z",
-    tracks: [
-      {
-        rank: 1,
-        name: "Test",
-        artist: "Test Artist",
-        previewUrl: null,
-        artworkUrl: "https://is1-ssl.mzstatic.com/600x600bb.jpg",
-        appleUrl: "https://music.apple.com/kr/1",
-        ...overrides,
-      },
-    ],
-  });
+])(
+  "a track $field $flaw fails to parse in both the tail and playlist files",
+  ({ field, value }) => {
+    const tailWith = (overrides: Record<string, unknown>) => ({
+      code: "kr",
+      lastUpdated: "2026-05-16T00:00:00.000Z",
+      tracks: [
+        {
+          rank: 26,
+          name: "Test",
+          artist: "Test Artist",
+          previewUrl: null,
+          artworkUrl: "https://is1-ssl.mzstatic.com/600x600bb.jpg",
+          appleUrl: "https://music.apple.com/kr/1",
+          spotifyUrl: "https://open.spotify.com/track/1",
+          ...overrides,
+        },
+      ],
+    });
+    const playlistWith = (overrides: Record<string, unknown>) => ({
+      id: "pl.d838905f50af4200a2ebbc614922dee9",
+      lastUpdated: "2026-05-16T00:00:00.000Z",
+      tracks: [
+        {
+          rank: 1,
+          name: "Test",
+          artist: "Test Artist",
+          previewUrl: null,
+          artworkUrl: "https://is1-ssl.mzstatic.com/600x600bb.jpg",
+          appleUrl: "https://music.apple.com/kr/1",
+          ...overrides,
+        },
+      ],
+    });
 
-  expect(SongsTailFileSchema.safeParse(tailWith({})).success).toBe(true);
-  expect(
-    SongsTailFileSchema.safeParse(tailWith({ [field]: value })).success,
-  ).toBe(false);
-  expect(PlaylistFileSchema.safeParse(playlistWith({})).success).toBe(true);
-  expect(
-    PlaylistFileSchema.safeParse(playlistWith({ [field]: value })).success,
-  ).toBe(false);
-});
+    expect(SongsTailFileSchema.safeParse(tailWith({})).success).toBe(true);
+    expect(
+      SongsTailFileSchema.safeParse(tailWith({ [field]: value })).success,
+    ).toBe(false);
+    expect(PlaylistFileSchema.safeParse(playlistWith({})).success).toBe(true);
+    expect(
+      PlaylistFileSchema.safeParse(playlistWith({ [field]: value })).success,
+    ).toBe(false);
+  },
+);
 
 test("a track name at the length bound still parses", () => {
   const atBound = {
