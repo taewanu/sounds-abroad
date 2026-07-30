@@ -91,6 +91,7 @@ describe("CountrySelector", () => {
     fireEvent.click(screen.getByRole("button", { name: "Brazil" }));
 
     expect(pushState).not.toHaveBeenCalled();
+    expect(replaceState).not.toHaveBeenCalled();
     expect(screen.getByRole("status").textContent).toContain("Brazil");
   });
 
