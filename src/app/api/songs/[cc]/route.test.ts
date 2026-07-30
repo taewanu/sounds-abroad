@@ -54,7 +54,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-test("returns the deeper rows for a country that resolves", async () => {
+test("returns the chart tail for a country that resolves", async () => {
   fetchSongsTailMock.mockResolvedValue(songsTailFile);
 
   const res = await readSongsTail(makeReq(), params(COUNTRY));
@@ -64,7 +64,7 @@ test("returns the deeper rows for a country that resolves", async () => {
   expect(fetchSongsTailMock).toHaveBeenCalledWith(CHARTS_URL, COUNTRY);
 });
 
-test("caches an absent deeper chart for as long as a present one", async () => {
+test("caches an absent tail for as long as a present one", async () => {
   fetchSongsTailMock.mockRejectedValue(
     new ChartPartFetchError(COUNTRY, 404, "missing"),
   );
