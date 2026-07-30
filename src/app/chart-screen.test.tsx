@@ -3,13 +3,20 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { readRecord } from "@/components/globe/edge-hint-record";
 import { writeRecord as writeTourRecord } from "@/components/tour/tour-record-store";
-import { CHARTS, CODE_BR, CODE_US, COUNTRY_US } from "@/lib/__fixtures__";
+import {
+  CHARTS,
+  CODE_BR,
+  CODE_US,
+  COUNTRY_BR,
+  COUNTRY_US,
+} from "@/lib/__fixtures__";
 import type { AudioEngine } from "@/lib/audio-engine";
 import { SONGS_CHART } from "@/lib/chart-ref";
 import type { ChartFile, Country, Track } from "@/lib/chart-schema";
 import { chartPath } from "@/lib/chart-url";
 import { COUNTRIES } from "@/lib/countries";
 import { globeChartStore } from "@/lib/globe-chart-store";
+import { selectGem } from "@/lib/select-gem";
 
 const mockSearchParams = vi.hoisted(() => ({
   value: new URLSearchParams(),
@@ -334,10 +341,12 @@ describe("ChartScreen", () => {
 describe("ChartScreen globe coupling", () => {
   beforeEach(() => {
     mockPathname.value = `/c/${CODE_US}`;
+    audioEngine.reset();
     globeChartStore.setState({
       readMode: false,
       settleSignal: 0,
       selectedCountry: null,
+      shuffleLanded: null,
     });
     vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
   });
@@ -431,6 +440,49 @@ describe("ChartScreen globe coupling", () => {
     // The mini player only mounts once a track plays; its absence after a settle
     // shows the landing selected a country without starting audio.
     expect(screen.queryByRole("button", { name: "Reopen chart" })).toBeNull();
+  });
+
+  test("a country selection that is not a shuffle draw stays silent", () => {
+    renderChartScreen(CHARTS, CODE_US);
+
+    act(() => {
+      globeChartStore.getState().setSelectedCountry(CODE_BR);
+    });
+
+    expect(screen.queryByRole("button", { name: "Reopen chart" })).toBeNull();
+  });
+
+  test("a shuffle landing plays the drawn country's Local Gem", () => {
+    const gem = selectGem(COUNTRY_BR.tracks)!.gem;
+    renderChartScreen(CHARTS, CODE_US);
+
+    act(() => {
+      globeChartStore.getState().shuffleTo(CODE_BR);
+    });
+
+    // The gem of the country drawn, not of the one on screen: the shuffle plays
+    // where it lands, ahead of the URL that the settle writes afterwards.
+    expect(screen.getByRole("button", { name: "Reopen chart" })).toBeTruthy();
+    expect(screen.getAllByText(gem.name).length).toBeGreaterThan(0);
+  });
+
+  test("drawing back to the country still sounding leaves it playing", () => {
+    const { container } = renderChartScreen(CHARTS, CODE_US);
+
+    act(() => {
+      globeChartStore.getState().shuffleTo(CODE_BR);
+    });
+    act(() => {
+      globeChartStore.getState().setSelectedCountry(CODE_US);
+    });
+    act(() => {
+      globeChartStore.getState().shuffleTo(CODE_BR);
+    });
+
+    // The draw excludes the country on screen, not the one being heard, so it
+    // can land back on a track still sounding. A draw asks for music, never for
+    // silence, so that leaves it alone rather than toggling it off.
+    expect(container.querySelector("[data-paused]")).toBeNull();
   });
 });
 

@@ -57,10 +57,11 @@ export interface GlobeChartState {
   // visited-weighting a shuffle uses.
   visited: ReadonlySet<string>;
   // The country a shuffle just drew, set by the globe when it lands one. The
-  // screen-reader announcement keys on this rather than the next selectedCountry
-  // change, so a selection from another source (a fling settling, a list pick)
-  // can't be mistaken for this shuffle's result. `nonce` re-fires the announce
-  // even if a later shuffle repeats the country.
+  // screen-reader announcement and the landing's playback both key on this
+  // rather than on the next selectedCountry change, so a selection from another
+  // source (a fling settling, a list pick) can't be mistaken for this shuffle's
+  // result and no other route sounds. `nonce` re-fires both even if a later
+  // shuffle repeats the country.
   shuffleLanded: { code: string; nonce: number } | null;
   setSelectedCountry: (code: string | null) => void;
   setVisited: (visited: ReadonlySet<string>) => void;
