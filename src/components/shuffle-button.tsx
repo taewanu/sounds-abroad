@@ -9,9 +9,9 @@ import { globeChartStore, useGlobeChart } from "@/lib/globe-chart-store";
 // what it lands on. The globe owns the draw because the anti-repeat memory
 // lives there, and the chart owns the playback because the audio store lives in
 // the page tree, so this only signals across that store. This is the only place
-// the app starts audio unasked: a press is the user gesture mobile browsers
-// permit playback from, which a settle arriving a second after the finger lifts
-// is not (#148).
+// the app starts audio unasked, on the grounds that a press is a user gesture
+// and a settle arriving a second later is not; whether that survives the hop
+// through the store is a device question (#148).
 export function ShuffleButton() {
   // Recede under the rising sheet on the same rule as the country badge: at full
   // the sheet covers this corner, so inert + pointer-events follow read mode.

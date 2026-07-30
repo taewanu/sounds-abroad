@@ -466,18 +466,22 @@ describe("ChartScreen globe coupling", () => {
     expect(screen.getAllByText(gem.name).length).toBeGreaterThan(0);
   });
 
-  test("drawing the country already sounding leaves it playing", () => {
+  test("drawing back to the country still sounding leaves it playing", () => {
     const { container } = renderChartScreen(CHARTS, CODE_US);
 
     act(() => {
       globeChartStore.getState().shuffleTo(CODE_BR);
     });
     act(() => {
+      globeChartStore.getState().setSelectedCountry(CODE_US);
+    });
+    act(() => {
       globeChartStore.getState().shuffleTo(CODE_BR);
     });
 
-    // A draw asks for music, never for silence, so landing back on the track
-    // already sounding leaves it alone rather than toggling it off.
+    // The draw excludes the country on screen, not the one being heard, so it
+    // can land back on a track still sounding. A draw asks for music, never for
+    // silence, so that leaves it alone rather than toggling it off.
     expect(container.querySelector("[data-paused]")).toBeNull();
   });
 });

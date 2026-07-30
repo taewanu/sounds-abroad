@@ -800,14 +800,13 @@ function ChartScreenInner({
   const playShuffleLanding = (code: string) => {
     const seat = shuffleSeat(charts.countries[code]);
     if (seat === null) return;
-    const playing = audioStore.getState();
-    if (
-      playing.isPlaying &&
-      playing.currentCountryCode === code &&
-      sameTrack(playing.currentTrack, seat)
-    ) {
-      return;
-    }
+    const state = audioStore.getState();
+    const alreadySounding =
+      state.isPlaying &&
+      sameTrack(state.currentTrack, seat) &&
+      state.currentCountryCode === code &&
+      state.currentChartRef === SONGS_CHART;
+    if (alreadySounding) return;
     audioStore
       .getState()
       .toggle(
