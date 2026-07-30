@@ -27,8 +27,7 @@ largest countries offer a tiny target inside a huge landmass, and the smallest
 are entirely covered by the marker meant to point at them.
 
 Underneath all three sits one missing property: nothing on the globe says what
-it is about to do before it does it. ADR-0011 treated selection as an outcome to
-be revealed. This decision treats it as something to be shown first.
+it is about to do before it does it.
 
 ## Decision
 
@@ -62,9 +61,10 @@ indication the user could read is a promise the landing has to keep, and drawing
 against it would make the globe lie.
 
 The reachability property ADR-0011 verified still holds and still matters,
-because it is the flick path that needs it. The near-neighbour guard also stands:
-where nothing sits within the near angle, the landing takes the single nearest
-country instead of straddling an ocean.
+because it is the flick path that needs it. ADR-0011's near-neighbour guard also
+stands: where no candidate falls within the angle that counts as a genuine
+neighbourhood, the landing takes the single nearest country instead of
+straddling an ocean.
 
 Small-country starvation is now defended twice rather than once. The draw covers
 the flick path, and on the deliberate path enlargement makes a small country as
@@ -81,8 +81,9 @@ time.
   skip unreliable. Leaving a double tap unassigned means two taps are simply two
   steps, so rapid repeated tapping carries you further at no cost, and the window
   disappears from the code.
-- **Halves, not thirds, and no centre zone.** The reference products that make a
-  bare edge tap feel natural split their surface in two and reserve no centre.
+- **Halves, not thirds, and no centre zone.** Instagram Stories and Tinder, the
+  products that made a bare edge tap ordinary, both split their surface in two
+  and reserve no centre; both put pause on press-and-hold rather than on a tap.
   Nothing on the globe competes for a tap once track skipping leaves, so nothing
   needs a third zone. If a third meaning is ever wanted, this is the decision to
   revisit.
@@ -102,11 +103,14 @@ left and right form fits a direction more literally than it fitted a skip.
 
 Pin hit testing goes with the tap that used it. What survives is what pins
 genuinely carried, which is set membership: the countries that have charts are
-painted as a quiet fill, so a resting globe still shows where you can go.
+painted as a quiet fill, so a resting globe still shows where you can go. That
+fill is produced once, and the selected country's highlight stays separate from
+it, so a landing does not repaint every country.
 
-This is also cheaper. Countries are painted into a canvas texture on one mesh, so
-the number painted does not affect the draw call count, while each pin rendered
-two separate meshes of its own.
+This is expected to be cheaper, and the expectation is to be measured rather
+than assumed. Countries are painted into a canvas texture on one mesh, so the
+number painted does not affect the draw call count, while each pin rendered two
+separate meshes of its own.
 
 ### Size is one channel carrying two intensities
 
@@ -140,22 +144,25 @@ serves everyone, which is also how it stays maintained.
 
 **A list pick pushes history.** ADR-0011 chose `replaceState` for every write on
 the grounds that flings are rapid and would flood history. That reasoning did not
-survive contact: landings are already pushed in the shipped code, and a list pick
-is more deliberate than a landing, so pushing is the consistent choice. This also
-corrects ADR-0019, which restated the blanket `replaceState` while describing the
-path-segment spelling.
+survive contact: a gesture landing already pushes, and a list pick is more
+deliberate than a landing, so pushing is the consistent choice. The write mode
+now follows the writer rather than the URL: a landing and a list pick push, while
+a settle the user did not aim, such as an external or shuffle landing, replaces.
+ADR-0019's restatement of the blanket `replaceState` is stale on this point.
 
 ### The shuffle button plays what it lands on
 
-Pressing the button lands on a drawn country and plays that country's lead pick,
+Pressing the button lands on a drawn country and plays that country's Local Gem,
 so hearing something new costs no decisions.
 
 This is the one place playback may start automatically. ADR-0011 decoupled
 selection from playback because a gesture landing cannot reliably start audio on
-mobile: by the time the globe settles, the user activation permitting playback
-has expired. A button press is itself that activation. The rule therefore becomes
-"gestures move, the button moves and plays", which is narrower than a blanket
-prohibition and keeps every other path silent.
+mobile, and two obstacles were recorded: mobile browsers require a user gesture
+to start playback, and an audio context suspended by the system stays silent
+until resumed. A button press is itself the gesture, so only the second obstacle
+survives, and it is verified on a device. The rule therefore becomes "gestures
+move, the button moves and plays", which is narrower than a blanket prohibition
+and keeps every other path silent.
 
 What the button plays is chosen in one place, so a later content lens can change
 the answer without redesigning the control. No lens indirection is built while
@@ -168,21 +175,26 @@ does not enlarge it, because size means "about to be selected" and a click steps
 rather than selects; enlarging under the cursor would promise what a click does
 not deliver.
 
-Cursor-driven enlargement was rejected for that reason, and because it would give
-the pointer a second selection rule to learn. The interaction is designed for
-touch, since a fat fingertip on a small screen is the problem being solved and a
-cursor has neither constraint.
+Cursor-driven enlargement is therefore not the default, and it would also give
+the pointer a second selection rule to learn. It stays available as a fallback if
+border highlighting proves too subtle in practice. The interaction is designed
+for touch, since a fat fingertip on a small screen is the problem being solved
+and a cursor has neither constraint.
 
 ### Feel values stay named constants
 
 The tuned values ship as named constants, not a setting and not a retained
 panel, as under ADR-0011. They are found on a real device with a throwaway
 tuner, because they interact: a stronger enlargement wants a smaller lens radius,
-and a smaller tap threshold moves where the release-speed split belongs.
+and a smaller tap threshold moves where the release-speed split belongs. ADR-0011
+could name its numbers because its spike had already run; these are deliberately
+absent here because the tuning pass precedes implementation and has not run yet.
+The constants in the code are the record once it has.
 
-Effects that cannot be asserted in a unit test, which is the distortion, the
-labels, the ramp, the haptic, and mobile autoplay, are verified on a real device
-from a preview deployment as a merge gate.
+Effects that cannot be asserted in a unit test, which is the distortion, the name
+labels, the fade between emphasis levels, the landing haptic, and mobile
+autoplay, are verified on a real device from a preview deployment as a merge
+gate.
 
 ### What carries over
 
@@ -192,8 +204,9 @@ anti-repeat weighted draw and its reachability guarantee; the per-session visite
 set; the reduced-motion cut; the landing haptic as progressive enhancement; and
 the URL as the single source of truth for the selected country.
 
-The extraction of the gesture machine into a pure reducer is what makes this a
-change of transitions rather than a rewrite of pointer handling.
+Arriving after ADR-0011 and load-bearing here: the gesture machine was extracted
+into a pure reducer, which is what makes this a change of transitions rather
+than a rewrite of pointer handling.
 
 ## Consequences
 
@@ -205,11 +218,12 @@ change of transitions rather than a rewrite of pointer handling.
   render, so the world stays on screen while the point of interest grows.
 - The globe carries one meaning, so its gestures stop competing and the rule can
   be stated in one sentence.
-- Every input is now conventional except the throw, which spends the novelty
-  budget where the product's identity is.
+- Only one input stays unfamiliar, the throw, and it is the one the product is
+  identified by. Every other input is something the user already knows.
 - Removes the deferred-tap window, and with it a class of bug rather than an
   instance of one.
-- Reduces the globe's draw calls, since the pin layer was its largest consumer.
+- Should reduce the globe's draw calls, since the pin layer was its largest
+  consumer. To be measured when the pins come off.
 
 **Negative**
 
@@ -222,8 +236,10 @@ change of transitions rather than a rewrite of pointer handling.
 - The distortion is the first GPU-level effect in the codebase, so it carries
   verification the rest of the interface does not: frame rate on low-end
   hardware, and correct behaviour under reduced motion.
-- Users who learned the previous gestures must relearn, and the previous
-  teaching records must be invalidated, which is why this is a major version.
+- Users who learned the previous gestures must relearn, and what the app stored
+  about which gestures they had performed must be invalidated, since those
+  entries now name lessons that no longer exist. This is why the change is a
+  major version.
 
 **Neutral**
 
