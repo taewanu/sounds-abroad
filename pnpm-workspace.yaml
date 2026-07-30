@@ -1,3 +1,15 @@
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
+
+# next resolves these two itself, below the version each advisory needs: postcss
+# to an exact version, sharp to a range that stops short of the patch. An
+# override is the only lever that reaches a version the parent will not ask for.
+#
+# The selector form is what keeps these from outliving their reason. Each rule
+# fires only on a request for a vulnerable version, so once next asks for a
+# patched one the rule stops matching and stands down on its own. A plain range
+# would instead cap next at the major it was written against.
+overrides:
+  postcss@<=8.5.17: ">=8.5.18"
+  sharp@<0.35.0: ">=0.35.0"
