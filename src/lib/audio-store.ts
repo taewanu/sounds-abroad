@@ -47,9 +47,10 @@ export interface AudioState {
   // reads as a fresh change. Null until the first skip, so a mount or a
   // non-skip track change never carries a direction.
   lastStep: { dir: 1 | -1; nonce: number } | null;
-  // `source` marks a fresh user selection (track row, gem card) so a
-  // track_played event fires only for those, not for skips (which route through
-  // step() with no source and are covered by next_executed) or pause/resume.
+  // `source` names where a fresh user selection came from, so a track_played
+  // event fires only for those and carries which surface asked. Skips route
+  // through step() with no source and are covered by next_executed; pause and
+  // resume carry none either.
   // An omitted `location` keeps the stored one, which is how a transport resume
   // stays where it was.
   toggle: (

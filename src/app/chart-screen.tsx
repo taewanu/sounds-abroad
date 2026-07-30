@@ -790,13 +790,24 @@ function ChartScreenInner({
   }, [mode]);
 
   // Play what a shuffle draws, on the draw rather than on the settle a second
-  // later: the button press is the user activation mobile browsers permit
-  // playback from, and it does not survive the globe's flight (#148). Every
-  // other landing selects and waits to be asked. shuffleSeat holds the choice
-  // of what plays, so a later lens is a change there alone.
+  // later, so playback stays as close to the press as this seam allows (#148).
+  // Every other landing selects and waits to be asked. shuffleSeat holds the
+  // choice of what plays, so a later lens is a change there alone.
+  //
+  // A draw asks for music, never for silence. The draw excludes only the
+  // country on screen, so it can land on the one already sounding, and toggle
+  // would read that as a second press and stop it.
   const playShuffleLanding = (code: string) => {
     const seat = shuffleSeat(charts.countries[code]);
     if (seat === null) return;
+    const playing = audioStore.getState();
+    if (
+      playing.isPlaying &&
+      playing.currentCountryCode === code &&
+      sameTrack(playing.currentTrack, seat)
+    ) {
+      return;
+    }
     audioStore
       .getState()
       .toggle(

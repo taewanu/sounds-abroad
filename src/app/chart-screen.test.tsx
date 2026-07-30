@@ -465,6 +465,21 @@ describe("ChartScreen globe coupling", () => {
     expect(screen.getByRole("button", { name: "Reopen chart" })).toBeTruthy();
     expect(screen.getAllByText(gem.name).length).toBeGreaterThan(0);
   });
+
+  test("drawing the country already sounding leaves it playing", () => {
+    const { container } = renderChartScreen(CHARTS, CODE_US);
+
+    act(() => {
+      globeChartStore.getState().shuffleTo(CODE_BR);
+    });
+    act(() => {
+      globeChartStore.getState().shuffleTo(CODE_BR);
+    });
+
+    // A draw asks for music, never for silence, so landing back on the track
+    // already sounding leaves it alone rather than toggling it off.
+    expect(container.querySelector("[data-paused]")).toBeNull();
+  });
 });
 
 describe("ChartScreen commentary badge", () => {

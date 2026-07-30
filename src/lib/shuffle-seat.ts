@@ -3,9 +3,14 @@ import { selectGem } from "./select-gem";
 
 /**
  * The track a shuffle landing starts in the country it drew: that country's
- * Local Gem, when the gem carries a preview. Null otherwise, so a country left
- * trackless by a failed crawl, or holding a gem the feed gives no preview for,
- * lands in silence rather than on a seat that can only report a failure.
+ * Local Gem, when the gem carries a preview.
+ *
+ * Null otherwise, and the landing then happens in silence. That is acceptable
+ * because the landing itself is still visible, the globe travels and the chart
+ * changes, and because every charted track carries a preview today; the null
+ * covers a failed crawl leaving a country trackless, not a case listeners meet.
+ * Redrawing until something plays would be machinery for a case that does not
+ * occur.
  *
  * The one place the shuffle's choice is made, so playing another lens's answer
  * is a change here and nowhere else.
