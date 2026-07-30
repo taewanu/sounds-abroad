@@ -1,5 +1,11 @@
 import * as Sentry from "@sentry/nextjs";
 
+import {
+  CHART_LIFETIME,
+  MISCONFIGURED_MESSAGE,
+  NEVER_STORE,
+  json,
+} from "@/lib/api-response";
 import { MUSIC_CHARTS_TAG } from "@/lib/cache-tags";
 import {
   ChartPartFetchError,
@@ -8,16 +14,6 @@ import {
 } from "@/lib/chart-parts";
 
 export const runtime = "nodejs";
-
-export const MISCONFIGURED_MESSAGE = "CHARTS_BLOB_URL is not configured";
-
-function json(body: unknown, status: number, cache?: string): Response {
-  const headers: Record<string, string> = {
-    "content-type": "application/json",
-  };
-  if (cache) headers["cache-control"] = cache;
-  return new Response(JSON.stringify(body), { status, headers });
-}
 
 /**
  * Serves one playlist's track list to the browser.
@@ -33,25 +29,25 @@ export async function readPlaylist(
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
   const { id } = await params;
-  if (!id) return json({ error: "missing playlist id" }, 400);
+  if (!id) return json({ error: "missing playlist id" }, 400, CHART_LIFETIME);
 
   const chartsUrl = process.env.CHARTS_BLOB_URL;
   if (!chartsUrl) {
     Sentry.captureMessage(MISCONFIGURED_MESSAGE, "error");
-    return json({ error: "not configured" }, 500);
+    return json({ error: "not configured" }, 500, NEVER_STORE);
   }
 
   try {
     const file = await fetchPlaylistFile(chartsUrl, id);
     // Matches the charts payload's own freshness: one crawl writes both, and a
     // revalidation clears them together through the shared tag.
-    return json(file, 200, "public, max-age=60");
+    return json(file, 200, CHART_LIFETIME);
   } catch (err) {
     // A playlist the latest run never wrote is ordinary, not a defect: a country
     // carried forward on this axis still advertises the charts it had. Anything
     // else is the store failing, which is worth knowing about.
     if (err instanceof ChartPartFetchError && err.status === 404) {
-      return json({ error: "no such playlist" }, 404);
+      return json({ error: "no such playlist" }, 404, CHART_LIFETIME);
     }
     if (
       err instanceof ChartPartFetchError ||
@@ -63,7 +59,7 @@ export async function readPlaylist(
         message: "playlist.upstream_failed",
         data: { playlistId: id, tag: MUSIC_CHARTS_TAG },
       });
-      return json({ error: "upstream failed" }, 502);
+      return json({ error: "upstream failed" }, 502, NEVER_STORE);
     }
     throw err;
   }
