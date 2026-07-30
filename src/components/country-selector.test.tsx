@@ -9,10 +9,14 @@ const openList = () =>
   fireEvent.click(screen.getByRole("button", { name: /choose a country/i }));
 
 describe("CountrySelector", () => {
+  let pushState: ReturnType<typeof vi.spyOn>;
   let replaceState: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     globeChartStore.setState({ selectedCountry: "br", readMode: false });
+    pushState = vi
+      .spyOn(window.history, "pushState")
+      .mockImplementation(() => {});
     replaceState = vi
       .spyOn(window.history, "replaceState")
       .mockImplementation(() => {});
@@ -20,6 +24,7 @@ describe("CountrySelector", () => {
 
   afterEach(() => {
     globeChartStore.setState({ selectedCountry: null, readMode: false });
+    pushState.mockRestore();
     replaceState.mockRestore();
   });
 
@@ -57,15 +62,35 @@ describe("CountrySelector", () => {
     }
   });
 
-  test("selecting a country drives the globe via the store, mirrors the URL, and announces it", () => {
+  test("selecting a country drives the globe via the store and announces it", () => {
     render(<CountrySelector />);
     openList();
 
     fireEvent.click(screen.getByRole("button", { name: "France" }));
 
     expect(globeChartStore.getState().selectedCountry).toBe("fr");
-    expect(replaceState).toHaveBeenCalledWith(null, "", "/c/fr");
     expect(screen.getByRole("status").textContent).toContain("France");
+  });
+
+  test("a pick pushes a history entry, so back returns to the country before it", () => {
+    render(<CountrySelector />);
+    openList();
+
+    fireEvent.click(screen.getByRole("button", { name: "France" }));
+
+    expect(pushState).toHaveBeenCalledWith(null, "", "/c/fr");
+    expect(replaceState).not.toHaveBeenCalled();
+  });
+
+  test("a second pick leaves the entry the first one wrote, so back walks the picks", () => {
+    render(<CountrySelector />);
+    openList();
+
+    fireEvent.click(screen.getByRole("button", { name: "France" }));
+    fireEvent.click(screen.getByRole("button", { name: "Japan" }));
+
+    expect(pushState).toHaveBeenNthCalledWith(1, null, "", "/c/fr");
+    expect(pushState).toHaveBeenNthCalledWith(2, null, "", "/c/jp");
   });
 
   test("stays open after selecting so exploration can continue", () => {

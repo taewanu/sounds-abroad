@@ -68,10 +68,11 @@ export function CountrySelector() {
 
   const handleSelect = (code: string, name: string) => {
     // Same channels the gesture uses: the store reaches the layout globe (whose
-    // useSearchParams can't see this), replaceState keeps the shareable URL in
-    // step without flooding history. Stay open so the grid is still there.
+    // useSearchParams can't see this), and the URL write pushes because a pick
+    // is the most deliberate way to choose a country, so back returns to the
+    // one before it. Stay open so the grid is still there.
     globeChartStore.getState().setSelectedCountry(code);
-    window.history.replaceState(null, "", countryPath(code));
+    window.history.pushState(null, "", countryPath(code));
     setAnnouncement(`Now showing ${name}`);
   };
 
@@ -126,7 +127,7 @@ export function CountrySelector() {
               ? `Choose a country, currently showing ${current.name}`
               : "Choose a country"
           }
-          className="bg-void/70 border-aurora/40 text-fg-1 text-small focus-visible:outline-aurora flex max-w-[60vw] items-center gap-2 rounded-full border px-3.5 py-2.5 font-medium backdrop-blur-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+          className="bg-void/85 border-aurora/70 text-fg-1 text-small focus-visible:outline-aurora flex max-w-[60vw] items-center gap-2 rounded-full border px-3.5 py-2.5 font-medium backdrop-blur-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
         >
           <span aria-hidden="true" className="text-base leading-none">
             {current ? flagEmoji(current.code) : "🌐"}
