@@ -1,7 +1,9 @@
 # ADR-0019: Path-segment country URLs
 
 **Status:** Accepted (2026-07-24). Amends ADR-0011 (the `?cc=` write contract)
-and ADR-0018 (which deferred this restructure to "OG cards only").
+and ADR-0018 (which deferred this restructure to "OG cards only"). The
+`replaceState` restated below is corrected by ADR-0020 (2026-07-30): a landing
+and a list pick push history. The path-segment spelling stands.
 
 ## Context
 
