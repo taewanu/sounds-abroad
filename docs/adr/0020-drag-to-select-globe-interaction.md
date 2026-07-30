@@ -19,8 +19,9 @@ Two further problems accumulated after ADR-0011 shipped.
 **The globe acquired a second job.** A fling changes the country and a double
 tap near either edge skips a track. Both are unfamiliar gestures on one surface,
 neither announces its outcome, and the first tap of the edge pair is swallowed
-with no feedback at all so that the second can be recognised. That deferred-tap
-window is also where the edge skip's reliability bugs came from.
+with no feedback at all so that the second can be recognised. Holding an input
+to see whether a second one follows is also a standing source of timing bugs,
+since every other event has to be reconciled against a decision not yet made.
 
 **The pin is the wrong target.** It is a dot rather than a country, so the
 largest countries offer a tiny target inside a huge landmass, and the smallest
@@ -47,9 +48,9 @@ and you land there.
   legible at that speed, and the anti-repeat weighted draw picks the landing,
   which is revealed as the spin settles into it.
 
-**The threshold is legibility, not a taste.** It is the spin speed above which a
-viewer can no longer read which country is enlarged, expressed in radians per
-second and fixed by hand on a device. Defining it this way is what makes the two
+**The threshold is legibility, not preference.** It is the spin speed above
+which a viewer can no longer read which country is enlarged, expressed in
+radians per second and fixed by hand on a device. Defining it this way makes the two
 rules coherent rather than arbitrary: the app may choose freely exactly when it
 made no promise the user could read.
 
@@ -61,8 +62,9 @@ indication the user could read is a promise the landing has to keep, and drawing
 against it would make the globe lie.
 
 The reachability property ADR-0011 verified still holds and still matters,
-because it is the flick path that needs it. ADR-0011's near-neighbour guard also
-stands: where no candidate falls within the angle that counts as a genuine
+because it is the flick path that needs it. The near-neighbour guard in the
+selection code also stands, and is worth recording here since no ADR has stated
+it: where no candidate falls within the angle that counts as a genuine
 neighbourhood, the landing takes the single nearest country instead of
 straddling an ocean.
 
@@ -76,11 +78,10 @@ easy to aim at as a large one, which is the problem ADR-0011 could not reach.
 half steps east.** It is the same sequence the drag walks, taken one item at a
 time.
 
-- **Single, not double.** Assigning anything to a double tap forces the first tap
-  to wait for a second, which is the deferred-select window that made the edge
-  skip unreliable. Leaving a double tap unassigned means two taps are simply two
-  steps, so rapid repeated tapping carries you further at no cost, and the window
-  disappears from the code.
+- **Single, not double.** Assigning anything to a double tap reopens the
+  deferred-select window described above. Leaving a double tap unassigned means
+  two taps are simply two steps, so rapid repeated tapping carries you further
+  at no cost, and the window disappears from the code.
 - **Halves, not thirds, and no centre zone.** Instagram Stories and Tinder, the
   products that made a bare edge tap ordinary, both split their surface in two
   and reserve no centre; both put pause on press-and-hold rather than on a tap.
@@ -107,8 +108,8 @@ painted as a quiet fill, so a resting globe still shows where you can go. That
 fill is produced once, and the selected country's highlight stays separate from
 it, so a landing does not repaint every country.
 
-This is expected to be cheaper, and the expectation is to be measured rather
-than assumed. Countries are painted into a canvas texture on one mesh, so the
+This should also be cheaper, and the saving is to be measured rather than
+assumed. Countries are painted into a canvas texture on one mesh, so the
 number painted does not affect the draw call count, while each pin rendered two
 separate meshes of its own.
 
@@ -145,9 +146,11 @@ serves everyone, which is also how it stays maintained.
 **A list pick pushes history.** ADR-0011 chose `replaceState` for every write on
 the grounds that flings are rapid and would flood history. That reasoning did not
 survive contact: a gesture landing already pushes, and a list pick is more
-deliberate than a landing, so pushing is the consistent choice. The write mode
-now follows the writer rather than the URL: a landing and a list pick push, while
-a settle the user did not aim, such as an external or shuffle landing, replaces.
+deliberate than a landing, so pushing is the consistent choice.
+
+**The write mode follows the writer, not the URL.** A gesture landing pushes
+today; a settle the user did not aim, such as an external or shuffle landing,
+replaces. The list still replaces, and this decision is what changes that.
 ADR-0019's restatement of the blanket `replaceState` is stale on this point.
 
 ### The shuffle button plays what it lands on
@@ -155,14 +158,21 @@ ADR-0019's restatement of the blanket `replaceState` is stale on this point.
 Pressing the button lands on a drawn country and plays that country's Local Gem,
 so hearing something new costs no decisions.
 
-This is the one place playback may start automatically. ADR-0011 decoupled
-selection from playback because a gesture landing cannot reliably start audio on
-mobile, and two obstacles were recorded: mobile browsers require a user gesture
-to start playback, and an audio context suspended by the system stays silent
-until resumed. A button press is itself the gesture, so only the second obstacle
-survives, and it is verified on a device. The rule therefore becomes "gestures
-move, the button moves and plays", which is narrower than a blanket prohibition
-and keeps every other path silent.
+This is the one place playback may start automatically. ADR-0011 kept selection
+and playback decoupled, and later investigation found two independent obstacles
+to changing that for a landing: iOS starts audio only from inside a user
+gesture, and a settle arrives a second or more after the finger lifts, so its
+playback call is detached from the gesture; and the audio context the volume
+control needs can stick in an interrupted state that resuming does not clear.
+
+A button press is itself the gesture, so the first obstacle does not arise, and
+resuming the context from inside a press is the path that was already understood
+to leave it running. That is why the button is the exception. Both claims are to
+be confirmed on a device before the change ships, because the second obstacle is
+the one that has surprised this codebase before.
+
+The rule therefore becomes "gestures move, the button moves and plays", which is
+narrower than a blanket prohibition and keeps every other path silent.
 
 What the button plays is chosen in one place, so a later content lens can change
 the answer without redesigning the control. No lens indirection is built while
@@ -212,8 +222,9 @@ than a rewrite of pointer handling.
 
 **Positive**
 
-- Solves the problem ADR-0011 aimed at. Aim is no longer a matter of hitting a
-  target, so country size stops determining how hard a country is to select.
+- Aims at the problem ADR-0011 did not reach. Selection stops being a matter of
+  hitting a target, so country size no longer decides how hard a country is to
+  choose.
 - Removes the need for zoom by moving magnification from the camera to the
   render, so the world stays on screen while the point of interest grows.
 - The globe carries one meaning, so its gestures stop competing and the rule can
