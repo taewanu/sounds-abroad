@@ -1,7 +1,11 @@
 import { expect, test } from "vitest";
 
 import fixture from "./__fixtures__/charts.json";
-import { ChartFileSchema, PlaylistFileSchema } from "./chart-schema";
+import {
+  ChartFileSchema,
+  PlaylistFileSchema,
+  SongsTailFileSchema,
+} from "./chart-schema";
 
 test("ChartFileSchema parses the hand-crafted fixture", () => {
   expect(() => ChartFileSchema.parse(fixture)).not.toThrow();
@@ -366,6 +370,77 @@ test.each([
     ).toBe(false);
   },
 );
+
+// A name or artist is untrusted feed text that later travels into a model
+// prompt, so ingestion bounds its size and refuses control characters. The
+// bound sits above any published credit, so existing blobs keep parsing.
+test.each([
+  { field: "name", flaw: "over the length bound", value: "a".repeat(1001) },
+  { field: "artist", flaw: "over the length bound", value: "a".repeat(1001) },
+  { field: "name", flaw: "carrying a newline", value: "one\ntwo" },
+  { field: "artist", flaw: "carrying a null byte", value: "x\u0000y" },
+])("a track $field $flaw fails to parse on both axes", ({ field, value }) => {
+  const tailWith = (overrides: Record<string, unknown>) => ({
+    code: "kr",
+    lastUpdated: "2026-05-16T00:00:00.000Z",
+    tracks: [
+      {
+        rank: 26,
+        name: "Test",
+        artist: "Test Artist",
+        previewUrl: null,
+        artworkUrl: "https://is1-ssl.mzstatic.com/600x600bb.jpg",
+        appleUrl: "https://music.apple.com/kr/1",
+        spotifyUrl: "https://open.spotify.com/track/1",
+        ...overrides,
+      },
+    ],
+  });
+  const playlistWith = (overrides: Record<string, unknown>) => ({
+    id: "pl.d838905f50af4200a2ebbc614922dee9",
+    lastUpdated: "2026-05-16T00:00:00.000Z",
+    tracks: [
+      {
+        rank: 1,
+        name: "Test",
+        artist: "Test Artist",
+        previewUrl: null,
+        artworkUrl: "https://is1-ssl.mzstatic.com/600x600bb.jpg",
+        appleUrl: "https://music.apple.com/kr/1",
+        ...overrides,
+      },
+    ],
+  });
+
+  expect(SongsTailFileSchema.safeParse(tailWith({})).success).toBe(true);
+  expect(
+    SongsTailFileSchema.safeParse(tailWith({ [field]: value })).success,
+  ).toBe(false);
+  expect(PlaylistFileSchema.safeParse(playlistWith({})).success).toBe(true);
+  expect(
+    PlaylistFileSchema.safeParse(playlistWith({ [field]: value })).success,
+  ).toBe(false);
+});
+
+test("a track name at the length bound still parses", () => {
+  const atBound = {
+    code: "kr",
+    lastUpdated: "2026-05-16T00:00:00.000Z",
+    tracks: [
+      {
+        rank: 26,
+        name: "a".repeat(1000),
+        artist: "Test Artist",
+        previewUrl: null,
+        artworkUrl: "https://is1-ssl.mzstatic.com/600x600bb.jpg",
+        appleUrl: "https://music.apple.com/kr/1",
+        spotifyUrl: "https://open.spotify.com/track/1",
+      },
+    ],
+  };
+
+  expect(SongsTailFileSchema.safeParse(atBound).success).toBe(true);
+});
 
 // Traversal is the risk the id rule closes: an id becomes the key a playlist
 // chart is written under and read from.
