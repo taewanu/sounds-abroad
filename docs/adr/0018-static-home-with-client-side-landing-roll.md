@@ -1,6 +1,6 @@
 # ADR-0018: Static home route with a client-side landing roll
 
-**Status:** Accepted (2026-07-24). Supersedes ADR-0004; amended by ADR-0019 (2026-07-24): the per-country restructure it deferred shipped as path-segment pages. The `replaceState` in the Neutral note below no longer holds for every writer; ADR-0020 (2026-07-30) records the write mode per writer.
+**Status:** Accepted (2026-07-24). Supersedes ADR-0004; amended by ADR-0019 (2026-07-24): the per-country restructure it deferred shipped as path-segment pages. The `replaceState` in the Neutral note below no longer holds for every writer; ADR-0020 (2026-07-30) revises it for the country-selection writers.
 
 ## Context
 

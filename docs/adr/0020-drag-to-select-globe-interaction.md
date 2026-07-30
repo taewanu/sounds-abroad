@@ -9,7 +9,7 @@ over" below.
 ADR-0011 set out to fix small-country selection and did not. Its escape hatch
 for precise aim was a tap resolving to the nearest country, which at 63-pin
 density still asks a fingertip to distinguish neighbours a few pixels apart.
-Observed behaviour is that people reach for pinch-zoom instead, and zoom cannot
+People reach for pinch-zoom instead, and zoom cannot
 help: zoomed in the surrounding world is gone, so you no longer know where you
 are aiming; zoomed out the targets are back to sub-fingertip. Dense regions are
 the worst case, where a dozen countries sit under one thumb.
@@ -40,6 +40,10 @@ Dragging spins the globe as before, and the country passing through the centre
 is enlarged, highlighted, and named. That indication is a promise: release now
 and you land there.
 
+ADR-0011 rejected a preview-then-confirm step for taxing the spin-and-discover
+loop, and that rejection stands: this adds no step. The indication rides the
+drag the user is already performing, and the release is the commit.
+
 **Release speed decides which rule picks the landing.**
 
 - **A slow release is deterministic.** It lands on the country nearest the rest
@@ -56,10 +60,11 @@ when it made no promise the user could read.
 
 ### The fairness draw narrows rather than retires
 
-ADR-0011 gave every landing to the draw. It now governs only landings the user
-was not shown in advance. This is the same guarantee applied more honestly: an
-indication the user could read is a promise the landing has to keep, and drawing
-against it would make the globe lie.
+ADR-0011 gave every fling landing to the draw, keeping taps deterministic as the
+precise-intent escape hatch. Taps are no longer that hatch, and the draw now
+governs only the landings the user was not shown in advance. This is the same
+guarantee applied more honestly: an indication the user could read is a promise
+the landing has to keep, and drawing against it would make the globe lie.
 
 The reachability property ADR-0011 verified still holds and still matters,
 because it is the flick path that needs it. The near-neighbour guard in the
@@ -97,14 +102,16 @@ Skipping tracks moves to the mini-player swipe, on the object it acts on. The
 globe carries one meaning, which is the whole point: the rule a user learns is
 that touching the globe takes them somewhere new.
 
-The edge affordances that advertised a track skip now advertise travel, and the
-left and right form fits a direction more literally than it fitted a skip.
+The edge chevrons advertised a track skip and now advertise travel, which their
+left and right form fits more literally. The flash that confirmed a skip becomes
+the confirmation of a step.
 
 ### Pins are removed
 
-Pins stopped being the selection target some time ago: a tap already resolves to
-the nearest country at the canvas level, and the pin meshes are left handling
-only pointer hover. Nothing now needs them to be hittable.
+Pins already stopped being the selection target: the globe passes them a no-op
+select handler, a tap resolves to the nearest country at the canvas level, and
+the pin meshes are left handling only pointer hover. Nothing now needs them to
+be hittable.
 
 What survives is what pins genuinely carried, which is set membership: the
 countries that have charts are painted as a quiet fill, so a resting globe still
@@ -142,15 +149,14 @@ than most interfaces produce, so this is a floor rather than a courtesy.
 ### The country list is the supported precise route
 
 Once a tap means travel, no gesture aims at a named country any more, so the
-deterministic path is the country list, and it is taught rather than left to be
-discovered.
+deterministic path is the country list, taught rather than left to be discovered.
 ADR-0011 introduced that list as the keyboard and screen-reader path; it now
 serves everyone, which is also how it stays maintained.
 
-**The write mode follows the writer, not the URL.** ADR-0011 chose
+**The write mode follows how deliberate the selection was.** ADR-0011 chose
 `replaceState` for every write on the grounds that flings are rapid and would
-flood history, and ADR-0018 and ADR-0019 both restated that as settled. It is no
-longer true, so the three writers are set out here:
+flood history, and ADR-0018 and ADR-0019 both restated that as settled. That is
+no longer true of the writers this decision governs:
 
 - **A gesture landing pushes.** This already ships, and it is what makes the
   earlier blanket statements stale.
@@ -160,23 +166,26 @@ longer true, so the three writers are set out here:
   from a list is the most deliberate selection the app offers, so replacing was
   the least defensible of the three.
 
+Other writers exist outside this decision's scope, in the chart screen, and are
+left as they are. The rule above is the one to apply when adding another.
+
 ### The shuffle button plays what it lands on
 
 Pressing the button lands on a drawn country and plays that country's Local Gem,
 so hearing something new costs no decisions.
 
 This is the one place playback may start automatically. ADR-0011 kept selection
-and playback decoupled, and later investigation found two independent obstacles
-to changing that for a landing: iOS starts audio only from inside a user
+and playback decoupled, and the attempt to change that for a landing found two
+independent obstacles: iOS starts audio only from inside a user
 gesture, and a settle arrives a second or more after the finger lifts, so its
 playback call is detached from the gesture; and the audio context the volume
 control needs can stick in an interrupted state that resuming does not clear.
 
 A button press is itself the gesture, so the first obstacle does not arise, and
-resuming the context from inside a press is the path that was already understood
-to leave it running. That is why the button is the exception. Both claims are to
-be confirmed on a device before the change ships, because the second obstacle is
-the one that has surprised this codebase before.
+resuming the context from inside a press is the path that leaves it running.
+That is why the button is the exception. Both claims are to be confirmed on a
+device before the change ships, since the interrupted context is the obstacle
+that took several rounds to diagnose the first time.
 
 The rule therefore becomes "gestures move, the button moves and plays", which is
 narrower than a blanket prohibition and keeps every other path silent.
@@ -239,9 +248,9 @@ than a rewrite of pointer handling.
   render, so the world stays on screen while the point of interest grows.
 - The globe carries one meaning, so its gestures stop competing and the rule can
   be stated in one sentence.
-- Only one input stays unfamiliar, the throw, and it is the one the product is
+- Only one input stays unfamiliar, the flick, and it is the one the product is
   identified by. Every other input is something the user already knows.
-- Removes the deferred-tap window, and with it a class of bug rather than an
+- Removes the deferred-select window, and with it a class of bug rather than an
   instance of one.
 - Should reduce the globe's draw calls, since the pin layer was its largest
   consumer. To be measured when the pins come off.
@@ -266,10 +275,9 @@ than a rewrite of pointer handling.
 
 - The teaching flow is re-authored rather than extended. Lessons are identified
   by the input they teach, not by a category, so changing what is taught changes
-  the identifier and a stale stored entry simply stops matching. That covers the
-  named lessons; the contextual hint's record carries no identifier at all, so
-  both stored records move to a new key version and the abandoned keys are
-  cleaned up.
+  the identifier and a stale stored entry simply stops matching. That would carry
+  the named lessons on its own, but the contextual hint's record holds no
+  identifier to rename, so it needs a new key version regardless. Both records
+  move together rather than leaving one version scheme per record, and the
+  abandoned keys are cleaned up.
 - No centre-tap meaning exists. This is reserved rather than rejected.
-- Cursor-driven enlargement is recorded as a fallback if border highlighting
-  proves too subtle, not as a planned addition.
