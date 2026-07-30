@@ -378,6 +378,8 @@ test.each([
   { field: "name", flaw: "over the length bound", value: "a".repeat(1001) },
   { field: "artist", flaw: "over the length bound", value: "a".repeat(1001) },
   { field: "name", flaw: "carrying a newline", value: "one\ntwo" },
+  { field: "name", flaw: "carrying a C1 control", value: "x\u0085y" },
+  { field: "artist", flaw: "carrying a line separator", value: "x\u2028y" },
   { field: "artist", flaw: "carrying a null byte", value: "x\u0000y" },
 ])("a track $field $flaw fails to parse on both axes", ({ field, value }) => {
   const tailWith = (overrides: Record<string, unknown>) => ({
