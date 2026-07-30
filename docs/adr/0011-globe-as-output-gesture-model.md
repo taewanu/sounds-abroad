@@ -1,6 +1,6 @@
 # ADR-0011: Globe-as-output gesture model
 
-**Status:** Accepted (2026-06-19); amended by ADR-0019 (2026-07-24): the selection write channel is now the `/c/<code>` path, not `?cc=`
+**Status:** Superseded by ADR-0020 (2026-07-30), which keeps the fairness draw in narrowed form. Accepted (2026-06-19); amended by ADR-0019 (2026-07-24): the selection write channel is now the `/c/<code>` path, not `?cc=`
 
 ## Context
 

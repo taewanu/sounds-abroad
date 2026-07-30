@@ -4,6 +4,14 @@
 
 import * as Sentry from "@sentry/nextjs";
 import posthog from "posthog-js";
+import { z } from "zod";
+
+import { POSTHOG_HOST } from "./lib/analytics-host";
+
+// The content-security policy allows no eval, so zod's JIT probe would log a
+// violation on every visit; jitless skips the probe. Client only — the crawl
+// and the server keep the compiled parsers.
+z.config({ jitless: true });
 
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
@@ -86,11 +94,17 @@ if (typeof window !== "undefined") {
 const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
 if (posthogKey) {
   posthog.init(posthogKey, {
-    api_host:
-      process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com",
+    api_host: POSTHOG_HOST,
     autocapture: false,
     capture_pageview: "history_change",
     disable_session_recording: true,
+    // Nothing lazy-loaded or fetched from the assets CDN (web vitals, surveys,
+    // dead clicks, remote config, feature flags): none is in use, and the
+    // content-security policy names only origins the site actually uses.
+    // Adopting one of those features later means flipping these and allowing
+    // the assets host in the policy, together.
+    disable_external_dependency_loading: true,
+    advanced_disable_flags: true,
     person_profiles: "identified_only",
   });
   // Tag every event with the deploy env so dev/preview traffic is filterable.

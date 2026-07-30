@@ -47,6 +47,13 @@ export const CitationUrlSchema = z.url({
 });
 
 /**
+ * The media hosts as strings, exported so the content-security policy is built
+ * from the same values these schemas pin at ingestion (one list, no drift).
+ */
+export const APPLE_ARTWORK_DOMAIN = "mzstatic.com";
+export const APPLE_PREVIEW_HOST = "audio-ssl.itunes.apple.com";
+
+/**
  * The storefront host, exported for the fetch-site guard so the pin has one
  * definition to drift from.
  */
@@ -65,7 +72,7 @@ export const AppleStorefrontUrlSchema = httpsUrlOn(
  * which sit in the final path segment and so leave the host checkable.
  */
 export const AppleArtworkUrlSchema = httpsUrlOn(
-  domainAndSubdomains("mzstatic.com"),
+  domainAndSubdomains(APPLE_ARTWORK_DOMAIN),
   "artwork",
 );
 
@@ -75,7 +82,7 @@ export const AppleArtworkUrlSchema = httpsUrlOn(
  * never serves from.
  */
 export const ApplePreviewUrlSchema = httpsUrlOn(
-  exactly("audio-ssl.itunes.apple.com"),
+  exactly(APPLE_PREVIEW_HOST),
   "preview",
 );
 
