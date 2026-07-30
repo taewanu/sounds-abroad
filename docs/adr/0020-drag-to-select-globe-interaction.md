@@ -19,9 +19,9 @@ Two further problems accumulated after ADR-0011 shipped.
 **The globe acquired a second job.** A fling changes the country and a double
 tap near either edge skips a track. Both are unfamiliar gestures on one surface,
 neither announces its outcome, and the first tap of the edge pair is swallowed
-with no feedback at all so that the second can be recognised. Holding an input
-to see whether a second one follows is also a standing source of timing bugs,
-since every other event has to be reconciled against a decision not yet made.
+with no feedback at all so that the second can be recognised. That wait is a
+**deferred-select window**, and it is a standing source of timing bugs: every
+other event has to be reconciled against a decision not yet made.
 
 **The pin is the wrong target.** It is a dot rather than a country, so the
 largest countries offer a tiny target inside a huge landmass, and the smallest
@@ -50,9 +50,9 @@ and you land there.
 
 **The threshold is legibility, not preference.** It is the spin speed above
 which a viewer can no longer read which country is enlarged, expressed in
-radians per second and fixed by hand on a device. Defining it this way makes the two
-rules coherent rather than arbitrary: the app may choose freely exactly when it
-made no promise the user could read.
+radians per second and fixed by hand on a device. Defining it this way makes
+the two rules coherent rather than arbitrary: the app may choose freely exactly
+when it made no promise the user could read.
 
 ### The fairness draw narrows rather than retires
 
@@ -79,15 +79,15 @@ half steps east.** It is the same sequence the drag walks, taken one item at a
 time.
 
 - **Single, not double.** Assigning anything to a double tap reopens the
-  deferred-select window described above. Leaving a double tap unassigned means
-  two taps are simply two steps, so rapid repeated tapping carries you further
-  at no cost, and the window disappears from the code.
+  deferred-select window. Leaving a double tap unassigned means two taps are
+  simply two steps, so rapid repeated tapping carries you further at no cost,
+  and the window disappears from the code.
 - **Halves, not thirds, and no centre zone.** Instagram Stories and Tinder, the
   products that made a bare edge tap ordinary, both split their surface in two
-  and reserve no centre; both put pause on press-and-hold rather than on a tap.
-  Nothing on the globe competes for a tap once track skipping leaves, so nothing
-  needs a third zone. If a third meaning is ever wanted, this is the decision to
-  revisit.
+  and reserve no centre. Stories, which needs a pause, puts it on press-and-hold
+  rather than on a tap. Nothing on the globe competes for a tap once track
+  skipping leaves, so nothing needs a third zone. If a third meaning is ever
+  wanted, this is the decision to revisit.
 - **The tap distance threshold is the only guard** against a failed drag reading
   as a step, and it is tuned accordingly.
 
@@ -102,11 +102,14 @@ left and right form fits a direction more literally than it fitted a skip.
 
 ### Pins are removed
 
-Pin hit testing goes with the tap that used it. What survives is what pins
-genuinely carried, which is set membership: the countries that have charts are
-painted as a quiet fill, so a resting globe still shows where you can go. That
-fill is produced once, and the selected country's highlight stays separate from
-it, so a landing does not repaint every country.
+Pins stopped being the selection target some time ago: a tap already resolves to
+the nearest country at the canvas level, and the pin meshes are left handling
+only pointer hover. Nothing now needs them to be hittable.
+
+What survives is what pins genuinely carried, which is set membership: the
+countries that have charts are painted as a quiet fill, so a resting globe still
+shows where you can go. That fill is produced once, and the selected country's
+highlight stays separate from it, so a landing does not repaint every country.
 
 This should also be cheaper, and the saving is to be measured rather than
 assumed. Countries are painted into a canvas texture on one mesh, so the
@@ -138,20 +141,24 @@ than most interfaces produce, so this is a floor rather than a courtesy.
 
 ### The country list is the supported precise route
 
-Removing pin selection removes precise aim from the globe, so the deterministic
-path is the country list, and it is taught rather than left to be discovered.
+Once a tap means travel, no gesture aims at a named country any more, so the
+deterministic path is the country list, and it is taught rather than left to be
+discovered.
 ADR-0011 introduced that list as the keyboard and screen-reader path; it now
 serves everyone, which is also how it stays maintained.
 
-**A list pick pushes history.** ADR-0011 chose `replaceState` for every write on
-the grounds that flings are rapid and would flood history. That reasoning did not
-survive contact: a gesture landing already pushes, and a list pick is more
-deliberate than a landing, so pushing is the consistent choice.
+**The write mode follows the writer, not the URL.** ADR-0011 chose
+`replaceState` for every write on the grounds that flings are rapid and would
+flood history, and ADR-0018 and ADR-0019 both restated that as settled. It is no
+longer true, so the three writers are set out here:
 
-**The write mode follows the writer, not the URL.** A gesture landing pushes
-today; a settle the user did not aim, such as an external or shuffle landing,
-replaces. The list still replaces, and this decision is what changes that.
-ADR-0019's restatement of the blanket `replaceState` is stale on this point.
+- **A gesture landing pushes.** This already ships, and it is what makes the
+  earlier blanket statements stale.
+- **A settle the user did not aim replaces.** An external link or a shuffle
+  landing is not something the user should have to walk back through.
+- **A list pick pushes. This is the change.** It still replaces today. A pick
+  from a list is the most deliberate selection the app offers, so replacing was
+  the least defensible of the three.
 
 ### The shuffle button plays what it lands on
 
@@ -184,6 +191,9 @@ Hovering lights up the border of the country under the cursor and names it. It
 does not enlarge it, because size means "about to be selected" and a click steps
 rather than selects; enlarging under the cursor would promise what a click does
 not deliver.
+
+The hit test moves off the pin meshes and onto the same nearest-country
+geometry the selection math already provides, so hover survives their removal.
 
 Cursor-driven enlargement is therefore not the default, and it would also give
 the pointer a second selection rule to learn. It stays available as a fallback if
@@ -256,7 +266,10 @@ than a rewrite of pointer handling.
 
 - The teaching flow is re-authored rather than extended. Lessons are identified
   by the input they teach, not by a category, so changing what is taught changes
-  the identifier and re-teaching follows without a migration step.
+  the identifier and a stale stored entry simply stops matching. That covers the
+  named lessons; the contextual hint's record carries no identifier at all, so
+  both stored records move to a new key version and the abandoned keys are
+  cleaned up.
 - No centre-tap meaning exists. This is reserved rather than rejected.
 - Cursor-driven enlargement is recorded as a fallback if border highlighting
   proves too subtle, not as a planned addition.
