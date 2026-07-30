@@ -72,17 +72,7 @@ describe("CountrySelector", () => {
     expect(screen.getByRole("status").textContent).toContain("France");
   });
 
-  test("a pick pushes a history entry, so back returns to the country before it", () => {
-    render(<CountrySelector />);
-    openList();
-
-    fireEvent.click(screen.getByRole("button", { name: "France" }));
-
-    expect(pushState).toHaveBeenCalledWith(null, "", "/c/fr");
-    expect(replaceState).not.toHaveBeenCalled();
-  });
-
-  test("a second pick leaves the entry the first one wrote, so back walks the picks", () => {
+  test("each pick pushes its own entry, so back walks the picks in reverse", () => {
     render(<CountrySelector />);
     openList();
 
@@ -91,6 +81,17 @@ describe("CountrySelector", () => {
 
     expect(pushState).toHaveBeenNthCalledWith(1, null, "", "/c/fr");
     expect(pushState).toHaveBeenNthCalledWith(2, null, "", "/c/jp");
+    expect(replaceState).not.toHaveBeenCalled();
+  });
+
+  test("picking the country already showing spends no history entry", () => {
+    render(<CountrySelector />);
+    openList();
+
+    fireEvent.click(screen.getByRole("button", { name: "Brazil" }));
+
+    expect(pushState).not.toHaveBeenCalled();
+    expect(screen.getByRole("status").textContent).toContain("Brazil");
   });
 
   test("stays open after selecting so exploration can continue", () => {

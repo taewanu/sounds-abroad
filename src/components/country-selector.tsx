@@ -67,12 +67,16 @@ export function CountrySelector() {
   };
 
   const handleSelect = (code: string, name: string) => {
-    // Same channels the gesture uses: the store reaches the layout globe (whose
-    // useSearchParams can't see this), and the URL write pushes because a pick
-    // is the most deliberate way to choose a country, so back returns to the
-    // one before it. Stay open so the grid is still there.
+    // A pick is the most deliberate way to choose a country, so it pushes and
+    // back returns to the one before it. Re-picking the country already showing
+    // changes nothing, so it spends no entry, the same rule the globe applies
+    // to a settle that lands where it already was. Writing history before the
+    // store keeps back working whatever the store's listeners do.
+    if (code !== currentCode) {
+      window.history.pushState(null, "", countryPath(code));
+    }
+    // The store reaches the layout globe, whose useSearchParams cannot see this.
     globeChartStore.getState().setSelectedCountry(code);
-    window.history.pushState(null, "", countryPath(code));
     setAnnouncement(`Now showing ${name}`);
   };
 
