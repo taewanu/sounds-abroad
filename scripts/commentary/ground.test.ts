@@ -7,6 +7,7 @@ import { RefusedTargetError } from "../lib/outbound-fetch";
 import {
   combineSourceTexts,
   groundEntry,
+  SOURCE_TEXT_CEILING,
   type GroundEntryDeps,
 } from "./ground";
 
@@ -39,6 +40,19 @@ test("combineSourceTexts judges the sources that loaded on a partial failure", (
   const result = combineSourceTexts(["live body", null]);
 
   expect(result).toEqual({ ok: true, sourceText: "live body" });
+});
+
+test("combineSourceTexts truncates each source at the ceiling before it reaches the judge", () => {
+  const oversized = "a".repeat(SOURCE_TEXT_CEILING) + "OVERFLOW";
+
+  const result = combineSourceTexts([oversized, "short body"]);
+
+  expect(result.ok).toBe(true);
+  if (result.ok) {
+    expect(result.sourceText).not.toContain("OVERFLOW");
+    expect(result.sourceText).toContain("a".repeat(SOURCE_TEXT_CEILING));
+    expect(result.sourceText).toContain("short body");
+  }
 });
 
 test("combineSourceTexts drops the card when every source is unreachable", () => {

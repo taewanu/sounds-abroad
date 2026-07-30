@@ -24,6 +24,15 @@ import {
 const execFileAsync = promisify(execFile);
 
 /**
+ * How much of one fetched source may reach the judge prompt (#322). Bounds the
+ * page, not the article: press articles run well under this, while an oversized
+ * page would otherwise be one prompt. Cutting a legitimate long page loses at
+ * worst one card, the cheap mistake this pipeline already errs toward; several
+ * sources at this ceiling still sit far below the judge's context window.
+ */
+export const SOURCE_TEXT_CEILING = 40_000;
+
+/**
  * The structured-output contract handed to `claude -p`. Forcing the tri-state
  * shape means the shell reads one validated field instead of parsing prose.
  */
@@ -94,7 +103,9 @@ export function createClaudeJudge(timeoutMs = 60_000): GroundingClient {
           "--setting-sources",
           "",
         ],
-        { timeout: timeoutMs, maxBuffer: 8 * 1024 * 1024 },
+        // The judge answers a small JSON verdict; sized to that, not to the
+        // fetched pages, which are already truncated before the prompt (#322).
+        { timeout: timeoutMs, maxBuffer: 1024 * 1024 },
       );
       const envelope = JSON.parse(stdout) as {
         is_error?: boolean;
@@ -126,7 +137,9 @@ export function createClaudeJudge(timeoutMs = 60_000): GroundingClient {
 export function combineSourceTexts(
   texts: Array<string | null>,
 ): { ok: true; sourceText: string } | { ok: false; verdict: GroundingVerdict } {
-  const loaded = texts.filter((t) => t !== null);
+  const loaded = texts
+    .filter((t) => t !== null)
+    .map((t) => t.slice(0, SOURCE_TEXT_CEILING));
 
   if (loaded.length === 0) {
     return {

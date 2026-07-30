@@ -35,10 +35,27 @@ export const CommentarySchema = z.object({
  */
 export const EAGER_TRACK_COUNT = 25;
 
+/**
+ * A track or artist name from the chart feed: outside text that later travels
+ * into model prompts, so ingestion bounds its size and refuses anything that
+ * could break a prompt's line structure (C0 and C1 controls, DEL, and the
+ * Unicode line separators). The length bound clears the longest credit in the
+ * published dataset by a wide margin, so real names pass while a name-sized
+ * payload cannot.
+ */
+const FeedNameSchema = z
+  .string()
+  .min(1)
+  .max(1000)
+  .regex(
+    /^[^\u0000-\u001f\u007f-\u009f\u2028\u2029]*$/u,
+    "control characters are not allowed",
+  );
+
 const TrackSchema = z.object({
   rank: z.number().int().min(1).max(100),
-  name: z.string().min(1),
-  artist: z.string().min(1),
+  name: FeedNameSchema,
+  artist: FeedNameSchema,
   previewUrl: ApplePreviewUrlSchema.nullable(),
   artworkUrl: AppleArtworkUrlSchema,
   appleUrl: AppleStorefrontUrlSchema,
@@ -86,8 +103,8 @@ const CountrySchema = z.object({
 
 const PlaylistTrackSchema = z.object({
   rank: z.number().int().min(1),
-  name: z.string().min(1),
-  artist: z.string().min(1),
+  name: FeedNameSchema,
+  artist: FeedNameSchema,
   previewUrl: ApplePreviewUrlSchema.nullable(),
   artworkUrl: AppleArtworkUrlSchema,
   appleUrl: AppleStorefrontUrlSchema,
