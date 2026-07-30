@@ -50,6 +50,7 @@ test("combineSourceTexts truncates each source at the ceiling before it reaches 
   expect(result.ok).toBe(true);
   if (result.ok) {
     expect(result.sourceText).not.toContain("OVERFLOW");
+    expect(result.sourceText).toContain("a".repeat(SOURCE_TEXT_CEILING));
     expect(result.sourceText).toContain("short body");
   }
 });
