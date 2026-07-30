@@ -57,6 +57,7 @@ import {
 } from "@/lib/globe-chart-store";
 import { randomCountryCode } from "@/lib/landing-code";
 import { setSkipHandlers } from "@/lib/media-session";
+import { shuffleSeat } from "@/lib/shuffle-seat";
 import { sameTrack } from "@/lib/track-identity";
 import {
   AudioStoreProvider,
@@ -788,6 +789,23 @@ function ChartScreenInner({
     globeChartStore.getState().setChartMode(mode);
   }, [mode]);
 
+  // Play what a shuffle draws, on the draw rather than on the settle a second
+  // later: the button press is the user activation mobile browsers permit
+  // playback from, and it does not survive the globe's flight (#148). Every
+  // other landing selects and waits to be asked. shuffleSeat holds the choice
+  // of what plays, so a later lens is a change there alone.
+  const playShuffleLanding = (code: string) => {
+    const seat = shuffleSeat(charts.countries[code]);
+    if (seat === null) return;
+    audioStore
+      .getState()
+      .toggle(
+        seat,
+        { countryCode: code, chartRef: SONGS_CHART, mode: DEFAULT_CHART_MODE },
+        "shuffle",
+      );
+  };
+
   // A globe edge-tap raises a skip-intent; the chart owns adjacency, so it runs
   // the shared step and flashes only on a real track change. Reacting inside the
   // change callback (the pattern for an external system) spares the screen a
@@ -799,6 +817,12 @@ function ChartScreenInner({
   // subscribes once for the screen's life, never re-subscribing on their churn.
   const onGlobeSignal = useEffectEvent(
     (state: GlobeChartState, prev: GlobeChartState) => {
+      if (
+        state.shuffleLanded !== prev.shuffleLanded &&
+        state.shuffleLanded !== null
+      ) {
+        playShuffleLanding(state.shuffleLanded.code);
+      }
       if (state.skipIntent.nonce !== prev.skipIntent.nonce) {
         // The gesture itself proves the edge skip is learned, so the teaching
         // affordances retire even when step clamps at the end of the chart,

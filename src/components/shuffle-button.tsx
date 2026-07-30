@@ -5,10 +5,13 @@ import { useEffect, useState } from "react";
 import { countryByCode } from "@/lib/country-code";
 import { globeChartStore, useGlobeChart } from "@/lib/globe-chart-store";
 
-// "Surprise me": flings the globe to a fair random country and lands it, the
-// same end-state as a manual fling (no autoplay — selection alone, like every
-// other pick). The globe owns the draw because the anti-repeat memory lives
-// there, so this only signals across the globe-chart store.
+// "Surprise me": flings the globe to a fair random country, lands it, and plays
+// what it lands on. The globe owns the draw because the anti-repeat memory
+// lives there, and the chart owns the playback because the audio store lives in
+// the page tree, so this only signals across that store. This is the only place
+// the app starts audio unasked: a press is the user gesture mobile browsers
+// permit playback from, which a settle arriving a second after the finger lifts
+// is not (#148).
 export function ShuffleButton() {
   // Recede under the rising sheet on the same rule as the country badge: at full
   // the sheet covers this corner, so inert + pointer-events follow read mode.
