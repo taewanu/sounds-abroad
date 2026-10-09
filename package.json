@@ -29,7 +29,7 @@
     "@sentry/node": "^10.68.0",
     "bezier-easing": "^3.0.1",
     "motion": "12.43.0",
-    "next": "16.2.12",
+    "next": "16.3.8",
     "posthog-js": "^1.407.3",
     "react": "19.2.8",
     "react-dom": "19.2.8",
