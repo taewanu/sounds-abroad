@@ -25,7 +25,7 @@
   "dependencies": {
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",
-    "@sentry/nextjs": "^10.68.0",
+    "@sentry/nextjs": "^10.75.2",
     "@sentry/node": "^10.68.0",
     "bezier-easing": "^3.2.0",
     "motion": "12.43.0",
