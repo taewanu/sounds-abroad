@@ -1,6 +1,6 @@
 # ADR-0001: Toolchain — mise + pnpm 10 + Node 24 LTS
 
-**Status:** Accepted (2026-04-28)
+**Status:** Accepted (2026-04-28). Amended 2026-10-28: added `mise.lock`, after CI's tool cache kept a floating `"24"` on an unpatched Node for months.
 
 ## Context
 
@@ -17,7 +17,8 @@ The choice is between (a) Corepack + Node 22, (b) Homebrew/global pnpm + Node 22
 Use **mise** to manage both Node and pnpm:
 
 - `mise.toml` pins `node = "24"` (current Active LTS, supported through 2028-05) and `pnpm = "10"` (current stable; pnpm 11 is in RC).
-- `package.json` mirrors with `"packageManager": "pnpm@10.23.0"` (exact version) so Vercel and any non-mise environment resolves the same pnpm binary.
+- `mise.lock` records the exact version each range resolves to, with per-platform checksums. `mise-action` installs with `--locked` when the lockfile exists, so CI runs the locked version whatever its tool cache holds. Bump with `mise lock --bump`.
+- `package.json` mirrors with an exact `"packageManager": "pnpm@<version>"` so Vercel and any non-mise environment resolves the same pnpm binary.
 - All scripted bash invocations wrap commands with `mise exec --` (non-interactive shells don't load `.zshrc`, so mise shims aren't on PATH unless explicitly invoked).
 - GitHub Actions uses the official `jdx/mise-action` to read `mise.toml`.
 
@@ -25,7 +26,7 @@ Use **mise** to manage both Node and pnpm:
 
 **Positive**
 
-- Single source of truth (`mise.toml`) covers Node + pnpm — no separate `.nvmrc` / `.npmrc`.
+- `mise.toml` and `mise.lock` cover Node and pnpm, so there is no separate `.nvmrc` or `.npmrc`.
 - mise extends to other tools later (deno, bun, ruby) without learning a new manager.
 - Avoids the Corepack stability issues and Node 25's removal of Corepack entirely.
 
