@@ -29,14 +29,14 @@
     "@sentry/node": "^10.76.2",
     "bezier-easing": "^3.2.0",
     "motion": "12.43.0",
-    "next": "16.4.2",
-    "posthog-js": "^1.438.12",
+    "next": "16.4.3",
+    "posthog-js": "^1.438.21",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "three": "^0.186.1",
     "topojson-client": "^3.1.0",
     "zod": "^4.6.7",
-    "zustand": "5.0.15"
+    "zustand": "5.0.16"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1156.0",
