@@ -19,7 +19,7 @@ const REGION_ORDER = [
 
 const COUNTRIES_BY_REGION = REGION_ORDER.map((region) => ({
   region,
-  countries: COUNTRIES.filter((c) => c.region === region).toSorted((a, b) =>
+  countries: COUNTRIES.filter((c) => c.region === region).sort((a, b) =>
     a.name.localeCompare(b.name),
   ),
 }));
