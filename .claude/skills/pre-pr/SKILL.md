@@ -21,7 +21,7 @@ Run each step CI runs, and stop at the first failure:
 mise exec -- pnpm lint
 mise exec -- pnpm format:check
 mise exec -- pnpm typecheck
-mise exec -- pnpm test
+mise exec -- pnpm test:ci
 mise exec -- pnpm build
 ```
 
@@ -29,7 +29,7 @@ A fresh worktree has no `.env.local`, so `build` fails on missing configuration 
 
 ## 3. Trace what the diff newly breaks
 
-Spawn one general-purpose subagent. Give it the repository path and the diff command, not your own reading of the change, so its review is not anchored on yours. Brief:
+Spawn one general-purpose subagent. Give it the repository path and the diff command, not your own reading of the change, so its review is not anchored on yours. Add facts the repository cannot show it, such as how an outside tool invokes the changed code, but not the cases you suspect. Brief:
 
 > Review `git diff origin/main...HEAD` in `<worktree path>`. For every changed line, trace its callers and dependents outside the diff: grep the call sites and read the code they reach. Report each failure the change newly exposes or makes worse, with the triggering condition, the consequence, and the worst-case bound before and after (staleness, cost, latency, data loss). Give extra weight to anything the diff removes, lengthens or narrows, such as a timer, retry, cache lifetime, fallback, validation or limit, and name what that safeguard used to catch. Cite `file:line` for every claim. Say "none found" rather than padding the report. Under 400 words.
 
@@ -39,7 +39,7 @@ Show the findings to the user. Each one is either fixed, which makes a new commi
 
 ## 5. Write the review into the PR body
 
-Only once every finding is settled at the current `HEAD`, add this section to the PR body, with the heading naming `git rev-parse --short=7 HEAD`:
+Only once every finding is settled at the current `HEAD`, add this section to the PR body, with the heading naming the first seven characters of `git rev-parse HEAD` (not `--short`, which can print more):
 
 ```markdown
 ## Pre-PR review (<short SHA>)
@@ -48,7 +48,7 @@ Only once every finding is settled at the current `HEAD`, add this section to th
 - <finding>: fixed in <SHA>, or kept because <reason>.
 ```
 
-Write "No findings." when the subagent found none. The section is the record: anyone reading the PR can see what was checked, and nothing accumulates locally.
+Write "No findings." when the subagent found none. The section is the record: anyone reading the PR can see what was checked, and nothing accumulates locally. Push the branch before `gh pr create`: the hook compares the reviewed commit with the pushed one, because that is the commit the PR opens on.
 
 ## 6. Measure the pass after review
 

@@ -1,20 +1,29 @@
 #!/bin/bash
 
 # Blocks `gh pr create` until the PR body carries a /pre-pr review of the exact
-# commit being proposed; any new commit changes the SHA, so it needs a fresh review.
+# commit the PR will open on; any new commit changes the SHA, so it needs a fresh review.
 
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command')
+FLAT=${COMMAND//$'\\\n'/ }
 
-echo "$COMMAND" | grep -qE "gh[[:space:]]+pr[[:space:]]+create" || exit 0
+# `gh` as a command (at the start or after a shell separator), allowing global
+# flags such as `-R owner/repo` before `pr create`.
+GH_PR_CREATE='(^|[;&|(])[[:space:]]*gh([[:space:]]+-[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*[[:space:]]+pr[[:space:]]+create([[:space:]]|$)'
+echo "$FLAT" | grep -qE "$GH_PR_CREATE" || exit 0
+
+unquote() { local s=${1//\"/}; echo "${s//\'/}"; }
 
 DIR=$(echo "$INPUT" | jq -r '.cwd')
-if [[ $COMMAND =~ ^[[:space:]]*cd[[:space:]]+([^[:space:]\&\;]+) ]]; then
-  DIR=${BASH_REMATCH[1]}
+CD_RE='^[[:space:]]*cd[[:space:]]+("[^"]+"|'"'"'[^'"'"']+'"'"'|[^[:space:]&;]+)'
+if [[ $FLAT =~ $CD_RE ]]; then
+  DIR=$(unquote "${BASH_REMATCH[1]}")
 fi
 REF=HEAD
-if [[ $COMMAND =~ --head[[:space:]=]+([^[:space:]]+) ]]; then
-  REF=${BASH_REMATCH[1]}
+HEAD_RE='(--head|-H)[[:space:]=]+([^[:space:]]+)'
+if [[ $FLAT =~ $HEAD_RE ]]; then
+  REF=$(unquote "${BASH_REMATCH[2]}")
+  REF=${REF##*:}
 fi
 
 SHA=$(git -C "$DIR" rev-parse --verify --quiet "$REF^{commit}")
@@ -23,10 +32,18 @@ if [ -z "$SHA" ]; then
   exit 2
 fi
 
+# The PR opens on the pushed commit, so the review has to be of that one.
+PUSHED=$(git -C "$DIR" rev-parse --verify --quiet "$REF@{upstream}")
+if [ "$PUSHED" != "$SHA" ]; then
+  echo "BLOCKED: '$REF' at ${SHA:0:7} is not what its upstream holds (${PUSHED:0:7}). Push it first, so the reviewed commit is the one the PR opens on." >&2
+  exit 2
+fi
+
 # A heredoc body (`--body-file -`) is part of the command text itself.
 BODY=$COMMAND
-if [[ $COMMAND =~ --body-file[[:space:]=]+([^[:space:]]+) ]] && [ "${BASH_REMATCH[1]}" != "-" ]; then
-  FILE=${BASH_REMATCH[1]}
+BODY_FILE_RE='(--body-file|-F)[[:space:]=]+([^[:space:]]+)'
+if [[ $FLAT =~ $BODY_FILE_RE ]] && [ "${BASH_REMATCH[2]}" != "-" ]; then
+  FILE=$(unquote "${BASH_REMATCH[2]}")
   [[ $FILE == /* ]] || FILE="$DIR/$FILE"
   BODY=$(cat "$FILE" 2>/dev/null)
 fi
