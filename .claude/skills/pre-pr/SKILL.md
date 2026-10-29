@@ -1,11 +1,11 @@
 ---
 name: pre-pr
-description: Review a branch before its pull request opens. Runs the CI checks locally, then has a fresh subagent trace what the diff newly breaks outside itself, and records the review that the `gh pr create` hook requires. Use before opening any PR, or when the hook blocks `gh pr create`.
+description: Review a branch before its pull request opens. Runs the CI checks locally, then has a fresh subagent trace what the diff newly breaks outside itself, and writes the review into the PR body, where the `gh pr create` hook looks for it. Use before opening any PR, or when the hook blocks `gh pr create`.
 ---
 
 # Pre-PR review
 
-The `gh pr create` hook (`.claude/hooks/require-pre-pr.sh`) refuses a PR until this skill has recorded a review of the exact commit being proposed. Any new commit changes that commit, so it needs a fresh review.
+The `gh pr create` hook (`.claude/hooks/require-pre-pr.sh`) refuses a PR whose body has no `## Pre-PR review (<short SHA>)` section for the exact commit being proposed. Any new commit changes that SHA, so it needs a fresh review.
 
 Diff reviewers read the lines that changed. The defects that reach production sit in the code those lines reach: a caller that relied on a removed fallback, a failure path that now waits longer. This skill makes that trace a step of its own, done by a reader who has not seen the author's reasoning.
 
@@ -37,13 +37,19 @@ Spawn one general-purpose subagent. Give it the repository path and the diff com
 
 Show the findings to the user. Each one is either fixed, which makes a new commit and sends you back to step 1, or kept with a stated reason that goes into the PR body.
 
-## 5. Record the review
+## 5. Write the review into the PR body
 
-Only once every finding is settled at the current `HEAD`:
+Only once every finding is settled at the current `HEAD`, add this section to the PR body, with the heading naming `git rev-parse --short=7 HEAD`:
 
-```bash
-dir="$(git rev-parse --path-format=absolute --git-common-dir)/pre-pr"
-mkdir -p "$dir" && touch "$dir/$(git rev-parse HEAD)"
+```markdown
+## Pre-PR review (<short SHA>)
+
+- CI matrix: lint, format:check, typecheck, test, build all passed locally.
+- <finding>: fixed in <SHA>, or kept because <reason>.
 ```
 
-The record lives in the git directory every worktree shares, so it is never committed and any worktree's `gh pr create` finds it.
+Write "No findings." when the subagent found none. The section is the record: anyone reading the PR can see what was checked, and nothing accumulates locally.
+
+## 6. Measure the pass after review
+
+Once CodeRabbit and any human reviewers have commented, note in the slice retro which of their findings this pass missed and which of its findings they also raised. That comparison is the evidence for whether the step earns its cost.

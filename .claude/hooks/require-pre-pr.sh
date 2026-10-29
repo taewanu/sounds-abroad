@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Blocks `gh pr create` until /pre-pr has reviewed the exact commit being
-# proposed; any new commit changes the SHA, so it needs a fresh review.
+# Blocks `gh pr create` until the PR body carries a /pre-pr review of the exact
+# commit being proposed; any new commit changes the SHA, so it needs a fresh review.
 
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command')
@@ -23,9 +23,17 @@ if [ -z "$SHA" ]; then
   exit 2
 fi
 
-MARKER="$(git -C "$DIR" rev-parse --path-format=absolute --git-common-dir)/pre-pr/$SHA"
-if [ ! -f "$MARKER" ]; then
-  echo "BLOCKED: no /pre-pr review recorded for $SHA ($REF). Run /pre-pr on this branch, address its findings, then retry." >&2
+# A heredoc body (`--body-file -`) is part of the command text itself.
+BODY=$COMMAND
+if [[ $COMMAND =~ --body-file[[:space:]=]+([^[:space:]]+) ]] && [ "${BASH_REMATCH[1]}" != "-" ]; then
+  FILE=${BASH_REMATCH[1]}
+  [[ $FILE == /* ]] || FILE="$DIR/$FILE"
+  BODY=$(cat "$FILE" 2>/dev/null)
+fi
+
+HEADING="## Pre-PR review (${SHA:0:7})"
+if ! grep -qF "$HEADING" <<<"$BODY"; then
+  echo "BLOCKED: the PR body has no '$HEADING' section. Run /pre-pr on $REF and put its findings in the body under that heading, then retry." >&2
   exit 2
 fi
 
