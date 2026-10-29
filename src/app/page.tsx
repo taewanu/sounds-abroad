@@ -1,10 +1,10 @@
 import { chartPageMetadata } from "./chart-page-metadata";
 import { ChartsBody } from "./charts-body";
 
-// Safety net alongside tag-based revalidation: the charts payload exceeds the
-// data cache's 2MB item cap, so the tag path alone can't be trusted to refresh
-// the cached page after a crawl.
-export const revalidate = 3600;
+// Daily, like the country pages: the crawl's tag revalidation already refreshes
+// this page, and every timed regeneration is an ISR write of the full charts
+// payload.
+export const revalidate = 86400;
 
 export const metadata = chartPageMetadata({
   title: "Sounds Abroad — World music discovery",
