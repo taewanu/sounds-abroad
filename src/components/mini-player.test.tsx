@@ -8,14 +8,16 @@ import { AudioStoreContext } from "@/providers/audio-store-provider";
 
 import { MiniPlayer, type MiniPlayerProps } from "./mini-player";
 
-function makeMockAudio(): AudioEngine {
+function makeMockAudio(overrides: Partial<AudioEngine> = {}): AudioEngine {
   return {
     src: "",
     play: vi.fn().mockResolvedValue(undefined),
     pause: vi.fn(),
+    volumeAdjustable: true,
     setVolume: vi.fn(),
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
+    ...overrides,
   };
 }
 
@@ -45,8 +47,9 @@ function makeCommentary(): Commentary {
 function renderMiniPlayer(
   props: Partial<MiniPlayerProps> = {},
   init?: Partial<AudioState>,
+  engine: AudioEngine = makeMockAudio(),
 ) {
-  const store = createAudioStore(() => makeMockAudio());
+  const store = createAudioStore(() => engine);
   if (init) {
     store.setState(init);
   }
@@ -145,6 +148,15 @@ describe("MiniPlayer", () => {
     renderMiniPlayer({ onTap: vi.fn() }, { currentTrack: makeTrack() });
 
     expect(screen.getByRole("button", { name: /volume/i })).toBeDefined();
+  });
+
+  test("omits the volume control when the engine's volume is not adjustable", () => {
+    const engine = makeMockAudio({ volumeAdjustable: false });
+    const { store } = renderMiniPlayer({}, undefined, engine);
+
+    act(() => store.getState().toggle(makeTrack()));
+
+    expect(screen.queryByRole("button", { name: /volume/i })).toBeNull();
   });
 
   test("next button fires onNext", () => {

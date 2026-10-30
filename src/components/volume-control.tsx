@@ -45,7 +45,7 @@ export function VolumeControl() {
     };
   }, [open]);
 
-  // Mute is gain 0 (the verified path), restoring the prior level on unmute.
+  // Mute is volume 0, restoring the prior level on unmute.
   const muted = volume === 0;
   const percent = Math.round(volume * 100);
   const Icon = muted ? VolumeMuteIcon : VolumeIcon;

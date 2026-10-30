@@ -2,10 +2,12 @@ export type AudioEventType = "ended" | "error" | "play" | "pause";
 
 /**
  * The audio output the store drives. A seam: the store stays pure and
- * testable while the real implementation owns the browser Web Audio graph.
+ * testable while the real implementation owns the browser audio output.
  */
 export interface AudioEngine {
   src: string;
+  /** False where the platform ignores element volume, leaving the level to the hardware. */
+  readonly volumeAdjustable: boolean;
   play(): Promise<void>;
   pause(): void;
   setVolume(value: number): void;
@@ -16,25 +18,23 @@ export interface AudioEngine {
 export type AudioEngineFactory = () => AudioEngine;
 
 /**
- * Volume drives a Web Audio GainNode, not HTMLMediaElement.volume: iOS WebKit
- * treats element volume as read-only (hardware-only), so routing the element
- * through an AudioContext is the only cross-platform path. The graph is
- * element -> source -> gain -> destination; later taps (an analyser) splice
- * into the same chain.
+ * Probes `:volume-locked` rather than writing and reading back, because a
+ * locked element reports the written value until a later task restores it.
  */
+function isVolumeLocked(element: HTMLMediaElement): boolean {
+  try {
+    return element.matches(":volume-locked");
+  } catch (error) {
+    // A browser that cannot parse the selector has no volume lock to report.
+    if (error instanceof DOMException && error.name === "SyntaxError") {
+      return false;
+    }
+    throw error;
+  }
+}
+
 export function createBrowserAudioEngine(): AudioEngine {
   const element = new Audio();
-  // Anonymous CORS lets the cross-origin preview flow through Web Audio without
-  // a silent-output penalty; it must be set before src.
-  element.crossOrigin = "anonymous";
-
-  const context = new AudioContext();
-  // createMediaElementSource is once-per-element; tying it to this element here
-  // means a track switch (reassigning element.src) never re-wires the graph.
-  const source = context.createMediaElementSource(element);
-  const gain = context.createGain();
-  source.connect(gain).connect(context.destination);
-
   return {
     get src() {
       return element.src;
@@ -42,15 +42,11 @@ export function createBrowserAudioEngine(): AudioEngine {
     set src(value: string) {
       element.src = value;
     },
-    play: async () => {
-      // Once routed through the context, a suspended context means silence.
-      // Resume inside the play gesture (iOS only starts audio on a gesture).
-      if (context.state === "suspended") await context.resume();
-      await element.play();
-    },
+    volumeAdjustable: !isVolumeLocked(element),
+    play: () => element.play(),
     pause: () => element.pause(),
     setVolume: (value) => {
-      gain.gain.value = value;
+      element.volume = value;
     },
     addEventListener: (type, listener) =>
       element.addEventListener(type, listener),

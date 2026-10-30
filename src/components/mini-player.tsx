@@ -78,6 +78,7 @@ export function MiniPlayer({
   nextTrack,
 }: MiniPlayerProps) {
   const currentTrack = useAudioStore((s) => s.currentTrack);
+  const volumeAdjustable = useAudioStore((s) => s.volumeAdjustable);
   const isPlaying = useAudioStore((s) => s.isPlaying);
   const toggle = useAudioStore((s) => s.toggle);
   const lastStep = useAudioStore((s) => s.lastStep);
@@ -211,7 +212,7 @@ export function MiniPlayer({
             <ExpandIcon className="h-4 w-4" />
           </button>
         ) : null}
-        <VolumeControl />
+        {volumeAdjustable ? <VolumeControl /> : null}
         <button
           type="button"
           onClick={onPrev}

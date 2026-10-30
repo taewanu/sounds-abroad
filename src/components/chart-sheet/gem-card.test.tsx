@@ -15,6 +15,7 @@ function makeMockAudio(): AudioEngine {
     src: "",
     play: vi.fn().mockResolvedValue(undefined),
     pause: vi.fn(),
+    volumeAdjustable: true,
     setVolume: vi.fn(),
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
