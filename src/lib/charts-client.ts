@@ -2,6 +2,9 @@ import { MUSIC_CHARTS_TAG } from "./cache-tags";
 import { ChartFileSchema, type ChartFile } from "./chart-schema";
 import { chartsStoreHeaders } from "./charts-store-fetch";
 
+/** Where the browser reads the chart file; served by `app/api/charts`. */
+export const CHARTS_ROUTE = "/api/charts";
+
 export class ChartsFetchError extends Error {
   constructor(
     public readonly status: number,
