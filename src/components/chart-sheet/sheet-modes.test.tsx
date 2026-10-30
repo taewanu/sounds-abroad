@@ -90,6 +90,8 @@ function chartState(over: Partial<ChartTracksState> = {}): ChartTracksState {
     tailFailed: false,
     readTail: () => {},
     peekTail: () => null,
+    readTailsAhead: () => {},
+    awaitTail: async () => null,
     ...over,
   };
 }

@@ -165,16 +165,9 @@ function ChartScreenInner({
   urlMode: ChartMode;
   urlIsCanonical: boolean;
 }) {
-  // Every country the payload carries, for the deeper rows to be read ahead
-  // against. Memoized because it is an effect dependency and a fresh array each
-  // render would restart the read.
-  const chartedCodes = useMemo(
-    () => Object.keys(charts.countries),
-    [charts.countries],
-  );
   // Which of the country's charts is open. Held here rather than in the sheet
   // because playback resolves against it too.
-  const chart = useChartTracks(countryCode, country, urlChart, chartedCodes);
+  const chart = useChartTracks(countryCode, country, urlChart);
 
   // Keeps the URL naming what is on screen, so a chart can be linked to and a
   // reload restores one. replaceState relabels without navigating, so switching
@@ -211,7 +204,14 @@ function ChartScreenInner({
     urlSays.current = want;
     window.history.replaceState(null, "", want);
   }, [urlChart, chartFailed, chartRef, countryCode, mode]);
-  const { peek: peekChart, read: readChart, open: openChart, peekTail } = chart;
+  const {
+    peek: peekChart,
+    read: readChart,
+    open: openChart,
+    peekTail,
+    readTailsAhead,
+    awaitTail,
+  } = chart;
 
   // Follows the mode on screen while the listener is looking at the playing
   // chart, and holds where they left it once they are not.
@@ -579,6 +579,59 @@ function ChartScreenInner({
     ],
   );
 
+  const playAdjacent = useCallback(
+    (
+      adj: ChartTrack,
+      code: string,
+      ref: ChartRef,
+      fromTrack: ChartTrack,
+      dir: 1 | -1,
+    ) => {
+      const { toggle, signalStep } = audioStore.getState();
+      toggle(adj, { countryCode: code, chartRef: ref, mode: heardIn() });
+      signalStep(dir);
+      trackEvent("next_executed", {
+        country: code,
+        direction: dir === 1 ? "next" : "prev",
+        outcome: "adjacent",
+        from_rank: fromTrack.rank,
+      });
+    },
+    [audioStore, heardIn],
+  );
+
+  // A step off the end of the eager rows waits for the rows past them, so a
+  // quick tap reaches the same track a slow one would.
+  const stepIntoTail = useCallback(
+    async (fromCode: string, fromTrack: ChartTrack) => {
+      const deeper = await awaitTail(fromCode);
+      const { currentTrack, currentCountryCode, currentChartRef } =
+        audioStore.getState();
+      if (
+        !sameTrack(currentTrack, fromTrack) ||
+        currentCountryCode !== fromCode ||
+        currentChartRef !== SONGS_CHART
+      ) {
+        return;
+      }
+      const rows = withPlaying(
+        songsChartRows(heardIn(), charts.countries[fromCode].tracks, deeper),
+        fromTrack,
+      );
+      const adj = findAdjacentPlayable(rows, fromTrack, 1);
+      if (adj) playAdjacent(adj, fromCode, SONGS_CHART, fromTrack, 1);
+      else rollOutOfCountry(fromCode, SONGS_CHART, fromTrack);
+    },
+    [
+      audioStore,
+      awaitTail,
+      charts.countries,
+      heardIn,
+      playAdjacent,
+      rollOutOfCountry,
+    ],
+  );
+
   // Step within the chart being played, not the one on screen. Reads live audio
   // state so the callback survives track changes; it re-forms only when the
   // roll record turns over. Past the last playable, next continues into the
@@ -615,21 +668,23 @@ function ChartScreenInner({
       // steps (buttons, swipe, media keys, edge-tap, auto-advance, and a roll)
       // feeds the one directional mini-player cue with no per-surface wiring.
       if (adj) {
-        toggle(adj, {
-          countryCode: currentCountryCode,
-          chartRef: currentChartRef,
-          mode: heardIn(),
-        });
-        signalStep(dir);
-        trackEvent("next_executed", {
-          country: currentCountryCode,
-          direction: dir === 1 ? "next" : "prev",
-          outcome: "adjacent",
-          from_rank: currentTrack.rank,
-        });
+        playAdjacent(
+          adj,
+          currentCountryCode,
+          currentChartRef,
+          currentTrack,
+          dir,
+        );
         return "adjacent";
       }
       if (dir === 1) {
+        if (
+          currentChartRef === SONGS_CHART &&
+          peekTail(currentCountryCode) === null
+        ) {
+          void stepIntoTail(currentCountryCode, currentTrack);
+          return "continued";
+        }
         if (
           playlistsAfter(charts.countries[currentCountryCode], currentChartRef)
             .length > 0
@@ -688,6 +743,9 @@ function ChartScreenInner({
       flashSkip,
       tracksOf,
       seatIn,
+      peekTail,
+      playAdjacent,
+      stepIntoTail,
       continueWithinCountry,
       rollOutOfCountry,
     ],
@@ -765,6 +823,27 @@ function ChartScreenInner({
       findAdjacentPlayable(playing, currentTrack, 1),
     ] as const;
   }, [currentTrack, currentCountryCode, currentChartRef, tracksOf]);
+
+  // The deeper rows a roll or a step reads: a roll only needs countries whose
+  // eager rows hold no seat, since those rows lead the chart.
+  const playingTailCode =
+    hasCurrentTrack &&
+    currentChartRef === SONGS_CHART &&
+    currentCountryCode !== null &&
+    peekTail(currentCountryCode) === null
+      ? currentCountryCode
+      : null;
+  const rollMode = currentMode ?? mode;
+  const tailsAhead = useMemo(() => {
+    const codes = Object.keys(charts.countries).filter(
+      (code) => landingTrack(charts.countries[code], rollMode, null) === null,
+    );
+    if (playingTailCode !== null) codes.push(playingTailCode);
+    return codes;
+  }, [charts.countries, rollMode, playingTailCode]);
+  useEffect(() => {
+    readTailsAhead(tailsAhead);
+  }, [readTailsAhead, tailsAhead]);
 
   // Skip lives here, not in the audio store: routing prev/next needs the chart
   // data to find the adjacent playable track, which the store doesn't hold.
