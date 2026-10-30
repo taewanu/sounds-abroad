@@ -11,10 +11,11 @@ import { ChartScreenLoader } from "./chart-screen-loader";
 // Starts the chart read while the page is still parsing, beside the JavaScript
 // rather than after hydration. The loader takes over this same request, so
 // there is one download; a preload link was tried and Chrome fetched twice.
-// The timeout turns a stalled response into the failure the screen can show,
-// rather than a read that never settles. The no-op catch keeps an early failure
+// The timer bounds only the wait for the response to start, so a server that
+// never answers ends in the failure the screen can show while a slow connection
+// still gets to finish the download. The no-op catch keeps an early failure
 // from reporting as unhandled before the loader attaches its own handling.
-const earlyRead = `window.${EARLY_CHARTS_READ}=fetch(${JSON.stringify(CHARTS_ROUTE)},{signal:AbortSignal.timeout(${CHARTS_READ_TIMEOUT_MS})});window.${EARLY_CHARTS_READ}.catch(function(){});`;
+const earlyRead = `(function(){var c=new AbortController(),t=setTimeout(function(){c.abort()},${CHARTS_READ_TIMEOUT_MS});window.${EARLY_CHARTS_READ}=fetch(${JSON.stringify(CHARTS_ROUTE)},{signal:c.signal}).then(function(r){clearTimeout(t);return r});window.${EARLY_CHARTS_READ}.catch(function(){})})();`;
 
 // The one body both chart routes (`/` and `/c/[code]`) render. It carries no
 // chart data, so a crawl's revalidation never rebuilds these pages; the browser

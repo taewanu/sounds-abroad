@@ -20,16 +20,22 @@ declare global {
 
 let chartsRead: Promise<ChartFile | null> | null = null;
 
+// Mirrors the page's inline read: the timer stops once the response starts.
+function fetchWithResponseTimeout(url: string): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), CHARTS_READ_TIMEOUT_MS);
+  return fetch(url, { signal: controller.signal }).finally(() =>
+    clearTimeout(timer),
+  );
+}
+
 // One read per visit: every country arrives together, so a later country
 // change reads memory, not the network (ADR-0016). The page's inline script has
 // usually started it already; fetching here covers a page that lacks it. Null
 // stands for a failed read, which the screen renders rather than throws.
 function readCharts(): Promise<ChartFile | null> {
   chartsRead ??= (
-    window[EARLY_CHARTS_READ] ??
-    fetch(CHARTS_ROUTE, {
-      signal: AbortSignal.timeout(CHARTS_READ_TIMEOUT_MS),
-    })
+    window[EARLY_CHARTS_READ] ?? fetchWithResponseTimeout(CHARTS_ROUTE)
   )
     .then(async (res) => {
       if (!res.ok) throw new Error(`charts: ${res.status}`);
