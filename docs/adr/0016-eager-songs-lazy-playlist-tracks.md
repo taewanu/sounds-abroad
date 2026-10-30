@@ -1,6 +1,6 @@
 # ADR-0016: Songs stay eager, playlist tracks load on demand
 
-**Status:** Accepted (2026-07-20). Governs how chart data reaches the browser, independent of where that data comes from. [ADR-0015](0015-apple-storefront-playlists-as-chart-axis.md) is what forced the question, but this decision outlives any particular source and applies to axes added later.
+**Status:** Accepted (2026-07-20). Governs how chart data reaches the browser, independent of where that data comes from. [ADR-0015](0015-apple-storefront-playlists-as-chart-axis.md) is what forced the question, but this decision outlives any particular source and applies to axes added later. Amended 2026-10-29 by ADR-0021: the eager set now reaches the browser as its own fetched file, not embedded in the page.
 
 ## Context
 
