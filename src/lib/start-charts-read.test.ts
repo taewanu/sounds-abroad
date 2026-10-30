@@ -1,5 +1,6 @@
 import { afterEach, expect, test, vi } from "vitest";
 
+import { streamingFetch } from "./__fixtures__/streaming-fetch";
 import { startChartsRead } from "./start-charts-read";
 
 const KEY = "__testRead";
@@ -36,22 +37,38 @@ test("startChartsRead aborts a response that has not started by the timeout", as
   expect(signal?.aborted).toBe(true);
 });
 
-test("startChartsRead stops the timer once the response starts", async () => {
+test("startChartsRead lets a body that keeps arriving outlast the timeout", async () => {
   vi.useFakeTimers();
   const timeoutMs = 1_000;
-  let signal: AbortSignal | undefined;
+  const chunks = ["a", "b", "c", "d"];
   vi.stubGlobal(
     "fetch",
-    vi.fn((_route: string, init: RequestInit) => {
-      signal = init.signal ?? undefined;
-      return Promise.resolve(new Response("{}"));
-    }),
+    streamingFetch(chunks, timeoutMs / 2, { closes: true }),
   );
 
-  await startChartsRead("/route", timeoutMs, KEY);
+  const text = startChartsRead("/route", timeoutMs, KEY).then((res) =>
+    res.text(),
+  );
+  await vi.advanceTimersByTimeAsync(timeoutMs * chunks.length);
+
+  await expect(text).resolves.toBe(chunks.join(""));
+});
+
+test("startChartsRead aborts a body that goes quiet for the timeout", async () => {
+  vi.useFakeTimers();
+  const timeoutMs = 1_000;
+  vi.stubGlobal(
+    "fetch",
+    streamingFetch(["a"], timeoutMs / 2, { closes: false }),
+  );
+
+  const text = startChartsRead("/route", timeoutMs, KEY).then((res) =>
+    res.text(),
+  );
+  const settled = expect(text).rejects.toThrow("aborted");
   await vi.advanceTimersByTimeAsync(timeoutMs * 2);
 
-  expect(signal?.aborted).toBe(false);
+  await settled;
 });
 
 test("startChartsRead's source runs on its own, as the inlined script does", () => {

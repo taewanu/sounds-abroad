@@ -10,8 +10,8 @@ import { startChartsRead } from "@/lib/start-charts-read";
 import { ChartScreenLoader } from "./chart-screen-loader";
 
 // Starts the chart read while the page is still parsing, beside the JavaScript
-// rather than after hydration; the screen takes over the same request, where a
-// preload link was tried and Chrome fetched twice.
+// rather than after hydration. The screen takes over this same request, so
+// there is one download; a preload link was tried and Chrome fetched twice.
 const earlyRead = `(${startChartsRead.toString()})(${JSON.stringify(CHARTS_ROUTE)}, ${CHARTS_READ_TIMEOUT_MS}, ${JSON.stringify(EARLY_CHARTS_READ)});`;
 
 // The one body both chart routes (`/` and `/c/[code]`) render. It carries no

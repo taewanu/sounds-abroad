@@ -2,9 +2,8 @@ import { Suspense } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 
+import { streamingFetch } from "@/lib/__fixtures__/streaming-fetch";
 import { CHARTS_READ_TIMEOUT_MS, EARLY_CHARTS_READ } from "@/lib/charts-client";
-
-import { ChartScreenLoader } from "./chart-screen-loader";
 
 vi.mock("@sentry/nextjs", () => ({ captureException: vi.fn() }));
 vi.mock("./chart-screen", () => ({ ChartScreen: () => <p>chart</p> }));
@@ -38,13 +37,7 @@ test("a failed chart read offers a retry that reloads the page", async () => {
     reload,
   });
 
-  await act(async () => {
-    render(
-      <Suspense>
-        <ChartScreenLoader />
-      </Suspense>,
-    );
-  });
+  await renderFreshLoader();
   fireEvent.click(screen.getByRole("button", { name: "Try again" }));
 
   expect(screen.getByRole("alert").textContent).toContain("Charts didn’t load");
@@ -73,26 +66,30 @@ test("a response that never starts ends in the failure once the timer runs out",
   expect(screen.getByRole("alert").textContent).toContain("Charts didn’t load");
 });
 
-test("a response that has started is not cut off by the timer, however long its body takes", async () => {
+test("a body that keeps arriving is not cut off by the timer, however long it takes", async () => {
+  vi.useFakeTimers();
+  const chunks = ['{"lastUpdated":"",', '"countries":{}}'];
+  vi.stubGlobal(
+    "fetch",
+    streamingFetch(chunks, CHARTS_READ_TIMEOUT_MS * 0.9, { closes: true }),
+  );
+
+  await renderFreshLoader();
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(CHARTS_READ_TIMEOUT_MS * 3);
+  });
+
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.getByText("chart")).toBeTruthy();
+});
+
+test("a body that stalls midway ends in the failure once the timer runs out", async () => {
   vi.useFakeTimers();
   vi.stubGlobal(
     "fetch",
-    vi.fn((_url: string, init: RequestInit) =>
-      Promise.resolve({
-        ok: true,
-        // A real body read rejects once its request's signal aborts.
-        json: () =>
-          new Promise((resolve, reject) => {
-            init.signal?.addEventListener("abort", () =>
-              reject(new DOMException("aborted", "AbortError")),
-            );
-            setTimeout(
-              () => resolve({ lastUpdated: "", countries: {} }),
-              CHARTS_READ_TIMEOUT_MS * 2,
-            );
-          }),
-      }),
-    ),
+    streamingFetch(['{"lastUpdated":"",'], CHARTS_READ_TIMEOUT_MS / 2, {
+      closes: false,
+    }),
   );
 
   await renderFreshLoader();
@@ -100,6 +97,5 @@ test("a response that has started is not cut off by the timer, however long its 
     await vi.advanceTimersByTimeAsync(CHARTS_READ_TIMEOUT_MS * 2);
   });
 
-  expect(screen.queryByRole("alert")).toBeNull();
-  expect(screen.getByText("chart")).toBeTruthy();
+  expect(screen.getByRole("alert").textContent).toContain("Charts didn’t load");
 });
