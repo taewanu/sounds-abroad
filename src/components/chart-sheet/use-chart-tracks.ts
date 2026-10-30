@@ -324,7 +324,7 @@ export function useChartTracks(
   // roll pick a landing the mode actually lists rather than one it filters away.
   //
   // Per country rather than one bundle: a country that fails to read leaves the
-  // other sixty-two whole, and the files are already published this way.
+  // others whole, and the files are already published this way.
   //
   // Guarded by the same set the on-demand read uses, and nothing else: a country
   // is marked when its read starts, so a run cancelled before it started leaves

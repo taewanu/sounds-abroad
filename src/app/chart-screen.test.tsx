@@ -12,7 +12,12 @@ import {
 } from "@/lib/__fixtures__";
 import type { AudioEngine } from "@/lib/audio-engine";
 import { SONGS_CHART } from "@/lib/chart-ref";
-import type { ChartFile, Country, Track } from "@/lib/chart-schema";
+import {
+  emptyCountry,
+  type ChartFile,
+  type Country,
+  type Track,
+} from "@/lib/chart-schema";
 import { chartPath } from "@/lib/chart-url";
 import { COUNTRIES } from "@/lib/countries";
 import { globeChartStore } from "@/lib/globe-chart-store";
@@ -324,6 +329,26 @@ describe("ChartScreen", () => {
       screen.getAllByText(COUNTRY_US.tracks[0].name).length,
     ).toBeGreaterThan(0);
     expect(replaceState).toHaveBeenCalledWith(null, "", `/c/${CODE_US}`);
+  });
+
+  test("stays on a country whose chart is an empty entry", () => {
+    const uncharted = COUNTRIES.find((c) => !(c.code in CHARTS.countries));
+    if (!uncharted) throw new Error("the fixture charts every listed country");
+    mockPathname.value = `/c/${uncharted.code}`;
+
+    renderChartScreen(
+      {
+        ...CHARTS,
+        countries: {
+          ...CHARTS.countries,
+          [uncharted.code]: emptyCountry(uncharted.name),
+        },
+      },
+      CODE_US,
+    );
+
+    expect(globeChartStore.getState().selectedCountry).toBe(uncharted.code);
+    expect(replaceState).not.toHaveBeenCalled();
   });
 
   test("canonicalizes an uppercase ?cc= in the URL", () => {

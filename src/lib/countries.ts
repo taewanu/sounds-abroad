@@ -270,7 +270,7 @@ export const COUNTRIES: readonly CountryEntry[] = [
     isoNum: 756,
   },
 
-  // Asia (18)
+  // Asia (19)
   {
     code: "jp",
     name: "Japan",
@@ -358,6 +358,14 @@ export const COUNTRIES: readonly CountryEntry[] = [
     lat: 28.6,
     lon: 77.2,
     isoNum: 356,
+  },
+  {
+    code: "np",
+    name: "Nepal",
+    region: "Asia",
+    lat: 27.7172,
+    lon: 85.324,
+    isoNum: 524,
   },
   {
     code: "ae",

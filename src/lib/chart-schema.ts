@@ -154,6 +154,11 @@ export type PlaylistTrack = z.infer<typeof PlaylistTrackSchema>;
 export type PlaylistFile = z.infer<typeof PlaylistFileSchema>;
 export type SongsTailFile = z.infer<typeof SongsTailFileSchema>;
 
+/** A country with nothing to show on either axis, the shape a crawl publishes for one it could not read. */
+export function emptyCountry(name: string): Country {
+  return { name, valid: false, tracks: [], playlistsValid: false };
+}
+
 /**
  * What a rendered row accepts: a track from either axis. Both `Track` and
  * `PlaylistTrack` satisfy it structurally, so neither schema has to loosen: the
