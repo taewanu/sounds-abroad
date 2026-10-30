@@ -14,6 +14,7 @@ function makeMockAudio(): AudioEngine {
     pause: vi.fn(),
     volumeAdjustable: true,
     setVolume: vi.fn(),
+    setMuted: vi.fn(),
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
   };
@@ -124,22 +125,35 @@ describe("VolumeControl", () => {
     expect(screen.getByRole("button", { name: "Mute" })).toBeDefined();
   });
 
-  test("muting drops the volume to zero", () => {
-    const { store } = renderVolumeControl({ volume: 0.6 });
+  test("muting silences without changing the level", () => {
+    const level = 0.6;
+    const { store } = renderVolumeControl({ volume: level });
     fireEvent.click(screen.getByRole("button", { name: /volume/i }));
 
     fireEvent.click(screen.getByRole("button", { name: "Mute" }));
 
-    expect(store.getState().volume).toBe(0);
+    expect(store.getState().muted).toBe(true);
+    expect(store.getState().volume).toBe(level);
   });
 
-  test("unmuting restores the level held before muting", () => {
-    const { store } = renderVolumeControl({ volume: 0.6 });
+  test("unmuting keeps the level held before muting", () => {
+    const level = 0.6;
+    const { store } = renderVolumeControl({ volume: level });
     fireEvent.click(screen.getByRole("button", { name: /volume/i }));
     fireEvent.click(screen.getByRole("button", { name: "Mute" }));
 
     fireEvent.click(screen.getByRole("button", { name: "Unmute" }));
 
-    expect(store.getState().volume).toBe(0.6);
+    expect(store.getState().muted).toBe(false);
+    expect(store.getState().volume).toBe(level);
+  });
+
+  test("raising the level lifts a mute", () => {
+    const { store } = renderVolumeControl({ volume: 0.6, muted: true });
+    fireEvent.click(screen.getByRole("button", { name: /volume/i }));
+
+    fireEvent.change(screen.getByRole("slider"), { target: { value: "0.3" } });
+
+    expect(store.getState().muted).toBe(false);
   });
 });

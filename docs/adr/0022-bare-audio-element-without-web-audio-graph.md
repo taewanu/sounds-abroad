@@ -18,11 +18,11 @@ The forcing question: does any platform still need the graph? Where element volu
 
 ## Decision
 
-**The engine plays a bare `<audio>` element with no `AudioContext`; `setVolume` writes `element.volume`, and the mini player renders no volume slider where the element's volume is locked.**
+**The engine plays a bare `<audio>` element with no `AudioContext`; `setVolume` writes `element.volume`, and mute writes `element.muted`. Where the element's volume is locked, the mini player renders the mute toggle alone, without the slider.**
 
 - The `AudioEngine` seam gains one field, `volumeAdjustable`, which the engine reads from its own element. The store mirrors it for the mini player, so neither the store nor the component learns which platform it runs on.
 - `crossOrigin = "anonymous"` goes with the graph. It was there only so a cross-origin preview could flow through Web Audio.
-- Mute stays `volume → 0` with the slider's restore-on-unmute; it now writes the element instead of the gain.
+- Mute is the element's `muted` flag on every platform, separate from the level, so unmuting needs nothing to restore and works where volume is locked. A WebKit media engineer's resolution of WebKit Bug 176045 (2017-08-29) states that iOS leaves volume to the user but honours `muted`; it is old enough that the device check below covers it.
 
 ### Detecting a locked volume
 
@@ -40,7 +40,7 @@ The engine reads `element.matches(":volume-locked")`, the pseudo-class MDN defin
 
 ## Consequences
 
-- An iPhone has no in-app volume or mute. The hardware buttons are the only volume control there.
+- An iPhone has no in-app volume level, only mute. The hardware buttons set the level there.
 - #38 (real-time EQ bars from an `AnalyserNode`) has no graph to tap. Reintroducing an `AudioContext` for it would bring back the silence and wedging a stuck context causes on iOS (#148, #375), so that feature has to answer them before it ships.
 - An iPhone on iOS before 15.4 has no `:volume-locked`, so it renders a slider that does nothing.
-- The mechanism is inferred from the symptoms and the WebKit source, not traced on a device. It stays unconfirmed until a preview deployment passes all three paths in the table on an iPhone and on an iPad, and the slider still sets the level on desktop.
+- The mechanism is inferred from the symptoms and the WebKit source, not traced on a device. It stays unconfirmed until a preview deployment passes all three paths in the table on an iPhone and on an iPad, the mute toggle silences an iPhone, and the slider still sets the level on desktop.

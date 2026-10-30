@@ -66,6 +66,7 @@ const audioEngine = vi.hoisted(() => {
         play: () => Promise.resolve(),
         pause: () => {},
         setVolume: () => {},
+        setMuted: () => {},
         addEventListener: (type, listener) => {
           (listeners[type] ??= []).push(listener);
         },

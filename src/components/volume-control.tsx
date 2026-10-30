@@ -6,16 +6,37 @@ import { VolumeIcon } from "@/components/icons/volume";
 import { VolumeMuteIcon } from "@/components/icons/volume-mute";
 import { useAudioStore } from "@/providers/audio-store-provider";
 
+const MUTE_TRIGGER_CLASS =
+  "focus-visible:outline-aurora text-fg-2 hover:bg-orbit hover:text-fg-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]";
+
+/** The mute toggle alone, for where the level belongs to the hardware buttons. */
+export function MuteButton() {
+  const muted = useAudioStore((s) => s.muted);
+  const setMuted = useAudioStore((s) => s.setMuted);
+  const Icon = muted ? VolumeMuteIcon : VolumeIcon;
+
+  return (
+    <button
+      type="button"
+      onClick={() => setMuted(!muted)}
+      aria-label={muted ? "Unmute" : "Mute"}
+      aria-pressed={muted}
+      className={MUTE_TRIGGER_CLASS}
+    >
+      <Icon className="h-[18px] w-[18px]" />
+    </button>
+  );
+}
+
 export function VolumeControl() {
   const volume = useAudioStore((s) => s.volume);
   const setVolume = useAudioStore((s) => s.setVolume);
+  const muted = useAudioStore((s) => s.muted);
+  const setMuted = useAudioStore((s) => s.setMuted);
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const sliderRef = useRef<HTMLInputElement>(null);
-  // The level to come back to on unmute; tracks the last audible volume.
-  const lastAudibleRef = useRef(volume || 1);
-
   // While open, dismiss on an outside click or Escape; Escape returns focus to
   // the trigger. Opening focuses the slider so arrow keys adjust it immediately.
   useEffect(() => {
@@ -45,19 +66,13 @@ export function VolumeControl() {
     };
   }, [open]);
 
-  // Mute is volume 0, restoring the prior level on unmute.
-  const muted = volume === 0;
   const percent = Math.round(volume * 100);
-  const Icon = muted ? VolumeMuteIcon : VolumeIcon;
+  const Icon = muted || volume === 0 ? VolumeMuteIcon : VolumeIcon;
 
-  // The sole path that writes volume; keeps lastAudibleRef in step.
+  // Raising the level is a request to hear it, so it lifts a mute.
   function applyVolume(value: number) {
-    if (value > 0) lastAudibleRef.current = value;
     setVolume(value);
-  }
-
-  function toggleMute() {
-    applyVolume(muted ? lastAudibleRef.current : 0);
+    if (muted && value > 0) setMuted(false);
   }
 
   return (
@@ -84,7 +99,7 @@ export function VolumeControl() {
         >
           <button
             type="button"
-            onClick={toggleMute}
+            onClick={() => setMuted(!muted)}
             aria-label={muted ? "Unmute" : "Mute"}
             aria-pressed={muted}
             className="text-fg-2 hover:text-fg-1 focus-visible:outline-aurora flex h-8 w-8 shrink-0 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]"

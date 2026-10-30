@@ -17,6 +17,7 @@ function makeMockAudio(): AudioEngine {
     pause: vi.fn(),
     volumeAdjustable: true,
     setVolume: vi.fn(),
+    setMuted: vi.fn(),
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
   };

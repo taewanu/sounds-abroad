@@ -11,6 +11,8 @@ export interface AudioEngine {
   play(): Promise<void>;
   pause(): void;
   setVolume(value: number): void;
+  /** Silences output without touching the level; honoured where volume is locked. */
+  setMuted(muted: boolean): void;
   addEventListener(type: AudioEventType, listener: () => void): void;
   removeEventListener(type: AudioEventType, listener: () => void): void;
 }
@@ -47,6 +49,9 @@ export function createBrowserAudioEngine(): AudioEngine {
     pause: () => element.pause(),
     setVolume: (value) => {
       element.volume = value;
+    },
+    setMuted: (muted) => {
+      element.muted = muted;
     },
     addEventListener: (type, listener) =>
       element.addEventListener(type, listener),

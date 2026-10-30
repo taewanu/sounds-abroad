@@ -47,6 +47,14 @@ test("setVolume writes the element's own volume", () => {
   expect(setVolume).toHaveBeenCalledWith(level);
 });
 
+test("setMuted writes the element's own muted flag", () => {
+  const setMuted = vi.spyOn(HTMLMediaElement.prototype, "muted", "set");
+
+  createBrowserAudioEngine().setMuted(true);
+
+  expect(setMuted).toHaveBeenCalledWith(true);
+});
+
 test("playback never constructs an AudioContext", async () => {
   const AudioContext = vi.fn();
   vi.stubGlobal("AudioContext", AudioContext);

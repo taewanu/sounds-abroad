@@ -41,6 +41,7 @@ export interface AudioState {
   currentMode: ChartMode | null;
   isPlaying: boolean;
   volume: number;
+  muted: boolean;
   /** Mirrors the engine's; true until the engine is created. */
   volumeAdjustable: boolean;
   lastError: AudioError | null;
@@ -68,6 +69,7 @@ export interface AudioState {
   setCurrentMode: (mode: ChartMode) => void;
   signalStep: (dir: 1 | -1) => void;
   setVolume: (value: number) => void;
+  setMuted: (muted: boolean) => void;
   pause: () => void;
   stop: () => void;
 }
@@ -175,6 +177,7 @@ export function createAudioStore(
       currentMode: null,
       isPlaying: false,
       volume: 1,
+      muted: false,
       volumeAdjustable: true,
       lastError: null,
       endedSignal: 0,
@@ -232,6 +235,10 @@ export function createAudioStore(
       setVolume: (value) => {
         getEngine().setVolume(value);
         set({ volume: value });
+      },
+      setMuted: (muted) => {
+        getEngine().setMuted(muted);
+        set({ muted });
       },
       pause: () => {
         // Pause without clearing currentTrack, used on deeplink handoff so the
