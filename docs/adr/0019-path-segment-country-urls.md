@@ -8,6 +8,9 @@ country-selection writers. The path-segment spelling stands. Amended
 2026-10-29: `/` drops its hourly timer for the same daily one, after the team
 reached 75% of the free ISR write allowance; pages served `lastUpdated` from
 the latest crawl, so the tag path alone keeps them fresh. ADR-0021 (2026-10-29) retires both timers: the pages no longer carry the chart.
+Amended 2026-10-30: the charts payload the Negative below calls too big for the
+data cache exceeded the 2 MB cap when published indented; compact it fits with
+little margin (#429).
 
 ## Context
 

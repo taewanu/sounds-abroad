@@ -1,6 +1,6 @@
 # ADR-0018: Static home route with a client-side landing roll
 
-**Status:** Accepted (2026-07-24). Supersedes ADR-0004; amended by ADR-0019 (2026-07-24): the per-country restructure it deferred shipped as path-segment pages. The `replaceState` in the Neutral note below no longer holds for every writer; ADR-0020 (2026-07-30) revises it for the country-selection writers. ADR-0021 (2026-10-29) retires the Freshness bullet: the page no longer carries the chart, so it has nothing to revalidate.
+**Status:** Accepted (2026-07-24). Supersedes ADR-0004; amended by ADR-0019 (2026-07-24): the per-country restructure it deferred shipped as path-segment pages. The `replaceState` in the Neutral note below no longer holds for every writer; ADR-0020 (2026-07-30) revises it for the country-selection writers. ADR-0021 (2026-10-29) retires the Freshness bullet: the page no longer carries the chart, so it has nothing to revalidate. Amended 2026-10-30: the chart file exceeded the 2 MB data-cache cap when published indented; compact it fits with little margin (#429). The 2.9MB below is the encoded cache entry, whose body Next.js stores base64-encoded, not the file.
 
 ## Context
 
