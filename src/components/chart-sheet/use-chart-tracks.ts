@@ -25,6 +25,10 @@ export interface ChartTracksState {
   readTail: () => void;
   /** Any country's deeper rows once read, else null. */
   peekTail: (countryCode: string) => ChartTrack[] | null;
+  /** Reads these countries' deeper rows in the background, each once per session. */
+  readTailsAhead: (countryCodes: readonly string[]) => void;
+  /** A country's deeper rows once its read settles, or null where they would not load. */
+  awaitTail: (countryCode: string) => Promise<ChartTrack[] | null>;
   /** The chart whose tracks are on screen. Never a chart still in flight. */
   ref: ChartRef;
   tracks: ChartTrack[];
@@ -48,33 +52,12 @@ const READ_TIMEOUT_MS = 15_000;
 
 /**
  * How long a landed background read waits for its neighbours before taking the
- * screen. The prefetch resolves sixty-odd times over about half a second, and
- * one commit each would repaint every consumer of this hook that many times,
- * which is the cost the prefetch exists to remove. Long enough to collect a run
- * of them, short enough that a country reached mid-prefetch still fills
- * promptly.
+ * screen. A read-ahead resolves a run of countries within a fraction of a
+ * second, and one commit each would repaint every consumer of this hook that
+ * many times. Long enough to collect a run of them, short enough that a country
+ * reached mid-read still fills promptly.
  */
-const PREFETCH_FLUSH_MS = 80;
-
-/**
- * Runs the callback when the browser is idle, or soon, where it cannot say.
- *
- * Both halves are taken now rather than at cleanup: a browser that schedules
- * idle work need not also offer the cancel, and reaching for it later would
- * throw on the way out.
- */
-function whenIdle(run: () => void): () => void {
-  const schedule =
-    typeof requestIdleCallback === "function" ? requestIdleCallback : null;
-  const drop =
-    typeof cancelIdleCallback === "function" ? cancelIdleCallback : null;
-  if (schedule) {
-    const handle = schedule(run, { timeout: 2_000 });
-    return () => drop?.(handle);
-  }
-  const handle = setTimeout(run, 1_000);
-  return () => clearTimeout(handle);
-}
+export const READ_AHEAD_FLUSH_MS = 80;
 
 async function readSongsTail(countryCode: string): Promise<ChartTrack[]> {
   const res = await fetch(`/api/songs/${encodeURIComponent(countryCode)}`, {
@@ -109,8 +92,6 @@ export function useChartTracks(
   country: Country,
   /** The chart the URL asked for on arrival, opened once. */
   initialChart: ChartRef = SONGS_CHART,
-  /** Every country the chart file carries, read ahead once the page is idle. */
-  prefetchCodes: readonly string[] = [],
 ): ChartTracksState {
   const [ref, setRef] = useState<ChartRef>(SONGS_CHART);
   const [pending, setPending] = useState<ChartRef | null>(
@@ -278,26 +259,6 @@ export function useChartTracks(
     }
   }, [initialChart, countryCode, commit]);
 
-  // Asked for by reading that far, so landing on a country still costs no round
-  // trip. Once per country per session, however the first ask ended.
-  const askedTail = useRef(new Set<string>());
-  const readTail = useCallback(() => {
-    if (askedTail.current.has(countryCode)) return;
-    askedTail.current.add(countryCode);
-    setTailReading((reading) => ({ ...reading, [countryCode]: true }));
-    readSongsTail(countryCode)
-      .then((rows) => {
-        if (!mounted.current) return;
-        setTailReading((reading) => ({ ...reading, [countryCode]: false }));
-        setTails((read) => ({ ...read, [countryCode]: rows }));
-      })
-      .catch(() => {
-        if (!mounted.current) return;
-        setTailReading((reading) => ({ ...reading, [countryCode]: false }));
-        setTailFailures((failed) => ({ ...failed, [countryCode]: true }));
-      });
-  }, [countryCode]);
-
   // Landed background reads waiting to take the screen together. A ref because
   // collecting them must not paint; only the flush below does.
   const inbox = useRef<Record<string, ChartTrack[]>>({});
@@ -311,50 +272,85 @@ export function useChartTracks(
       if (!mounted.current || Object.keys(landed).length === 0) return;
       // A read the listener waited for wins over one read ahead for them: it
       // answered the country they are looking at, and both carry the same rows.
-      // Non-urgent, so a spin in flight keeps its frames (ADR-0011).
-      startTransition(() => setTails((read) => ({ ...landed, ...read })));
-    }, PREFETCH_FLUSH_MS);
+      // Non-urgent, so a spin in flight keeps its frames (ADR-0011). Pending
+      // clears in the same commit, so no frame shows a country as read and empty.
+      const settled = Object.fromEntries(
+        Object.keys(landed).map((code) => [code, false]),
+      );
+      startTransition(() => {
+        setTails((read) => ({ ...landed, ...read }));
+        setTailReading((reading) => ({ ...reading, ...settled }));
+      });
+    }, READ_AHEAD_FLUSH_MS);
   }, []);
 
-  // Reads every country's deeper rows once, after first paint.
-  //
-  // Only here filters the whole hundred, so without this a country change in it
-  // pays a read the globe spin cannot wait for. Reading them all while the page
-  // is idle moves that cost off every spin onto one quiet moment, and lets a
-  // roll pick a landing the mode actually lists rather than one it filters away.
-  //
-  // Per country rather than one bundle: a country that fails to read leaves the
-  // other sixty-two whole, and the files are already published this way.
-  //
-  // Guarded by the same set the on-demand read uses, and nothing else: a country
-  // is marked when its read starts, so a run cancelled before it started leaves
-  // nothing marked and the next run picks it up. A ref set on entry would call
-  // that cancelled run the only one, and strict mode's mount-teardown-mount
-  // would leave the rows unread for the whole session.
-  useEffect(() => {
-    if (prefetchCodes.length === 0) return;
-    let live = true;
-    const cancel = whenIdle(() => {
-      for (const code of prefetchCodes) {
-        if (askedTail.current.has(code)) continue;
-        askedTail.current.add(code);
-        readSongsTail(code)
-          .then((rows) => {
-            if (!live || !mounted.current) return;
-            inbox.current[code] = rows;
-            flushSoon();
-          })
-          .catch(() => {
-            if (!live || !mounted.current) return;
-            setTailFailures((failed) => ({ ...failed, [code]: true }));
-          });
+  // Every read asked for this session, by country, settling to its rows or to
+  // null where they would not load. A failed read is not retried.
+  const tailReads = useRef(new Map<string, Promise<ChartTrack[] | null>>());
+
+  // Starts the reads not yet asked for and marks them pending, so the sheet's
+  // own ask for a country already in flight still shows it waiting. Each read
+  // lands through `land` while the screen is still mounted.
+  const askTails = useCallback(
+    (
+      codes: readonly string[],
+      land: (code: string, rows: ChartTrack[]) => void,
+    ) => {
+      const fresh = codes.filter((code) => !tailReads.current.has(code));
+      if (fresh.length === 0) return;
+      setTailReading((reading) => ({
+        ...reading,
+        ...Object.fromEntries(fresh.map((code) => [code, true])),
+      }));
+      for (const code of fresh) {
+        const read = readSongsTail(code).then(
+          (rows) => {
+            if (mounted.current) land(code, rows);
+            return rows;
+          },
+          () => {
+            if (mounted.current) {
+              setTailReading((reading) => ({ ...reading, [code]: false }));
+              setTailFailures((failed) => ({ ...failed, [code]: true }));
+            }
+            return null;
+          },
+        );
+        tailReads.current.set(code, read);
       }
+    },
+    [],
+  );
+
+  // Asked for by reading that far, so landing on a country still costs no round
+  // trip. Lands at once, since the listener is looking at it.
+  const readTail = useCallback(() => {
+    askTails([countryCode], (code, rows) => {
+      setTailReading((reading) => ({ ...reading, [code]: false }));
+      setTails((read) => ({ ...read, [code]: rows }));
     });
-    return () => {
-      live = false;
-      cancel();
-    };
-  }, [prefetchCodes, flushSoon]);
+  }, [askTails, countryCode]);
+
+  // Reads ahead the rows a step or a roll decides on before anything shows
+  // them. Per country rather than one bundle: a country that fails to read
+  // leaves the others whole, and the files are already published this way.
+  const readTailsAhead = useCallback(
+    (codes: readonly string[]) => {
+      askTails(codes, (code, rows) => {
+        inbox.current[code] = rows;
+        flushSoon();
+      });
+    },
+    [askTails, flushSoon],
+  );
+
+  const awaitTail = useCallback(
+    (code: string) => {
+      readTailsAhead([code]);
+      return tailReads.current.get(code) ?? Promise.resolve(null);
+    },
+    [readTailsAhead],
+  );
 
   const peekTail = useCallback((code: string) => tails[code] ?? null, [tails]);
 
@@ -371,5 +367,7 @@ export function useChartTracks(
     tailFailed,
     readTail,
     peekTail,
+    readTailsAhead,
+    awaitTail,
   };
 }

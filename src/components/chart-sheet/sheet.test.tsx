@@ -88,6 +88,8 @@ function staticChart(country: Country): ChartTracksState {
     tailFailed: false,
     readTail: () => {},
     peekTail: () => null,
+    readTailsAhead: () => {},
+    awaitTail: async () => null,
   };
 }
 
