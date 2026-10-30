@@ -88,3 +88,7 @@ Prerender `/` and move everything request-scoped to the browser.
   debug surface.
 - The bare-`/` no-repeat dedup ADR-0004 dropped stays dropped; a client-side
   roll could restore it from localStorage as a V2 candidate.
+
+## Amendment (2026-10-29): writes went unpriced
+
+The Positive priced this decision on Fast Origin Transfer. ISR meters a second axis, bytes stored per regeneration, and that is the one that later neared its cap: [ADR-0019](0019-path-segment-country-urls.md) multiplied this page into 64, each storing the full chart and regenerating on every crawl. [ADR-0021](0021-chart-file-fetched-apart-from-pages.md) takes the chart out of the pages.

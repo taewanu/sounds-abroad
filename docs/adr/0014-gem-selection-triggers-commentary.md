@@ -1,6 +1,6 @@
 # ADR-0014: A country's gem triggers commentary regardless of rank movement, and bypasses the confidence penalty
 
-**Status:** Accepted (2026-07-06); amended 2026-07-19 (#251). Extends [ADR-0007](0007-out-of-band-human-curated-commentary.md)'s significance trigger and its confidence gate; neither is replaced.
+**Status:** Accepted (2026-07-06); amended 2026-07-19 (#251); amended 2026-10-29: "human-review effort" and "human-review load" below should read drafting and grounding calls, since [ADR-0009](0009-fully-automated-commentary-gate.md) had already removed human review when this was written. Extends [ADR-0007](0007-out-of-band-human-curated-commentary.md)'s significance trigger and its confidence gate; neither is replaced.
 
 ## Context
 

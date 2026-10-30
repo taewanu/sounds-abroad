@@ -2,7 +2,7 @@
 
 **Status:** Accepted (2026-07-30). Supersedes ADR-0011 (globe-as-output gesture
 model). ADR-0011's fairness draw is narrowed, not retired; see "What carries
-over" below.
+over" below. Progress as of 2026-10-29: the list pick pushes (#371) and the shuffle landing plays (#374); pins are still rendered for hover (`country-pins.tsx`), so "Pins are removed" has not shipped. The shuffle autoplay was checked on the live site from Brave on iOS on 2026-10-29 and played.
 
 ## Context
 
