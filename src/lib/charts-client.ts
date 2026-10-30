@@ -5,6 +5,9 @@ import { chartsStoreHeaders } from "./charts-store-fetch";
 /** Where the browser reads the chart file; served by `app/api/charts`. */
 export const CHARTS_ROUTE = "/api/charts";
 
+/** The window property the page's inline script leaves its chart read on. */
+export const EARLY_CHARTS_READ = "__chartsRead";
+
 export class ChartsFetchError extends Error {
   constructor(
     public readonly status: number,

@@ -4,17 +4,24 @@ import { use, useSyncExternalStore } from "react";
 import * as Sentry from "@sentry/nextjs";
 
 import type { ChartFile } from "@/lib/chart-schema";
-import { CHARTS_ROUTE } from "@/lib/charts-client";
+import { CHARTS_ROUTE, EARLY_CHARTS_READ } from "@/lib/charts-client";
 
 import { ChartScreen } from "./chart-screen";
+
+declare global {
+  interface Window {
+    [EARLY_CHARTS_READ]?: Promise<Response>;
+  }
+}
 
 let chartsRead: Promise<ChartFile | null> | null = null;
 
 // One read per visit: every country arrives together, so a later country
-// change reads memory, not the network (ADR-0016). Null stands for a failed
-// read, which the screen renders rather than throws.
+// change reads memory, not the network (ADR-0016). The page's inline script has
+// usually started it already; fetching here covers a page that lacks it. Null
+// stands for a failed read, which the screen renders rather than throws.
 function readCharts(): Promise<ChartFile | null> {
-  chartsRead ??= fetch(CHARTS_ROUTE)
+  chartsRead ??= (window[EARLY_CHARTS_READ] ?? fetch(CHARTS_ROUTE))
     .then(async (res) => {
       if (!res.ok) throw new Error(`charts: ${res.status}`);
       // The route serves fetchCharts output, already schema-checked server-side.

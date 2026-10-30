@@ -18,7 +18,7 @@ The chart file is identical on every page. Storing it 64 times buys nothing the 
 
 - `/` and `/c/[code]` stop calling `fetchCharts`. With no tagged fetch they are plain static pages, rebuilt on deploy and never by a crawl. Their `revalidate` timers go too: there is nothing left for them to refresh.
 - One GET route serves the whole `ChartFile`. It is statically generated and revalidated by the existing charts tag, so each crawl rewrites one artifact instead of 64 pages.
-- `ChartScreen` reads the file once per visit, after hydration; every country is then in the browser, and a globe spin still paints with no round trip.
+- An inline script in the page starts that read while the HTML is still parsing, so it runs beside the JavaScript download; `ChartScreen` takes over the same request once hydrated, and reads the file once per visit; every country is then in the browser, and a globe spin still paints with no round trip.
 - The eager set is unchanged. Songs and playlist metadata stay eager, and playlist tracks and the deeper songs tail stay on demand (ADR-0016).
 
 ### Alternatives rejected
@@ -32,7 +32,7 @@ The chart file is identical on every page. Storing it 64 times buys nothing the 
 **Negative**
 
 - The chart can now fail to load in the browser on its own. Until this change a missing chart failed the build or the render; now a page can arrive with no chart, and `ChartScreen` needs a state for it.
-- The chart arrives on a second request that starts only after hydration, so the sheet appears later than it does today by that download. Spins are unaffected once it has loaded. A `<link rel="preload">` to start the read earlier was tried and dropped: in Chrome the page's later fetch did not reuse it, so the file downloaded twice.
+- The chart arrives on a second request. It starts with the HTML, so the sheet is late only when that download outlasts the JavaScript's. Spins are unaffected once it has loaded. The early start is an inline script, not a `<link rel="preload">`: with a preload, Chrome did not reuse it for the page's later fetch and downloaded the file twice.
 - First-load transfer is unchanged. This decision moves the bytes, it does not shrink them; the metadata volume ADR-0016 named remains a first-load cost.
 - Whether ISR stores a JSON route response compressed or raw is unmeasured, so the route's write cost is not priced here. The check is the dashboard's daily ISR Writes over the first days after deploy; the 30-day total drains too slowly to show it.
 
