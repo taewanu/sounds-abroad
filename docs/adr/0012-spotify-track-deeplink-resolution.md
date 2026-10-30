@@ -1,6 +1,6 @@
 # ADR-0012: Spotify track-deeplink resolution at crawl time
 
-**Status:** Accepted (2026-06-29).
+**Status:** Accepted (2026-06-29). Amended 2026-10-29: the throttle rationale no longer holds. iTunes resolution now batches ids into each Lookup call (`LOOKUP_BATCH_MAX`), so Spotify calls no longer fill idle iTunes windows; on the 100-row crawl they are the run's largest single time cost (dated in `cron-crawl.yml`). The separate throttle stands.
 
 ## Context
 

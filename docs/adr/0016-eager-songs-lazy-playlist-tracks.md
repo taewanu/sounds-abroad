@@ -60,3 +60,9 @@ Keying the blobs by playlist rather than by country also deduplicates. A playlis
 The Consequences priced the split on read-side terms (first-load KB, parse ms) and named the atomicity and orphan costs, but never counted that one blob per playlist is one write per crawl. Object stores meter writes far more tightly than reads, and the free tier's write cap is what the axis exhausted, taking production down ([#268](https://github.com/taewanu/sounds-abroad/issues/268)).
 
 The split stands; the writes are what changed. [#269](https://github.com/taewanu/sounds-abroad/issues/269) withholds the per-playlist blobs until [#260](https://github.com/taewanu/sounds-abroad/issues/260) gives them a reader, and points at change-only publishing (measured churn: ~3 of 615 a run) as the durable shape, since rewriting every blob every run is the most expensive one available.
+
+## Amendment (2026-10-29): stored bytes and the publishes
+
+The Negative calls the raw size "the number to quote nowhere". It is the number ISR bills: once the eager payload was embedded in every chart page, each page stored it raw, and each crawl rewrote every page ([ADR-0021](0021-chart-file-fetched-apart-from-pages.md)). The size worth quoting is the one the meter in question counts.
+
+The 2026-07-21 amendment's present tense has gone stale. [#260](https://github.com/taewanu/sounds-abroad/issues/260) gave the playlist files a reader (`/api/playlist/[id]`), and every run uploads every playlist file it fetched plus one songs-tail file per freshly crawled country (#304). Publishing is not change-only, and those writes against the store's write quota are not priced here.

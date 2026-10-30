@@ -1,6 +1,6 @@
 # ADR-0015: Apple storefront playlists become a second chart axis
 
-**Status:** Accepted (2026-07-20). Extends [ADR-0013](0013-bake-track-spread-at-crawl-time.md)'s bake-count/derive-at-read pattern to a second axis. The payload and loading consequences are decided separately in [ADR-0016](0016-eager-songs-lazy-playlist-tracks.md).
+**Status:** Accepted (2026-07-20). Extends [ADR-0013](0013-bake-track-spread-at-crawl-time.md)'s bake-count/derive-at-read pattern to a second axis. The payload and loading consequences are decided separately in [ADR-0016](0016-eager-songs-lazy-playlist-tracks.md). Amended 2026-10-29: the songs-axis deepening rejected below as an alternative shipped on its own, as the 100-row crawl with the rows past the eager ones read on demand (#304).
 
 ## Context
 
