@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 
-import { CHARTS_READ_TIMEOUT_MS } from "@/lib/charts-client";
+import { CHARTS_READ_TIMEOUT_MS, EARLY_CHARTS_READ } from "@/lib/charts-client";
 
 import { ChartScreenLoader } from "./chart-screen-loader";
 
@@ -10,6 +10,7 @@ vi.mock("@sentry/nextjs", () => ({ captureException: vi.fn() }));
 vi.mock("./chart-screen", () => ({ ChartScreen: () => <p>chart</p> }));
 
 afterEach(() => {
+  delete window[EARLY_CHARTS_READ];
   vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
