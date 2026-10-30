@@ -41,6 +41,9 @@ export interface AudioState {
   currentMode: ChartMode | null;
   isPlaying: boolean;
   volume: number;
+  muted: boolean;
+  /** Mirrors the engine's; true until the engine is created. */
+  volumeAdjustable: boolean;
   lastError: AudioError | null;
   endedSignal: number;
   // The most recent skip's direction, nonced so a repeated direction still
@@ -66,6 +69,7 @@ export interface AudioState {
   setCurrentMode: (mode: ChartMode) => void;
   signalStep: (dir: 1 | -1) => void;
   setVolume: (value: number) => void;
+  setMuted: (muted: boolean) => void;
   pause: () => void;
   stop: () => void;
 }
@@ -85,6 +89,7 @@ export function createAudioStore(
     function getEngine(): AudioEngine {
       if (engine) return engine;
       engine = factory();
+      set({ volumeAdjustable: engine.volumeAdjustable });
       // Layer 1: sync store with browser-initiated play/pause.
       // Covers background-tab auto-pause, AirPods disconnect, media keys.
       // Each transition also mirrors to the OS so the now-playing UI tracks
@@ -172,6 +177,8 @@ export function createAudioStore(
       currentMode: null,
       isPlaying: false,
       volume: 1,
+      muted: false,
+      volumeAdjustable: true,
       lastError: null,
       endedSignal: 0,
       lastStep: null,
@@ -228,6 +235,10 @@ export function createAudioStore(
       setVolume: (value) => {
         getEngine().setVolume(value);
         set({ volume: value });
+      },
+      setMuted: (muted) => {
+        getEngine().setMuted(muted);
+        set({ muted });
       },
       pause: () => {
         // Pause without clearing currentTrack, used on deeplink handoff so the
