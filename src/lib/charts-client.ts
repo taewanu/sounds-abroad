@@ -5,6 +5,9 @@ import { chartsStoreHeaders } from "./charts-store-fetch";
 /** Where the browser reads the chart file; served by `app/api/charts`. */
 export const CHARTS_ROUTE = "/api/charts";
 
+/** How long the browser waits on the chart read before showing the failure. */
+export const CHARTS_READ_TIMEOUT_MS = 15_000;
+
 /** The window property the page's inline script leaves its chart read on. */
 export const EARLY_CHARTS_READ = "__chartsRead";
 

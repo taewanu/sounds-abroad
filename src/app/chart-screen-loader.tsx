@@ -4,7 +4,11 @@ import { use, useSyncExternalStore } from "react";
 import * as Sentry from "@sentry/nextjs";
 
 import type { ChartFile } from "@/lib/chart-schema";
-import { CHARTS_ROUTE, EARLY_CHARTS_READ } from "@/lib/charts-client";
+import {
+  CHARTS_READ_TIMEOUT_MS,
+  CHARTS_ROUTE,
+  EARLY_CHARTS_READ,
+} from "@/lib/charts-client";
 
 import { ChartScreen } from "./chart-screen";
 
@@ -21,7 +25,12 @@ let chartsRead: Promise<ChartFile | null> | null = null;
 // usually started it already; fetching here covers a page that lacks it. Null
 // stands for a failed read, which the screen renders rather than throws.
 function readCharts(): Promise<ChartFile | null> {
-  chartsRead ??= (window[EARLY_CHARTS_READ] ?? fetch(CHARTS_ROUTE))
+  chartsRead ??= (
+    window[EARLY_CHARTS_READ] ??
+    fetch(CHARTS_ROUTE, {
+      signal: AbortSignal.timeout(CHARTS_READ_TIMEOUT_MS),
+    })
+  )
     .then(async (res) => {
       if (!res.ok) throw new Error(`charts: ${res.status}`);
       // The route serves fetchCharts output, already schema-checked server-side.
