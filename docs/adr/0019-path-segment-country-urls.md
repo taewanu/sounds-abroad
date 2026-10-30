@@ -7,7 +7,7 @@ began pushing instead. ADR-0020 (2026-07-30) revises it for the
 country-selection writers. The path-segment spelling stands. Amended
 2026-10-29: `/` drops its hourly timer for the same daily one, after the team
 reached 75% of the free ISR write allowance; pages served `lastUpdated` from
-the latest crawl, so the tag path alone keeps them fresh.
+the latest crawl, so the tag path alone keeps them fresh. ADR-0021 (2026-10-29) retires both timers: the pages no longer carry the chart.
 
 ## Context
 
