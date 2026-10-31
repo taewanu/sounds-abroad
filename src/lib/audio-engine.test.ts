@@ -38,21 +38,34 @@ test("an unexpected failure reading the lock is not swallowed", () => {
   expect(() => createBrowserAudioEngine()).toThrow(failure);
 });
 
+function stubAudioElement(): HTMLAudioElement {
+  const element = new Audio();
+  vi.stubGlobal(
+    "Audio",
+    class {
+      constructor() {
+        return element;
+      }
+    },
+  );
+  return element;
+}
+
 test("setVolume writes the element's own volume", () => {
-  const setVolume = vi.spyOn(HTMLMediaElement.prototype, "volume", "set");
+  const element = stubAudioElement();
   const level = 0.4;
 
   createBrowserAudioEngine().setVolume(level);
 
-  expect(setVolume).toHaveBeenCalledWith(level);
+  expect(element.volume).toBe(level);
 });
 
 test("setMuted writes the element's own muted flag", () => {
-  const setMuted = vi.spyOn(HTMLMediaElement.prototype, "muted", "set");
+  const element = stubAudioElement();
 
   createBrowserAudioEngine().setMuted(true);
 
-  expect(setMuted).toHaveBeenCalledWith(true);
+  expect(element.muted).toBe(true);
 });
 
 test("playback never constructs an AudioContext", async () => {

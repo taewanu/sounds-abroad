@@ -158,7 +158,8 @@ describe("MiniPlayer", () => {
     act(() => store.getState().toggle(makeTrack()));
 
     expect(screen.queryByRole("button", { name: /volume/i })).toBeNull();
-    expect(screen.getByRole("button", { name: "Mute" })).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Mute" }));
+    expect(store.getState().muted).toBe(true);
   });
 
   test("next button fires onNext", () => {
