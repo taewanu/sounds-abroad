@@ -6,6 +6,7 @@ import {
   type PlaylistFile,
   type SongsTailFile,
   type Track,
+  emptyCountry,
 } from "../../src/lib/chart-schema";
 import {
   DEFAULT_LANG,
@@ -221,7 +222,7 @@ export async function crawlCountry(
     console.warn(`[crawl ${cc}] RSS failed: ${err.message}`);
     return {
       cc,
-      country: { name, valid: false, tracks: [] },
+      country: emptyCountry(name),
       lookups: { requested: 0, resolved: 0 },
     };
   }

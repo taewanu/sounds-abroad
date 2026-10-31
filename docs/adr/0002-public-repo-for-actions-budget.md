@@ -1,6 +1,6 @@
 # ADR-0002: Public GitHub repo to unlock free Actions minutes
 
-**Status:** Accepted (2026-04-28). Amended 2026-10-29: the figures below are Phase 2's. The crawl now reads 63 countries × 100 rows through batched iTunes Lookup plus Spotify resolution; its current, dated run time lives beside the schedule in `cron-crawl.yml`. The public-repo conclusion holds. The "up to 12×/day" headroom was priced on Actions minutes alone: every run also writes the chart objects to the store and revalidates the chart cache tag, so a cadence change has to be priced on those meters too.
+**Status:** Accepted (2026-04-28). Amended 2026-10-29: the figures below are Phase 2's. The crawl now reads every country in `COUNTRIES` (`src/lib/countries.ts`), each to the depth `RSS_DEPTH` sets (`scripts/crawl/apple-rss.ts`), through batched iTunes Lookup plus Spotify resolution; its current, dated run time lives beside the schedule in `cron-crawl.yml`. The public-repo conclusion holds. The "up to 12×/day" headroom was priced on Actions minutes alone: every run also writes the chart objects to the store and revalidates the chart cache tag, so a cadence change has to be priced on those meters too.
 
 ## Context
 
