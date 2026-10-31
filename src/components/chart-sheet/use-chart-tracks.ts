@@ -25,8 +25,6 @@ export interface ChartTracksState {
   readTail: () => void;
   /** Any country's deeper rows once read, else null. */
   peekTail: (countryCode: string) => ChartTrack[] | null;
-  /** Reads these countries' deeper rows in the background, each once per session. */
-  readTailsAhead: (countryCodes: readonly string[]) => void;
   /** A country's deeper rows once its read settles, or null where they would not load. */
   awaitTail: (countryCode: string) => Promise<ChartTrack[] | null>;
   /** The chart whose tracks are on screen. Never a chart still in flight. */
@@ -50,14 +48,16 @@ export interface ChartTracksState {
  */
 const READ_TIMEOUT_MS = 15_000;
 
+const NO_READ_AHEAD: readonly string[] = [];
+
 /**
  * How long a landed background read waits for its neighbours before taking the
- * screen. A read-ahead resolves a run of countries within a fraction of a
- * second, and one commit each would repaint every consumer of this hook that
- * many times. Long enough to collect a run of them, short enough that a country
- * reached mid-read still fills promptly.
+ * screen. A read-ahead asks for a run of countries at once, and one commit each
+ * would repaint every consumer of this hook that many times. Long enough to
+ * collect a run of them, short enough that a country reached mid-read still
+ * fills promptly.
  */
-export const READ_AHEAD_FLUSH_MS = 80;
+const READ_AHEAD_FLUSH_MS = 80;
 
 async function readSongsTail(countryCode: string): Promise<ChartTrack[]> {
   const res = await fetch(`/api/songs/${encodeURIComponent(countryCode)}`, {
@@ -92,6 +92,8 @@ export function useChartTracks(
   country: Country,
   /** The chart the URL asked for on arrival, opened once. */
   initialChart: ChartRef = SONGS_CHART,
+  /** Countries whose deeper rows to read in the background, each once per session. */
+  readAhead: readonly string[] = NO_READ_AHEAD,
 ): ChartTracksState {
   const [ref, setRef] = useState<ChartRef>(SONGS_CHART);
   const [pending, setPending] = useState<ChartRef | null>(
@@ -323,7 +325,7 @@ export function useChartTracks(
   );
 
   // Asked for by reading that far, so landing on a country still costs no round
-  // trip. Lands at once, since the listener is looking at it.
+  // trip. Lands at once when this ask starts the read.
   const readTail = useCallback(() => {
     askTails([countryCode], (code, rows) => {
       setTailReading((reading) => ({ ...reading, [code]: false }));
@@ -344,9 +346,14 @@ export function useChartTracks(
     [askTails, flushSoon],
   );
 
+  useEffect(() => {
+    readTailsAhead(readAhead);
+  }, [readTailsAhead, readAhead]);
+
   const awaitTail = useCallback(
     (code: string) => {
       readTailsAhead([code]);
+      // Set by the ask above, so the fallback only satisfies Map.get's type.
       return tailReads.current.get(code) ?? Promise.resolve(null);
     },
     [readTailsAhead],
@@ -367,7 +374,6 @@ export function useChartTracks(
     tailFailed,
     readTail,
     peekTail,
-    readTailsAhead,
     awaitTail,
   };
 }

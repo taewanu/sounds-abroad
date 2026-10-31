@@ -165,9 +165,39 @@ function ChartScreenInner({
   urlMode: ChartMode;
   urlIsCanonical: boolean;
 }) {
+  // Which question the songs chart is answering. Held here, not in the sheet,
+  // because next and prev step against the same rows the screen shows: were the
+  // list and the step walk to read different modes, a step could land on a row
+  // the mode has filtered off screen. Seeded from the URL so a shared link or a
+  // reload reads in the mode it names, then carried in the URL alongside the
+  // chart so switching it neither navigates nor refetches the eager payload.
+  const [mode, setMode] = useState<ChartMode>(urlMode);
+  // Follows the mode on screen while the listener is looking at the playing
+  // chart, and holds where they left it once they are not.
+  const currentMode = useAudioStore((s) => s.currentMode);
+  const currentTrack = useAudioStore((s) => s.currentTrack);
+  const currentCountryCode = useAudioStore((s) => s.currentCountryCode);
+  const currentChartRef = useAudioStore((s) => s.currentChartRef);
+  const hasCurrentTrack = currentTrack !== null;
+
+  // The deeper rows a roll or a step reads: a roll only needs countries whose
+  // eager rows hold no seat, since those rows lead the chart.
+  const rollMode = currentMode ?? mode;
+  const playingTailCode =
+    hasCurrentTrack && currentChartRef === SONGS_CHART
+      ? currentCountryCode
+      : null;
+  const tailsAhead = useMemo(() => {
+    const codes = Object.keys(charts.countries).filter(
+      (code) => landingTrack(charts.countries[code], rollMode, null) === null,
+    );
+    if (playingTailCode !== null) codes.push(playingTailCode);
+    return codes;
+  }, [charts.countries, rollMode, playingTailCode]);
+
   // Which of the country's charts is open. Held here rather than in the sheet
   // because playback resolves against it too.
-  const chart = useChartTracks(countryCode, country, urlChart);
+  const chart = useChartTracks(countryCode, country, urlChart, tailsAhead);
 
   // Keeps the URL naming what is on screen, so a chart can be linked to and a
   // reload restores one. replaceState relabels without navigating, so switching
@@ -176,13 +206,6 @@ function ChartScreenInner({
   // reading.
   const chartRef = chart.ref;
   const chartFailed = chart.failed.has(urlChart);
-  // Which question the songs chart is answering. Held here, not in the sheet,
-  // because next and prev step against the same rows the screen shows: were the
-  // list and the step walk to read different modes, a step could land on a row
-  // the mode has filtered off screen. Seeded from the URL so a shared link or a
-  // reload reads in the mode it names, then carried in the URL alongside the
-  // chart so switching it neither navigates nor refetches the eager payload.
-  const [mode, setMode] = useState<ChartMode>(urlMode);
   // What the URL already says. A ref, not the search params, because
   // replaceState leaves those stale, so after the first write they would keep
   // reporting the arrival query.
@@ -209,13 +232,8 @@ function ChartScreenInner({
     read: readChart,
     open: openChart,
     peekTail,
-    readTailsAhead,
     awaitTail,
   } = chart;
-
-  // Follows the mode on screen while the listener is looking at the playing
-  // chart, and holds where they left it once they are not.
-  const currentMode = useAudioStore((s) => s.currentMode);
 
   // The rows next and prev walk, assembled the same way the sheet lists them so
   // stepping reaches every row a listener can see and no row they cannot.
@@ -284,9 +302,6 @@ function ChartScreenInner({
   // prop: that resolves from useSearchParams, which a replaceState-only globe
   // landing never re-triggers, so it wouldn't move on a fling.
   const selectedCountry = useGlobeChart((s) => s.selectedCountry);
-  const currentTrack = useAudioStore((s) => s.currentTrack);
-  const currentCountryCode = useAudioStore((s) => s.currentCountryCode);
-  const currentChartRef = useAudioStore((s) => s.currentChartRef);
 
   const setCurrentMode = useAudioStore((s) => s.setCurrentMode);
   const viewingPlayingChart =
@@ -295,7 +310,6 @@ function ChartScreenInner({
     if (viewingPlayingChart && currentMode !== mode) setCurrentMode(mode);
   }, [viewingPlayingChart, currentMode, mode, setCurrentMode]);
   const lastStep = useAudioStore((s) => s.lastStep);
-  const hasCurrentTrack = currentTrack !== null;
   const currentTrackRank = currentTrack?.rank ?? null;
   const audioStore = useAudioStoreApi();
 
@@ -823,27 +837,6 @@ function ChartScreenInner({
       findAdjacentPlayable(playing, currentTrack, 1),
     ] as const;
   }, [currentTrack, currentCountryCode, currentChartRef, tracksOf]);
-
-  // The deeper rows a roll or a step reads: a roll only needs countries whose
-  // eager rows hold no seat, since those rows lead the chart.
-  const playingTailCode =
-    hasCurrentTrack &&
-    currentChartRef === SONGS_CHART &&
-    currentCountryCode !== null &&
-    peekTail(currentCountryCode) === null
-      ? currentCountryCode
-      : null;
-  const rollMode = currentMode ?? mode;
-  const tailsAhead = useMemo(() => {
-    const codes = Object.keys(charts.countries).filter(
-      (code) => landingTrack(charts.countries[code], rollMode, null) === null,
-    );
-    if (playingTailCode !== null) codes.push(playingTailCode);
-    return codes;
-  }, [charts.countries, rollMode, playingTailCode]);
-  useEffect(() => {
-    readTailsAhead(tailsAhead);
-  }, [readTailsAhead, tailsAhead]);
 
   // Skip lives here, not in the audio store: routing prev/next needs the chart
   // data to find the adjacent playable track, which the store doesn't hold.

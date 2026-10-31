@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { SONGS_CHART } from "@/lib/chart-ref";
 import type { Country } from "@/lib/chart-schema";
 
-import { READ_AHEAD_FLUSH_MS, useChartTracks } from "./use-chart-tracks";
+import { useChartTracks } from "./use-chart-tracks";
 
 const PL_A = `pl.${"a".repeat(32)}`;
 const PL_B = `pl.${"b".repeat(32)}`;
@@ -499,13 +499,12 @@ function tailsFor(status: Record<string, number> = {}) {
   });
 }
 
-test("reads no deeper rows until something asks for them", async () => {
+test("reads no deeper rows until something asks for them", () => {
   const underTest = country("Country under test", []);
   const spy = tailsFor();
   vi.stubGlobal("fetch", spy);
 
   renderHook(() => useChartTracks("cc", underTest));
-  await new Promise((resolve) => setTimeout(resolve, READ_AHEAD_FLUSH_MS * 2));
 
   expect(spy).not.toHaveBeenCalled();
 });
@@ -514,9 +513,10 @@ test("reads ahead exactly the countries asked for", async () => {
   const underTest = country("Country under test", []);
   const spy = tailsFor();
   vi.stubGlobal("fetch", spy);
-  const { result } = renderHook(() => useChartTracks("cc", underTest));
 
-  act(() => result.current.readTailsAhead(["bb", "dd"]));
+  const { result } = renderHook(() =>
+    useChartTracks("cc", underTest, SONGS_CHART, ["bb", "dd"]),
+  );
 
   await waitFor(() => expect(result.current.peekTail("dd")).not.toBeNull());
   expect(result.current.peekTail("bb")).toHaveLength(1);
@@ -527,9 +527,10 @@ test("reads ahead exactly the countries asked for", async () => {
 test("a country that will not load leaves the others whole", async () => {
   const underTest = country("Country under test", []);
   vi.stubGlobal("fetch", tailsFor({ bb: 502 }));
-  const { result } = renderHook(() => useChartTracks("cc", underTest));
 
-  act(() => result.current.readTailsAhead(["cc", "bb", "dd"]));
+  const { result } = renderHook(() =>
+    useChartTracks("cc", underTest, SONGS_CHART, ["cc", "bb", "dd"]),
+  );
 
   await waitFor(() => expect(result.current.peekTail("dd")).not.toBeNull());
   expect(result.current.peekTail("cc")).not.toBeNull();
@@ -540,14 +541,17 @@ test("reads a country the listener already asked for exactly once", async () => 
   const underTest = country("Country under test", []);
   const spy = tailsFor();
   vi.stubGlobal("fetch", spy);
-  const { result } = renderHook(() => useChartTracks("cc", underTest));
+  const { result, rerender } = renderHook(
+    ({ ahead }) => useChartTracks("cc", underTest, SONGS_CHART, ahead),
+    { initialProps: { ahead: [] as string[] } },
+  );
   await act(async () => {
     result.current.readTail();
   });
   await waitFor(() => expect(result.current.tail).not.toBeNull());
 
-  act(() => result.current.readTailsAhead(["cc", "bb"]));
-  act(() => result.current.readTailsAhead(["bb"]));
+  rerender({ ahead: ["cc", "bb"] });
+  rerender({ ahead: ["bb"] });
 
   await waitFor(() => expect(result.current.peekTail("bb")).not.toBeNull());
   expect(spy).toHaveBeenCalledTimes(2);
@@ -556,9 +560,11 @@ test("reads a country the listener already asked for exactly once", async () => 
 test("a read ahead asked again before it lands still fills its country", async () => {
   const underTest = country("Country under test", []);
   const { spy, release } = deferredFetch();
-  const { result } = renderHook(() => useChartTracks("cc", underTest));
-  act(() => result.current.readTailsAhead(["bb"]));
-  act(() => result.current.readTailsAhead(["bb"]));
+  const { result, rerender } = renderHook(
+    ({ ahead }) => useChartTracks("cc", underTest, SONGS_CHART, ahead),
+    { initialProps: { ahead: ["bb"] } },
+  );
+  rerender({ ahead: ["bb"] });
 
   await act(async () => {
     release("bb", {
@@ -572,15 +578,26 @@ test("a read ahead asked again before it lands still fills its country", async (
   expect(spy).toHaveBeenCalledTimes(1);
 });
 
-test("a read ahead stays pending for its country until it lands", async () => {
+test("a read ahead shows its country pending while in flight", () => {
   const underTest = country("Country under test", []);
-  const { release } = deferredFetch();
-  const { result } = renderHook(() => useChartTracks("cc", underTest));
+  deferredFetch();
+  const { result } = renderHook(() =>
+    useChartTracks("cc", underTest, SONGS_CHART, ["cc"]),
+  );
 
-  act(() => result.current.readTailsAhead(["cc"]));
   act(() => result.current.readTail());
 
   expect(result.current.tailPending).toBe(true);
+});
+
+test("a read ahead clears its country's pending once it lands", async () => {
+  const underTest = country("Country under test", []);
+  const { release } = deferredFetch();
+  const { result } = renderHook(() =>
+    useChartTracks("cc", underTest, SONGS_CHART, ["cc"]),
+  );
+  act(() => result.current.readTail());
+
   await act(async () => {
     release("cc", {
       code: "cc",
@@ -588,6 +605,7 @@ test("a read ahead stays pending for its country until it lands", async () => {
       tracks: [track(26, "deep")],
     });
   });
+
   await waitFor(() => expect(result.current.tail).toHaveLength(1));
   expect(result.current.tailPending).toBe(false);
 });
@@ -596,15 +614,16 @@ test("takes a run of landed reads to the screen together", async () => {
   const underTest = country("Country under test", []);
   vi.stubGlobal("fetch", tailsFor());
   let renders = 0;
-  const { result } = renderHook(() => {
-    renders += 1;
-    return useChartTracks("cc", underTest);
-  });
+  const { result, rerender } = renderHook(
+    ({ ahead }) => {
+      renders += 1;
+      return useChartTracks("cc", underTest, SONGS_CHART, ahead);
+    },
+    { initialProps: { ahead: [] as string[] } },
+  );
   const before = renders;
 
-  act(() =>
-    result.current.readTailsAhead(["cc", "bb", "dd", "ee", "ff", "gg"]),
-  );
+  rerender({ ahead: ["cc", "bb", "dd", "ee", "ff", "gg"] });
 
   await waitFor(() => expect(result.current.peekTail("gg")).not.toBeNull());
   // One commit for the run, not one per country.

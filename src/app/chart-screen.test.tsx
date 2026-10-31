@@ -1,7 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-import { READ_AHEAD_FLUSH_MS } from "@/components/chart-sheet/use-chart-tracks";
 import { readRecord } from "@/components/globe/edge-hint-record";
 import { writeRecord as writeTourRecord } from "@/components/tour/tour-record-store";
 import {
@@ -815,22 +814,21 @@ describe("ChartScreen end-of-chart roll", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
   // Render the chart and start its last playable track, the seat every roll
   // begins from, then let the read of its deeper rows land.
   async function playLastPlayable(charts: ChartFile) {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const rendered = renderChartScreen(charts, ADJ_CODE);
     fireEvent.click(
       screen.getByRole("button", {
         name: "Play preview of Playable tail by Tail artist",
       }),
     );
-    await act(
-      () =>
-        new Promise((resolve) => setTimeout(resolve, READ_AHEAD_FLUSH_MS * 2)),
-    );
+    await act(() => vi.runAllTimersAsync());
     return rendered;
   }
 
