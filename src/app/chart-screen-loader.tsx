@@ -9,6 +9,7 @@ import {
   CHARTS_ROUTE,
   EARLY_CHARTS_READ,
 } from "@/lib/charts-client";
+import { startChartsRead } from "@/lib/start-charts-read";
 
 import { ChartScreen } from "./chart-screen";
 
@@ -27,9 +28,7 @@ let chartsRead: Promise<ChartFile | null> | null = null;
 function readCharts(): Promise<ChartFile | null> {
   chartsRead ??= (
     window[EARLY_CHARTS_READ] ??
-    fetch(CHARTS_ROUTE, {
-      signal: AbortSignal.timeout(CHARTS_READ_TIMEOUT_MS),
-    })
+    startChartsRead(CHARTS_ROUTE, CHARTS_READ_TIMEOUT_MS, EARLY_CHARTS_READ)
   )
     .then(async (res) => {
       if (!res.ok) throw new Error(`charts: ${res.status}`);
