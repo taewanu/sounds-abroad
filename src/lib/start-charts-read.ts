@@ -9,34 +9,29 @@ export function startChartsRead(
   key: string,
 ): Promise<Response> {
   const controller = new AbortController();
-  let timer = setTimeout(() => controller.abort(), timeoutMs);
-  // An idle timeout: it restarts on the response and on each body chunk, so a
-  // slow download finishes while one that goes quiet ends in the failure.
-  const restart = () => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  // Gives one wait, for the response or for a body chunk, timeoutMs before the
+  // read aborts, so a slow download finishes while one that goes quiet fails.
+  const within = <T>(wait: Promise<T>) => {
     clearTimeout(timer);
     timer = setTimeout(() => controller.abort(), timeoutMs);
+    return wait;
   };
-  const read = fetch(route, { signal: controller.signal }).then(
-    (res) => {
-      restart();
-      const body = res.body?.pipeThrough(
-        new TransformStream({
-          transform(chunk, out) {
-            restart();
-            out.enqueue(chunk);
-          },
-          flush() {
-            clearTimeout(timer);
-          },
-        }),
-      );
-      return new Response(body, res);
-    },
-    (err: unknown) => {
+  const read = (async () => {
+    try {
+      const res = await within(fetch(route, { signal: controller.signal }));
+      const reader = res.body?.getReader();
+      const chunks: BlobPart[] = [];
+      while (reader) {
+        const { done, value } = await within(reader.read());
+        if (done) break;
+        chunks.push(value);
+      }
+      return new Response(new Blob(chunks), res);
+    } finally {
       clearTimeout(timer);
-      throw err;
-    },
-  );
+    }
+  })();
   // An early failure is handled once the screen attaches to the read.
   read.catch(() => {});
   (window as unknown as Record<string, Promise<Response>>)[key] = read;
