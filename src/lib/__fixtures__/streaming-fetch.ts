@@ -18,12 +18,20 @@ export function streamingFetch(
         );
         chunks.forEach((text, i) =>
           setTimeout(
-            () => controller.enqueue(new TextEncoder().encode(text)),
+            () => {
+              if (!init.signal?.aborted)
+                controller.enqueue(new TextEncoder().encode(text));
+            },
             gapMs * (i + 1),
           ),
         );
         if (closes)
-          setTimeout(() => controller.close(), gapMs * (chunks.length + 1));
+          setTimeout(
+            () => {
+              if (!init.signal?.aborted) controller.close();
+            },
+            gapMs * (chunks.length + 1),
+          );
       },
     });
     return Promise.resolve(new Response(body));

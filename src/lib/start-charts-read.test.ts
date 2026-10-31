@@ -71,12 +71,11 @@ test("startChartsRead aborts a body that goes quiet for the timeout", async () =
   await settled;
 });
 
-test("startChartsRead's source runs on its own, as the inlined script does", () => {
-  vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(() => {})));
+test("startChartsRead's source runs on its own, as the inlined script does", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("chart data")));
 
-  new Function(`(${startChartsRead.toString()})("/route", 1000, "${KEY}");`)();
+  new Function(`(${startChartsRead.toString()})("/route", 1_000, "${KEY}");`)();
+  const read = (window as unknown as Record<string, Promise<Response>>)[KEY];
 
-  expect((window as unknown as Record<string, unknown>)[KEY]).toBeInstanceOf(
-    Promise,
-  );
+  await expect(read?.then((res) => res.text())).resolves.toBe("chart data");
 });
