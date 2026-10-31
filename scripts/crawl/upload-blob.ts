@@ -12,8 +12,8 @@ const SONGS_TAIL_PREFIX = "charts/v1/songs";
 
 /**
  * Publishes compact because the app's tagged read must fit the Next.js data
- * cache, which stores the body base64-encoded and refuses entries over 2 MB.
- * Compact fits with little margin, so growth in the file can overflow it again.
+ * cache, which measures the base64-encoded body against a 2 MB cap; a build
+ * logging "items over 2MB can not be cached" means the file has outgrown it.
  */
 export async function uploadCharts(chartFile: ChartFile): Promise<string> {
   return putJson(BLOB_PATHNAME, JSON.stringify(chartFile));
@@ -22,8 +22,7 @@ export async function uploadCharts(chartFile: ChartFile): Promise<string> {
 /**
  * Snapshots the outgoing charts before the publish overwrites them in place:
  * the worklist's rank-movement triggers (ADR-0007) diff the live charts
- * against this copy, read back via CHARTS_PREV_BLOB_URL. Compact like the live
- * file, which makes it smaller for the worklist to fetch.
+ * against this copy, read back via CHARTS_PREV_BLOB_URL.
  */
 export async function uploadPreviousCharts(
   chartFile: ChartFile,

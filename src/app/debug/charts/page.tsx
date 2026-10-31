@@ -2,8 +2,6 @@ import { notFound } from "next/navigation";
 
 import { fetchCharts } from "@/lib/charts-client";
 
-export const revalidate = 3600;
-
 export default async function DebugChartsPage() {
   if (process.env.ENABLE_DEBUG !== "1") {
     notFound();
