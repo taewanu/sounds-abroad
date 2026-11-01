@@ -10,7 +10,7 @@ export interface CountryEntry {
 }
 
 export const COUNTRIES: readonly CountryEntry[] = [
-  // Americas (12)
+  // Americas
   {
     code: "us",
     name: "United States",
@@ -108,7 +108,7 @@ export const COUNTRIES: readonly CountryEntry[] = [
     isoNum: 858,
   },
 
-  // Europe (20)
+  // Europe
   {
     code: "gb",
     name: "United Kingdom",
@@ -270,7 +270,7 @@ export const COUNTRIES: readonly CountryEntry[] = [
     isoNum: 756,
   },
 
-  // Asia (19)
+  // Asia
   {
     code: "jp",
     name: "Japan",
@@ -424,7 +424,7 @@ export const COUNTRIES: readonly CountryEntry[] = [
     isoNum: 860,
   },
 
-  // Oceania (2)
+  // Oceania
   {
     code: "au",
     name: "Australia",
@@ -442,7 +442,7 @@ export const COUNTRIES: readonly CountryEntry[] = [
     isoNum: 554,
   },
 
-  // Africa (11)
+  // Africa
   {
     code: "za",
     name: "South Africa",

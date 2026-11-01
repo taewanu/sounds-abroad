@@ -154,7 +154,7 @@ export type PlaylistTrack = z.infer<typeof PlaylistTrackSchema>;
 export type PlaylistFile = z.infer<typeof PlaylistFileSchema>;
 export type SongsTailFile = z.infer<typeof SongsTailFileSchema>;
 
-/** A country with nothing to show on either axis, the shape a crawl publishes for one it could not read. */
+/** A country with nothing to show on either axis: what a crawl publishes for one it could not read and has no earlier chart for. */
 export function emptyCountry(name: string): Country {
   return { name, valid: false, tracks: [], playlistsValid: false };
 }
