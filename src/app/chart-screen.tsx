@@ -175,10 +175,6 @@ function ChartScreenInner({
   // Follows the mode on screen while the listener is looking at the playing
   // chart, and holds where they left it once they are not.
   const currentMode = useAudioStore((s) => s.currentMode);
-  const currentTrack = useAudioStore((s) => s.currentTrack);
-  const currentCountryCode = useAudioStore((s) => s.currentCountryCode);
-  const currentChartRef = useAudioStore((s) => s.currentChartRef);
-  const hasCurrentTrack = currentTrack !== null;
 
   // The deeper rows a roll reads ahead: only countries whose eager rows hold no
   // seat, since those rows lead the chart. A step reads its own country's rows
@@ -299,6 +295,9 @@ function ChartScreenInner({
   // prop: that resolves from useSearchParams, which a replaceState-only globe
   // landing never re-triggers, so it wouldn't move on a fling.
   const selectedCountry = useGlobeChart((s) => s.selectedCountry);
+  const currentTrack = useAudioStore((s) => s.currentTrack);
+  const currentCountryCode = useAudioStore((s) => s.currentCountryCode);
+  const currentChartRef = useAudioStore((s) => s.currentChartRef);
 
   const setCurrentMode = useAudioStore((s) => s.setCurrentMode);
   const viewingPlayingChart =
@@ -307,6 +306,7 @@ function ChartScreenInner({
     if (viewingPlayingChart && currentMode !== mode) setCurrentMode(mode);
   }, [viewingPlayingChart, currentMode, mode, setCurrentMode]);
   const lastStep = useAudioStore((s) => s.lastStep);
+  const hasCurrentTrack = currentTrack !== null;
   const currentTrackRank = currentTrack?.rank ?? null;
   const audioStore = useAudioStoreApi();
 

@@ -286,7 +286,7 @@ export function useChartTracks(
     }, READ_AHEAD_FLUSH_MS);
   }, []);
 
-  // Every read asked for this session, by country, settling to its rows or to
+  // Every read asked for while mounted, by country, settling to its rows or to
   // null where they would not load. A failed read is not retried.
   const tailReads = useRef(new Map<string, Promise<ChartTrack[] | null>>());
 
@@ -353,7 +353,8 @@ export function useChartTracks(
   const awaitTail = useCallback(
     (code: string) => {
       readTailsAhead([code]);
-      // Set by the ask above, so the fallback only satisfies Map.get's type.
+      // Present once any ask for this code has run, so the fallback only
+      // satisfies Map.get's type.
       return tailReads.current.get(code) ?? Promise.resolve(null);
     },
     [readTailsAhead],
