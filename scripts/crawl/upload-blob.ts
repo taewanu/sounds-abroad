@@ -10,8 +10,13 @@ const PREV_BLOB_PATHNAME = "charts/v1/charts-prev.json";
 const PLAYLIST_BLOB_PREFIX = "charts/v1/playlists";
 const SONGS_TAIL_PREFIX = "charts/v1/songs";
 
+/**
+ * Publishes compact because the app's tagged read must fit the Next.js data
+ * cache, which measures the base64-encoded body against a 2 MB cap; a build
+ * logging "items over 2MB can not be cached" means the file has outgrown it.
+ */
 export async function uploadCharts(chartFile: ChartFile): Promise<string> {
-  return putJson(BLOB_PATHNAME, JSON.stringify(chartFile, null, 2));
+  return putJson(BLOB_PATHNAME, JSON.stringify(chartFile));
 }
 
 /**
@@ -22,7 +27,7 @@ export async function uploadCharts(chartFile: ChartFile): Promise<string> {
 export async function uploadPreviousCharts(
   chartFile: ChartFile,
 ): Promise<string> {
-  return putJson(PREV_BLOB_PATHNAME, JSON.stringify(chartFile, null, 2));
+  return putJson(PREV_BLOB_PATHNAME, JSON.stringify(chartFile));
 }
 
 /**
