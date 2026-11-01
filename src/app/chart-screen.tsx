@@ -180,20 +180,17 @@ function ChartScreenInner({
   const currentChartRef = useAudioStore((s) => s.currentChartRef);
   const hasCurrentTrack = currentTrack !== null;
 
-  // The deeper rows a roll or a step reads: a roll only needs countries whose
-  // eager rows hold no seat, since those rows lead the chart.
+  // The deeper rows a roll reads ahead: only countries whose eager rows hold no
+  // seat, since those rows lead the chart. A step reads its own country's rows
+  // when it leaves the eager ones.
   const rollMode = currentMode ?? mode;
-  const playingTailCode =
-    hasCurrentTrack && currentChartRef === SONGS_CHART
-      ? currentCountryCode
-      : null;
-  const tailsAhead = useMemo(() => {
-    const codes = Object.keys(charts.countries).filter(
-      (code) => landingTrack(charts.countries[code], rollMode, null) === null,
-    );
-    if (playingTailCode !== null) codes.push(playingTailCode);
-    return codes;
-  }, [charts.countries, rollMode, playingTailCode]);
+  const tailsAhead = useMemo(
+    () =>
+      Object.keys(charts.countries).filter(
+        (code) => landingTrack(charts.countries[code], rollMode, null) === null,
+      ),
+    [charts.countries, rollMode],
+  );
 
   // Which of the country's charts is open. Held here rather than in the sheet
   // because playback resolves against it too.

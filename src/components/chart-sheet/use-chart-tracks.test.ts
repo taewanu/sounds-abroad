@@ -578,7 +578,7 @@ test("a read ahead asked again before it lands still fills its country", async (
   expect(spy).toHaveBeenCalledTimes(1);
 });
 
-test("a read ahead shows its country pending while in flight", () => {
+test("asking for a country already read ahead shows it pending while in flight", () => {
   const underTest = country("Country under test", []);
   deferredFetch();
   const { result } = renderHook(() =>
@@ -622,10 +622,11 @@ test("takes a run of landed reads to the screen together", async () => {
     { initialProps: { ahead: [] as string[] } },
   );
   const before = renders;
+  const ahead = ["cc", "bb", "dd", "ee", "ff", "gg"];
 
-  rerender({ ahead: ["cc", "bb", "dd", "ee", "ff", "gg"] });
+  rerender({ ahead });
 
   await waitFor(() => expect(result.current.peekTail("gg")).not.toBeNull());
   // One commit for the run, not one per country.
-  expect(renders - before).toBeLessThan(6);
+  expect(renders - before).toBeLessThan(ahead.length);
 });

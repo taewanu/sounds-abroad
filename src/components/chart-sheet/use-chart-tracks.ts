@@ -92,7 +92,7 @@ export function useChartTracks(
   country: Country,
   /** The chart the URL asked for on arrival, opened once. */
   initialChart: ChartRef = SONGS_CHART,
-  /** Countries whose deeper rows to read in the background, each once per session. */
+  /** Countries whose deeper rows to read in the background, each once per mount. */
   readAhead: readonly string[] = NO_READ_AHEAD,
 ): ChartTracksState {
   const [ref, setRef] = useState<ChartRef>(SONGS_CHART);

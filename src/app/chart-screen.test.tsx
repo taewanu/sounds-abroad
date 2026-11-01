@@ -818,8 +818,17 @@ describe("ChartScreen end-of-chart roll", () => {
     vi.restoreAllMocks();
   });
 
+  // A step off the eager rows waits for the deeper ones, so a roll lands only
+  // once that read settles.
+  async function advance(trigger: () => void) {
+    await act(async () => {
+      trigger();
+      await vi.runAllTimersAsync();
+    });
+  }
+
   // Render the chart and start its last playable track, the seat every roll
-  // begins from, then let the read of its deeper rows land.
+  // begins from.
   async function playLastPlayable(charts: ChartFile) {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const rendered = renderChartScreen(charts, ADJ_CODE);
@@ -839,9 +848,7 @@ describe("ChartScreen end-of-chart roll", () => {
   test("ending the last playable track rolls into a drawn country and plays its first playable", async () => {
     const { container } = await playLastPlayable(ROLL_CHARTS);
 
-    act(() => {
-      audioEngine.end();
-    });
+    await advance(() => audioEngine.end());
 
     expect(screen.getByText(LANDING_START)).toBeTruthy();
     expect(globeChartStore.getState().selectedCountry).toBe(DRAW_1);
@@ -858,7 +865,7 @@ describe("ChartScreen end-of-chart roll", () => {
     }) as HTMLButtonElement;
 
     expect(next.disabled).toBe(false);
-    fireEvent.click(next);
+    await advance(() => fireEvent.click(next));
 
     expect(screen.getByText(LANDING_START)).toBeTruthy();
     expect(globeChartStore.getState().selectedCountry).toBe(DRAW_1);
@@ -871,9 +878,7 @@ describe("ChartScreen end-of-chart roll", () => {
     fireEvent.keyDown(document, { key: "Escape" });
     expect(sheet.dataset.snap).toBe("closed");
 
-    act(() => {
-      audioEngine.end();
-    });
+    await advance(() => audioEngine.end());
     act(() => {
       globeChartStore.getState().signalSettle();
     });
@@ -887,9 +892,7 @@ describe("ChartScreen end-of-chart roll", () => {
     const sheet = screen.getByTestId("chart-sheet");
     fireEvent.keyDown(document, { key: "Escape" });
 
-    act(() => {
-      audioEngine.end();
-    });
+    await advance(() => audioEngine.end());
     act(() => {
       globeChartStore.getState().signalSettle();
     });
@@ -904,9 +907,7 @@ describe("ChartScreen end-of-chart roll", () => {
   test("an edge-tap skip intent at the last playable rolls with a single forward cue", async () => {
     const { container } = await playLastPlayable(ROLL_CHARTS);
 
-    act(() => {
-      globeChartStore.getState().signalSkip(1);
-    });
+    await advance(() => globeChartStore.getState().signalSkip(1));
 
     expect(screen.getByText(LANDING_START)).toBeTruthy();
     expect(container.querySelectorAll(".skip-flash")).toHaveLength(1);
@@ -931,9 +932,7 @@ describe("ChartScreen end-of-chart roll", () => {
   test("a drawn chart with no playable track is redrawn until one can play", async () => {
     await playLastPlayable(REDRAW_CHARTS);
 
-    act(() => {
-      audioEngine.end();
-    });
+    await advance(() => audioEngine.end());
 
     expect(screen.getByText(REDRAW_START)).toBeTruthy();
     expect(globeChartStore.getState().selectedCountry).toBe(DRAW_2);
@@ -942,9 +941,7 @@ describe("ChartScreen end-of-chart roll", () => {
   test("when every redraw fails the chart dead-stops as before", async () => {
     const { container } = await playLastPlayable(ADJACENCY_CHARTS);
 
-    act(() => {
-      audioEngine.end();
-    });
+    await advance(() => audioEngine.end());
 
     expect(playingRank(container)).toBeNull();
     expect(globeChartStore.getState().selectedCountry).toBe(ADJ_CODE);
@@ -954,9 +951,7 @@ describe("ChartScreen end-of-chart roll", () => {
 
   test("prev at the rolled-in first playable returns to the origin's last playable with a reverse cue", async () => {
     const { container } = await playLastPlayable(ROLL_CHARTS);
-    act(() => {
-      audioEngine.end();
-    });
+    await advance(() => audioEngine.end());
 
     fireEvent.click(screen.getByRole("button", { name: "Previous track" }));
 
@@ -970,14 +965,10 @@ describe("ChartScreen end-of-chart roll", () => {
 
   test("rolling forward again after a back-roll performs a fresh draw", async () => {
     await playLastPlayable(ROLL_CHARTS);
-    act(() => {
-      audioEngine.end();
-    });
+    await advance(() => audioEngine.end());
     fireEvent.click(screen.getByRole("button", { name: "Previous track" }));
 
-    act(() => {
-      audioEngine.end();
-    });
+    await advance(() => audioEngine.end());
 
     expect(screen.getByText(LANDING_START)).toBeTruthy();
     expect(globeChartStore.getState().selectedCountry).toBe(DRAW_1);
@@ -985,9 +976,7 @@ describe("ChartScreen end-of-chart roll", () => {
 
   test("a manual country selection discards the back-roll return path", async () => {
     await playLastPlayable(ROLL_CHARTS);
-    act(() => {
-      audioEngine.end();
-    });
+    await advance(() => audioEngine.end());
 
     act(() => {
       globeChartStore.getState().setSelectedCountry(DRAW_3);
@@ -1925,14 +1914,26 @@ describe("ChartScreen stepping past the eager rows", () => {
     expect(tailsRead()).toContain(DEEP_CODE);
   });
 
-  test("starting playback reads its country's deeper rows", async () => {
+  test("starting playback reads no deeper rows", async () => {
     stubObserver();
     renderChartScreen(DEEP_CHARTS, DEEP_CODE);
 
     play("Deep 1", "Deep artist 1");
     await act(async () => {});
 
+    expect(tailsRead()).toEqual([]);
+  });
+
+  test("next off the eager rows reads the deeper ones and steps into them", async () => {
+    stubObserver();
+    renderChartScreen(DEEP_CHARTS, DEEP_CODE);
+    play("Deep 2", "Deep artist 2");
+
+    next();
+    await act(async () => {});
+
     expect(tailsRead()).toEqual([DEEP_CODE]);
+    expect(screen.getByText(TAIL_ROWS[0].name)).toBeTruthy();
   });
 
   test("next pressed before the deeper rows land still steps into them", async () => {
@@ -1946,7 +1947,7 @@ describe("ChartScreen stepping past the eager rows", () => {
 
     // The only eager row the mode keeps is the one playing, so without waiting
     // for the rest the step would read as the chart's end and roll away.
-    expect(playingRank(container)).toBe("4");
+    expect(playingRank(container)).toBe(String(TAIL_ROWS[1].rank));
   });
 
   test("next continues into the rows read past the payload", async () => {
@@ -1975,7 +1976,7 @@ describe("ChartScreen stepping past the eager rows", () => {
     next();
 
     // Rank 3 is on the chart but not in this mode, so the step passes over it.
-    expect(playingRank(container)).toBe("4");
+    expect(playingRank(container)).toBe(String(TAIL_ROWS[1].rank));
   });
 
   test("a track the mode hides still steps to the mode's next row", async () => {
@@ -1992,7 +1993,7 @@ describe("ChartScreen stepping past the eager rows", () => {
     // Rank 3 is filtered away, but it is still where the listener is, so the
     // step moves on within Only here rather than reading as the chart's end and
     // rolling them out of the country.
-    expect(playingRank(container)).toBe("4");
+    expect(playingRank(container)).toBe(String(TAIL_ROWS[1].rank));
   });
 
   test("the mode still governs a chart playing on in a country left behind", async () => {
@@ -2095,7 +2096,7 @@ describe("ChartScreen stepping past the eager rows", () => {
     next();
     expect(playingRank(container)).toBe("2");
     next();
-    expect(playingRank(container)).toBe("4");
+    expect(playingRank(container)).toBe(String(TAIL_ROWS[1].rank));
     prev();
     expect(playingRank(container)).toBe("2");
 
