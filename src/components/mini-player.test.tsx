@@ -158,8 +158,26 @@ describe("MiniPlayer", () => {
     act(() => store.getState().toggle(makeTrack()));
 
     expect(screen.queryByRole("button", { name: /volume/i })).toBeNull();
+    expect(screen.getByRole("button", { name: "Mute" })).toBeDefined();
+  });
+
+  test("the standalone mute button mutes the store", () => {
+    const engine = makeMockAudio({ volumeAdjustable: false });
+    const { store } = renderMiniPlayer({}, undefined, engine);
+    act(() => store.getState().toggle(makeTrack()));
+
     fireEvent.click(screen.getByRole("button", { name: "Mute" }));
+
     expect(store.getState().muted).toBe(true);
+  });
+
+  test("keeps the volume control after playback starts with an adjustable engine", () => {
+    const engine = makeMockAudio({ volumeAdjustable: true });
+    const { store } = renderMiniPlayer({}, undefined, engine);
+
+    act(() => store.getState().toggle(makeTrack()));
+
+    expect(screen.getByRole("button", { name: /volume/i })).toBeDefined();
   });
 
   test("next button fires onNext", () => {

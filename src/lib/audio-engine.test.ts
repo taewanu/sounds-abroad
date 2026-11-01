@@ -68,12 +68,15 @@ test("setMuted writes the element's own muted flag", () => {
   expect(element.muted).toBe(true);
 });
 
-test("playback never constructs an AudioContext", async () => {
+test("playback plays the element without constructing an AudioContext", async () => {
   const AudioContext = vi.fn();
   vi.stubGlobal("AudioContext", AudioContext);
-  vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+  const play = vi
+    .spyOn(HTMLMediaElement.prototype, "play")
+    .mockResolvedValue(undefined);
 
   await createBrowserAudioEngine().play();
 
+  expect(play).toHaveBeenCalledOnce();
   expect(AudioContext).not.toHaveBeenCalled();
 });
