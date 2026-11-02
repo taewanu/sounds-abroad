@@ -45,8 +45,8 @@ vi.mock("@/lib/landing-code", () => ({
   randomCountryCode: () => landingPick.value,
 }));
 
-// A controllable stand-in for the browser audio engine so the component tree
-// can play and end a track under happy-dom, which has no AudioContext.
+// A controllable stand-in for the browser audio engine so a test can play and
+// end a track on demand.
 const audioEngine = vi.hoisted(() => {
   let listeners: Partial<Record<string, Array<() => void>>> = {};
   return {
@@ -62,9 +62,11 @@ const audioEngine = vi.hoisted(() => {
         set src(value: string) {
           src = value;
         },
+        volumeAdjustable: true,
         play: () => Promise.resolve(),
         pause: () => {},
         setVolume: () => {},
+        setMuted: () => {},
         addEventListener: (type, listener) => {
           (listeners[type] ??= []).push(listener);
         },

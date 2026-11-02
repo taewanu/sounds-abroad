@@ -1,6 +1,6 @@
 # ADR-0006: Web Audio graph for volume control
 
-**Status:** Accepted (2026-06-13)
+**Status:** Superseded by [ADR-0022](0022-bare-audio-element-without-web-audio-graph.md) (2026-10-29). Accepted (2026-06-13)
 
 ## Context
 
@@ -8,8 +8,8 @@ v1.1.0 adds a volume slider to the mini player (#84). The obvious binding, `HTML
 
 Options weighed for a cross-platform volume control:
 
-- **`HTMLMediaElement.volume`** — one line and honored on desktop, but inert on iOS. Rejected: it fails the primary target.
-- **Web Audio `GainNode`** — route the `<audio>` element through an `AudioContext` and scale output with a gain node, which iOS honors. Chosen.
+- **`HTMLMediaElement.volume`**: one line and honored on desktop, but inert on iOS. Rejected: it fails the primary target.
+- **Web Audio `GainNode`**: route the `<audio>` element through an `AudioContext` and scale output with a gain node, which iOS honors. Chosen.
 
 ## Decision
 
