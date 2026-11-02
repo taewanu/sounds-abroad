@@ -90,6 +90,7 @@ function staticChart(country: Country): ChartTracksState {
     tailFailed: false,
     readTail: () => {},
     peekTail: () => null,
+    awaitTail: async () => null,
   };
 }
 
