@@ -50,7 +50,9 @@ function makeMockAudio(): MockAudio {
     _srcWrites: 0,
     play: vi.fn().mockResolvedValue(undefined),
     pause: vi.fn(),
+    volumeAdjustable: true,
     setVolume: vi.fn(),
+    setMuted: vi.fn(),
     addEventListener: vi.fn((type: EventType, listener: () => void) => {
       (listeners[type] ??= []).push(listener);
     }),
@@ -137,13 +139,34 @@ describe("createAudioStore", () => {
     expect(store.getState().volume).toBe(0.4);
   });
 
-  test("setVolume drives the audio engine gain", () => {
+  test("setVolume drives the audio engine volume", () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
 
     store.getState().setVolume(0.4);
 
     expect(audio.setVolume).toHaveBeenCalledWith(0.4);
+  });
+
+  test("setMuted drives the engine and leaves the level alone", () => {
+    const audio = makeMockAudio();
+    const store = createAudioStore(() => audio);
+    const level = store.getState().volume;
+
+    store.getState().setMuted(true);
+
+    expect(audio.setMuted).toHaveBeenCalledWith(true);
+    expect(store.getState().muted).toBe(true);
+    expect(store.getState().volume).toBe(level);
+  });
+
+  test("volumeAdjustable mirrors the engine once playback creates it", () => {
+    const audio = { ...makeMockAudio(), volumeAdjustable: false };
+    const store = createAudioStore(() => audio);
+
+    store.getState().toggle(makeTrack());
+
+    expect(store.getState().volumeAdjustable).toBe(audio.volumeAdjustable);
   });
 
   test("volume holds across a track switch", () => {

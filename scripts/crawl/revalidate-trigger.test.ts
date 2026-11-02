@@ -54,10 +54,39 @@ test("issues the bearer POST without waiting on a timer", async () => {
   );
 });
 
-test("throws with status code when revalidate responds non-2xx", async () => {
-  vi.spyOn(globalThis, "fetch").mockResolvedValue(
-    new Response(null, { status: 401, statusText: "Unauthorized" }),
-  );
+test("fails fast without retrying when revalidate rejects the request", async () => {
+  const fetchSpy = vi
+    .spyOn(globalThis, "fetch")
+    .mockResolvedValue(
+      new Response(null, { status: 401, statusText: "Unauthorized" }),
+    );
+  const sleep = vi.fn(async () => {});
 
-  await expect(triggerRevalidate()).rejects.toThrow(/401/);
+  await expect(triggerRevalidate(sleep)).rejects.toThrow(/401/);
+  expect(fetchSpy).toHaveBeenCalledTimes(1);
+  expect(sleep).not.toHaveBeenCalled();
+});
+
+test("retries a server error and succeeds on a later attempt", async () => {
+  const fetchSpy = vi
+    .spyOn(globalThis, "fetch")
+    .mockResolvedValueOnce(new Response(null, { status: 503 }))
+    .mockResolvedValueOnce(new Response(null, { status: 200 }));
+  const sleep = vi.fn(async () => {});
+
+  await triggerRevalidate(sleep);
+
+  expect(fetchSpy).toHaveBeenCalledTimes(2);
+  expect(sleep).toHaveBeenCalledTimes(1);
+});
+
+test("retries a network failure and throws once every attempt fails", async () => {
+  const fetchSpy = vi
+    .spyOn(globalThis, "fetch")
+    .mockRejectedValue(new TypeError("fetch failed"));
+  const sleep = vi.fn(async () => {});
+
+  await expect(triggerRevalidate(sleep)).rejects.toThrow(/fetch failed/);
+  expect(fetchSpy).toHaveBeenCalledTimes(3);
+  expect(sleep).toHaveBeenCalledTimes(2);
 });

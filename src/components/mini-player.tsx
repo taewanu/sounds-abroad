@@ -8,7 +8,7 @@ import { PlayIcon } from "@/components/icons/play";
 import { SkipBackIcon } from "@/components/icons/skip-back";
 import { SkipForwardIcon } from "@/components/icons/skip-forward";
 import { useOverflowMarquee } from "@/components/use-overflow-marquee";
-import { VolumeControl } from "@/components/volume-control";
+import { MuteButton, VolumeControl } from "@/components/volume-control";
 import type { ChartTrack } from "@/lib/chart-schema";
 import { trackKey } from "@/lib/track-identity";
 import { useAudioStore } from "@/providers/audio-store-provider";
@@ -78,6 +78,7 @@ export function MiniPlayer({
   nextTrack,
 }: MiniPlayerProps) {
   const currentTrack = useAudioStore((s) => s.currentTrack);
+  const volumeAdjustable = useAudioStore((s) => s.volumeAdjustable);
   const isPlaying = useAudioStore((s) => s.isPlaying);
   const toggle = useAudioStore((s) => s.toggle);
   const lastStep = useAudioStore((s) => s.lastStep);
@@ -211,7 +212,7 @@ export function MiniPlayer({
             <ExpandIcon className="h-4 w-4" />
           </button>
         ) : null}
-        <VolumeControl />
+        {volumeAdjustable ? <VolumeControl /> : <MuteButton />}
         <button
           type="button"
           onClick={onPrev}

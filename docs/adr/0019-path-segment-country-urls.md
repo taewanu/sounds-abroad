@@ -4,7 +4,14 @@
 and ADR-0018 (which deferred this restructure to "OG cards only"). The blanket
 `replaceState` restated below went stale the same day, when a gesture landing
 began pushing instead. ADR-0020 (2026-07-30) revises it for the
-country-selection writers. The path-segment spelling stands.
+country-selection writers. The path-segment spelling stands. Amended
+2026-10-29: `/` drops its hourly timer for the same daily one, after the team
+reached 75% of the free ISR write allowance; pages served `lastUpdated` from
+the latest crawl, so the tag path alone keeps them fresh. ADR-0021 (2026-10-29) retires both timers: the pages no longer carry the chart.
+Amended 2026-10-30: the charts payload the Negative below calls too big for the
+data cache exceeded the 2 MB cap only because it was published indented; compact,
+it fits with about 83 KB of file growth to spare (measured 2026-10-30; figures
+in ADR-0018's status note, #429).
 
 ## Context
 
@@ -62,9 +69,9 @@ never a render.
 
 **Neutral**
 
-- `/` keeps its hourly safety net and its role as the random-landing entry;
-  after the client roll it relabels to `/c/<code>`, so the address bar is
-  always shareable.
+- `/` keeps a daily safety net (hourly until 2026-10-29) and its role as the
+  random-landing entry; after the client roll it relabels to `/c/<code>`, so
+  the address bar is always shareable.
 - The sitemap still lists only `/`; per-country indexing remains a separate
   SEO decision.
 - A trailing-slash arrival (`/c/br/`) resolves the country but fails the

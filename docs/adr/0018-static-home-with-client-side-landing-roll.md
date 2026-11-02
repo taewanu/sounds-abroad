@@ -1,6 +1,6 @@
 # ADR-0018: Static home route with a client-side landing roll
 
-**Status:** Accepted (2026-07-24). Supersedes ADR-0004; amended by ADR-0019 (2026-07-24): the per-country restructure it deferred shipped as path-segment pages. The `replaceState` in the Neutral note below no longer holds for every writer; ADR-0020 (2026-07-30) revises it for the country-selection writers.
+**Status:** Accepted (2026-07-24). Supersedes ADR-0004; amended by ADR-0019 (2026-07-24): the per-country restructure it deferred shipped as path-segment pages. The `replaceState` in the Neutral note below no longer holds for every writer; ADR-0020 (2026-07-30) revises it for the country-selection writers. ADR-0021 (2026-10-29) retires the Freshness bullet: the page no longer carries the chart, so it has nothing to revalidate. Amended 2026-10-30: the chart file exceeded the 2 MB data-cache cap only because it was published indented (#429). Next.js measures the cache entry with its body base64-encoded, so the compact file (1,488,921 bytes, measured 2026-10-30) makes an entry of about 1,986,099 of the 2,097,152 characters allowed: about 83 KB of file growth before it overflows again. A build logging "items over 2MB can not be cached" for the chart file shows that drift. The 2.9MB below is the indented file's cache entry (2,899,339 characters from a 2,173,851-byte file, measured 2026-10-30), not the file itself.
 
 ## Context
 
@@ -17,7 +17,7 @@ across the CDN↔function boundary (Fast Origin Transfer), ~2.3GB/week, pinning
 the Hobby plan's 10GB/30-day rolling window at 100% (PR #308). Hobby has no
 billing cycle: exceeding the cap pauses the workspace, and community reports
 show pauses lift by manual support review, not by waiting. Per-request
-rendering also masked a second defect: the charts payload (2.9MB) exceeds the
+rendering also masked a second defect: the charts payload (a 2.9MB cache entry) exceeds the
 data cache's 2MB item cap, so every render silently re-downloaded it from R2
 (#310).
 
@@ -88,3 +88,7 @@ Prerender `/` and move everything request-scoped to the browser.
   debug surface.
 - The bare-`/` no-repeat dedup ADR-0004 dropped stays dropped; a client-side
   roll could restore it from localStorage as a V2 candidate.
+
+## Amendment (2026-10-29): writes went unpriced
+
+The Positive priced this decision on Fast Origin Transfer. ISR meters a second axis, bytes stored per regeneration, and that is the one that later neared its cap: [ADR-0019](0019-path-segment-country-urls.md) multiplied this page into 64, each storing the full chart and regenerating on every crawl. [ADR-0021](0021-chart-file-fetched-apart-from-pages.md) takes the chart out of the pages.

@@ -25,7 +25,7 @@ export const GEM_TIER_STRENGTH: Record<GemTier, number> = {
  * local pick today", so a homogenized market still returns a gem. Returns
  * null for an empty track list -- a failed crawl with no carried-forward
  * snapshot can leave a country with none (crawlCountry writes
- * `{ valid: false, tracks: [] }`), and that's the caller's "nothing to show"
+ * `emptyCountry`), and that's the caller's "nothing to show"
  * case to render, not this function's to guess at.
  */
 export function selectGem(tracks: Track[]): GemSelection | null {

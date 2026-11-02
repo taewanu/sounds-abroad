@@ -1,6 +1,6 @@
 # ADR-0005: Milestone-driven semver Versions, replacing Phase milestones
 
-**Status:** Accepted (2026-06-12)
+**Status:** Accepted (2026-06-12). Amended 2026-10-29: the `1.0.0` below was the version when this was written; `package.json` and the tags carry the current one.
 
 ## Context
 

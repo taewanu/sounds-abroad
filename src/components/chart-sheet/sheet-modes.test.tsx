@@ -21,7 +21,9 @@ function makeMockAudio(): AudioEngine {
     src: "",
     play: vi.fn().mockResolvedValue(undefined),
     pause: vi.fn(),
+    volumeAdjustable: true,
     setVolume: vi.fn(),
+    setMuted: vi.fn(),
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
   };
@@ -90,6 +92,7 @@ function chartState(over: Partial<ChartTracksState> = {}): ChartTracksState {
     tailFailed: false,
     readTail: () => {},
     peekTail: () => null,
+    awaitTail: async () => null,
     ...over,
   };
 }

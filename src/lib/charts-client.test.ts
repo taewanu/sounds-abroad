@@ -1,12 +1,15 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
+import { CHARTS, CODE_US } from "./__fixtures__";
 import fixture from "./__fixtures__/charts.json";
 import { MUSIC_CHARTS_TAG } from "./cache-tags";
+import { emptyCountry } from "./chart-schema";
 import {
   ChartsFetchError,
   ChartsValidationError,
   fetchCharts,
 } from "./charts-client";
+import { COUNTRIES } from "./countries";
 
 const FIXTURE_URL = "https://data.example.com/charts/v1/charts.json";
 
@@ -119,4 +122,18 @@ test("fetchCharts carries the store credential when one is configured", async ()
   // The credential must not cost the caching the read depends on.
   expect(init.cache).toBe("force-cache");
   expect(init.next).toEqual({ tags: [MUSIC_CHARTS_TAG] });
+});
+
+test("fetchCharts gives every listed country the file lacks an empty entry", async () => {
+  const uncharted = COUNTRIES.find((c) => !(c.code in CHARTS.countries));
+  if (!uncharted) throw new Error("the fixture charts every listed country");
+  mockFetch(new Response(JSON.stringify(CHARTS), { status: 200 }));
+
+  const charts = await fetchCharts(FIXTURE_URL);
+
+  expect(Object.keys(charts.countries)).toHaveLength(COUNTRIES.length);
+  expect(charts.countries[CODE_US]).toEqual(CHARTS.countries[CODE_US]);
+  expect(charts.countries[uncharted.code]).toEqual(
+    emptyCountry(uncharted.name),
+  );
 });

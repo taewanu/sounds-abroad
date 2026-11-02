@@ -1,6 +1,6 @@
 # ADR-0003: Zustand for client state
 
-**Status:** Accepted (2026-05-22)
+**Status:** Accepted (2026-05-22). Amended 2026-10-29: `chart-pick-store.ts`, the example named below, was deleted in #45; `src/lib/use-seen-flag.ts` is a live instance of the same hand-rolled pattern. The Zustand version in force is the one `package.json` pins, not the one recorded here.
 
 ## Context
 
