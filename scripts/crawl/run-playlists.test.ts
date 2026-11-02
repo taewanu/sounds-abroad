@@ -338,22 +338,28 @@ test("leaves the songs axis untouched when the playlist axis fails", async () =>
   expect(result.carriedCodes).toEqual([]);
 });
 
-test("publishes the song tails after the playlist crawl and before the payload", async () => {
-  const { deps } = makeDeps({
-    feedsByCc: { kr: [applePlaylist("pl.a")], ng: [applePlaylist("pl.b")] },
-  });
+test("publishes the song tails after the playlist crawl and before commentary and the payload", async () => {
+  const feedsByCc = {
+    kr: [applePlaylist("pl.a")],
+    ng: [applePlaylist("pl.b")],
+  };
+  const { deps } = makeDeps({ feedsByCc });
+  const fetchCommentary = vi.fn(async () => null);
 
-  await crawlAll(deps);
+  await crawlAll({ ...deps, fetchCommentary });
 
   const pages = vi.mocked(deps.playlistAxis!.fetchPlaylistPage).mock
     .invocationCallOrder;
   const tails = vi.mocked(deps.uploadSongsTail).mock.invocationCallOrder;
+  const commentary = fetchCommentary.mock.invocationCallOrder;
   const payload = vi.mocked(deps.uploadCharts).mock.invocationCallOrder;
-  expect(pages).toHaveLength(deps.countries.length);
+  expect(pages).toHaveLength(Object.values(feedsByCc).flat().length);
   expect(tails).toHaveLength(deps.countries.length);
+  expect(commentary).toHaveLength(1);
   expect(payload).toHaveLength(1);
   expect(Math.max(...pages)).toBeLessThan(Math.min(...tails));
-  expect(Math.max(...tails)).toBeLessThan(Math.min(...payload));
+  expect(Math.max(...tails)).toBeLessThan(commentary[0]);
+  expect(commentary[0]).toBeLessThan(payload[0]);
 });
 
 test("publishes the songs charts before failing on a broken contract", async () => {
