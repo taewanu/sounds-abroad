@@ -349,6 +349,9 @@ test("publishes the song tails after the playlist crawl and before the payload",
     .invocationCallOrder;
   const tails = vi.mocked(deps.uploadSongsTail).mock.invocationCallOrder;
   const payload = vi.mocked(deps.uploadCharts).mock.invocationCallOrder;
+  expect(pages).toHaveLength(deps.countries.length);
+  expect(tails).toHaveLength(deps.countries.length);
+  expect(payload).toHaveLength(1);
   expect(Math.max(...pages)).toBeLessThan(Math.min(...tails));
   expect(Math.max(...tails)).toBeLessThan(Math.min(...payload));
 });
