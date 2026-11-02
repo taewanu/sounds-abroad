@@ -1,6 +1,7 @@
 import { MUSIC_CHARTS_TAG } from "./cache-tags";
-import { ChartFileSchema, type ChartFile } from "./chart-schema";
+import { ChartFileSchema, emptyCountry, type ChartFile } from "./chart-schema";
 import { chartsStoreHeaders } from "./charts-store-fetch";
+import { COUNTRIES } from "./countries";
 
 /** Where the browser reads the chart file; served by `app/api/charts`. */
 export const CHARTS_ROUTE = "/api/charts";
@@ -70,5 +71,16 @@ export async function fetchCharts(url: string): Promise<ChartFile> {
       "Charts payload failed schema validation",
     );
   }
-  return parsed.data;
+  return withEveryListedCountry(parsed.data);
+}
+
+// Every listed country gets an entry, in the shape a crawl publishes for one it
+// could not read: a country joins the list before the crawl that first charts
+// it, and without an entry a link to it falls back to another country's sheet.
+function withEveryListedCountry(charts: ChartFile): ChartFile {
+  const countries = { ...charts.countries };
+  for (const { code, name } of COUNTRIES) {
+    countries[code] ??= emptyCountry(name);
+  }
+  return { ...charts, countries };
 }
