@@ -299,7 +299,9 @@ export function bakeCommentary(
  *
  * Runs after spread is baked, so both halves carry counts taken over the whole
  * chart, and before the charts payload is written, so a failed upload aborts
- * rather than advertising a chart deeper than the store can serve.
+ * rather than advertising a chart deeper than the store can serve. Runs after
+ * the playlist crawl, so that crawl's duration never leaves readers with this
+ * run's deeper rows beside the previous run's eager ones.
  *
  * Every country crawled this run publishes one, empty where its chart stops at
  * the eager rows: skipping the write would leave an earlier run's rows in the
@@ -507,13 +509,6 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
   // Spread describes the whole chart, not the part that travels eagerly.
   bakeSpread(countriesMap);
 
-  await publishSongsTails(
-    countriesMap,
-    carriedCodes,
-    deps.uploadSongsTail,
-    now,
-  );
-
   const playlistAxisRun = deps.playlistAxis
     ? await crawlPlaylistAxis({
         axis: deps.playlistAxis,
@@ -528,6 +523,13 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
     : { carried: [], invalid: [], contractBreak: null };
   const { carried: carriedPlaylistCodes, invalid: invalidPlaylistCodes } =
     playlistAxisRun;
+
+  await publishSongsTails(
+    countriesMap,
+    carriedCodes,
+    deps.uploadSongsTail,
+    now,
+  );
 
   const commentary = deps.fetchCommentary ? await deps.fetchCommentary() : null;
   if (commentary) {

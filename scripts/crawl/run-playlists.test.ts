@@ -338,6 +338,21 @@ test("leaves the songs axis untouched when the playlist axis fails", async () =>
   expect(result.carriedCodes).toEqual([]);
 });
 
+test("publishes the song tails after the playlist crawl and before the payload", async () => {
+  const { deps } = makeDeps({
+    feedsByCc: { kr: [applePlaylist("pl.a")], ng: [applePlaylist("pl.b")] },
+  });
+
+  await crawlAll(deps);
+
+  const pages = vi.mocked(deps.playlistAxis!.fetchPlaylistPage).mock
+    .invocationCallOrder;
+  const tails = vi.mocked(deps.uploadSongsTail).mock.invocationCallOrder;
+  const payload = vi.mocked(deps.uploadCharts).mock.invocationCallOrder;
+  expect(Math.max(...pages)).toBeLessThan(Math.min(...tails));
+  expect(Math.max(...tails)).toBeLessThan(Math.min(...payload));
+});
+
 test("publishes the songs charts before failing on a broken contract", async () => {
   const { deps } = makeDeps({
     feedsByCc: { kr: [applePlaylist("pl.kr")], ng: [applePlaylist("pl.ng")] },
