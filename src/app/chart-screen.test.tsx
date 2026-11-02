@@ -1816,6 +1816,7 @@ describe("ChartScreen stepping past the eager rows", () => {
   // 4 only once read. Spread is set so Only here keeps 2 and 4, which are on
   // either side of the boundary.
   const AWAY_CODE = "aw";
+  const SEATED_CODE = "sd";
   const DEEP_CHARTS: ChartFile = {
     lastUpdated: "2026-07-22T00:00:00Z",
     countries: {
@@ -1829,6 +1830,12 @@ describe("ChartScreen stepping past the eager rows", () => {
         name: "Away country",
         valid: true,
         tracks: [deepTrack(1, 3)],
+      },
+      // Lists an only-here row eagerly, so only-here has no reason to read it.
+      [SEATED_CODE]: {
+        name: "Seated country",
+        valid: true,
+        tracks: [deepTrack(1, 1)],
       },
     },
   };
@@ -1880,6 +1887,37 @@ describe("ChartScreen stepping past the eager rows", () => {
           : new Response("", { status: 404 }),
       ),
     );
+  }
+
+  /** Holds the deeper rows back until the returned function releases them. */
+  function holdTailFetch(): () => Promise<void> {
+    let release: (() => void) | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        () =>
+          new Promise<Response>((resolve) => {
+            release = () =>
+              resolve(
+                new Response(
+                  JSON.stringify({
+                    code: DEEP_CODE,
+                    lastUpdated: "2026-07-22T00:00:00.000Z",
+                    tracks: TAIL_ROWS,
+                  }),
+                  {
+                    status: 200,
+                    headers: { "content-type": "application/json" },
+                  },
+                ),
+              );
+          }),
+      ),
+    );
+    return () =>
+      act(async () => {
+        release?.();
+      });
   }
 
   /** The countries whose deeper rows were asked for, in order. */
@@ -1939,6 +1977,7 @@ describe("ChartScreen stepping past the eager rows", () => {
     // can seat a roll; the country on screen is read for its own list.
     expect(tailsRead()).toContain(AWAY_CODE);
     expect(tailsRead()).toContain(DEEP_CODE);
+    expect(tailsRead()).not.toContain(SEATED_CODE);
   });
 
   test("starting playback reads no deeper rows", async () => {
@@ -1953,14 +1992,71 @@ describe("ChartScreen stepping past the eager rows", () => {
 
   test("next off the eager rows reads the deeper ones and steps into them", async () => {
     stubObserver();
-    renderChartScreen(DEEP_CHARTS, DEEP_CODE);
+    const { container } = renderChartScreen(DEEP_CHARTS, DEEP_CODE);
     play("Deep 2", "Deep artist 2");
 
     next();
     await act(async () => {});
 
     expect(tailsRead()).toEqual([DEEP_CODE]);
-    expect(screen.getByText(TAIL_ROWS[0].name)).toBeTruthy();
+    expect(
+      screen.getByRole("button", {
+        name: `Pause preview of ${TAIL_ROWS[0].name}`,
+      }),
+    ).toBeTruthy();
+    expect(container.querySelector(".skip-flash")).not.toBeNull();
+  });
+
+  test("a pause while the deeper rows load cancels the step", async () => {
+    stubObserver();
+    const release = holdTailFetch();
+    const { container } = renderChartScreen(DEEP_CHARTS, DEEP_CODE);
+    play("Deep 2", "Deep artist 2");
+
+    next();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Pause preview of Deep 2" }),
+    );
+    await release();
+
+    expect(playingRank(container)).toBeNull();
+    expect(
+      container
+        .querySelector('li[data-state="paused"]')
+        ?.getAttribute("data-rank"),
+    ).toBe("2");
+  });
+
+  test("a next pressed while paused still steps into the deeper rows", async () => {
+    stubObserver();
+    const release = holdTailFetch();
+    renderChartScreen(DEEP_CHARTS, DEEP_CODE);
+    play("Deep 2", "Deep artist 2");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Pause preview of Deep 2" }),
+    );
+
+    next();
+    await release();
+
+    expect(
+      screen.getByRole("button", {
+        name: `Pause preview of ${TAIL_ROWS[0].name}`,
+      }),
+    ).toBeTruthy();
+  });
+
+  test("a track picked while the deeper rows load is not stepped away from", async () => {
+    stubObserver();
+    const release = holdTailFetch();
+    const { container } = renderChartScreen(DEEP_CHARTS, DEEP_CODE);
+    play("Deep 2", "Deep artist 2");
+
+    next();
+    play("Deep 1", "Deep artist 1");
+    await release();
+
+    expect(playingRank(container)).toBe("1");
   });
 
   test("next pressed before the deeper rows land still steps into them", async () => {

@@ -78,6 +78,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.clearAllMocks();
 });
@@ -503,9 +504,14 @@ test("reads no deeper rows until something asks for them", () => {
   const underTest = country("Country under test", []);
   const spy = tailsFor();
   vi.stubGlobal("fetch", spy);
+  vi.useFakeTimers();
+  const requestIdle = vi.fn();
+  vi.stubGlobal("requestIdleCallback", requestIdle);
 
   renderHook(() => useChartTracks("cc", underTest));
+  vi.advanceTimersByTime(60_000);
 
+  expect(requestIdle).not.toHaveBeenCalled();
   expect(spy).not.toHaveBeenCalled();
 });
 

@@ -615,13 +615,17 @@ function ChartScreenInner({
   // quick tap reaches the same track a slow one would.
   const stepIntoTail = useCallback(
     async (fromCode: string, fromTrack: ChartTrack) => {
+      const wasPlaying = audioStore.getState().isPlaying;
       const deeper = await awaitTail(fromCode);
-      const { currentTrack, currentCountryCode, currentChartRef } =
+      const { currentTrack, currentCountryCode, currentChartRef, isPlaying } =
         audioStore.getState();
+      // A pause during the read cancels the step, while a next pressed when
+      // already paused still plays, and a track ending takes its own step.
       if (
         !sameTrack(currentTrack, fromTrack) ||
         currentCountryCode !== fromCode ||
-        currentChartRef !== SONGS_CHART
+        currentChartRef !== SONGS_CHART ||
+        (wasPlaying && !isPlaying)
       ) {
         return;
       }
@@ -630,13 +634,18 @@ function ChartScreenInner({
         fromTrack,
       );
       const adj = findAdjacentPlayable(rows, fromTrack, 1);
-      if (adj) playAdjacent(adj, fromCode, SONGS_CHART, fromTrack, 1);
-      else rollOutOfCountry(fromCode, SONGS_CHART, fromTrack);
+      if (adj) {
+        playAdjacent(adj, fromCode, SONGS_CHART, fromTrack, 1);
+        flashSkip(1);
+      } else {
+        rollOutOfCountry(fromCode, SONGS_CHART, fromTrack);
+      }
     },
     [
       audioStore,
       awaitTail,
       charts.countries,
+      flashSkip,
       heardIn,
       playAdjacent,
       rollOutOfCountry,
