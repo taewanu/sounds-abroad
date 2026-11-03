@@ -1,10 +1,14 @@
-## Summary
+## Intent
 
-<!-- 2-3 bullets: what changed and why -->
+<!-- The goal: what this change is for and why it's needed, not how it works. A reader should be able to judge the diff against this alone. -->
 
 Door: two-way | one-way
 
 <!-- Keep one. One-way means hard to undo after merge: a stored or published data shape, a public URL or API, auth or secrets, money, deleted data. Name what can't be undone; it waits for a human's call. -->
+
+## Summary
+
+<!-- 2-3 bullets: what changed -->
 
 ## Test plan
 
