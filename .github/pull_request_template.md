@@ -1,6 +1,6 @@
 ## Intent
 
-<!-- The goal: what this change is for and why it's needed, not how it works. A reader should be able to judge the diff against this alone. -->
+<!-- Overarching goal of this change: what it is for, not how it works. -->
 
 Door: two-way | one-way
 
@@ -8,7 +8,10 @@ Door: two-way | one-way
 
 ## Summary
 
-<!-- 2-3 bullets: what changed -->
+<!-- Why: the problem or need behind this change. What: the changes themselves, nested bullets if one line won't do. -->
+
+- Why:
+- What:
 
 ## Test plan
 
