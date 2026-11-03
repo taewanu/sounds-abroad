@@ -7,7 +7,9 @@ description: Review a branch locally before its pull request opens. Runs the CI 
 
 The review runs here, before the PR, so its findings land before anyone else reads the change. The session that wrote the code doesn't review it: agents with a clean context do.
 
-The pre-push hook (`.husky/pre-push`) refuses a commit with no recorded review, so a skipped review surfaces before the push rather than after CI. A new commit is a new SHA, so it needs a fresh pass. The record shows the step happened, not how well, and `--no-verify` skips it for a push that needs no review.
+The pre-push hook (`.husky/pre-push`) refuses a commit with no recorded review, so a skipped review surfaces before the push rather than after CI. The record identifies what the branch changes against `origin/main`: a code change needs a fresh pass, while a clean merge or rebase keeps its review. The record shows the step happened, not how well, and `--no-verify` skips it for a push that needs no review.
+
+The hook lives in each checkout, so it only guards a worktree that has merged it and has run `pnpm install`, which generates `.husky/_`.
 
 ## 1. Pin the branch
 
@@ -33,7 +35,7 @@ Spawn these agents together. Give each the repository path and the diff command,
 
 When the change is a guard or a filter, have an agent also compare it against the previous version on generated inputs, because a table written beside the code shares its assumptions.
 
-After a new commit on a branch already reviewed, these agents may review just the commits since the last recorded SHA.
+After a fix round on a branch already reviewed, these agents may review just the new commits.
 
 ## 4. Settle every finding
 
@@ -45,7 +47,7 @@ Only once every finding is settled at the current `HEAD`, record that commit. Ev
 
 ```bash
 records="$(git rev-parse --git-common-dir)/pre-pr-reviewed"
-mkdir -p "$records" && touch "$records/$(git rev-parse HEAD)"
+mkdir -p "$records" && touch "$records/$(sh .husky/review-id HEAD)"
 ```
 
 Add the result to the PR body:
@@ -65,4 +67,4 @@ A hook stops agents from pushing, so ask the user to push, then confirm with `gi
 
 ## 7. Measure the pass after review
 
-Once CodeRabbit and any human reviewers have commented, note in the slice retro which of their findings this pass missed and which of its findings they also raised. That comparison is the evidence for whether the step earns its cost.
+Once CodeRabbit and any human reviewers have commented, note on the PR which of their findings this pass missed and which of its findings they also raised. That comparison is the evidence for whether the step earns its cost.

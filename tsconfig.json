@@ -26,6 +26,8 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
+    ".husky/*.ts",
+    ".claude/hooks/*.ts",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
