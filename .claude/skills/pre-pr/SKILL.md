@@ -1,13 +1,13 @@
 ---
 name: pre-pr
-description: Review a branch locally before its pull request opens. Runs the CI checks, has agents with a clean context run code-review and trace what the diff newly breaks outside itself, and records the commit so the pre-push hook lets it through. Use before pushing a branch for a PR, and again after any new commit on it, or when the hook refuses a push.
+description: Review a branch locally before its pull request opens. Runs the CI checks, has agents with a clean context run code-review and trace what the diff newly breaks outside itself, and records the reviewed changes so the pre-push hook lets them through. Use before pushing a branch for a PR, and again after any code change on it, or when the hook refuses a push.
 ---
 
 # Pre-PR review
 
 The review runs here, before the PR, so its findings land before anyone else reads the change. The session that wrote the code doesn't review it: agents with a clean context do.
 
-The pre-push hook (`.husky/pre-push`) refuses a commit with no recorded review, so a skipped review surfaces before the push rather than after CI. The record identifies what the branch changes against `origin/main`: a code change needs a fresh pass, while a clean merge or rebase keeps its review. The record shows the step happened, not how well, and `--no-verify` skips it for a push that needs no review.
+The pre-push hook (`.husky/pre-push`) refuses a commit with no recorded review, so a skipped review surfaces before the push rather than after CI. The record identifies the lines the branch changes against `origin/main`, ignoring where they sit in the file. A change to those lines needs a fresh pass, and a merge or rebase that leaves them alone keeps its review. Two limits follow: the same lines moved within the file keep the review, and main editing right next to them can lose it. The record shows the step happened, not how well, and `--no-verify` skips it for a push that needs no review.
 
 The hook lives in each checkout, so it only guards a worktree that has merged it and has run `pnpm install`, which generates `.husky/_`.
 
@@ -43,11 +43,11 @@ Verify each finding against the code before acting on it, then show the findings
 
 ## 5. Record the review
 
-Only once every finding is settled at the current `HEAD`, record that commit. Every worktree shares this directory:
+Only once every finding is settled at the current `HEAD`, record its changes from the worktree root. Every worktree shares this directory:
 
 ```bash
 records="$(git rev-parse --git-common-dir)/pre-pr-reviewed"
-mkdir -p "$records" && touch "$records/$(sh .husky/review-id HEAD)"
+id=$(sh .husky/review-id HEAD) && [ -n "$id" ] && mkdir -p "$records" && touch "$records/$id"
 ```
 
 Add the result to the PR body:

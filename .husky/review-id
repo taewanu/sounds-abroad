@@ -1,3 +1,16 @@
-# Identifies what a commit changes against origin/main, so a clean merge or rebase keeps its review.
+# Identifies what a commit changes against origin/main, so a merge or rebase that leaves those lines alone keeps its review.
+# Prints nothing when nothing differs, and fails when it can't tell.
 base=$(git merge-base origin/main "$1") || exit 1
-git diff "$base" "$1" | git patch-id --stable | cut -d' ' -f1
+
+git diff-tree --quiet "$base" "$1"
+case $? in
+  0) exit 0 ;;
+  1) ;;
+  *) exit 1 ;;
+esac
+
+# Plumbing ignores color and external-diff config, and --verbatim counts whitespace.
+patch=$(git diff-tree -p --binary "$base" "$1") || exit 1
+id=$(printf '%s\n' "$patch" | git patch-id --verbatim | cut -d' ' -f1)
+[ -n "$id" ] || exit 1
+echo "$id"

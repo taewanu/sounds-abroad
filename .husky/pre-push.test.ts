@@ -98,6 +98,56 @@ test("a later code change needs its own review", () => {
   expect(runHook([[sha, BRANCH_REF]]).status).toBe(1);
 });
 
+test.each([
+  ["whitespace inside a line", "a b\n", "a  b\n"],
+  ["indentation", "a\n  b\n", "a\n    b\n"],
+  ["line endings", "a\nb\n", "a\r\nb\r\n"],
+])("a change to %s needs its own review", (_name, before, after) => {
+  recordReview(commitFile("change", before));
+
+  const sha = commitFile("change", after);
+
+  expect(runHook([[sha, BRANCH_REF]]).status).toBe(1);
+});
+
+test("a binary change needs its own review", () => {
+  recordReview(commitFile("change", "\0one"));
+
+  const sha = commitFile("change", "\0two");
+
+  expect(runHook([[sha, BRANCH_REF]]).status).toBe(1);
+});
+
+test("a mode-only change is treated like any other change", () => {
+  commitFile("script", "run\n");
+  const reviewed = git("rev-parse", "HEAD");
+  recordReview(reviewed);
+  git("update-index", "--chmod=+x", "script");
+  git("commit", "-q", "-m", "mode");
+
+  const { status } = runHook([[git("rev-parse", "HEAD"), BRANCH_REF]]);
+
+  expect(status).toBe(1);
+});
+
+test.each([
+  ["color output", ["color.ui", "always"]],
+  ["an external diff tool", ["diff.external", "/usr/bin/true"]],
+])("%s can't make unreviewed changes pass", (_name, [key, value]) => {
+  const sha = commitFile("change", "one\n");
+  git("config", key, value);
+
+  expect(runHook([[sha, BRANCH_REF]]).status).toBe(1);
+});
+
+test("a diff that can't be read is refused rather than read as no changes", () => {
+  const sha = commitFile("change", "one\n");
+  const blob = git("rev-parse", `${sha}:change`);
+  rmSync(join(repo, ".git", "objects", blob.slice(0, 2), blob.slice(2)));
+
+  expect(runHook([[sha, BRANCH_REF]]).status).toBe(1);
+});
+
 test("a clean merge of main keeps the review", () => {
   recordReview(commitFile("change", "one\n"));
   const main = advanceMain("elsewhere");
