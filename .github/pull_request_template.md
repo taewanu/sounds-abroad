@@ -20,7 +20,7 @@ Door: two-way | one-way
 Use a GitHub closing keyword (Fixes / Closes / Resolves #1234) when this PR
 actually fixes an issue, so merge auto-closes it. Repeat the keyword per issue:
 "Closes #1, #2" closes only #1. A bare #1234 mention does not close issues. For
-related work this PR does not fully fix, use a non-closing reference (Refs #1234,
+related work this PR does not fully fix, use a non-closing reference (Related to #1234,
 or a plain link). Never write "does not close #N": GitHub still treats the
 substring "close #N" as a closing keyword.
 -->
