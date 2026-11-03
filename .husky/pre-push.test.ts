@@ -54,10 +54,10 @@ function runHook(lines: [sha: string, remoteRef: string][]) {
   return spawnSync("sh", [HOOK], { cwd: repo, encoding: "utf8", input });
 }
 
-function advanceMain(name: string): string {
+function advanceMain(name: string, content = "main\n"): string {
   const branch = git("rev-parse", "--abbrev-ref", "HEAD");
   git("switch", "-q", "main");
-  const sha = commitFile(name, "main\n");
+  const sha = commitFile(name, content);
   git("update-ref", "refs/remotes/origin/main", sha);
   git("switch", "-q", branch);
   return sha;
@@ -141,11 +141,75 @@ test.each([
 });
 
 test("a diff that can't be read is refused rather than read as no changes", () => {
-  const sha = commitFile("change", "one\n");
-  const blob = git("rev-parse", `${sha}:change`);
-  rmSync(join(repo, ".git", "objects", blob.slice(0, 2), blob.slice(2)));
+  const main = commitFile("change", "one\n");
+  git("update-ref", "refs/remotes/origin/main", main);
+  const preImage = git("rev-parse", `${main}:change`);
+  const sha = commitFile("change", "two\n");
+  rmSync(
+    join(repo, ".git", "objects", preImage.slice(0, 2), preImage.slice(2)),
+  );
 
-  expect(runHook([[sha, BRANCH_REF]]).status).toBe(1);
+  const { status, stderr } = runHook([[sha, BRANCH_REF]]);
+
+  expect(status).toBe(1);
+  expect(stderr).toContain("could not compare");
+});
+
+test("a NUL byte in text is refused, since the id can't see it", () => {
+  const sha = commitFile("change", `${"x".repeat(9000)}\na\0b\n`);
+
+  const { status, stderr } = runHook([[sha, BRANCH_REF]]);
+
+  expect(status).toBe(1);
+  expect(stderr).toContain("NUL byte");
+});
+
+test("a submodule bump hidden by .gitmodules needs a review", () => {
+  const before = git("rev-parse", "HEAD");
+  git("update-index", "--add", "--cacheinfo", `160000,${before},sub`);
+  const main = commitFile(
+    ".gitmodules",
+    '[submodule "sub"]\n\tpath = sub\n\turl = ./sub\n\tignore = all\n',
+  );
+  git("update-ref", "refs/remotes/origin/main", main);
+  git("update-index", "--cacheinfo", `160000,${main},sub`);
+  git("commit", "-q", "-m", "bump");
+
+  const { status } = runHook([[git("rev-parse", "HEAD"), BRANCH_REF]]);
+
+  expect(status).toBe(1);
+});
+
+test.each([
+  ["branch", "refs/heads/origin/main"],
+  ["tag", "refs/tags/origin/main"],
+  ["top-level ref", "refs/origin/main"],
+])(
+  "a %s named like origin/main can't make unreviewed changes pass",
+  (_name, ref) => {
+    const sha = commitFile("change", "one\n");
+    git("update-ref", ref, sha);
+
+    expect(runHook([[sha, BRANCH_REF]]).status).toBe(1);
+  },
+);
+
+test("a different object-name abbreviation keeps a binary change's review", () => {
+  const sha = commitFile("change", "\0one");
+  recordReview(sha);
+
+  git("config", "core.abbrev", "12");
+
+  expect(runHook([[sha, BRANCH_REF]]).status).toBe(0);
+});
+
+test("main moving ahead without a merge keeps the review", () => {
+  const sha = commitFile("change", "one\n");
+  recordReview(sha);
+
+  advanceMain("elsewhere");
+
+  expect(runHook([[sha, BRANCH_REF]]).status).toBe(0);
 });
 
 test("a clean merge of main keeps the review", () => {
@@ -164,6 +228,44 @@ test("a rebase onto main keeps the review", () => {
   git("rebase", "-q", main);
 
   expect(runHook([[git("rev-parse", "HEAD"), BRANCH_REF]]).status).toBe(0);
+});
+
+test.each([
+  ["a pure rename", ""],
+  ["a rename with an edit", "added\n"],
+])("%s keeps its review when main edits a distant line", (_name, addition) => {
+  const lines = Array.from({ length: 40 }, (_, i) => `line ${i}\n`);
+  git("merge", "-q", "--ff-only", advanceMain("tracked", lines.join("")));
+  git("mv", "tracked", "renamed");
+  writeFileSync(join(repo, "renamed"), lines.join("") + addition);
+  git("add", "renamed");
+  git("commit", "-q", "-m", "rename");
+  recordReview(git("rev-parse", "HEAD"));
+
+  const edited = lines.map((line, i) => (i === 2 ? "edited\n" : line)).join("");
+  git(
+    "-c",
+    "merge.ff=false",
+    "merge",
+    "-q",
+    "--no-edit",
+    advanceMain("tracked", edited),
+  );
+
+  expect(runHook([[git("rev-parse", "HEAD"), BRANCH_REF]]).status).toBe(0);
+});
+
+test("renaming to a different name needs its own review", () => {
+  const main = advanceMain("tracked", "line\n".repeat(40));
+  git("merge", "-q", "--ff-only", main);
+  git("mv", "tracked", "first");
+  git("commit", "-q", "-m", "first");
+  recordReview(git("rev-parse", "HEAD"));
+
+  git("mv", "first", "second");
+  git("commit", "-q", "-m", "second");
+
+  expect(runHook([[git("rev-parse", "HEAD"), BRANCH_REF]]).status).toBe(1);
 });
 
 test("a branch with nothing beyond main needs no review", () => {

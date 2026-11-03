@@ -7,7 +7,7 @@ description: Review a branch locally before its pull request opens. Runs the CI 
 
 The review runs here, before the PR, so its findings land before anyone else reads the change. The session that wrote the code doesn't review it: agents with a clean context do.
 
-The pre-push hook (`.husky/pre-push`) refuses a commit with no recorded review, so a skipped review surfaces before the push rather than after CI. The record identifies the lines the branch changes against `origin/main`, ignoring where they sit in the file. A change to those lines needs a fresh pass, and a merge or rebase that leaves them alone keeps its review. Two limits follow: the same lines moved within the file keep the review, and main editing right next to them can lose it. The record shows the step happened, not how well, and `--no-verify` skips it for a push that needs no review.
+The pre-push hook (`.husky/pre-push`) refuses a commit with no recorded review, so a skipped review surfaces before the push rather than after CI. The record identifies the lines the branch changes against `origin/main`, ignoring where they sit in the file. A change to those lines needs a fresh pass, and a merge or rebase that leaves them alone keeps its review. Three limits follow: the same lines moved within the file keep the review, main editing right next to them can lose it, and changes with a NUL byte in text can't be recorded, so they push with `--no-verify`. The record shows the step happened, not how well, and `--no-verify` skips it for a push that needs no review.
 
 The hook lives in each checkout, so it only guards a worktree that has merged it and has run `pnpm install`, which generates `.husky/_`.
 
