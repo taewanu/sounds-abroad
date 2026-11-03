@@ -1,0 +1,13 @@
+reviewed="$(git rev-parse --git-common-dir)/pre-pr-reviewed"
+
+while read -r _local_ref local_sha remote_ref _remote_sha; do
+  case "$remote_ref" in refs/heads/*) ;; *) continue ;; esac
+  # All zeros means the push deletes the branch.
+  case "$local_sha" in *[!0]*) ;; *) continue ;; esac
+
+  if [ ! -e "$reviewed/$local_sha" ]; then
+    short=$(git rev-parse --short "$local_sha")
+    echo "BLOCKED: no /pre-pr review recorded for $short. Run /pre-pr on it first, or push with --no-verify if it needs none." >&2
+    exit 1
+  fi
+done
