@@ -1,6 +1,11 @@
 reviewed="$(git rev-parse --git-common-dir)/pre-pr-reviewed"
 
-while read -r _local_ref local_sha remote_ref _remote_sha; do
+while read -r _local_ref local_sha remote_ref _remote_sha extra; do
+  # A space in the local ref shifts every later field, so none of them can be trusted.
+  if [ -n "$extra" ]; then
+    echo "BLOCKED: could not read the pushed commit, because its local ref holds a space. Push the branch by name, or push with --no-verify if it needs no review." >&2
+    exit 1
+  fi
   case "$remote_ref" in refs/heads/*) ;; *) continue ;; esac
   # All zeros means the push deletes the branch.
   case "$local_sha" in *[!0]*) ;; *) continue ;; esac
@@ -10,7 +15,7 @@ while read -r _local_ref local_sha remote_ref _remote_sha; do
     echo "BLOCKED: could not compare $short with origin/main to look for a /pre-pr review. Fetch origin, or push with --no-verify if it needs none." >&2
     exit 1
   fi
-  # No difference from main means there is nothing to review.
+  # Nothing beyond the merge base with main means there is nothing to review.
   [ -z "$id" ] && continue
 
   if [ ! -e "$reviewed/$id" ]; then

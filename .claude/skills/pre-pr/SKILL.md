@@ -33,7 +33,7 @@ Spawn these agents together. Give each the repository path and the diff command,
 
 > Review `git diff origin/main...HEAD` in `<worktree path>`. For every changed line, trace its callers and dependents outside the diff: grep the call sites and read the code they reach. Report each failure the change newly exposes or makes worse, with the triggering condition, the consequence, and the worst-case bound before and after (staleness, cost, latency, data loss). Give extra weight to anything the diff removes, lengthens or narrows, such as a timer, retry, cache lifetime, fallback, validation or limit, and name what that safeguard used to catch. Cite `file:line` for every claim. Say "none found" rather than padding the report. Under 400 words.
 
-When the change is a guard or a filter, have an agent also compare it against the previous version on generated inputs, because a table written beside the code shares its assumptions.
+When the change is a guard or a filter, have an agent also compare it against the previous version on generated inputs, because a table written beside the code shares its assumptions. Spawn any agent that runs git experiments with `isolation: "worktree"`, so a script that lands in the wrong directory resets only its own checkout.
 
 After a fix round on a branch already reviewed, these agents may review just the new commits.
 

@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { afterEach, beforeEach, expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 const HOOK = join(__dirname, "pre-push");
 const REVIEW_ID = join(__dirname, "review-id");
@@ -30,7 +30,7 @@ function git(...args: string[]): string {
   ).trim();
 }
 
-function commitFile(name: string, content: string): string {
+function commitFile(name: string, content: string | Uint8Array): string {
   writeFileSync(join(repo, name), content);
   git("add", name);
   git("commit", "-q", "-m", name);
@@ -47,11 +47,15 @@ function recordReview(sha: string) {
   writeFileSync(join(records, id), "");
 }
 
-function runHook(lines: [sha: string, remoteRef: string][]) {
+function hookWithInput(input: string, cwd = repo) {
+  return spawnSync("sh", ["-e", HOOK], { cwd, encoding: "utf8", input });
+}
+
+function runHook(lines: [sha: string, remoteRef: string][], cwd = repo) {
   const input = lines
     .map(([sha, ref]) => `refs/heads/x ${sha} ${ref} ${NO_COMMIT}\n`)
     .join("");
-  return spawnSync("sh", [HOOK], { cwd: repo, encoding: "utf8", input });
+  return hookWithInput(input, cwd);
 }
 
 function advanceMain(name: string, content = "main\n"): string {
@@ -71,6 +75,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   rmSync(repo, { recursive: true, force: true });
 });
 
@@ -130,14 +135,51 @@ test("a mode-only change is treated like any other change", () => {
   expect(status).toBe(1);
 });
 
-test.each([
-  ["color output", ["color.ui", "always"]],
-  ["an external diff tool", ["diff.external", "/usr/bin/true"]],
-])("%s can't make unreviewed changes pass", (_name, [key, value]) => {
+test("an external diff tool can't make unreviewed changes pass", () => {
   const sha = commitFile("change", "one\n");
-  git("config", key, value);
+  git("config", "diff.external", "/usr/bin/true");
 
   expect(runHook([[sha, BRANCH_REF]]).status).toBe(1);
+});
+
+test("color output keeps the review", () => {
+  const sha = commitFile("change", "one\n");
+  recordReview(sha);
+
+  git("config", "color.ui", "always");
+
+  expect(runHook([[sha, BRANCH_REF]]).status).toBe(0);
+});
+
+test("bytes invalid in the locale still identify the change", () => {
+  vi.stubEnv("LC_ALL", "en_US.UTF-8");
+  const reviewed = commitFile("change", Buffer.from([0x61, 0xff, 0x0a]));
+  recordReview(reviewed);
+
+  expect(runHook([[reviewed, BRANCH_REF]]).status).toBe(0);
+
+  const sha = commitFile("change", Buffer.from([0x62, 0xff, 0x0a]));
+
+  expect(runHook([[sha, BRANCH_REF]]).status).toBe(1);
+});
+
+test("a failing patch-id is refused rather than read as no changes", () => {
+  const sha = commitFile("change", "one\n");
+  const realGit = execFileSync("sh", ["-c", "command -v git"], {
+    encoding: "utf8",
+  }).trim();
+  const bin = mkdtempSync(join(repo, "bin-"));
+  writeFileSync(
+    join(bin, "git"),
+    `#!/bin/sh\n[ "$1" = patch-id ] && exit 1\nexec "${realGit}" "$@"\n`,
+    { mode: 0o755 },
+  );
+  vi.stubEnv("PATH", `${bin}:${process.env.PATH}`);
+
+  const { status, stderr } = runHook([[sha, BRANCH_REF]]);
+
+  expect(status).toBe(1);
+  expect(stderr).toContain("could not compare");
 });
 
 test("a diff that can't be read is refused rather than read as no changes", () => {
@@ -155,8 +197,16 @@ test("a diff that can't be read is refused rather than read as no changes", () =
   expect(stderr).toContain("could not compare");
 });
 
-test("a NUL byte in text is refused, since the id can't see it", () => {
-  const sha = commitFile("change", `${"x".repeat(9000)}\na\0b\n`);
+test.each([
+  ["valid", [0x61, 0x00, 0x62, 0x0a]],
+  ["invalid", [0xff, 0x00, 0x0a]],
+])("a NUL byte in text with %s encoding is refused", (_name, bytes) => {
+  vi.stubEnv("LC_ALL", "en_US.UTF-8");
+  const text = `${"x".repeat(9000)}\n`;
+  const sha = commitFile(
+    "change",
+    Buffer.concat([Buffer.from(text), Buffer.from(bytes)]),
+  );
 
   const { status, stderr } = runHook([[sha, BRANCH_REF]]);
 
@@ -255,6 +305,23 @@ test.each([
   expect(runHook([[git("rev-parse", "HEAD"), BRANCH_REF]]).status).toBe(0);
 });
 
+test("a rename keeps its review when main's edit moves its similarity", () => {
+  const numbered = (from: number, count: number) =>
+    Array.from({ length: count }, (_, i) => `line ${from + i}\n`).join("");
+  const original = numbered(0, 100);
+  git("merge", "-q", "--ff-only", advanceMain("tracked", original));
+  git("mv", "tracked", "renamed");
+  writeFileSync(join(repo, "renamed"), original + numbered(200, 8));
+  git("add", "renamed");
+  git("commit", "-q", "-m", "rename");
+  recordReview(git("rev-parse", "HEAD"));
+
+  const main = advanceMain("tracked", numbered(300, 60) + original);
+  git("-c", "merge.ff=false", "merge", "-q", "--no-edit", main);
+
+  expect(runHook([[git("rev-parse", "HEAD"), BRANCH_REF]]).status).toBe(0);
+});
+
 test("renaming to a different name needs its own review", () => {
   const main = advanceMain("tracked", "line\n".repeat(40));
   git("merge", "-q", "--ff-only", main);
@@ -283,6 +350,46 @@ test("one unreviewed branch refuses the whole push", () => {
   ]);
 
   expect(status).toBe(1);
+});
+
+test.each([
+  ["a tag", "HEAD", "refs/tags/v1"],
+  ["a deleted branch", NO_COMMIT, "refs/heads/a"],
+  [
+    "a branch with nothing beyond main",
+    "refs/remotes/origin/main",
+    "refs/heads/a",
+  ],
+])("%s doesn't excuse an unreviewed branch after it", (_name, rev, ref) => {
+  const sha = commitFile("change", "one\n");
+
+  const { status } = runHook([
+    [git("rev-parse", rev), ref],
+    [sha, BRANCH_REF],
+  ]);
+
+  expect(status).toBe(1);
+});
+
+test("a local ref holding a space is refused rather than misread", () => {
+  const sha = commitFile("change", "one\n");
+
+  const { status, stderr } = hookWithInput(
+    `HEAD@{1 minute ago} ${sha} ${BRANCH_REF} ${NO_COMMIT}\n`,
+  );
+
+  expect(status).toBe(1);
+  expect(stderr).toContain("could not read");
+});
+
+test("a review recorded in one worktree counts in another", () => {
+  const sha = commitFile("change", "one\n");
+  recordReview(sha);
+  const linked = join(mkdtempSync(join(repo, "worktrees-")), "linked");
+
+  git("worktree", "add", "-q", "--detach", linked, sha);
+
+  expect(runHook([[sha, BRANCH_REF]], linked).status).toBe(0);
 });
 
 test("a commit that can't be compared with main is refused", () => {
