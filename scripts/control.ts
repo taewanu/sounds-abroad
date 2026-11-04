@@ -8,10 +8,15 @@ import { checkHealth } from "./control/health";
 const USAGE = "Usage: pnpm control health [--sha <commit>]";
 const COMMIT = /^[0-9a-f]{7,40}$/;
 
+// The public URL rather than `origin`: reading it needs no credentials, and a
+// fork's `origin` isn't what production deploys from.
+const REPO_URL = "https://github.com/taewanu/sounds-abroad.git";
+
 /** The commit production should be serving, read from the remote so it can't lag a stale local ref. */
 function remoteMainCommit(): string {
-  return execFileSync("git", ["ls-remote", "origin", "refs/heads/main"], {
+  return execFileSync("git", ["ls-remote", REPO_URL, "refs/heads/main"], {
     encoding: "utf8",
+    timeout: 30_000,
   }).split(/\s/)[0];
 }
 
@@ -20,14 +25,12 @@ async function main(): Promise<number> {
     allowPositionals: true,
     options: { sha: { type: "string" } },
   });
+  if (positionals.length !== 1 || positionals[0] !== "health") {
+    throw new Error("Expected the health command.");
+  }
   const expectedSha = values.sha ?? remoteMainCommit();
-  if (
-    positionals.length !== 1 ||
-    positionals[0] !== "health" ||
-    !COMMIT.test(expectedSha)
-  ) {
-    console.error(USAGE);
-    return 2;
+  if (!COMMIT.test(expectedSha)) {
+    throw new Error(`"${expectedSha}" is not a commit.`);
   }
 
   const results = await checkHealth({ origin: SITE_URL, expectedSha });
