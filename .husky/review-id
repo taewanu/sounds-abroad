@@ -2,7 +2,7 @@
 # Prints nothing when nothing differs, and fails when it can't tell.
 base=$(git merge-base refs/remotes/origin/main "$1") || exit 1
 
-# Plumbing ignores color and external-diff config, -M keeps a rename's id when main edits the file, and --binary writes full object names, so the id doesn't shift with abbreviation length.
+# Plumbing ignores color and external-diff config, -M keeps a rename's id when main edits the file while it still counts as a rename, and --binary writes full object names, so the id doesn't shift with abbreviation length.
 changes() { git diff-tree -p --binary -M --ignore-submodules=none "$base" "$1"; }
 
 patch=$(changes "$1") || exit 1
@@ -15,6 +15,7 @@ if [ -n "$(changes "$1" | LC_ALL=C tr -dc '\0' | tr '\0' x)" ]; then
 fi
 
 # --verbatim counts whitespace, and a rename's similarity moves with main's edits to the rest of the file.
-id=$(printf '%s\n' "$patch" | LC_ALL=C sed '/^similarity index /d' | git patch-id --verbatim | cut -d' ' -f1)
+hashed=$(printf '%s\n' "$patch" | LC_ALL=C sed '/^similarity index /d') || exit 1
+id=$(printf '%s\n' "$hashed" | git patch-id --verbatim | cut -d' ' -f1)
 [ -n "$id" ] || exit 1
 echo "$id"

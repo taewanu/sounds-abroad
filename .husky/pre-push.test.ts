@@ -163,17 +163,21 @@ test("bytes invalid in the locale still identify the change", () => {
   expect(runHook([[sha, BRANCH_REF]]).status).toBe(1);
 });
 
-test("a failing patch-id is refused rather than read as no changes", () => {
+test.each([
+  [
+    "patch-id",
+    "git",
+    (realGit: string) =>
+      `#!/bin/sh\n[ "$1" = patch-id ] && exit 1\nexec "${realGit}" "$@"\n`,
+  ],
+  ["sed", "sed", () => "#!/bin/sh\nhead -n 2\nexit 1\n"],
+])("a failing %s is refused rather than hashed", (_name, tool, script) => {
   const sha = commitFile("change", "one\n");
   const realGit = execFileSync("sh", ["-c", "command -v git"], {
     encoding: "utf8",
   }).trim();
   const bin = mkdtempSync(join(repo, "bin-"));
-  writeFileSync(
-    join(bin, "git"),
-    `#!/bin/sh\n[ "$1" = patch-id ] && exit 1\nexec "${realGit}" "$@"\n`,
-    { mode: 0o755 },
-  );
+  writeFileSync(join(bin, tool), script(realGit), { mode: 0o755 });
   vi.stubEnv("PATH", `${bin}:${process.env.PATH}`);
 
   const { status, stderr } = runHook([[sha, BRANCH_REF]]);
@@ -371,11 +375,14 @@ test.each([
   expect(status).toBe(1);
 });
 
-test("a local ref holding a space is refused rather than misread", () => {
+test.each([
+  ["a space", "HEAD@{1 minute ago}"],
+  ["a trailing line break", ":/message\n"],
+])("a local ref holding %s is refused rather than misread", (_name, ref) => {
   const sha = commitFile("change", "one\n");
 
   const { status, stderr } = hookWithInput(
-    `HEAD@{1 minute ago} ${sha} ${BRANCH_REF} ${NO_COMMIT}\n`,
+    `${ref} ${sha} ${BRANCH_REF} ${NO_COMMIT}\n`,
   );
 
   expect(status).toBe(1);
