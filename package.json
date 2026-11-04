@@ -16,6 +16,7 @@
     "test": "vitest",
     "test:ci": "vitest --watch=false --reporter=default --reporter=github-actions",
     "verify": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test --run && pnpm build",
+    "health": "curl -fsS https://soundsabroad.app/api/health",
     "crawl": "tsx --env-file=.env.local scripts/crawl/main.ts",
     "crawl:cron": "tsx scripts/crawl/cron.ts",
     "commentary:todo": "tsx --env-file=.env.local scripts/commentary/todo.ts",
