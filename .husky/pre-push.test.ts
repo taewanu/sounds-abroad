@@ -144,7 +144,17 @@ test("a detached commit's first push is refused", () => {
   const { status, stderr } = push("HEAD:refs/heads/renamed");
 
   expect(status).toBe(1);
-  expect(stderr).toContain("detached");
+  expect(stderr).toContain("not on a checked-out branch");
+});
+
+test("a source that isn't a branch can't borrow the current branch's review", () => {
+  recordReview();
+  git("tag", "v1");
+
+  expect(
+    push(`${git("rev-parse", "HEAD")}:refs/heads/from-commit`).status,
+  ).toBe(1);
+  expect(push("v1:refs/heads/from-tag").status).toBe(1);
 });
 
 test("one unreviewed branch refuses the whole push", () => {

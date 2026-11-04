@@ -46,7 +46,7 @@ Review once. Don't review again after a fix unless the user asks: findings never
 Only once every finding is settled, record the review. Every worktree shares this setting, and deleting the branch clears it:
 
 ```bash
-git config "branch.$(git branch --show-current).prePrReviewed" "$(git rev-parse HEAD)"
+branch=$(git symbolic-ref --short HEAD) && git config "branch.$branch.prePrReviewed" "$(git rev-parse HEAD)"
 ```
 
 Add the result to the PR body:

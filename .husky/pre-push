@@ -6,10 +6,11 @@ while read -r local_ref _local_sha remote_ref remote_sha; do
 
   case "$local_ref" in
     refs/heads/*) branch=${local_ref#refs/heads/} ;;
-    *) branch=$(git symbolic-ref --quiet --short HEAD || true) ;;
+    HEAD) branch=$(git symbolic-ref --quiet --short HEAD || true) ;;
+    *) branch= ;;
   esac
   if ! git config --get "branch.$branch.prePrReviewed" >/dev/null 2>&1; then
-    echo "BLOCKED: no /pre-pr review recorded for ${branch:-this detached commit}. Run /pre-pr on it first, or push with --no-verify if it needs none." >&2
+    echo "BLOCKED: no /pre-pr review recorded for ${branch:-a commit not on a checked-out branch}. Run /pre-pr on it first, or push with --no-verify if it needs none." >&2
     exit 1
   fi
 done
