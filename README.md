@@ -45,6 +45,7 @@ mise exec -- pnpm lint
 mise exec -- pnpm format
 mise exec -- pnpm typecheck
 mise exec -- pnpm test
+mise exec -- pnpm health     # the commit production is serving
 ```
 
 Pre-commit hook (Husky 9 + lint-staged) runs format + lint + typecheck on staged files.
