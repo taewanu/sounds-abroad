@@ -1,38 +1,18 @@
 # Sounds Abroad
 
-A 3D globe-based world music discovery web app — explore trending music around the world.
+A 3D globe for exploring the music trending in each country.
 
-## Run commands
+Run everything through mise, so non-interactive shells get the pinned Node and pnpm: `mise exec -- pnpm <script>`. The gate is `mise exec -- pnpm verify`, which runs CI's checks except its frozen-lockfile install; pass it before opening a PR. Other commands are in the [README](README.md#for-developers).
 
-Uses pnpm 10 + Node 24 via mise. Wrap commands with `mise exec --` so non-interactive shells (CI, git hooks) resolve the right binaries:
+## Rules
 
-- `mise exec -- pnpm dev` — dev server (Turbopack)
-- `mise exec -- pnpm build` — production build
-- `mise exec -- pnpm lint` / `pnpm format` / `pnpm typecheck` / `pnpm test`
-
-Pre-commit hook runs format + lint + typecheck on staged files via Husky 9 + lint-staged.
-
-## Branching
-
-Phase 1 commits directly to `main`. From Phase 2 onward, each slice gets its own branch and PR into `main` (no umbrella phase branch).
+- Each slice gets one branch and one PR into `main`. A human decides every merge: don't merge unless told to.
+- Never delete published chart or commentary data from the object store; expose or change secrets; change Vercel settings or DNS; or weaken the GitHub ruleset or workflow permissions.
+- Leave these to a human, in an issue labelled `ready-for-human`: the published chart shape (`src/lib/chart-schema.ts`), public `/c/<code>` URLs, and crawl cadence or cache lifetimes, which drive billed meters.
 
 ## Where to look
 
-- Phase boundaries — annotated git tags (`git tag --list`)
-- Specs and tickets — GitHub Issues (`gh issue list`, see `docs/agents/issue-tracker.md`)
-- Architecture Decision Records — `docs/adr/` (why we chose X over Y)
-- Per-repo agent configuration — `docs/agents/` (engineering skills assume this layout)
-
-## Agent skills
-
-### Issue tracker
-
-GitHub Issues on `taewanu/sounds-abroad`, accessed via the `gh` CLI. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Five canonical labels (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) used as-is, no overrides. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Single-context — `CONTEXT.md` (created lazily) and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+- Decisions: [`docs/adr/README.md`](docs/adr/README.md)
+- Domain terms: [`CONTEXT.md`](CONTEXT.md)
+- Issue tracker, triage labels and how skills read domain docs: [`docs/agents/`](docs/agents)
+- Release history: annotated git tags (`git tag --list`)
