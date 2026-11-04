@@ -2,7 +2,7 @@
 
 A 3D globe for exploring the music trending in each country.
 
-Run everything through mise, so non-interactive shells get the pinned Node and pnpm: `mise exec -- pnpm <script>`. The gate is `mise exec -- pnpm verify`, which runs the same checks as CI; pass it before opening a PR. Other commands are in the [README](README.md#for-developers).
+Run everything through mise, so non-interactive shells get the pinned Node and pnpm: `mise exec -- pnpm <script>`. The gate is `mise exec -- pnpm verify`, which runs CI's checks except its frozen-lockfile install; pass it before opening a PR. Other commands are in the [README](README.md#for-developers).
 
 ## Rules
 
