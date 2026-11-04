@@ -15,7 +15,7 @@ Spin a globe, tap a country, hear what's trending there.
 
 ## What it does
 
-Travel through other countries' music. Spin the globe, pick a country, and you get its top tracks for the day, pulled from Apple's charts. Each country also has one "gem": a local favorite, sometimes with a short note on why it caught on. Preview a track in place, or open it in Spotify or Apple Music.
+Travel through other countries' music. Spin the globe, pick a country, and you get its current top tracks, pulled from Apple's charts. Each country also has one "gem": a local favorite, sometimes with a short note on why it caught on. Preview a track in place, or open it in Spotify or Apple Music.
 
 First-time visitors get a short gesture tour instead of written instructions.
 
@@ -23,13 +23,13 @@ First-time visitors get a short gesture tour instead of written instructions.
 
 A solo project, built mostly with Claude Code. A few specifics:
 
-- Charts refresh daily: a scheduled crawl reads Apple's public charts and bakes them into a static payload (Vercel Cron, monitored by Sentry).
+- Charts refresh about four times a day: a scheduled GitHub Actions crawl reads Apple's public charts and publishes the files the site reads. Sentry monitors the runs.
 - The globe is real 3D (react-three-fiber), not a map image; each country is a selectable geographic feature.
 - Decisions are written down as they happen, in `docs/adr/`, rather than reconstructed after.
 
 ## Tech
 
-Next.js 16 (App Router) · React 19 · react-three-fiber / three · topojson-client · motion · zustand · Tailwind CSS v4 · Vercel · Sentry.
+Next.js 16 (App Router) · React 19 · react-three-fiber / three · topojson-client · zustand · Tailwind CSS v4 · Vercel · Sentry.
 
 ---
 
@@ -53,7 +53,7 @@ Pre-commit hook (Husky 9 + lint-staged) runs format + lint + typecheck on staged
 
 - Design system: tokens in [`src/app/globals.css`](src/app/globals.css), self-hosted fonts in [`src/app/fonts/`](src/app/fonts/), brand assets in [`public/`](public/)
 - Architecture Decision Records: [`docs/adr/`](docs/adr)
-- Phase history: annotated git tags (`git tag --list`)
+- Release history: annotated git tags (`git tag --list`)
 - Issues: GitHub Issues (`gh issue list`)
 - Agent notes: [`AGENTS.md`](AGENTS.md) (served as `CLAUDE.md` via symlink)
 - Agent configuration: [`docs/agents/`](docs/agents) (issue tracker, triage labels, domain notes)
