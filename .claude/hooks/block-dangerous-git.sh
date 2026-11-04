@@ -25,7 +25,9 @@ FORCE="(-[[:alpha:]]*f[[:alpha:]]*|--force)"
 DOT="\.\.?/?( |;|&|\||\)|\$)"
 
 DANGEROUS_PATTERNS=(
-  "git push"
+  # The server's ruleset is the real guard on main; these stop pushes that rewrite, delete, or mass-update remote branches, or aim at main, before they leave this machine.
+  "git push $ARGS(-[[:alpha:]]*[df]|--force|--delete|--mirror|--all|\+|:)"
+  "git push $ARGS([^ ]*:)?(refs/heads/)?main( |;|&|\||\$)"
   "git reset --hard"
   "git clean -fd"
   "git clean -f"
