@@ -1,0 +1,20 @@
+reviewed="$(git rev-parse --git-common-dir)/pre-pr-reviewed"
+
+while read -r _local_ref local_sha remote_ref _remote_sha; do
+  case "$remote_ref" in refs/heads/*) ;; *) continue ;; esac
+  # All zeros means the push deletes the branch.
+  case "$local_sha" in *[!0]*) ;; *) continue ;; esac
+
+  short=$(git rev-parse --short "$local_sha")
+  if ! id=$(sh "$(dirname "$0")/review-id" "$local_sha"); then
+    echo "BLOCKED: could not compare $short with origin/main to look for a /pre-pr review. Fetch origin, or push with --no-verify if it needs none." >&2
+    exit 1
+  fi
+  # Nothing beyond the merge base with main means there is nothing to review.
+  [ -z "$id" ] && continue
+
+  if [ ! -e "$reviewed/$id" ]; then
+    echo "BLOCKED: no /pre-pr review recorded for the changes in $short. Run /pre-pr on it first, or push with --no-verify if it needs none." >&2
+    exit 1
+  fi
+done

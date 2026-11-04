@@ -6,3 +6,7 @@ public
 
 # Vendored upstream; formatting them buries real changes in the next sync diff
 .claude/skills
+
+# Nested worktrees and local audit output are not this tree's source
+.claude/worktrees
+.autopilot
