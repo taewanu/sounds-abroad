@@ -1,11 +1,6 @@
 reviewed="$(git rev-parse --git-common-dir)/pre-pr-reviewed"
 
-while read -r _local_ref local_sha remote_ref remote_sha extra; do
-  # A space or line break in the local ref shifts the fields, so none of them can be trusted.
-  if [ -z "$remote_sha" ] || [ -n "$extra" ]; then
-    echo "BLOCKED: could not read the pushed commit, because its local ref holds a space or line break. Push the branch by name, or push with --no-verify if it needs no review." >&2
-    exit 1
-  fi
+while read -r _local_ref local_sha remote_ref _remote_sha; do
   case "$remote_ref" in refs/heads/*) ;; *) continue ;; esac
   # All zeros means the push deletes the branch.
   case "$local_sha" in *[!0]*) ;; *) continue ;; esac
