@@ -2,6 +2,7 @@
 
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command')
+CWD=$(echo "$INPUT" | jq -r '.cwd // empty')
 
 # One shell word: quoted parts, command substitutions, escapes and bare characters.
 WORD="((\"[^\"]*\"|'[^']*'|\\\$\\([^)]*\\)|\\\\.|[^[:space:];&|\"'\\\\])+)"
@@ -28,7 +29,7 @@ FORCE="(-[[:alpha:]]*f[[:alpha:]]*|--force)"
 DOT="\.\.?/?( |;|&|\||\)|\$)"
 
 DANGEROUS_PATTERNS=(
-  # The server's ruleset is the real guard on main, including a bare push from it; these stop pushes that rewrite, delete, or mass-update remote branches, or name main, before they leave this machine.
+  # These stop pushes that rewrite, delete, or mass-update remote branches, or name main; a push's checkout is checked further down.
   "git push $ARGS(-[[:alpha:]]*[df]|--force|--delete|--mirror|--all|\+|:)"
   "git push $ARGS([^ ]*:)?(refs/heads/)?main( |;|&|\||\)|\$)"
   "git reset --hard"
@@ -66,6 +67,19 @@ done
 RESTORE_ALL="git restore $ARGS$DOT"
 if echo "$TEXT" | grep -oE "$RESTORE_ALL" | grep -qvE -- " (--staged|-S) "; then
   block "$RESTORE_ALL"
+fi
+
+# Where a push lands depends on the checkout it runs in, so it must run in the one the hook can read, and that one can't be main.
+if echo "$WITHOUT_OPTIONS" | grep -qE "git push"; then
+  if [[ "$WITHOUT_OPTIONS" != "$FLATTENED" ]]; then
+    block "git <global option> push"
+  fi
+  if echo "$FLATTENED" | grep -qE "(^|[;&|( ])cd "; then
+    block "cd before git push"
+  fi
+  if [[ "$(git -C "${CWD:-.}" symbolic-ref --quiet --short HEAD 2>/dev/null)" == "main" ]]; then
+    block "git push from main"
+  fi
 fi
 
 exit 0

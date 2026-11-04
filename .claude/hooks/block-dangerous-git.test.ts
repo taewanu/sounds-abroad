@@ -1,16 +1,58 @@
 import { spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { describe, expect, test } from "vitest";
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
 const HOOK = join(__dirname, "block-dangerous-git.sh");
 const BLOCKED = 2;
 const ALLOWED = 0;
 
-function runHook(command: string): number | null {
-  const input = JSON.stringify({ tool_input: { command } });
+let onMain: string;
+let onFeature: string;
+
+function createRepoOnBranch(branch: string): string {
+  const repo = mkdtempSync(join(tmpdir(), "hook-push-"));
+  spawnSync("git", ["-C", repo, "init", "-q", "-b", branch]);
+  return repo;
+}
+
+beforeAll(() => {
+  onMain = createRepoOnBranch("main");
+  onFeature = createRepoOnBranch("feature");
+});
+
+afterAll(() => {
+  rmSync(onMain, { recursive: true, force: true });
+  rmSync(onFeature, { recursive: true, force: true });
+});
+
+function runHook(command: string, cwd = onFeature): number | null {
+  const input = JSON.stringify({ tool_input: { command }, cwd });
   return spawnSync("bash", [HOOK], { input, encoding: "utf8" }).status;
 }
+
+test.each([
+  "git push",
+  "git push -u",
+  "git push origin",
+  "git push origin HEAD",
+  "git push origin feature",
+])("blocks any push from a checked-out main: %s", (command) => {
+  expect(runHook(command, onMain)).toBe(BLOCKED);
+});
+
+test.each([
+  "git -C /tmp/x push",
+  "git -C /tmp/x push origin feature",
+  "git --git-dir=/tmp/x push",
+  "git -C /tmp/x \\\n  push",
+  "cd /tmp/x && git push",
+  "cd /tmp/x; git push origin feature",
+])("blocks a push aimed at a repository the hook can't see: %s", (command) => {
+  expect(runHook(command)).toBe(BLOCKED);
+});
 
 describe("commands the hook blocks", () => {
   test.each([
