@@ -45,8 +45,12 @@ const FIX = {
       type: "array",
       items: {
         type: "object",
-        properties: { claim: { type: "string" }, reason: { type: "string" } },
-        required: ["claim", "reason"],
+        properties: {
+          id: { type: "integer", description: "The blocker's id" },
+          claim: { type: "string" },
+          reason: { type: "string" },
+        },
+        required: ["id", "claim", "reason"],
       },
     },
   },
@@ -66,16 +70,27 @@ const outsideTheDiff = (since) =>
 const guardComparison = (since) =>
   `The change in \`git diff ${since}...HEAD\` is a guard or a filter. Compare it against the version at \`${since}\` on generated inputs, because a table written beside the code shares its assumptions. Report each class of input where the two disagree and the brief doesn't ask them to.`;
 
-const reviewers = (since, { brief, guard }) => [
+// A reviewer of the fix's diff can't see a defect the fix left alone, so one agent checks the earlier blockers directly.
+const blockerRecheck = (unresolved) =>
+  `An earlier review raised these blockers, and a commit followed that may not resolve them:\n${JSON.stringify(unresolved, null, 2)}\n\nRead the code at HEAD. Report each one that still holds as a \`blocker\`, even where the rule below calls a defect the change didn't introduce \`minor\`. Report nothing for the ones that no longer hold.`;
+
+const reviewers = (since, { brief, guard }, unresolved) => [
   { label: "standards-and-spec", prompt: standardsAndSpec(since, brief) },
   { label: "outside-the-diff", prompt: outsideTheDiff(since) },
   ...(guard
     ? [{ label: "guard-comparison", prompt: guardComparison(since) }]
     : []),
+  ...(unresolved.length > 0
+    ? [{ label: "blocker-recheck", prompt: blockerRecheck(unresolved) }]
+    : []),
 ];
 
 const fixBlockers = (head, blockers) =>
-  `${pinTo(head)}\n\nThen run \`mise trust && mise exec -- pnpm install --frozen-lockfile\`, so the commit hook and the tests can run.\n\nReviewers found these blockers:\n${JSON.stringify(blockers, null, 2)}\n\nVerify each against the code, because a reviewer can be wrong. Fix the ones that hold, change nothing else, and make one commit whose message says why. List the ones that don't hold as rejected, with the reason.`;
+  `${pinTo(head)}\n\nThen run \`mise trust && mise exec -- pnpm install --frozen-lockfile\`, so the commit hook and the tests can run.\n\nReviewers found these blockers:\n${JSON.stringify(
+    blockers.map((blocker, id) => ({ id, ...blocker })),
+    null,
+    2,
+  )}\n\nVerify each against the code, because a reviewer can be wrong. Fix the ones that hold, change nothing else, and make one commit whose message says why. List the ones that don't hold as rejected, with the id and the reason. Keep a blocker that holds off that list even if you can't fix or commit it: it goes back to the user as blocked.`;
 
 if (!args?.sha || !args?.brief)
   throw new Error("pre-pr needs args.sha and args.brief");
@@ -84,10 +99,11 @@ const minors = [];
 const rejected = [];
 let head = args.sha;
 let since = "origin/main";
+let unresolved = [];
 
 for (let round = 1; round <= MAX_ROUNDS; round++) {
   const reviews = await parallel(
-    reviewers(since, args).map(
+    reviewers(since, args, unresolved).map(
       ({ label, prompt }) =>
         () =>
           agent(`${pinTo(head)}\n\n${prompt}\n\n${SEVERITY_RULE}`, {
@@ -123,7 +139,13 @@ for (let round = 1; round <= MAX_ROUNDS; round++) {
   if (!fix) return { status: "incomplete", head, minors, rejected };
 
   rejected.push(...fix.rejected);
-  if (fix.sha === head) return { status: "clean", head, minors, rejected };
+  const rejectedIds = new Set(fix.rejected.map(({ id }) => id));
+  unresolved = blockers.filter((_, id) => !rejectedIds.has(id));
+  if (fix.sha === head) {
+    return unresolved.length > 0
+      ? { status: "blocked", head, blockers: unresolved, minors, rejected }
+      : { status: "clean", head, minors, rejected };
+  }
   since = head;
   head = fix.sha;
 }

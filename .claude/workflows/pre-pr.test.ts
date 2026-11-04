@@ -8,7 +8,10 @@ type Finding = {
   location: string;
   claim: string;
 };
-type Fix = { sha: string; rejected: { claim: string; reason: string }[] };
+type Fix = {
+  sha: string;
+  rejected: { id: number; claim: string; reason: string }[];
+};
 type AgentOptions = { label: string; isolation?: string };
 type Result = {
   status: string;
@@ -38,14 +41,21 @@ const MINOR: Finding = {
   location: "a.ts:2",
   claim: "naming",
 };
+const OTHER_BLOCKER: Finding = {
+  severity: "blocker",
+  location: "b.ts:1",
+  claim: "also breaks",
+};
 
 function runWorkflow(
   reviewByRound: (Finding[] | null)[],
   fix: Fix | null = { sha: FIXED, rejected: [] },
   args: unknown = { sha: START, brief: "the goal" },
+  stillHolding: Finding[] = [],
 ) {
   const agent = vi.fn(async (_prompt: string, { label }: AgentOptions) => {
     if (label.startsWith("fix-")) return fix;
+    if (label.startsWith("blocker-recheck")) return { findings: stillHolding };
     const findings = reviewByRound[Number(label.at(-1)) - 1];
     return (
       findings && { findings: label.startsWith("outside") ? [] : findings }
@@ -95,7 +105,7 @@ test("a blocker in the last round stops without another fix or review", async ()
 });
 
 test("blockers the fixer rejects end the review without moving the head", async () => {
-  const rejected = [{ claim: "breaks", reason: "unreachable" }];
+  const rejected = [{ id: 0, claim: "breaks", reason: "unreachable" }];
   const { result, labels } = runWorkflow([[BLOCKER]], { sha: START, rejected });
 
   expect(await result).toMatchObject({
@@ -104,6 +114,53 @@ test("blockers the fixer rejects end the review without moving the head", async 
     rejected,
   });
   expect(labels()).not.toContain("outside-the-diff-2");
+});
+
+test("a blocker the fixer neither commits nor rejects comes back blocked", async () => {
+  const rejected = [{ id: 1, claim: "also breaks", reason: "unreachable" }];
+  const { result, labels } = runWorkflow([[BLOCKER, OTHER_BLOCKER]], {
+    sha: START,
+    rejected,
+  });
+
+  expect(await result).toMatchObject({
+    status: "blocked",
+    head: START,
+    blockers: [BLOCKER],
+    rejected,
+  });
+  expect(labels()).not.toContain("outside-the-diff-2");
+});
+
+test("the second round rechecks each blocker the fixer didn't reject", async () => {
+  const { result, agent } = runWorkflow(
+    [[BLOCKER, OTHER_BLOCKER], []],
+    {
+      sha: FIXED,
+      rejected: [{ id: 1, claim: "also breaks", reason: "unreachable" }],
+    },
+    { sha: START, brief: "the goal" },
+    [BLOCKER],
+  );
+
+  expect(await result).toMatchObject({
+    status: "blocked",
+    head: FIXED,
+    blockers: [BLOCKER],
+  });
+  const recheck = agent.mock.calls.find(
+    ([, { label }]) => label === "blocker-recheck-2",
+  );
+  expect(recheck?.[0]).toContain(`git checkout --detach ${FIXED}`);
+  expect(recheck?.[0]).toContain(BLOCKER.claim);
+  expect(recheck?.[0]).not.toContain(OTHER_BLOCKER.claim);
+});
+
+test("a fixer that resolves every blocker it didn't reject ends clean", async () => {
+  const { result, labels } = runWorkflow([[BLOCKER], []]);
+
+  expect(await result).toMatchObject({ status: "clean", head: FIXED });
+  expect(labels()).toContain("blocker-recheck-2");
 });
 
 test("a dead reviewer or fixer is incomplete, never clean", async () => {

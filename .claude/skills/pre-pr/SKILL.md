@@ -38,7 +38,7 @@ The brief is the issue or, for a PR with no issue, the draft description, plus f
 Show the user what the workflow returned. `minors` and `rejected` go into the PR body unfixed, and `status` says what happens next:
 
 - **`clean`:** no blocker remains. If `head` differs from `HEAD`, show `git log -p HEAD..<head>`. Once the user accepts it, run `git merge --ff-only <head>` and repeat step 2.
-- **`blocked`:** a blocker survived the second round. Start no third round: each fix round adds defects of its own. Show `blockers` and `head`, and let the user decide what to fix and what to keep with a stated reason.
+- **`blocked`:** a blocker survived the second round, or the fixer neither committed a fix nor rejected it. Start no third round: each fix round adds defects of its own. Show `blockers` and `head`, and let the user decide what to fix and what to keep with a stated reason.
 - **`incomplete`:** an agent died, so this is not a pass. Run the workflow again.
 
 ## 5. Record the review
