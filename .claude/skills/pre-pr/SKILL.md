@@ -23,23 +23,23 @@ mise exec -- pnpm verify
 
 A fresh worktree has no `.env.local`, so `build` fails on missing configuration until it is copied from the main checkout.
 
-## 3. Review in a clean context
+## 3. Run the review
 
-Spawn these agents together. Give each the repository path and the diff command, not your own reading of the change, so its review is not anchored on yours. Add facts the repository cannot show them, such as how an outside tool invokes the changed code, but not the cases you suspect.
+```
+Workflow({ name: "pre-pr", args: { sha: "<HEAD>", brief: "<brief>", guard: false } })
+```
 
-**Standards and spec.** One agent runs the `code-review` skill with `origin/main` as the fixed point. If that skill isn't installed, say so in the PR body. Give it the issue, or, for a PR with no issue, the draft description, and tell it to treat that description's claims as unverified.
+`.claude/workflows/pre-pr.js` holds the reviewers and the limits: at most two rounds, and only a `blocker` finding starts the second. Every agent works in its own worktree, so a script that lands in the wrong directory can't reset another checkout's files, and fixes don't move the branch until the user accepts them.
 
-**Outside the diff.** Diff reviewers read the lines that changed. The defects that reach production sit in the code those lines reach: a caller that relied on a removed fallback, a failure path that now waits longer. One agent gets this brief:
+The brief is the issue or, for a PR with no issue, the draft description, plus facts the repository cannot show, such as how an outside tool invokes the changed code. Leave out your own reading of the change and the cases you suspect, so the review is not anchored on them. Set `guard: true` when the change is a guard or a filter, which adds a comparison against the previous version on generated inputs.
 
-> Review `git diff origin/main...HEAD` in `<worktree path>`. For every changed line, trace its callers and dependents outside the diff: grep the call sites and read the code they reach. Report each failure the change newly exposes or makes worse, with the triggering condition, the consequence, and the worst-case bound before and after (staleness, cost, latency, data loss). Give extra weight to anything the diff removes, lengthens or narrows, such as a timer, retry, cache lifetime, fallback, validation or limit, and name what that safeguard used to catch. Cite `file:line` for every claim. Say "none found" rather than padding the report. Under 400 words.
+## 4. Settle the result
 
-When the change is a guard or a filter, have an agent also compare it against the previous version on generated inputs, because a table written beside the code shares its assumptions. Spawn any agent that runs git experiments with `isolation: "worktree"`, so a script that lands in the wrong directory can't reset another checkout's files.
+Show the user what the workflow returned. `minors` and `rejected` go into the PR body unfixed, and `status` says what happens next:
 
-After a fix round on a branch already reviewed, these agents may review just the new commits.
-
-## 4. Settle every finding
-
-Verify each finding against the code before acting on it, then show the findings to the user. Each one is either fixed, which makes a new commit and sends you back to step 1, or kept with a stated reason that goes into the PR body.
+- **`clean`:** no blocker remains. If `head` differs from `HEAD`, show `git log -p HEAD..<head>`. Once the user accepts it, run `git merge --ff-only <head>` and repeat step 2.
+- **`blocked`:** a blocker survived the second round. Start no third round: each fix round adds defects of its own. Show `blockers` and `head`, and let the user decide what to fix and what to keep with a stated reason.
+- **`incomplete`:** an agent died, so this is not a pass. Run the workflow again.
 
 ## 5. Record the review
 
@@ -61,9 +61,9 @@ Add the result to the PR body:
 
 Write "No findings." when the reviewers found none.
 
-## 6. Hand off the push
+## 6. Push
 
-A hook stops agents from pushing, so ask the user to push, then confirm with `git ls-remote origin <branch>` before opening or updating the PR.
+Push from the branch's worktree with `git push -u origin <branch>`, then confirm with `git ls-remote origin <branch>` before opening or updating the PR. The agent hook refuses a push that names main, forces or deletes, or that shares a command with `cd`.
 
 ## 7. Measure the pass after review
 
