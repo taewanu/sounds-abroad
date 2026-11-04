@@ -1,5 +1,4 @@
-// Prerendered, so a read costs no function invocation and the commit it reports
-// is the one this deployment was built from.
+// Prerendered, so a read costs no function invocation.
 export const dynamic = "force-static";
 
 /** Reports which commit is deployed. */
