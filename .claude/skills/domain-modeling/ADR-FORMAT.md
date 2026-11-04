@@ -6,7 +6,7 @@ Create the `docs/adr/` directory lazily — only when the first ADR is needed.
 
 ## Template
 
-Four parts, all required — every ADR in `docs/adr/` has them:
+Five parts, all required. Older ADRs have no `Revisit if`; add it when you next amend one.
 
 ```md
 # ADR-NNNN: {The decision, as a sentence}
@@ -18,6 +18,8 @@ Four parts, all required — every ADR in `docs/adr/` has them:
 ## Decision
 
 ## Consequences
+
+## Revisit if
 ```
 
 **Title** states the decision, not the topic: "Songs stay eager, playlist tracks load on demand", not "Data loading".
@@ -29,6 +31,10 @@ Four parts, all required — every ADR in `docs/adr/` has them:
 **Decision** leads with the rule in one bold line, then the specifics.
 
 **Consequences** names what this costs or constrains downstream, not what it improves.
+
+**Revisit if** lists the concrete conditions that would change the answer, each one something a reader can check: a meter, a measured figure, an event.
+
+A figure anywhere in the record carries its date and says whether it was measured or estimated. The current value lives in code or config.
 
 Add `### Alternatives rejected` under Decision when a rejected option stays tempting enough that someone would otherwise re-propose it. Use `###` subsections freely when a decision has parts.
 
