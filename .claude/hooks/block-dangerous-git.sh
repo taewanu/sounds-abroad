@@ -18,6 +18,9 @@ WITHOUT_OPTIONS=$(echo "$FLATTENED" | sed -E "s/(^|[^[:alnum:]_-])git( ($VALUE_O
 # The command as written is checked too, so stripping can never unblock anything.
 TEXT=$(printf '%s\n%s\n' "$COMMAND" "$WITHOUT_OPTIONS")
 
+# The shell removes quotes before git runs, so each line is checked without them too.
+TEXT=$(printf '%s\n%s\n' "$TEXT" "$(echo "$TEXT" | tr -d "'\"")")
+
 ARGS="([^;&|]* )?"
 DELETE="(-[[:alpha:]]*d[[:alpha:]]*|--delete)"
 FORCE="(-[[:alpha:]]*f[[:alpha:]]*|--force)"
@@ -25,9 +28,9 @@ FORCE="(-[[:alpha:]]*f[[:alpha:]]*|--force)"
 DOT="\.\.?/?( |;|&|\||\)|\$)"
 
 DANGEROUS_PATTERNS=(
-  # The server's ruleset is the real guard on main; these stop pushes that rewrite, delete, or mass-update remote branches, or aim at main, before they leave this machine.
+  # The server's ruleset is the real guard on main, including a bare push from it; these stop pushes that rewrite, delete, or mass-update remote branches, or name main, before they leave this machine.
   "git push $ARGS(-[[:alpha:]]*[df]|--force|--delete|--mirror|--all|\+|:)"
-  "git push $ARGS([^ ]*:)?(refs/heads/)?main( |;|&|\||\$)"
+  "git push $ARGS([^ ]*:)?(refs/heads/)?main( |;|&|\||\)|\$)"
   "git reset --hard"
   "git clean -fd"
   "git clean -f"
