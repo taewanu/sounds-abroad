@@ -1,15 +1,19 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterEach, beforeEach, expect, test } from "vitest";
 
 const HOOK = join(__dirname, "pre-push");
-const REVIEW_ID = join(__dirname, "review-id");
-const NO_COMMIT = "0".repeat(40);
-const BRANCH_REF = "refs/heads/feature";
 
+let root: string;
 let repo: string;
 
 function git(...args: string[]): string {
@@ -30,184 +34,147 @@ function git(...args: string[]): string {
   ).trim();
 }
 
-function commitFile(name: string, content: string): string {
+function commitFile(name: string, content = `${name}\n`) {
   writeFileSync(join(repo, name), content);
   git("add", name);
   git("commit", "-q", "-m", name);
-  return git("rev-parse", "HEAD");
 }
 
-function recordReview(sha: string) {
-  const records = join(repo, ".git", "pre-pr-reviewed");
-  mkdirSync(records, { recursive: true });
-  const id = execFileSync("sh", [REVIEW_ID, sha], {
-    cwd: repo,
+function recordReview(branch = "feature") {
+  git("config", `branch.${branch}.prePrReviewed`, git("rev-parse", branch));
+}
+
+function push(...args: string[]) {
+  return spawnSync("git", ["-C", repo, "push", "-q", "origin", ...args], {
     encoding: "utf8",
-  }).trim();
-  writeFileSync(join(records, id), "");
-}
-
-function runHook(lines: [sha: string, remoteRef: string][], cwd = repo) {
-  const input = lines
-    .map(([sha, ref]) => `refs/heads/x ${sha} ${ref} ${NO_COMMIT}\n`)
-    .join("");
-  return spawnSync("sh", ["-e", HOOK], { cwd, encoding: "utf8", input });
-}
-
-function advanceMain(name: string, content = "main\n"): string {
-  const branch = git("rev-parse", "--abbrev-ref", "HEAD");
-  git("switch", "-q", "main");
-  const sha = commitFile(name, content);
-  git("update-ref", "refs/remotes/origin/main", sha);
-  git("switch", "-q", branch);
-  return sha;
+  });
 }
 
 beforeEach(() => {
-  repo = mkdtempSync(join(tmpdir(), "pre-push-"));
+  root = mkdtempSync(join(tmpdir(), "pre-push-"));
+  repo = join(root, "repo");
+  const remote = join(root, "remote.git");
+  execFileSync("git", ["init", "-q", "--bare", "-b", "main", remote]);
   execFileSync("git", ["init", "-q", "-b", "main", repo]);
-  git("update-ref", "refs/remotes/origin/main", commitFile("base", "base\n"));
+  git("remote", "add", "origin", remote);
+
+  // Husky runs hooks under `sh -e` from a generated wrapper that a fresh repository doesn't have.
+  const wrapper = join(root, "hooks", "pre-push");
+  mkdirSync(join(root, "hooks"));
+  writeFileSync(wrapper, `#!/bin/sh\nexec sh -e "${HOOK}"\n`);
+  chmodSync(wrapper, 0o755);
+  git("config", "core.hooksPath", join(root, "hooks"));
+
+  commitFile("base");
   git("switch", "-q", "-c", "feature");
+  commitFile("change");
 });
 
 afterEach(() => {
-  rmSync(repo, { recursive: true, force: true });
+  rmSync(root, { recursive: true, force: true });
 });
 
-test("reviewed changes push", () => {
-  const sha = commitFile("change", "one\n");
-  recordReview(sha);
-
-  expect(runHook([[sha, BRANCH_REF]]).status).toBe(0);
-});
-
-test("changes with no recorded review are refused, naming the commit", () => {
-  const sha = commitFile("change", "one\n");
-
-  const { status, stderr } = runHook([[sha, BRANCH_REF]]);
+test("a branch's first push is refused without a review, naming the branch", () => {
+  const { status, stderr } = push("feature");
 
   expect(status).toBe(1);
-  expect(stderr).toContain(sha.slice(0, 7));
+  expect(stderr).toContain("no /pre-pr review recorded for feature");
+  expect(git("ls-remote", "origin", "refs/heads/feature")).toBe("");
 });
 
-test("a later code change needs its own review", () => {
-  recordReview(commitFile("change", "one\n"));
+test("a branch's first push passes with a review", () => {
+  recordReview();
 
-  const sha = commitFile("change", "two\n");
-
-  expect(runHook([[sha, BRANCH_REF]]).status).toBe(1);
+  expect(push("feature").status).toBe(0);
 });
 
-test("a whitespace change needs its own review", () => {
-  recordReview(commitFile("change", "a\n  b\n"));
+test("commits made after the review don't need another before the first push", () => {
+  recordReview();
+  commitFile("later");
 
-  const sha = commitFile("change", "a\n    b\n");
-
-  expect(runHook([[sha, BRANCH_REF]]).status).toBe(1);
+  expect(push("feature").status).toBe(0);
 });
 
-test("a binary change needs its own review", () => {
-  recordReview(commitFile("change", "\0one"));
+test("later pushes to a branch the remote has need no review", () => {
+  recordReview();
+  push("feature");
+  git("config", "--unset", "branch.feature.prePrReviewed");
+  commitFile("answer-to-review");
 
-  const sha = commitFile("change", "\0two");
-
-  expect(runHook([[sha, BRANCH_REF]]).status).toBe(1);
-});
-
-test("an external diff tool can't make unreviewed changes pass", () => {
-  const sha = commitFile("change", "one\n");
-  git("config", "diff.external", "/usr/bin/true");
-
-  expect(runHook([[sha, BRANCH_REF]]).status).toBe(1);
-});
-
-test("main moving ahead without a merge keeps the review", () => {
-  const sha = commitFile("change", "one\n");
-  recordReview(sha);
-
-  advanceMain("elsewhere");
-
-  expect(runHook([[sha, BRANCH_REF]]).status).toBe(0);
-});
-
-test("a clean merge of main keeps the review", () => {
-  recordReview(commitFile("change", "one\n"));
-  const main = advanceMain("elsewhere");
-
-  git("-c", "merge.ff=false", "merge", "-q", "--no-edit", main);
-
-  expect(runHook([[git("rev-parse", "HEAD"), BRANCH_REF]]).status).toBe(0);
-});
-
-test("a rebase onto main keeps the review", () => {
-  recordReview(commitFile("change", "one\n"));
-  const main = advanceMain("elsewhere");
-
-  git("rebase", "-q", main);
-
-  expect(runHook([[git("rev-parse", "HEAD"), BRANCH_REF]]).status).toBe(0);
-});
-
-test("a rename keeps its review when main edits the file", () => {
-  const numbered = (from: number, count: number) =>
-    Array.from({ length: count }, (_, i) => `line ${from + i}\n`).join("");
-  const original = numbered(0, 100);
-  git("merge", "-q", "--ff-only", advanceMain("tracked", original));
-  git("mv", "tracked", "renamed");
-  writeFileSync(join(repo, "renamed"), original + numbered(200, 8));
-  git("add", "renamed");
-  git("commit", "-q", "-m", "rename");
-  recordReview(git("rev-parse", "HEAD"));
-
-  const main = advanceMain("tracked", numbered(300, 60) + original);
-  git("-c", "merge.ff=false", "merge", "-q", "--no-edit", main);
-
-  expect(runHook([[git("rev-parse", "HEAD"), BRANCH_REF]]).status).toBe(0);
-});
-
-test("a branch with nothing beyond main needs no review", () => {
-  expect(runHook([[git("rev-parse", "HEAD"), BRANCH_REF]]).status).toBe(0);
-});
-
-test("one unreviewed branch refuses the whole push", () => {
-  const reviewed = commitFile("change", "one\n");
-  recordReview(reviewed);
-  const unreviewed = commitFile("change", "two\n");
-
-  const { status } = runHook([
-    [reviewed, "refs/heads/a"],
-    [unreviewed, "refs/heads/b"],
-  ]);
-
-  expect(status).toBe(1);
+  expect(push("feature").status).toBe(0);
 });
 
 test("a review recorded in one worktree counts in another", () => {
-  const sha = commitFile("change", "one\n");
-  recordReview(sha);
-  const linked = join(mkdtempSync(join(repo, "worktrees-")), "linked");
+  recordReview();
+  const linked = join(root, "linked");
+  git("worktree", "add", "-q", linked, "-b", "other");
+  git("config", "branch.other.prePrReviewed", "reviewed");
 
-  git("worktree", "add", "-q", "--detach", linked, sha);
+  const { status } = spawnSync(
+    "git",
+    ["-C", linked, "push", "-q", "origin", "other"],
+    { encoding: "utf8" },
+  );
 
-  expect(runHook([[sha, BRANCH_REF]], linked).status).toBe(0);
+  expect(status).toBe(0);
 });
 
-test("a commit that can't be compared with main is refused", () => {
-  const sha = commitFile("change", "one\n");
-  git("update-ref", "-d", "refs/remotes/origin/main");
+test("deleting a branch drops its review, so a reused name needs a new one", () => {
+  recordReview();
+  git("switch", "-q", "main");
+  git("branch", "-q", "-D", "feature");
+  git("switch", "-q", "-c", "feature");
+  commitFile("unrelated");
 
-  const { status, stderr } = runHook([[sha, BRANCH_REF]]);
+  expect(push("feature").status).toBe(1);
+});
+
+test("pushing HEAD to a new branch checks the current branch's review", () => {
+  expect(push("HEAD:refs/heads/renamed").status).toBe(1);
+
+  recordReview();
+
+  expect(push("HEAD:refs/heads/renamed").status).toBe(0);
+});
+
+test("a detached commit's first push is refused", () => {
+  recordReview();
+  git("switch", "-q", "--detach");
+
+  const { status, stderr } = push("HEAD:refs/heads/renamed");
 
   expect(status).toBe(1);
-  expect(stderr).toContain("could not compare");
+  expect(stderr).toContain("not on a checked-out branch");
 });
 
-test("deleting a branch needs no review", () => {
-  expect(runHook([[NO_COMMIT, BRANCH_REF]]).status).toBe(0);
+test("a source that isn't a branch can't borrow the current branch's review", () => {
+  recordReview();
+  git("tag", "v1");
+
+  expect(
+    push(`${git("rev-parse", "HEAD")}:refs/heads/from-commit`).status,
+  ).toBe(1);
+  expect(push("v1:refs/heads/from-tag").status).toBe(1);
+});
+
+test("one unreviewed branch refuses the whole push", () => {
+  recordReview();
+  git("branch", "unreviewed");
+
+  expect(push("feature", "unreviewed").status).toBe(1);
+  expect(git("ls-remote", "origin", "refs/heads/feature")).toBe("");
+});
+
+test("deleting a remote branch needs no review", () => {
+  recordReview();
+  push("feature");
+  git("config", "--unset", "branch.feature.prePrReviewed");
+
+  expect(push("--delete", "feature").status).toBe(0);
 });
 
 test("pushing a tag needs no review", () => {
-  const sha = commitFile("change", "one\n");
+  git("tag", "v1");
 
-  expect(runHook([[sha, "refs/tags/v1"]]).status).toBe(0);
+  expect(push("v1").status).toBe(0);
 });

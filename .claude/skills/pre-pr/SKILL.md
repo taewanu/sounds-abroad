@@ -1,13 +1,13 @@
 ---
 name: pre-pr
-description: Review a branch locally before its pull request opens. Runs the CI checks, has agents with a clean context run code-review and trace what the diff newly breaks outside itself, and records the reviewed changes so the pre-push hook lets them through. Use before pushing a branch for a PR, and again after any code change on it, or when the hook refuses a push.
+description: Review a branch locally before its pull request opens. Runs the CI checks, has agents with a clean context run code-review and trace what the diff newly breaks outside itself, and records the review so the pre-push hook lets the branch's first push through. Use before a branch's first push, or when the hook refuses one.
 ---
 
 # Pre-PR review
 
 The review runs here, before the PR, so its findings land before anyone else reads the change. The session that wrote the code doesn't review it: agents with a clean context do.
 
-The pre-push hook (`.husky/pre-push`) refuses a commit with no recorded review, so a skipped review surfaces before the push rather than after CI. The record identifies the lines the branch changes against `origin/main`, ignoring where they sit in the file. A change to those lines needs a fresh pass, and a merge or rebase that leaves them alone keeps its review. Two limits follow: the same lines moved within the file keep the review, and main editing right next to them or shrinking a renamed file until git no longer sees a rename can lose it. The record shows the step happened, not how well, and `--no-verify` skips it for a push that needs no review.
+The pre-push hook (`.husky/pre-push`) refuses a branch's first push until a review is recorded, so a skipped review surfaces before the PR rather than after CI. Later pushes pass, because commits that answer a review don't need another full pass. The record shows the step happened, not how well. `--no-verify` skips it for a push that needs no review, so a branch pushed that way and opened as a PR later goes unchecked.
 
 The hook lives in each checkout, so it only guards a worktree that has merged it and has run `pnpm install`, which generates `.husky/_`.
 
@@ -35,19 +35,18 @@ Spawn these agents together. Give each the repository path and the diff command,
 
 When the change is a guard or a filter, have an agent also compare it against the previous version on generated inputs, because a table written beside the code shares its assumptions. Spawn any agent that runs git experiments with `isolation: "worktree"`, so a script that lands in the wrong directory can't reset another checkout's files.
 
-After a fix round on a branch already reviewed, these agents may review just the new commits.
+## 4. Settle the findings
 
-## 4. Settle every finding
+Verify each finding against the code, then show the findings to the user. Fix only a blocker: a defect that real use of this repository can trigger and that breaks what the change sets out to do, breaks production behavior, loses data, or raises a metered cost. List the rest in the PR body unfixed.
 
-Verify each finding against the code before acting on it, then show the findings to the user. Each one is either fixed, which makes a new commit and sends you back to step 1, or kept with a stated reason that goes into the PR body.
+Review once. Don't review again after a fix unless the user asks: findings never run out, and each fix round can add defects of its own.
 
 ## 5. Record the review
 
-Only once every finding is settled at the current `HEAD`, record its changes from the worktree root. Every worktree shares this directory:
+Only once every finding is settled, record the review. Every worktree shares this setting, and deleting the branch clears it:
 
 ```bash
-records="$(git rev-parse --git-common-dir)/pre-pr-reviewed"
-id=$(sh .husky/review-id HEAD) && [ -n "$id" ] && mkdir -p "$records" && touch "$records/$id"
+branch=$(git symbolic-ref --short HEAD) && git config "branch.$branch.prePrReviewed" "$(git rev-parse HEAD)"
 ```
 
 Add the result to the PR body:
@@ -61,9 +60,9 @@ Add the result to the PR body:
 
 Write "No findings." when the reviewers found none.
 
-## 6. Hand off the push
+## 6. Push
 
-A hook stops agents from pushing, so ask the user to push, then confirm with `git ls-remote origin <branch>` before opening or updating the PR.
+Push from the branch's worktree with `git push -u origin <branch>`, then confirm with `git ls-remote origin <branch>` before opening the PR. The agent hook refuses a push that names main, forces or deletes, or that shares a command with `cd`.
 
 ## 7. Measure the pass after review
 
