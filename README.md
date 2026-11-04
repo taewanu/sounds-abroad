@@ -45,6 +45,7 @@ mise exec -- pnpm lint
 mise exec -- pnpm format
 mise exec -- pnpm typecheck
 mise exec -- pnpm test
+mise exec -- pnpm control health   # production commit vs main (or --sha <commit>), and chart age
 ```
 
 Pre-commit hook (Husky 9 + lint-staged) runs format + lint + typecheck on staged files.
