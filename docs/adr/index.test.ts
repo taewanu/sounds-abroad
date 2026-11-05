@@ -32,7 +32,7 @@ test("no file outside the decision records cites a historical one", () => {
       "grep",
       "-n",
       "-E",
-      `(ADR[- ]|adr/)(${historical.join("|")})`,
+      `(ADR[- ]|adr/)([0-9]{4}[/, ]+)*(${historical.join("|")})`,
       "--",
       ".",
       ":(exclude)docs/adr",
