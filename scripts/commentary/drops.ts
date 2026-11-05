@@ -55,11 +55,3 @@ export function recordAttempts(
   }
   return next;
 }
-
-/**
- * Derives the drop-ledger URL from the published commentary URL: both files live
- * under the same blob prefix, so the ledger needs no env var of its own.
- */
-export function dropsUrlFrom(commentaryUrl: string): string {
-  return commentaryUrl.replace(/commentary\.json(\?.*)?$/, "drops.json");
-}

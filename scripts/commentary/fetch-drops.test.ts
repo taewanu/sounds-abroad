@@ -1,8 +1,7 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 
-import { fetchDrops } from "./fetch-drops";
-
-const URL = "https://blob/commentary/v1/drops.json";
+import { DROPS_PATHNAME } from "./drops";
+import { readDrops } from "./fetch-drops";
 
 function validLedger() {
   return {
@@ -14,42 +13,30 @@ function validLedger() {
   };
 }
 
-function fakeFetch(response: { status: number; body: string }): typeof fetch {
-  return (async () =>
-    new Response(response.body, { status: response.status })) as typeof fetch;
-}
-
-test("returns the parsed ledger on a valid response", async () => {
+test("reads the ledger from the key the batch overwrites", async () => {
   const ledger = validLedger();
+  const read = vi.fn(async () => ledger);
 
-  const result = await fetchDrops(
-    URL,
-    fakeFetch({ status: 200, body: JSON.stringify(ledger) }),
-  );
+  const result = await readDrops(read);
 
+  expect(read).toHaveBeenCalledWith(DROPS_PATHNAME);
   expect(result).toEqual(ledger);
 });
 
-test("returns an empty ledger on a 404 (never written yet)", async () => {
-  const result = await fetchDrops(
-    URL,
-    fakeFetch({ status: 404, body: "Not Found" }),
+test("a ledger never written reads as empty", async () => {
+  expect(await readDrops(async () => null)).toEqual({});
+});
+
+test("a failed read throws rather than erasing the ledger", async () => {
+  await expect(
+    readDrops(async () => {
+      throw new Error("read failed");
+    }),
+  ).rejects.toThrow("read failed");
+});
+
+test("a schema mismatch throws rather than overwriting from a bad read", async () => {
+  await expect(readDrops(async () => ({ "en:a|b": {} }))).rejects.toThrow(
+    /schema validation/,
   );
-
-  expect(result).toEqual({});
-});
-
-test("throws on a non-404 failure rather than erasing the ledger", async () => {
-  await expect(
-    fetchDrops(URL, fakeFetch({ status: 500, body: "Server Error" })),
-  ).rejects.toThrow(/read failed \(500\)/);
-});
-
-test("throws on a schema mismatch rather than overwriting from a bad read", async () => {
-  await expect(
-    fetchDrops(
-      URL,
-      fakeFetch({ status: 200, body: JSON.stringify({ "en:a|b": {} }) }),
-    ),
-  ).rejects.toThrow(/schema validation/);
 });

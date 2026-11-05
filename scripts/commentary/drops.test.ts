@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { dropsUrlFrom, recordAttempts, type DropsStore } from "./drops";
+import { recordAttempts, type DropsStore } from "./drops";
 
 const TRIED = "2026-06-23T04:00:00.000Z";
 
@@ -84,16 +84,4 @@ test("recordAttempts does not mutate the prior ledger", () => {
   );
 
   expect(prior["en:a|x"].attempts).toBe(1);
-});
-
-test("dropsUrlFrom swaps the commentary filename for the ledger", () => {
-  expect(
-    dropsUrlFrom("https://blob.example/commentary/v1/commentary.json"),
-  ).toBe("https://blob.example/commentary/v1/drops.json");
-});
-
-test("dropsUrlFrom strips a cache-busting query before swapping", () => {
-  expect(
-    dropsUrlFrom("https://blob.example/commentary/v1/commentary.json?v=2"),
-  ).toBe("https://blob.example/commentary/v1/drops.json");
 });

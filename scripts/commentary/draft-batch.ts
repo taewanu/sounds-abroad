@@ -4,9 +4,9 @@ import { fetchPublishedCharts } from "../crawl/published-charts";
 import { assertObjectStoreEnv } from "../lib/object-store";
 
 import { createClaudeDrafter, draftEntry } from "./draft";
-import { dropsUrlFrom, recordAttempts } from "./drops";
+import { recordAttempts } from "./drops";
 import { salvageCommentaryStore } from "./fetch-commentary";
-import { fetchDrops } from "./fetch-drops";
+import { readDrops } from "./fetch-drops";
 import { createClaudeJudge, fetchSourceText, groundEntry } from "./ground";
 import { loadPreviousCharts } from "./previous-charts";
 import { publishStore } from "./publish-store";
@@ -56,13 +56,10 @@ const previous = await loadPreviousCharts(process.env.CHARTS_PREV_BLOB_URL);
 // Read the live store raw, never schema-validated: one entry that fails the
 // since-tightened schema must not void the whole store.
 const existing = await readLiveCommentary();
-const commentaryUrl = process.env.COMMENTARY_BLOB_URL;
 
-// The drop ledger lives beside the commentary store. Read it so the worklist
-// skips tracks that have already spent their retries on the gate (#139); without
-// a published store there is no ledger yet, so start empty.
-const dropsUrl = commentaryUrl ? dropsUrlFrom(commentaryUrl) : undefined;
-const priorDrops = dropsUrl ? await fetchDrops(dropsUrl) : {};
+// Read the drop ledger so the worklist skips tracks that have already spent
+// their retries on the gate (#139).
+const priorDrops = await readDrops();
 
 // The worklist diffs against the validated view, not the raw base: an entry
 // the tightened schema rejects bakes as no card, so its key must re-queue for
