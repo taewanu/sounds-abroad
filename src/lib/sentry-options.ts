@@ -15,3 +15,10 @@ export const dataCollection = {
   queues: false,
   graphQL: { document: false, variables: false },
 } satisfies NonNullable<NodeOptions["dataCollection"]>;
+
+// v11 turned both on: a synthetic stack trace regroups message events under new
+// issues, and span streaming sends a trace in several envelopes.
+export const v10Behavior = {
+  attachStacktrace: false,
+  traceLifecycle: "static",
+} satisfies NodeOptions;

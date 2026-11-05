@@ -1,10 +1,10 @@
 import * as Sentry from "@sentry/node";
 
-import { dataCollection } from "../../src/lib/sentry-data-collection";
+import { dataCollection, v10Behavior } from "../../src/lib/sentry-options";
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 if (!dsn) {
-  throw new Error("NEXT_PUBLIC_SENTRY_DSN missing — set as GitHub Secret.");
+  throw new Error("NEXT_PUBLIC_SENTRY_DSN missing: set it as a GitHub Secret.");
 }
 
 Sentry.init({
@@ -13,6 +13,5 @@ Sentry.init({
   release: process.env.GITHUB_SHA?.slice(0, 7),
   tracesSampleRate: 0,
   dataCollection,
-  // Status messages group by their text; a synthetic stack trace would regroup them under new issues.
-  attachStacktrace: false,
+  ...v10Behavior,
 });

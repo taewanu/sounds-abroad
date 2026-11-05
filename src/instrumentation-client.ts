@@ -7,10 +7,10 @@ import posthog from "posthog-js";
 import { z } from "zod";
 
 import { POSTHOG_HOST } from "./lib/analytics-host";
-import { dataCollection } from "./lib/sentry-data-collection";
+import { dataCollection, v10Behavior } from "./lib/sentry-options";
 
 // The content-security policy allows no eval, so zod's JIT probe would log a
-// violation on every visit; jitless skips the probe. Client only — the crawl
+// violation on every visit; jitless skips the probe. Client only: the crawl
 // and the server keep the compiled parsers.
 z.config({ jitless: true });
 
@@ -35,8 +35,9 @@ Sentry.init({
   // Define how likely Replay events are sampled when an error occurs.
   replaysOnErrorSampleRate: 1.0,
 
-  // No IP, cookies or bodies; non-PII context is opted in below via Sentry.setContext().
+  // Non-PII context is opted in below via Sentry.setContext().
   dataCollection,
+  ...v10Behavior,
 
   // Deployment Protection admits the /monitoring tunnel only with its cookie,
   // which the SDK omits by default.

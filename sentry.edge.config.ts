@@ -5,7 +5,7 @@
 
 import * as Sentry from "@sentry/nextjs";
 
-import { dataCollection } from "./src/lib/sentry-data-collection";
+import { dataCollection, v10Behavior } from "./src/lib/sentry-options";
 
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
@@ -18,6 +18,7 @@ Sentry.init({
   tracesSampleRate: 0.1,
 
   dataCollection,
+  ...v10Behavior,
 });
 
 // Server-only deployment metadata not covered by Sentry's first-class fields above.
