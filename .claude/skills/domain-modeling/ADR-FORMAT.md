@@ -34,7 +34,7 @@ Five parts, all required. Older ADRs have no `Revisit if`; add it when you next 
 
 **Revisit if** lists the concrete conditions that would change the answer, each one something a reader can check: a meter, a measured figure, an event.
 
-A figure anywhere in the record carries its date and says whether it was measured or estimated. The current value lives in code or config.
+A measured or estimated figure anywhere in the record carries its date and says which it is. The current value lives in code or config.
 
 Add `### Alternatives rejected` under Decision when a rejected option stays tempting enough that someone would otherwise re-propose it. Use `###` subsections freely when a decision has parts.
 
