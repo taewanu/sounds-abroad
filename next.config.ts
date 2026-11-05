@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import { withSentryConfig } from "@sentry/nextjs";
+import { withSentryConfig } from "@sentry/nextjs/config";
 
 import { POSTHOG_HOST } from "./src/lib/analytics-host";
 import { APPLE_ARTWORK_DOMAIN, APPLE_PREVIEW_HOST } from "./src/lib/url-schema";

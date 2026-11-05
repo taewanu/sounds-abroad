@@ -7,6 +7,7 @@ import posthog from "posthog-js";
 import { z } from "zod";
 
 import { POSTHOG_HOST } from "./lib/analytics-host";
+import { dataCollection } from "./lib/sentry-data-collection";
 
 // The content-security policy allows no eval, so zod's JIT probe would log a
 // violation on every visit; jitless skips the probe. Client only — the crawl
@@ -26,9 +27,6 @@ Sentry.init({
   // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
   tracesSampleRate: 0.1,
 
-  // Enable logs to be sent to Sentry
-  enableLogs: true,
-
   // Define how likely Replay events are sampled.
   // This sets the sample rate to be 10%. You may want this to be 100% while
   // in development and sample at a lower rate in production
@@ -37,9 +35,12 @@ Sentry.init({
   // Define how likely Replay events are sampled when an error occurs.
   replaysOnErrorSampleRate: 1.0,
 
-  // Privacy-by-default: skip auto-capture of IP / cookies / headers.
-  // Non-PII context is opted in below via Sentry.setContext().
-  sendDefaultPii: false,
+  // No IP, cookies or bodies; non-PII context is opted in below via Sentry.setContext().
+  dataCollection,
+
+  // Deployment Protection admits the /monitoring tunnel only with its cookie,
+  // which the SDK omits by default.
+  transportOptions: { fetchOptions: { credentials: "same-origin" } },
 });
 
 // Manual opt-in: rich non-PII context for learning and debugging.

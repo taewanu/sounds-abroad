@@ -5,6 +5,8 @@
 
 import * as Sentry from "@sentry/nextjs";
 
+import { dataCollection } from "./src/lib/sentry-data-collection";
+
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
@@ -15,11 +17,7 @@ Sentry.init({
   // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
   tracesSampleRate: 0.1,
 
-  // Enable logs to be sent to Sentry
-  enableLogs: true,
-
-  // Privacy-by-default: skip auto-capture of IP / cookies / headers.
-  sendDefaultPii: false,
+  dataCollection,
 });
 
 // Server-only deployment metadata not covered by Sentry's first-class fields above.
