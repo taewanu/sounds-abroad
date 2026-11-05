@@ -79,35 +79,3 @@ export function withCommentaryDegradationSignal(
     return store;
   };
 }
-
-/**
- * Read the store as raw JSON for a writer that merges new entries in, preserving
- * every existing entry verbatim. Two differences from the baking read make it
- * safe to overwrite from: it preserves even entries the schema rejects (the
- * baking read drops them, which is fine for display but would erase them from
- * a merge-then-overwrite); and it THROWS on a failed read instead of degrading
- * to null, so a merge-then-overwrite aborts rather than wiping the live cards
- * when a read transiently fails. Per-entry VALUES go unvalidated (a merge only
- * spreads and re-keys them), but the top-level shape is checked: a non-object
- * payload (null, an array) would otherwise spread into an empty or malformed
- * merge and persist a broken store.
- */
-export async function fetchCommentaryStoreRaw(
-  url: string,
-  fetchImpl: typeof fetch = fetchChartsStore,
-): Promise<CommentaryStore> {
-  const res = await fetchImpl(url);
-  // A 404 means the store has never been written (a first run), so it starts
-  // empty, the same boundary the drop ledger beside it already draws. There are
-  // no cards to wipe, so aborting would guard nothing and would only stop the
-  // first batch from ever writing one.
-  if (res.status === 404) return {};
-  if (!res.ok) {
-    throw new Error(`Commentary store read failed (${res.status}) at ${url}.`);
-  }
-  const json: unknown = await res.json();
-  if (json === null || typeof json !== "object" || Array.isArray(json)) {
-    throw new Error(`Commentary store is not a JSON object at ${url}.`);
-  }
-  return json as CommentaryStore;
-}

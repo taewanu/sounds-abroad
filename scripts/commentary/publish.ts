@@ -5,18 +5,27 @@ import { assertObjectStoreEnv } from "../lib/object-store";
 
 import { createClaudeJudge, fetchSourceText, groundEntry } from "./ground";
 import { parseCandidateStore } from "./parse-store";
+import { publishStore } from "./publish-store";
 import { routeStore } from "./route";
-import { backupCommentary, uploadCommentary } from "./upload-commentary";
+import {
+  backupCommentary,
+  readLiveCommentary,
+  uploadCommentary,
+} from "./upload-commentary";
 
 // Validates a candidate commentary file against the schema, then routes each
-// blurb through the gate: an entry that clears every check publishes, any
+// blurb through the gate: an entry that clears every check is published, any
 // failure drops that one card (ADR-0009). See docs/commentary-playbook.md.
 
 assertObjectStoreEnv("Run via: pnpm commentary:publish <file>.");
 
-const file = process.argv[2];
+const args = process.argv.slice(2);
+const replace = args.includes("--replace");
+const file = args.find((arg) => !arg.startsWith("--"));
 if (!file) {
-  throw new Error("Usage: pnpm commentary:publish <candidate.json>");
+  throw new Error(
+    "Usage: pnpm commentary:publish <candidate.json> [--replace]",
+  );
 }
 
 const raw: unknown = JSON.parse(await readFile(file, "utf8"));
@@ -26,6 +35,10 @@ if (!parsed.ok) {
   for (const error of parsed.errors) console.error(`  - ${error}`);
   process.exit(1);
 }
+
+// Read the live store before the gate spends a judge call per blurb, so a
+// failed read costs nothing.
+const live = await readLiveCommentary();
 
 const judge = createClaudeJudge();
 const ground = (entry: Commentary) =>
@@ -47,15 +60,16 @@ if (publishedCount === 0) {
   process.exit(1);
 }
 
-// Snapshot the live store before overwriting, so a bad publish can be undone.
-// Absent on the first publish (nothing to back up yet).
-const previousUrl = process.env.COMMENTARY_BLOB_URL;
-if (previousUrl) {
-  const backupUrl = await backupCommentary(new Date().toISOString());
-  console.log(`Backed up current store -> ${backupUrl}`);
-}
-
-const url = await uploadCommentary(published);
+const { url, backupUrl, total } = await publishStore(
+  published,
+  live,
+  { replace },
+  {
+    backupLiveStore: () => backupCommentary(new Date().toISOString()),
+    uploadStore: uploadCommentary,
+  },
+);
+if (backupUrl) console.log(`Backed up current store -> ${backupUrl}`);
 console.log(
-  `Published ${publishedCount} entr(ies), dropped ${dropped.length} -> ${url}`,
+  `Published ${publishedCount} entr(ies), dropped ${dropped.length}; store now ${total} -> ${url}`,
 );

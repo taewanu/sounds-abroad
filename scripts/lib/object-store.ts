@@ -1,5 +1,7 @@
 import {
   CopyObjectCommand,
+  GetObjectCommand,
+  NoSuchKey,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -61,6 +63,24 @@ function objectStore(): S3Client {
 /** The public URL a published object is served from. */
 export function publicUrl(key: string): string {
   return `${requireEnv("R2_PUBLIC_BASE_URL").replace(/\/$/, "")}/${key}`;
+}
+
+/**
+ * Reads the JSON document at `key` from the bucket itself, past any edge cache,
+ * so a writer reads the same object it overwrites. Null when nothing is there.
+ */
+export async function getJson(key: string): Promise<unknown> {
+  try {
+    const res = await objectStore().send(
+      new GetObjectCommand({ Bucket: BUCKET, Key: key }),
+    );
+    const body = await res.Body?.transformToString();
+    if (body === undefined) throw new Error(`Empty body at ${key}.`);
+    return JSON.parse(body);
+  } catch (error) {
+    if (error instanceof NoSuchKey) return null;
+    throw error;
+  }
 }
 
 /** Publishes a JSON document at `key`, overwriting whatever was there. */
