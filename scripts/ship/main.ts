@@ -37,7 +37,9 @@ const pr = JSON.parse(
 
 const { check_runs: checkRuns } = JSON.parse(
   gh("api", `repos/{owner}/{repo}/commits/${pr.headRefOid}/check-runs`),
-) as { check_runs: { name: string; conclusion: string | null }[] };
+) as {
+  check_runs: { app: { slug: string }; conclusion: string | null }[];
+};
 
 console.log(
   formatShipCheck({
@@ -48,7 +50,8 @@ console.log(
     body: pr.body,
     headSha: pr.headRefOid,
     coderabbitConclusion:
-      checkRuns.find(({ name }) => name === "CodeRabbit")?.conclusion ?? null,
+      checkRuns.find(({ app }) => app.slug === "coderabbitai")?.conclusion ??
+      null,
     diff: gh("pr", "diff", number),
   }),
 );

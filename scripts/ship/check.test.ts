@@ -100,6 +100,18 @@ test("a changed line naming a cache lifetime is high, wherever it sits", () => {
   expect(riskTier(pullRequest({ diff }))).toBe("high");
 });
 
+test("a removed line that reads like a file header still counts as changed", () => {
+  const diff = `${diffTouching("src/lib/example.ts")}\n--- Cache-Control: max-age=60`;
+
+  expect(riskTier(pullRequest({ diff }))).toBe("high");
+});
+
+test("a diff header that can't be parsed is high", () => {
+  const diff = `${diffTouching("README.md")}\ndiff --git a/.github/my flow.yml b/.github/my flow.yml`;
+
+  expect(riskTier(pullRequest({ diff }))).toBe("high");
+});
+
 test("an unchanged line naming a cache lifetime doesn't raise the tier", () => {
   const diff = `${diffTouching("src/lib/example.ts")}\n const header = "max-age=60";`;
 

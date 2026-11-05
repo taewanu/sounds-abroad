@@ -42,9 +42,14 @@ function changedFiles(diff: string): string[] {
 }
 
 function changedLines(diff: string): string[] {
-  return diff
-    .split("\n")
-    .filter((line) => /^[-+]/.test(line) && !/^(---|\+\+\+) /.test(line));
+  const lines: string[] = [];
+  let inHunk = false;
+  for (const line of diff.split("\n")) {
+    if (line.startsWith("diff --git ")) inHunk = false;
+    if (line.startsWith("@@")) inHunk = true;
+    if (inHunk && /^[-+]/.test(line)) lines.push(line);
+  }
+  return lines;
 }
 
 function isLowRiskFile(file: string): boolean {
@@ -54,7 +59,8 @@ function isLowRiskFile(file: string): boolean {
 export function riskTier({ body, diff }: PullRequest): Tier {
   const files = changedFiles(diff);
   if (!/^Door: two-way\s*$/m.test(body)) return "high";
-  if (files.length === 0) return "high";
+  const headers = diff.match(/^diff --git /gm)?.length ?? 0;
+  if (headers === 0 || files.length !== headers * 2) return "high";
   if (files.some((file) => HUMAN_ONLY_PATHS.some((path) => path.test(file)))) {
     return "high";
   }
