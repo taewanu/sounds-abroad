@@ -3,20 +3,33 @@ import { readFile } from "node:fs/promises";
 import type { Commentary } from "../../src/lib/chart-schema";
 import { assertObjectStoreEnv } from "../lib/object-store";
 
+import { fetchCommentaryStoreRaw } from "./fetch-commentary";
 import { createClaudeJudge, fetchSourceText, groundEntry } from "./ground";
 import { parseCandidateStore } from "./parse-store";
+import { publishStore } from "./publish-store";
 import { routeStore } from "./route";
 import { backupCommentary, uploadCommentary } from "./upload-commentary";
 
 // Validates a candidate commentary file against the schema, then routes each
-// blurb through the gate: an entry that clears every check publishes, any
-// failure drops that one card (ADR-0009). See docs/commentary-playbook.md.
+// blurb through the gate: an entry that clears every check joins the live store,
+// any failure drops that one card (ADR-0009). See docs/commentary-playbook.md.
 
 assertObjectStoreEnv("Run via: pnpm commentary:publish <file>.");
 
-const file = process.argv[2];
+const args = process.argv.slice(2);
+const replace = args.includes("--replace");
+const file = args.find((arg) => !arg.startsWith("--"));
 if (!file) {
-  throw new Error("Usage: pnpm commentary:publish <candidate.json>");
+  throw new Error(
+    "Usage: pnpm commentary:publish <candidate.json> [--replace]",
+  );
+}
+
+const liveStoreUrl = process.env.COMMENTARY_BLOB_URL;
+if (!liveStoreUrl) {
+  throw new Error(
+    "COMMENTARY_BLOB_URL missing. A publish without it would drop the live cards.",
+  );
 }
 
 const raw: unknown = JSON.parse(await readFile(file, "utf8"));
@@ -47,15 +60,16 @@ if (publishedCount === 0) {
   process.exit(1);
 }
 
-// Snapshot the live store before overwriting, so a bad publish can be undone.
-// Absent on the first publish (nothing to back up yet).
-const previousUrl = process.env.COMMENTARY_BLOB_URL;
-if (previousUrl) {
-  const backupUrl = await backupCommentary(new Date().toISOString());
-  console.log(`Backed up current store -> ${backupUrl}`);
-}
-
-const url = await uploadCommentary(published);
+const { url, backupUrl, total } = await publishStore(
+  published,
+  { replace },
+  {
+    readLiveStore: () => fetchCommentaryStoreRaw(liveStoreUrl),
+    backupLiveStore: () => backupCommentary(new Date().toISOString()),
+    uploadStore: uploadCommentary,
+  },
+);
+if (backupUrl) console.log(`Backed up current store -> ${backupUrl}`);
 console.log(
-  `Published ${publishedCount} entr(ies), dropped ${dropped.length} -> ${url}`,
+  `Published ${publishedCount} entr(ies), dropped ${dropped.length}; store now ${total} -> ${url}`,
 );

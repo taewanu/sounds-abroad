@@ -1,6 +1,6 @@
 # Commentary refinement playbook
 
-How to write and publish the per-track context blurbs ("commentary") shown on the chart card. Commentary is curated out of band in human-authored passes, never by the crawl (see [ADR-0007](adr/0007-out-of-band-human-curated-commentary.md)); a person writes the blurbs, but the automated gate, not a reviewer, decides what publishes (ADR-0009). This is the runbook a pass follows.
+How to write and publish the per-track context blurbs ("commentary") shown on the chart card. Commentary is curated out of band, never by the crawl (see [ADR-0007](adr/0007-out-of-band-human-curated-commentary.md)). `pnpm commentary:draft` drafts blurbs, or a person writes them; either way the automated gate, not a reviewer, decides what publishes (ADR-0009). This is the runbook a pass follows.
 
 ## What commentary is
 
@@ -8,20 +8,24 @@ A short, grounded note about a charting track: what the song is about and why it
 
 - `lead` (required): a one-line conclusion, the first thing a reader sees.
 - `detail` (optional): a sentence or two of support, shown when the card expands.
-- `tag` (required): a short keyword; default to the worklist reason (new entry, rank jump, top debut), or a more specific one like "viral" when it fits.
+- `tag` (required): a short keyword; default to the worklist reason (new entry, rank jump, top debut), or a more specific one when it fits. A tag like "viral" belongs only on a `why-charting` blurb.
 - `claim` (required): which kind of claim the blurb makes, `what-it-is` or `why-charting`. See "Classifying the claim" below.
 - `sources` (required): the URLs the claims rest on.
 - `generatedAt` (required): ISO timestamp of when the blurb was written.
 
 It is never the song's lyrics. Commentary describes a song; it does not reproduce its words. Full-lyric display needs a publisher license we do not hold.
 
-## Per-pass steps
+## Draft batch
 
-1. **Get the worklist.** Run `pnpm commentary:todo`. It lists significant movers that have no blurb yet, deduped across countries, so a track is written once and reused everywhere it charts. The list is pre-filtered; work straight down it. The new-entry and rank-jump triggers need `CHARTS_PREV_BLOB_URL` in the environment, pointing at the crawl-maintained `charts/v1/charts-prev.json` snapshot; the script states on stderr whether movement triggers are live. Without the snapshot it falls back to absolute prominence (top-debut and local-gem only).
-2. **Research each track** under the source policy below. Establish what the song is and why it is moving. If two credible sources do not support a "why it is charting" claim, keep the blurb to what the song is, or skip the track.
-3. **Write the entry** in the style below, into a candidate file keyed by the worklist key (`pnpm commentary:todo --json` emits the keys).
+`pnpm commentary:draft` drafts blurbs for the worklist, routes each through the gate, and merges the survivors into the live store, keeping every existing card. It takes `--limit <n>` (default 5) and an optional `--grep <text>` to target tracks. Both the drafter and the gate spend the Claude subscription, so it runs on the laptop. Drops go to a ledger, and a key that runs out of attempts leaves the worklist.
+
+## Writing by hand
+
+1. **Get the worklist.** Run `pnpm commentary:todo`. It lists significant movers and local gems that have no blurb yet, deduped across countries, so a track is written once and reused everywhere it charts. A gem queues even with no rank movement. The list is pre-filtered; work straight down it. The new-entry and rank-jump triggers need `CHARTS_PREV_BLOB_URL` in the environment, pointing at the crawl-maintained `charts/v1/charts-prev.json` snapshot; the script states on stderr whether movement triggers are live. Without the snapshot it falls back to absolute prominence (top-debut and local-gem only).
+2. **Research each track** under the source policy below. Establish what the song is and why it is moving. Every blurb needs the sources the policy below asks for. If they do not state why it is charting, keep the blurb to what the song is. If you cannot find them at all, skip the track.
+3. **Write the entry** in the style below, into a candidate file keyed by the worklist key (`pnpm commentary:todo --json` emits the keys). The file holds only the new entries. An entry with a live card's key replaces that card, which is how to correct one.
 4. **Sanity-check the blurbs** as you draft: no reproduced lyrics, claims match the sources, no overstatement. The publish gate is the load-bearing guard now (ADR-0009); this read only catches drafting slips early.
-5. **Publish.** Run `pnpm commentary:publish <file>`. It hard-blocks the whole file only on a schema error, then routes each blurb through the gate (no-lyric, source-authority, tier-consistency, grounding): a blurb that clears every check publishes, any failure drops that one card. It backs up the live store, then uploads the survivors. If no blurb clears, it uploads nothing.
+5. **Publish.** Run `pnpm commentary:publish <file>`. It hard-blocks the whole file only on a schema error, then routes each blurb through the gate (no-lyric, source-authority, tier-consistency, grounding): a blurb that clears every check publishes, any failure drops that one card. It backs up the live store, then merges the survivors in, keeping every other card. If no blurb clears, or the live store can't be read, it uploads nothing. To take a card down, add `--replace`: the survivors then become the whole store, so the file must hold every card to keep.
 6. **Spot-check** the card on the site.
 
 ## Classifying the claim
@@ -31,15 +35,17 @@ Set `claim` to the blurb's risk tier, judged by its `lead`. The two tiers differ
 - `what-it-is`: a stable note about the song itself. What it is about, its genre or mood, the artist, how it was made. These claims hold whether the track is at rank 1 or rank 50, so they age slowly. Example lead: "A long-running chart favorite."
 - `why-charting`: a time-sensitive note about the track's current chart movement. Why it entered, jumped, or went viral this week. These claims rest on a moment and go stale when the moment passes, so they carry higher risk. Example lead: "A new entry climbing fast this week."
 
-Classify by what the lead asserts, not by the worklist reason. If a blurb makes both kinds of claim, take the higher-risk tier: a lead that explains why a song is moving is `why-charting` even when it also says what the song is about. When the "why it is charting" claim does not clear the two-source bar, fall back to a `what-it-is` blurb rather than guessing.
+Classify by what the lead asserts, not by the worklist reason. The lead, detail and tag must all fit: causal or momentum wording anywhere in a `what-it-is` blurb, such as the tag "viral", drops it. If a blurb makes both kinds of claim, take the higher-risk tier: a lead that explains why a song is moving is `why-charting` even when it also says what the song is about. When the sources do not state why it is charting, fall back to a `what-it-is` blurb rather than guessing. That fallback needs the same sources.
 
 ## Source-authority policy
 
-Ground every claim. A "why it is charting" claim needs at least two credible sources; below that, stay conservative or write nothing.
+Ground every claim. Every blurb, in either tier, needs at least two sources, and at least one must be on the authority allowlist in `src/lib/source-authority.ts`. Below that, the gate drops it.
 
-**Use:** official artist and label channels; established music press (Billboard, Pitchfork, Rolling Stone, NPR, The Guardian, and equivalents); Wikipedia where it cites primary sources; Genius for credits only. For a non-English track, prefer reputable sources from the track's own market.
+**Required, at least one:** journalism on the allowlist, such as Billboard, Pitchfork, Rolling Stone, NPR and The Guardian, plus regional outlets. For a non-English track, prefer reputable sources from the track's own market.
 
-**Avoid:** gossip aggregators, fan wikis, and lyric or SEO content farms. Never source a claim from a lyrics site.
+**Supporting only:** official artist and label channels, Wikipedia where it cites primary sources, and Genius for credits. They count toward the two but never satisfy the allowlist. A chart site corroborates a rank, never a cause.
+
+**Avoid:** gossip aggregators, fan wikis, and lyric or SEO content farms. Citing a site on the denylist drops the blurb, so never source a claim from a lyrics site.
 
 ## Writing style
 
@@ -62,6 +68,6 @@ The automated accuracy guard, added by [ADR-0008](adr/0008-risk-tiered-commentar
 
 **Fail-closed.** Only a confident `grounded` lets a blurb through. `ungrounded`, `uncertain`, a malformed answer, and a judge error all resolve to not-grounded, which drops the card. A missed ungrounded claim auto-publishes a wrong public claim; a dropped card costs only coverage. The check errs toward the cheaper mistake.
 
-**Scope.** It grounds the lead and optional detail against the cited sources, counting a claim as grounded when any one source states it. The `tag` is not grounded. On a partial fetch failure the judge reads whichever sources loaded: a claim whose only support was unreachable simply reads as ungrounded and drops. The card is dropped without judging in two cases: every source is unreachable, or any cited source is a refused target (non-HTTPS, or an address the pipeline must not dial). A blurb citing a forbidden target is suspect as a whole, so none of its sources are fetched.
+**Scope.** It grounds the lead and optional detail against the cited sources, counting a claim as grounded when any one source states it. The `tag` is not grounded. On a partial fetch failure the judge reads whichever sources loaded: a claim whose only support was unreachable simply reads as ungrounded and drops. A non-HTTPS citation fails the schema, which blocks the whole file. The card is dropped without judging in two cases: every source is unreachable, or any cited source is a refused target (an address the pipeline must not dial). A blurb citing a forbidden target is suspect as a whole, so none of its sources are fetched.
 
 **Backend.** The judge runs through the local Claude Code binary (`claude -p` with structured output), the only sanctioned way to spend the Claude subscription programmatically: the raw API rejects subscription OAuth and the consumer terms forbid reusing that token elsewhere. Each call carries a fixed harness cost billed against subscription quota, not dollars, so the check fits the current low-volume passes. A high-volume drafting pass would swap the backend for a metered API key, which touches only the injected client, not the verdict logic.
