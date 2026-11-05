@@ -7,7 +7,6 @@ import {
 
 import {
   fetchCommentaryStore,
-  fetchCommentaryStoreRaw,
   withCommentaryDegradationSignal,
 } from "./fetch-commentary";
 
@@ -117,40 +116,6 @@ test("returns null when fetch rejects", async () => {
   const result = await fetchCommentaryStore(URL, failingFetch);
 
   expect(result).toBeNull();
-});
-
-test("fetchCommentaryStoreRaw keeps an entry the schema would reject", async () => {
-  // The baking read drops this entry (see "no entry survives"); the raw read
-  // preserves it verbatim so a merge-then-overwrite cannot erase it.
-  const body = JSON.stringify({ "en:a|b": { lead: "" } });
-
-  const store = await fetchCommentaryStoreRaw(URL, fakeFetch({ body }));
-
-  expect(Object.keys(store)).toEqual(["en:a|b"]);
-});
-
-test("fetchCommentaryStoreRaw throws on a failed read rather than returning empty", async () => {
-  await expect(
-    fetchCommentaryStoreRaw(
-      URL,
-      fakeFetch({ ok: false, status: 500, body: "" }),
-    ),
-  ).rejects.toThrow();
-});
-
-test("fetchCommentaryStoreRaw starts from empty when no store has been published", async () => {
-  const store = await fetchCommentaryStoreRaw(
-    URL,
-    fakeFetch({ ok: false, status: 404, body: "" }),
-  );
-
-  expect(store).toEqual({});
-});
-
-test("fetchCommentaryStoreRaw throws on a non-object payload rather than merging it", async () => {
-  await expect(
-    fetchCommentaryStoreRaw(URL, fakeFetch({ body: JSON.stringify([]) })),
-  ).rejects.toThrow();
 });
 
 test("withCommentaryDegradationSignal fires on a null read and passes the null through", async () => {

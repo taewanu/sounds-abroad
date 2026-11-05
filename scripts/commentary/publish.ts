@@ -3,16 +3,19 @@ import { readFile } from "node:fs/promises";
 import type { Commentary } from "../../src/lib/chart-schema";
 import { assertObjectStoreEnv } from "../lib/object-store";
 
-import { fetchCommentaryStoreRaw } from "./fetch-commentary";
 import { createClaudeJudge, fetchSourceText, groundEntry } from "./ground";
 import { parseCandidateStore } from "./parse-store";
 import { publishStore } from "./publish-store";
 import { routeStore } from "./route";
-import { backupCommentary, uploadCommentary } from "./upload-commentary";
+import {
+  backupCommentary,
+  readLiveCommentary,
+  uploadCommentary,
+} from "./upload-commentary";
 
 // Validates a candidate commentary file against the schema, then routes each
-// blurb through the gate: an entry that clears every check joins the live store,
-// any failure drops that one card (ADR-0009). See docs/commentary-playbook.md.
+// blurb through the gate: an entry that clears every check is published, any
+// failure drops that one card (ADR-0009). See docs/commentary-playbook.md.
 
 assertObjectStoreEnv("Run via: pnpm commentary:publish <file>.");
 
@@ -25,13 +28,6 @@ if (!file) {
   );
 }
 
-const liveStoreUrl = process.env.COMMENTARY_BLOB_URL;
-if (!liveStoreUrl) {
-  throw new Error(
-    "COMMENTARY_BLOB_URL missing. A publish without it would drop the live cards.",
-  );
-}
-
 const raw: unknown = JSON.parse(await readFile(file, "utf8"));
 const parsed = parseCandidateStore(raw);
 if (!parsed.ok) {
@@ -39,6 +35,10 @@ if (!parsed.ok) {
   for (const error of parsed.errors) console.error(`  - ${error}`);
   process.exit(1);
 }
+
+// Read the live store before the gate spends a judge call per blurb, so a
+// failed read costs nothing.
+const live = await readLiveCommentary();
 
 const judge = createClaudeJudge();
 const ground = (entry: Commentary) =>
@@ -62,9 +62,9 @@ if (publishedCount === 0) {
 
 const { url, backupUrl, total } = await publishStore(
   published,
+  live,
   { replace },
   {
-    readLiveStore: () => fetchCommentaryStoreRaw(liveStoreUrl),
     backupLiveStore: () => backupCommentary(new Date().toISOString()),
     uploadStore: uploadCommentary,
   },

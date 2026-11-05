@@ -1,7 +1,6 @@
 import { expect, test, vi } from "vitest";
 
 import type { Commentary } from "../../src/lib/chart-schema";
-import type { CommentaryStore } from "../../src/lib/commentary-store";
 
 import { publishStore, type PublishStoreDeps } from "./publish-store";
 
@@ -15,9 +14,8 @@ function card(lead: string): Commentary {
   };
 }
 
-function deps(live: CommentaryStore): PublishStoreDeps {
+function writers(): PublishStoreDeps {
   return {
-    readLiveStore: vi.fn(async () => live),
     backupLiveStore: vi.fn(async () => "backup-url"),
     uploadStore: vi.fn(async () => "store-url"),
   };
@@ -26,22 +24,23 @@ function deps(live: CommentaryStore): PublishStoreDeps {
 test("a publish keeps the live cards and adds the survivors", async () => {
   const live = { existing: card("live") };
   const survivors = { added: card("new") };
-  const store = deps(live);
+  const deps = writers();
 
-  const result = await publishStore(survivors, { replace: false }, store);
+  const result = await publishStore(survivors, live, { replace: false }, deps);
 
-  expect(store.uploadStore).toHaveBeenCalledWith({ ...live, ...survivors });
-  expect(result.total).toBe(2);
+  const expected = { ...live, ...survivors };
+  expect(deps.uploadStore).toHaveBeenCalledWith(expected);
+  expect(result.total).toBe(Object.keys(expected).length);
 });
 
 test("a survivor with a live card's key replaces only that card", async () => {
   const live = { kept: card("kept"), corrected: card("wrong") };
   const correction = card("right");
-  const store = deps(live);
+  const deps = writers();
 
-  await publishStore({ corrected: correction }, { replace: false }, store);
+  await publishStore({ corrected: correction }, live, { replace: false }, deps);
 
-  expect(store.uploadStore).toHaveBeenCalledWith({
+  expect(deps.uploadStore).toHaveBeenCalledWith({
     kept: live.kept,
     corrected: correction,
   });
@@ -49,66 +48,64 @@ test("a survivor with a live card's key replaces only that card", async () => {
 
 test("replace makes the survivors the whole store", async () => {
   const survivors = { only: card("only") };
-  const store = deps({ removed: card("removed") });
+  const deps = writers();
 
-  const result = await publishStore(survivors, { replace: true }, store);
+  const result = await publishStore(
+    survivors,
+    { removed: card("removed") },
+    { replace: true },
+    deps,
+  );
 
-  expect(store.uploadStore).toHaveBeenCalledWith(survivors);
-  expect(result.total).toBe(1);
+  expect(deps.uploadStore).toHaveBeenCalledWith(survivors);
+  expect(result.total).toBe(Object.keys(survivors).length);
 });
 
 test.each([false, true])(
   "the live store is backed up before it is overwritten (replace: %s)",
   async (replace) => {
-    const store = deps({ existing: card("live") });
+    const deps = writers();
 
     const result = await publishStore(
       { added: card("new") },
+      { existing: card("live") },
       { replace },
-      store,
+      deps,
     );
 
-    expect(result.backupUrl).toBe("backup-url");
+    expect(result.backupUrl).toBe(await deps.backupLiveStore());
     expect(
-      vi.mocked(store.backupLiveStore).mock.invocationCallOrder[0],
-    ).toBeLessThan(vi.mocked(store.uploadStore).mock.invocationCallOrder[0]);
+      vi.mocked(deps.backupLiveStore).mock.invocationCallOrder[0],
+    ).toBeLessThan(vi.mocked(deps.uploadStore).mock.invocationCallOrder[0]);
   },
 );
 
 test("an empty live store has nothing to back up", async () => {
-  const store = deps({});
+  const deps = writers();
 
   const result = await publishStore(
     { added: card("new") },
+    {},
     { replace: false },
-    store,
+    deps,
   );
 
-  expect(store.backupLiveStore).not.toHaveBeenCalled();
+  expect(deps.backupLiveStore).not.toHaveBeenCalled();
   expect(result.backupUrl).toBeNull();
 });
 
-test("a failed read writes nothing", async () => {
-  const store = deps({});
-  vi.mocked(store.readLiveStore).mockRejectedValue(new Error("read failed"));
-
-  await expect(
-    publishStore({ added: card("new") }, { replace: false }, store),
-  ).rejects.toThrow("read failed");
-
-  expect(store.backupLiveStore).not.toHaveBeenCalled();
-  expect(store.uploadStore).not.toHaveBeenCalled();
-});
-
 test("a failed backup leaves the live store untouched", async () => {
-  const store = deps({ existing: card("live") });
-  vi.mocked(store.backupLiveStore).mockRejectedValue(
-    new Error("backup failed"),
-  );
+  const deps = writers();
+  vi.mocked(deps.backupLiveStore).mockRejectedValue(new Error("backup failed"));
 
   await expect(
-    publishStore({ added: card("new") }, { replace: false }, store),
+    publishStore(
+      { added: card("new") },
+      { existing: card("live") },
+      { replace: false },
+      deps,
+    ),
   ).rejects.toThrow("backup failed");
 
-  expect(store.uploadStore).not.toHaveBeenCalled();
+  expect(deps.uploadStore).not.toHaveBeenCalled();
 });

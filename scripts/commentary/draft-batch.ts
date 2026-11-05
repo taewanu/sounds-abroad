@@ -5,15 +5,17 @@ import { assertObjectStoreEnv } from "../lib/object-store";
 
 import { createClaudeDrafter, draftEntry } from "./draft";
 import { dropsUrlFrom, recordAttempts } from "./drops";
-import {
-  fetchCommentaryStoreRaw,
-  salvageCommentaryStore,
-} from "./fetch-commentary";
+import { salvageCommentaryStore } from "./fetch-commentary";
 import { fetchDrops } from "./fetch-drops";
 import { createClaudeJudge, fetchSourceText, groundEntry } from "./ground";
 import { loadPreviousCharts } from "./previous-charts";
+import { publishStore } from "./publish-store";
 import { routeStore } from "./route";
-import { backupCommentary, uploadCommentary } from "./upload-commentary";
+import {
+  backupCommentary,
+  readLiveCommentary,
+  uploadCommentary,
+} from "./upload-commentary";
 import { uploadDrops } from "./upload-drops";
 import { computeWorklist, type WorklistItem } from "./worklist";
 
@@ -52,13 +54,9 @@ if (!current) {
 const previous = await loadPreviousCharts(process.env.CHARTS_PREV_BLOB_URL);
 
 // Read the live store raw, never schema-validated: one entry that fails the
-// since-tightened schema must not void the whole store, and a failed read must
-// abort (fetchCommentaryStoreRaw throws) rather than leave an empty base that
-// the additive merge would overwrite the live cards with.
+// since-tightened schema must not void the whole store.
+const existing = await readLiveCommentary();
 const commentaryUrl = process.env.COMMENTARY_BLOB_URL;
-const existing: CommentaryStore = commentaryUrl
-  ? await fetchCommentaryStoreRaw(commentaryUrl)
-  : {};
 
 // The drop ledger lives beside the commentary store. Read it so the worklist
 // skips tracks that have already spent their retries on the gate (#139); without
@@ -170,29 +168,18 @@ if (survivors === 0) {
   process.exit(0);
 }
 
-// The worklist excludes keys that already have a blurb, so the merge is purely
-// additive: new survivors join the live store, the existing cards are untouched.
-const merged: CommentaryStore = { ...existing, ...published };
-
-// Defense in depth before a destructive overwrite: an additive merge can only
-// grow the store, so a smaller result means the existing read was wrong. Abort
-// rather than publish a store that drops live cards.
-if (Object.keys(merged).length < Object.keys(existing).length) {
-  throw new Error(
-    "Merge would shrink the store; aborting before overwrite to protect the live cards.",
-  );
-}
-
-// Snapshot the live store before overwriting, so a bad batch can be undone.
-// Gated on there being cards to lose, not on the URL being configured: the
-// snapshot copies the stored object, which the store rejects when nothing has
-// been published there, and a store with no cards has nothing to roll back to.
-if (commentaryUrl && Object.keys(existing).length > 0) {
-  const backupUrl = await backupCommentary(generatedAt);
-  console.log(`Backed up current store -> ${backupUrl}`);
-}
-
-const url = await uploadCommentary(merged);
+// The worklist excludes keys that already have a blurb, so the merge only adds
+// cards.
+const { url, backupUrl, total } = await publishStore(
+  published,
+  existing,
+  { replace: false },
+  {
+    backupLiveStore: () => backupCommentary(generatedAt),
+    uploadStore: uploadCommentary,
+  },
+);
+if (backupUrl) console.log(`Backed up current store -> ${backupUrl}`);
 console.log(
-  `Published ${survivors} new blurb(s), dropped ${dropped.length}; store now ${Object.keys(merged).length} -> ${url}`,
+  `Published ${survivors} new blurb(s), dropped ${dropped.length}; store now ${total} -> ${url}`,
 );
