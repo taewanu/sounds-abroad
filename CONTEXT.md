@@ -13,7 +13,7 @@ The hundred-track chart of what a country is playing, drawn from the storefront'
 _Avoid_: "top chart" or "main chart", both of which imply the playlist charts are subordinate; calling it a 25-track chart, which describes what travels rather than what it is.
 
 **Eager rows** / **chart tail**:
-The split a songs chart travels in. The eager rows are the first twenty five, carried in the payload so a globe spin paints with no round trip; the tail is the rest, published per country and read when a listener reaches the end of the list. Both halves carry spread counted over the whole chart. See ADR-0016.
+The split a songs chart travels in. The eager rows are the first twenty five, carried in the payload so a globe spin paints with no round trip; the tail is the rest, published per country and read when a listener reaches the end of the list or switches to Only here. Both halves carry spread counted over the whole chart. See ADR-0016.
 _Avoid_: treating the eager rows as the chart, which is what makes a stepping or filtering rule answer for a hundred rows from twenty five.
 
 **Chart mode**:
@@ -28,7 +28,7 @@ The mode listing only the tracks whose spread is exactly one, meaning no other c
 _Avoid_: reading it as "local music". It names where a track charts, not where it comes from, so a global artist's track that only one country charts belongs to it.
 
 **Playlist chart**:
-A chart whose tracks come from one Apple storefront playlist that survived the crawl's locality filter. Meaningful in exactly one country, since a playlist appearing across many storefronts is excluded as global. Its tracks carry neither spread nor commentary, and it may run to a hundred tracks or more.
+A chart whose tracks come from one Apple storefront playlist that survived the crawl's locality filter. Local by construction: a playlist found in more than a quarter of storefronts is excluded as global, so one playlist can still chart in a few countries. Its tracks carry neither spread nor commentary, and it may run to a hundred tracks or more.
 _Avoid_: calling it "a playlist" when the chart is meant. The playlist is the source, the chart is what a listener opens.
 
 **Chart ref**:
