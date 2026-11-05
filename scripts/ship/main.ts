@@ -11,7 +11,6 @@ type GhPullRequest = {
   labels: { name: string }[];
   body: string;
   headRefOid: string;
-  reviews: { author: { login: string }; commit: { oid: string } }[];
 };
 
 function gh(...args: string[]): string {
@@ -32,9 +31,13 @@ const pr = JSON.parse(
     "view",
     number,
     "--json",
-    "state,isDraft,mergeStateStatus,labels,body,headRefOid,reviews",
+    "state,isDraft,mergeStateStatus,labels,body,headRefOid",
   ),
 ) as GhPullRequest;
+
+const { check_runs: checkRuns } = JSON.parse(
+  gh("api", `repos/{owner}/{repo}/commits/${pr.headRefOid}/check-runs`),
+) as { check_runs: { name: string; conclusion: string | null }[] };
 
 console.log(
   formatShipCheck({
@@ -44,10 +47,8 @@ console.log(
     labels: pr.labels.map(({ name }) => name),
     body: pr.body,
     headSha: pr.headRefOid,
-    reviews: pr.reviews.map(({ author, commit }) => ({
-      login: author.login,
-      commitSha: commit.oid,
-    })),
+    coderabbitConclusion:
+      checkRuns.find(({ name }) => name === "CodeRabbit")?.conclusion ?? null,
     diff: gh("pr", "diff", number),
   }),
 );

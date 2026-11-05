@@ -5,7 +5,7 @@ export type PullRequest = {
   labels: string[];
   body: string;
   headSha: string;
-  reviews: { login: string; commitSha: string }[];
+  coderabbitConclusion: string | null;
   diff: string;
 };
 
@@ -35,8 +35,6 @@ const HUMAN_ONLY_PATHS = [
 const CACHE_LIFETIME_WORDS =
   /cacheLife|revalidate|max-age|s-maxage|stale-while-revalidate|Cache-Control|CACHE_MAX_AGE|CHART_LIFETIME/;
 
-const STEERS_AGENTS = /^(docs\/(adr|agents)|\.claude)\//;
-
 function changedFiles(diff: string): string[] {
   return [...diff.matchAll(/^diff --git a\/(\S+) b\/(\S+)$/gm)].flatMap(
     ([, from, to]) => [from, to],
@@ -50,8 +48,7 @@ function changedLines(diff: string): string[] {
 }
 
 function isLowRiskFile(file: string): boolean {
-  if (STEERS_AGENTS.test(file)) return false;
-  return /\.md$/.test(file) || /\.test\.tsx?$/.test(file);
+  return file === "README.md" || /\.test\.tsx?$/.test(file);
 }
 
 export function riskTier({ body, diff }: PullRequest): Tier {
@@ -81,15 +78,10 @@ export function shipCheck(pr: PullRequest): ShipCheck {
     return park(`GitHub reports ${pr.mergeStateStatus}`);
   }
   if (tier === "high") return park("a human merges this tier");
-  if (
-    tier === "medium" &&
-    !pr.reviews.some(
-      ({ login, commitSha }) =>
-        login.replace(/\[bot\]$/, "") === "coderabbitai" &&
-        commitSha === pr.headSha,
-    )
-  ) {
-    return park("no CodeRabbit review on the latest commit");
+  if (tier === "medium" && pr.coderabbitConclusion !== "success") {
+    return park(
+      `CodeRabbit on the latest commit: ${pr.coderabbitConclusion ?? "no check"}`,
+    );
   }
   return { verdict: "merge-ok", tier, reason: "all checks passed" };
 }

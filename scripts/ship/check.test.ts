@@ -30,7 +30,7 @@ function pullRequest(overrides: Partial<PullRequest> = {}): PullRequest {
     labels: [],
     body: "## Intent\n\nA goal.\n\nDoor: two-way\n",
     headSha: HEAD,
-    reviews: [{ login: "coderabbitai", commitSha: HEAD }],
+    coderabbitConclusion: "success",
     diff: diffTouching("src/lib/example.ts"),
     ...overrides,
   };
@@ -41,14 +41,16 @@ test("a change to application code is medium", () => {
 });
 
 test.each([
+  "docs/guide.md",
   "docs/adr/0001-example.md",
-  "docs/agents/domain.md",
+  "CONTEXT.md",
+  "src/lib/CLAUDE.md",
   ".claude/skills/example/SKILL.md",
-])("a change to %s steers agents, so it is medium", (file) => {
+])("a change to %s may steer agents, so it is medium", (file) => {
   expect(riskTier(pullRequest({ diff: diffTouching(file) }))).toBe("medium");
 });
 
-test.each(["docs/guide.md", "src/lib/example.test.ts"])(
+test.each(["README.md", "src/lib/example.test.ts"])(
   "a change only to %s is low",
   (file) => {
     expect(riskTier(pullRequest({ diff: diffTouching(file) }))).toBe("low");
@@ -121,32 +123,26 @@ test.each([
   expect(check.reason).toBe(reason);
 });
 
-test("medium parks when the only review is on an earlier commit", () => {
-  const reviews = [{ login: "coderabbitai", commitSha: "earlier" }];
-
-  const check = shipCheck(pullRequest({ reviews }));
+test.each([
+  ["neutral", "CodeRabbit on the latest commit: neutral"],
+  ["skipped", "CodeRabbit on the latest commit: skipped"],
+  [null, "CodeRabbit on the latest commit: no check"],
+])("medium parks when CodeRabbit concluded %s", (conclusion, reason) => {
+  const check = shipCheck(pullRequest({ coderabbitConclusion: conclusion }));
 
   expect(check.verdict).toBe("park");
-  expect(check.reason).toBe("no CodeRabbit review on the latest commit");
+  expect(check.reason).toBe(reason);
 });
 
-test("medium parks when only a person reviewed the latest commit", () => {
-  const reviews = [{ login: "someone", commitSha: HEAD }];
-
-  expect(shipCheck(pullRequest({ reviews })).verdict).toBe("park");
+test("medium passes once CodeRabbit finished the latest commit", () => {
+  expect(shipCheck(pullRequest()).verdict).toBe("merge-ok");
 });
-
-test.each(["coderabbitai", "coderabbitai[bot]"])(
-  "medium passes with a review from %s on the latest commit",
-  (login) => {
-    const reviews = [{ login, commitSha: HEAD }];
-
-    expect(shipCheck(pullRequest({ reviews })).verdict).toBe("merge-ok");
-  },
-);
 
 test("low passes without a review", () => {
-  const pr = pullRequest({ diff: diffTouching("docs/guide.md"), reviews: [] });
+  const pr = pullRequest({
+    diff: diffTouching("README.md"),
+    coderabbitConclusion: null,
+  });
 
   expect(shipCheck(pr)).toEqual({
     verdict: "merge-ok",
