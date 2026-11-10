@@ -39,7 +39,7 @@ export interface MiniPlayerProps {
 }
 
 const SKIP_BUTTON_CLASS =
-  "text-fg-2 hover:bg-orbit hover:text-fg-1 focus-visible:outline-aurora flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-30";
+  "text-fg-2 hover:bg-orbit hover:text-fg-1 focus-visible:outline-aurora flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-[color,background-color,scale,opacity] duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-30";
 
 // The 48px cover thumbnail, shared by the current card and the rail's preview
 // cards so a style change stays in one place. Decorative (the a11y track text
@@ -243,7 +243,7 @@ export function MiniPlayer({
               ? `Pause preview of ${currentTrack.name}`
               : `Play preview of ${currentTrack.name}`
           }
-          className="text-fg-1 hover:bg-orbit focus-visible:outline-aurora flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]"
+          className="text-fg-1 hover:bg-orbit focus-visible:outline-aurora flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-[color,background-color,scale] duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]"
         >
           {isPlaying ? (
             <PauseIcon className="h-4 w-4" />
