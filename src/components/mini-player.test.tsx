@@ -437,6 +437,60 @@ describe("MiniPlayer", () => {
     expect(container.querySelector("[data-track-change]")).toBeNull();
   });
 
+  test("a press on a control leaves the pointer uncaptured, so its click reaches the control", () => {
+    const capture = vi.spyOn(HTMLElement.prototype, "setPointerCapture");
+    try {
+      renderMiniPlayer({}, { currentTrack: makeTrack() });
+
+      const next = screen.getByRole("button", { name: /next track/i });
+      fireEvent.pointerDown(next, { clientX: 200, clientY: 10, pointerId: 1 });
+      fireEvent.pointerMove(next, { clientX: 204, clientY: 10, pointerId: 1 });
+      fireEvent.pointerUp(next, { clientX: 204, clientY: 10, pointerId: 1 });
+
+      expect(capture).not.toHaveBeenCalled();
+    } finally {
+      capture.mockRestore();
+    }
+  });
+
+  test("a drag captures the pointer once it engages", () => {
+    const capture = vi.spyOn(HTMLElement.prototype, "setPointerCapture");
+    try {
+      renderMiniPlayer({}, { currentTrack: makeTrack() });
+
+      const area = screen.getByRole("button", { name: /reopen chart/i });
+      fireEvent.pointerDown(area, { clientX: 200, clientY: 10, pointerId: 1 });
+      fireEvent.pointerMove(area, { clientX: 40, clientY: 10, pointerId: 1 });
+
+      expect(capture).toHaveBeenCalledTimes(1);
+    } finally {
+      capture.mockRestore();
+    }
+  });
+
+  test("a mouse released off the bar before dragging does not swipe when it hovers back", () => {
+    const onNext = vi.fn();
+
+    renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
+
+    const area = screen.getByRole("button", { name: /reopen chart/i });
+    fireEvent.pointerDown(area, {
+      clientX: 200,
+      clientY: 10,
+      pointerType: "mouse",
+      buttons: 1,
+    });
+    fireEvent.pointerMove(area, {
+      clientX: 40,
+      clientY: 10,
+      pointerType: "mouse",
+      buttons: 0,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /next track/i }));
+
+    expect(onNext).toHaveBeenCalledTimes(1);
+  });
+
   test("a short press below the swipe threshold still taps", () => {
     const onNext = vi.fn();
     const onPrev = vi.fn();
