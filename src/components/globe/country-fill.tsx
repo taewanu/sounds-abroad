@@ -6,7 +6,7 @@ import {
   SRGBColorSpace,
 } from "three";
 
-import type { CountryRings } from "@/lib/country-outlines";
+import { type CountryRings, unwrapLongitudes } from "@/lib/country-outlines";
 
 const FILL_R = 1.003;
 const CANVAS_W = 2048;
@@ -63,15 +63,19 @@ export function CountryFill({ selectedIsoNum, byIsoRings }: CountryFillProps) {
       if (rings) {
         ctx.fillStyle = FILL_COLOR;
         ctx.beginPath();
-        for (const ring of rings) {
-          for (let i = 0; i < ring.length; i++) {
-            const [lon, lat] = ring[i];
-            const x = ((lon + 180) / 360) * CANVAS_W;
-            const y = ((90 - lat) / 180) * CANVAS_H;
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
+        // An unwrapped ring can run past either canvas edge; drawing it again one
+        // canvas width to each side lands the overflow where the wrap samples it.
+        for (const ring of rings.map(unwrapLongitudes)) {
+          for (const shift of [-CANVAS_W, 0, CANVAS_W]) {
+            for (let i = 0; i < ring.length; i++) {
+              const [lon, lat] = ring[i];
+              const x = ((lon + 180) / 360) * CANVAS_W + shift;
+              const y = ((90 - lat) / 180) * CANVAS_H;
+              if (i === 0) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
           }
-          ctx.closePath();
         }
         ctx.fill("evenodd");
       }

@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { expect, test } from "vitest";
 
 import { COUNTRIES } from "./countries";
-import { buildCountryOutlines } from "./country-outlines";
+import { buildCountryOutlines, unwrapLongitudes } from "./country-outlines";
 
 const realTopology = JSON.parse(
   readFileSync(join(process.cwd(), "public/data/countries-50m.json"), "utf-8"),
@@ -83,6 +83,39 @@ test("buildCountryOutlines merges features sharing an ISO num (AU 036: Australia
   });
 
   expect(includesMainland).toBe(true);
+});
+
+test("unwrapLongitudes leaves no step wider than 180° in any chart-set ring", () => {
+  const outlines = buildCountryOutlines(realTopology);
+
+  for (const [isoNum, rings] of outlines.byIsoRings) {
+    for (const ring of rings) {
+      const unwrapped = unwrapLongitudes(ring);
+      for (let i = 1; i < unwrapped.length; i++) {
+        const step = Math.abs(unwrapped[i][0] - unwrapped[i - 1][0]);
+
+        expect(step, `isoNum ${isoNum}`).toBeLessThanOrEqual(180);
+      }
+    }
+  }
+});
+
+test("unwrapLongitudes keeps each point on its original meridian", () => {
+  const ring: [number, number][] = [
+    [170, 60],
+    [179.5, 62],
+    [-179.5, 64],
+    [-170, 66],
+    [170, 60],
+  ];
+
+  const unwrapped = unwrapLongitudes(ring);
+
+  expect(unwrapped).toHaveLength(ring.length);
+  unwrapped.forEach(([lon, lat], i) => {
+    expect((((lon - ring[i][0]) % 360) + 360) % 360).toBe(0);
+    expect(lat).toBe(ring[i][1]);
+  });
 });
 
 test("buildCountryOutlines rings entries are [lon, lat] pairs within valid ranges", () => {
