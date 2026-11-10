@@ -468,6 +468,32 @@ describe("MiniPlayer", () => {
     }
   });
 
+  test("a mouse press on a control leaves nothing focused, so Space reaches play and pause", () => {
+    renderMiniPlayer({}, { currentTrack: makeTrack() });
+    const elsewhere = document.createElement("button");
+    document.body.append(elsewhere);
+    elsewhere.focus();
+
+    const pressed = fireEvent.mouseDown(
+      screen.getByRole("button", { name: /next track/i }),
+    );
+
+    expect(pressed).toBe(false);
+    expect(document.activeElement).toBe(document.body);
+    elsewhere.remove();
+  });
+
+  test("a mouse press on the volume slider keeps its default, so the slider still drags", () => {
+    renderMiniPlayer({}, { currentTrack: makeTrack() });
+    fireEvent.click(screen.getByRole("button", { name: /^volume$/i }));
+
+    const pressed = fireEvent.mouseDown(
+      screen.getByRole("slider", { name: /volume/i }),
+    );
+
+    expect(pressed).toBe(true);
+  });
+
   test("dragging the volume slider does not swipe the track", () => {
     vi.useFakeTimers();
     try {

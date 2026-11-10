@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { type MouseEvent, useState } from "react";
 
 import { ExpandIcon } from "@/components/icons/expand";
 import { PauseIcon } from "@/components/icons/pause";
@@ -14,6 +14,14 @@ import { trackKey } from "@/lib/track-identity";
 import { useAudioStore } from "@/providers/audio-store-provider";
 
 import { RAIL_REST, useSwipeRail } from "./use-swipe-rail";
+
+// A mouse press on a control leaves nothing focused, so Space reaches the app's
+// play and pause shortcut instead of pressing that control again.
+function releaseFocusOnPress(event: MouseEvent<HTMLDivElement>) {
+  if (!(event.target as Element).closest("button")) return;
+  event.preventDefault();
+  (document.activeElement as HTMLElement | null)?.blur();
+}
 
 export interface MiniPlayerProps {
   onTap: () => void;
@@ -148,6 +156,7 @@ export function MiniPlayer({
           swipe leaves behind before it reaches any control. */}
       <div
         {...swipeHandlers}
+        onMouseDown={releaseFocusOnPress}
         className="flex touch-pan-y items-center gap-[14px] px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)]"
       >
         <button
