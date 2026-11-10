@@ -5,6 +5,7 @@ import {
   ChartPartValidationError,
   fetchPlaylistFile,
 } from "@/lib/chart-parts";
+import { PlaylistIdSchema } from "@/lib/url-schema";
 
 import { readPlaylist } from "./route";
 
@@ -19,7 +20,7 @@ vi.mock("@/lib/chart-parts", async () => {
 const fetchPlaylistFileMock = vi.mocked(fetchPlaylistFile);
 
 const CHARTS_URL = "https://data.test/charts/v1/charts.json";
-const PLAYLIST_ID = "pl.fixture";
+const PLAYLIST_ID = `pl.${"0123456789abcdef".repeat(2)}`;
 
 const playlistFile = {
   id: PLAYLIST_ID,
@@ -96,12 +97,30 @@ test("reports a payload that fails validation as a bad gateway", async () => {
   expect(res.headers.get("cache-control")).toBe("no-store");
 });
 
-test("rejects an empty id without reaching the store", async () => {
-  const res = await readPlaylist(makeReq(), params(""));
+test.each(["", "pl.fixture", "../charts", "pl.%2e%2e", `${PLAYLIST_ID}x`])(
+  "rejects the malformed id %j without reaching the store",
+  async (id) => {
+    const res = await readPlaylist(makeReq(), params(id));
 
-  expect(res.status).toBe(400);
-  expect(res.headers.get("cache-control")).toBe("public, max-age=60");
-  expect(fetchPlaylistFileMock).not.toHaveBeenCalled();
+    expect(res.status).toBe(400);
+    expect(res.headers.get("cache-control")).toBe("public, max-age=60");
+    expect(fetchPlaylistFileMock).not.toHaveBeenCalled();
+  },
+);
+
+test("accepts exactly the ids the crawl's schema accepts", async () => {
+  fetchPlaylistFileMock.mockResolvedValue(playlistFile);
+  const candidates = [PLAYLIST_ID, PLAYLIST_ID.toUpperCase(), "pl.", "x", ""];
+
+  for (const id of candidates) {
+    fetchPlaylistFileMock.mockClear();
+
+    const res = await readPlaylist(makeReq(), params(id));
+
+    const accepted = PlaylistIdSchema.safeParse(id).success;
+    expect(res.status !== 400).toBe(accepted);
+    expect(fetchPlaylistFileMock).toHaveBeenCalledTimes(accepted ? 1 : 0);
+  }
 });
 
 test("fails loudly when the charts location is not configured", async () => {
