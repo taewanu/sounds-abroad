@@ -269,6 +269,14 @@ export const COUNTRIES: readonly CountryEntry[] = [
     lon: 7.4474,
     isoNum: 756,
   },
+  {
+    code: "ru",
+    name: "Russia",
+    region: "Europe",
+    lat: 55.7558,
+    lon: 37.6173,
+    isoNum: 643,
+  },
 
   // Asia
   {

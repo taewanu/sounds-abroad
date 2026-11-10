@@ -64,6 +64,20 @@ export function buildCountryOutlines(
   };
 }
 
+/**
+ * Returns the ring with each longitude shifted by a multiple of 360° so no step
+ * between neighbouring points exceeds 180°; a ring that crosses the antimeridian
+ * then runs past ±180 instead of jumping across the map.
+ */
+export function unwrapLongitudes(ring: [number, number][]): [number, number][] {
+  const out: [number, number][] = [];
+  for (const [lon, lat] of ring) {
+    const prev = out.at(-1)?.[0] ?? lon;
+    out.push([lon - Math.round((lon - prev) / 360) * 360, lat]);
+  }
+  return out;
+}
+
 type PolygonGeom = { type: "Polygon"; coordinates: number[][][] };
 type MultiPolygonGeom = { type: "MultiPolygon"; coordinates: number[][][][] };
 
