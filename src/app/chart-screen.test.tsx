@@ -279,6 +279,44 @@ describe("ChartScreen", () => {
     replaceState.mockRestore();
   });
 
+  test("Space with nothing loaded plays the first playable row of the chart on screen", () => {
+    audioEngine.reset();
+    const { container } = renderChartScreen(REDRAW_CHARTS, DRAW_2);
+
+    const handled = !fireEvent.keyDown(document.body, { code: "Space" });
+
+    expect(handled).toBe(true);
+    expect(playingRank(container)).toBe("1");
+  });
+
+  test("Space with nothing loaded skips rows without a preview", () => {
+    audioEngine.reset();
+    const charts: ChartFile = {
+      ...ADJACENCY_CHARTS,
+      countries: {
+        [ADJ_CODE]: {
+          ...ADJACENCY_CHARTS.countries[ADJ_CODE],
+          tracks: ADJACENCY_CHARTS.countries[ADJ_CODE].tracks.slice(1),
+        },
+      },
+    };
+    const { container } = renderChartScreen(charts, ADJ_CODE);
+
+    fireEvent.keyDown(document.body, { code: "Space" });
+
+    expect(playingRank(container)).toBe("3");
+  });
+
+  test("Space on a chart with no playable row leaves the key to the page", () => {
+    audioEngine.reset();
+    const { container } = renderChartScreen(REDRAW_CHARTS, DRAW_1);
+
+    const handled = !fireEvent.keyDown(document.body, { code: "Space" });
+
+    expect(handled).toBe(false);
+    expect(playingRank(container)).toBeNull();
+  });
+
   test("renders the chart for a country path arrival without touching the URL", () => {
     mockPathname.value = `/c/${CODE_US}`;
 
