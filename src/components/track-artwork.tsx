@@ -11,26 +11,29 @@ import { useState } from "react";
  * the track's title, so hidden from assistive tech.
  */
 export function TrackArtwork({ url }: { url: string }) {
-  // A failed image draws the browser's broken-image mark, where a failed
-  // background left the placeholder alone, so the element goes instead.
-  const [failedUrl, setFailedUrl] = useState<string | null>(null);
-
   return (
     <div
       aria-hidden="true"
       className="bg-fg-1/5 relative h-12 w-12 shrink-0 rounded-lg after:absolute after:inset-0 after:rounded-[inherit] after:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
     >
-      {failedUrl === url ? null : (
-        <img
-          // Keyed so a new address mounts a new element: a reused one keeps
-          // painting the previous cover until the next has loaded.
-          key={url}
-          src={url}
-          alt=""
-          onError={() => setFailedUrl(url)}
-          className="pointer-events-none h-full w-full rounded-[inherit] object-cover select-none"
-        />
-      )}
+      {/* Keyed so each address starts fresh: a reused element keeps painting
+          the previous cover, and a failure belongs to the address it hit. */}
+      <Cover key={url} url={url} />
     </div>
+  );
+}
+
+function Cover({ url }: { url: string }) {
+  // A failed image draws the browser's broken-image mark, where a failed
+  // background left the placeholder alone, so the element goes instead.
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return (
+    <img
+      src={url}
+      alt=""
+      onError={() => setFailed(true)}
+      className="pointer-events-none h-full w-full rounded-[inherit] object-cover select-none"
+    />
   );
 }
