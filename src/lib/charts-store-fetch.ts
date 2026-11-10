@@ -6,10 +6,9 @@
  * to this project's own callers: the app and the crawl send it, an edge rule
  * refuses anyone who does not.
  *
- * There are five reads across the app and the crawl, which is why the header is
- * built here rather than at each one. A listener is unaffected either way: the
- * browser never contacts the store, which is why the songs-tail and
- * playlist-chart routes exist.
+ * Every read of the store sends the header, so it is built here rather than at
+ * each one. A listener is unaffected either way: the browser never contacts the
+ * store, which is why the songs-tail and playlist-chart routes exist.
  */
 
 export const CHARTS_STORE_KEY_HEADER = "x-charts-key";

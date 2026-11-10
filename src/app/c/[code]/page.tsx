@@ -26,7 +26,7 @@ export async function generateMetadata({
   if (!entry) notFound();
 
   return chartPageMetadata({
-    title: `${entry.name} — Top 25 on Sounds Abroad`,
+    title: `${entry.name} — Top Songs on Sounds Abroad`,
     description: `What ${entry.name} is listening to right now. Charts from Apple Music, updated daily.`,
     ogQuery: `?cc=${code}`,
   });
