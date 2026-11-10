@@ -11,12 +11,47 @@ const PLAYLIST_BLOB_PREFIX = "charts/v1/playlists";
 const SONGS_TAIL_PREFIX = "charts/v1/songs";
 
 /**
- * Publishes compact because the app's tagged read must fit the Next.js data
- * cache, which measures the base64-encoded body against a 2 MB cap; a build
- * logging "items over 2MB can not be cached" means the file has outgrown it.
+ * Next.js 16.4.3 refuses to cache a fetch whose entry, measured as
+ * `JSON.stringify(entry).length`, exceeds this (`IncrementalCache.set` in
+ * `node_modules/next/dist/server/lib/incremental-cache/index.js`).
  */
-export async function uploadCharts(chartFile: ChartFile): Promise<string> {
-  return putJson(BLOB_PATHNAME, JSON.stringify(chartFile));
+export const DATA_CACHE_ENTRY_CAP = 2 * 1024 * 1024;
+
+/**
+ * Allowance for what the entry holds beside the body: the response's headers,
+ * status and URL, which the store decides at read time (887 characters on
+ * 2026-11-10).
+ */
+export const DATA_CACHE_ENTRY_OVERHEAD = 1024;
+
+/**
+ * Where the crawl starts warning: the 2% left below the cap holds about 31 KB
+ * of chart file, more than the 26 KB the largest country took on 2026-11-10.
+ */
+export const DATA_CACHE_WARN_SIZE = Math.floor(DATA_CACHE_ENTRY_CAP * 0.98);
+
+/**
+ * The size Next.js measures against the cap for a response carrying `body`,
+ * which it stores base64-encoded: four characters for every three bytes.
+ */
+export function dataCacheEntrySize(body: string): number {
+  return 4 * Math.ceil(Buffer.byteLength(body) / 3) + DATA_CACHE_ENTRY_OVERHEAD;
+}
+
+/**
+ * Publishes compact because the app's tagged read must fit the Next.js data
+ * cache; `onNearCacheCap` hears when the published body's entry passes the
+ * warning size.
+ */
+export async function uploadCharts(
+  chartFile: ChartFile,
+  onNearCacheCap?: (entrySize: number) => void,
+): Promise<string> {
+  const body = JSON.stringify(chartFile);
+  const url = await putJson(BLOB_PATHNAME, body);
+  const entrySize = dataCacheEntrySize(body);
+  if (entrySize > DATA_CACHE_WARN_SIZE) onNearCacheCap?.(entrySize);
+  return url;
 }
 
 /**
