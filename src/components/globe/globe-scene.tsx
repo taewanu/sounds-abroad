@@ -129,8 +129,10 @@ function SceneContent() {
   useEffect(() => {
     if (shuffleSignal === prevShuffleRef.current) return;
     prevShuffleRef.current = shuffleSignal;
-    const code = pickShuffleCountry(visited, [selectedCode ?? initialCode]);
-    globeChartStore.getState().shuffleTo(code);
+    const { drawableCodes, shuffleTo } = globeChartStore.getState();
+    shuffleTo(
+      pickShuffleCountry(visited, [selectedCode ?? initialCode], drawableCodes),
+    );
   }, [shuffleSignal, visited, selectedCode, initialCode]);
 
   return (
