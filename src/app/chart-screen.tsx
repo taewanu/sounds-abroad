@@ -41,6 +41,7 @@ import {
 } from "@/lib/chart-url";
 import {
   backRollTarget,
+  firstPlayable,
   landingTrack,
   planChartContinuation,
   planRoll,
@@ -354,13 +355,21 @@ function ChartScreenInner({
         return;
       }
       const { currentTrack, toggle } = audioStore.getState();
-      if (currentTrack === null) return;
+      if (currentTrack !== null) {
+        e.preventDefault();
+        toggle(currentTrack);
+        return;
+      }
+      // Nothing loaded yet: start the chart on screen from its top, as a press
+      // on its first playable row would.
+      const top = firstPlayable(tracksOf(countryCode, chart.ref) ?? []);
+      if (top === null) return;
       e.preventDefault();
-      toggle(currentTrack);
+      toggle(top, { countryCode, chartRef: chart.ref, mode }, "space_key");
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [audioStore]);
+  }, [audioStore, tracksOf, countryCode, chart.ref, mode]);
 
   // Hidden sheet has no on-screen affordance; the next pointerdown anywhere
   // restores it.

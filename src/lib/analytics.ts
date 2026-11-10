@@ -16,7 +16,7 @@ export interface AnalyticsEvent {
   // next_executed. `source` is which surface the user picked it from.
   track_played: {
     country: string;
-    source: "track_row" | "gem_card" | "shuffle";
+    source: "track_row" | "gem_card" | "shuffle" | "space_key";
   };
 
   // The user advanced to another track. Every next/prev surface routes through
