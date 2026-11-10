@@ -6,12 +6,14 @@ import {
   SRGBColorSpace,
 } from "three";
 
-import { type CountryRings, unwrapLongitudes } from "@/lib/country-outlines";
+import type { CountryRings } from "@/lib/country-outlines";
+
+import { fillCountryRings } from "./country-fill-path";
 
 const FILL_R = 1.003;
 const CANVAS_W = 2048;
 const CANVAS_H = 1024;
-// #FF6B47 sunrise × α 0.55 — selected-state brand color.
+// #FF6B47 sunrise × α 0.55: selected-state brand color.
 const FILL_COLOR = "rgba(255, 107, 71, 0.55)";
 // Aligns the equirectangular canvas (lon=0 at canvas-x=CANVAS_W/2) with three.js
 // SphereGeometry default seam, given the project's latLonToVec3 (lon=0 → +Z axis).
@@ -62,22 +64,7 @@ export function CountryFill({ selectedIsoNum, byIsoRings }: CountryFillProps) {
       const rings = byIsoRings.get(selectedIsoNum);
       if (rings) {
         ctx.fillStyle = FILL_COLOR;
-        ctx.beginPath();
-        // An unwrapped ring can run past either canvas edge; drawing it again one
-        // canvas width to each side lands the overflow where the wrap samples it.
-        for (const ring of rings.map(unwrapLongitudes)) {
-          for (const shift of [-CANVAS_W, 0, CANVAS_W]) {
-            for (let i = 0; i < ring.length; i++) {
-              const [lon, lat] = ring[i];
-              const x = ((lon + 180) / 360) * CANVAS_W + shift;
-              const y = ((90 - lat) / 180) * CANVAS_H;
-              if (i === 0) ctx.moveTo(x, y);
-              else ctx.lineTo(x, y);
-            }
-            ctx.closePath();
-          }
-        }
-        ctx.fill("evenodd");
+        fillCountryRings(ctx, rings, CANVAS_W, CANVAS_H);
       }
     }
     texture.needsUpdate = true;
