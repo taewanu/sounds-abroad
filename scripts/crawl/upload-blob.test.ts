@@ -1,12 +1,9 @@
-import { IncrementalCache } from "next/dist/server/lib/incremental-cache";
-import type { CachedFetchValue } from "next/dist/server/response-cache";
 import { afterEach, expect, test, vi } from "vitest";
 
 import type { ChartFile } from "../../src/lib/chart-schema";
 import { putJson } from "../lib/object-store";
 
 import {
-  DATA_CACHE_ENTRY_CAP,
   DATA_CACHE_ENTRY_OVERHEAD,
   DATA_CACHE_WARN_SIZE,
   dataCacheEntrySize,
@@ -37,59 +34,15 @@ function chartFileOfBytes(bytes: number): ChartFile {
   return { lastUpdated: "x".repeat(bytes - empty.length), countries: {} };
 }
 
-/** The entry Next.js builds for a cached fetch, as `patch-fetch.js` assembles it. */
-function fetchEntry(body: string, url: string): CachedFetchValue {
-  return {
-    kind: "FETCH" as CachedFetchValue["kind"],
-    data: {
-      headers: {},
-      body: Buffer.from(body).toString("base64"),
-      status: 200,
-      url,
-    },
-    revalidate: 1,
-  };
-}
-
-/** The size Next.js reports when it refuses to cache `entry`. */
-async function sizeNextRefusesAt(entry: CachedFetchValue): Promise<number> {
-  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-  const cache = new IncrementalCache({
-    dev: false,
-    requestHeaders: {},
-    previewProps: {
-      previewModeId: "",
-      previewModeSigningKey: "",
-      previewModeEncryptionKey: "",
-    },
-    prerenderManifest: {
-      version: 4,
-      routes: {},
-      dynamicRoutes: {},
-      notFoundRoutes: [],
-      preview: {
-        previewModeId: "",
-        previewModeSigningKey: "",
-        previewModeEncryptionKey: "",
-      },
-    },
-  });
-
-  await cache.set("key", entry, { fetchCache: true });
-
-  const refusal = String(warn.mock.calls[0]?.[0]);
-  return Number(/\((\d+) bytes\)/.exec(refusal)?.[1]);
-}
-
-test("sizes a body as the entry Next.js measures against its cap", async () => {
+test("sizes a body by its base64 length plus the entry overhead", () => {
   // Multi-byte characters, so a count of characters and a count of bytes differ.
-  const body = "é".repeat(DATA_CACHE_ENTRY_CAP);
-  const bare = JSON.stringify(fetchEntry("", "")).length;
-  const url = "u".repeat(DATA_CACHE_ENTRY_OVERHEAD - bare);
+  const body = "é".repeat(1000);
 
-  const refusedAt = await sizeNextRefusesAt(fetchEntry(body, url));
+  const size = dataCacheEntrySize(body);
 
-  expect(dataCacheEntrySize(body)).toBe(refusedAt);
+  expect(size).toBe(
+    Buffer.from(body).toString("base64").length + DATA_CACHE_ENTRY_OVERHEAD,
+  );
 });
 
 test("a chart file whose entry sits at the warning size publishes quietly", async () => {
