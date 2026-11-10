@@ -20,6 +20,7 @@ import {
 } from "@/lib/chart-schema";
 import { chartPath } from "@/lib/chart-url";
 import { COUNTRIES } from "@/lib/countries";
+import { MAX_ROLL_ATTEMPTS } from "@/lib/end-of-chart-roll";
 import { globeChartStore } from "@/lib/globe-chart-store";
 import { selectGem } from "@/lib/select-gem";
 
@@ -57,7 +58,7 @@ afterEach(() => {
 const landingPick = vi.hoisted(() => ({ value: "" }));
 
 vi.mock("@/lib/landing-code", () => ({
-  randomCountryCode: () => landingPick.value,
+  pickLandingCountry: () => landingPick.value,
 }));
 
 // A controllable stand-in for the browser audio engine so a test can play and
@@ -278,6 +279,44 @@ describe("ChartScreen", () => {
     replaceState.mockRestore();
   });
 
+  test("Space with nothing loaded plays the first playable row of the chart on screen", () => {
+    audioEngine.reset();
+    const { container } = renderChartScreen(REDRAW_CHARTS, DRAW_2);
+
+    const handled = !fireEvent.keyDown(document.body, { code: "Space" });
+
+    expect(handled).toBe(true);
+    expect(playingRank(container)).toBe("1");
+  });
+
+  test("Space with nothing loaded skips rows without a preview", () => {
+    audioEngine.reset();
+    const charts: ChartFile = {
+      ...ADJACENCY_CHARTS,
+      countries: {
+        [ADJ_CODE]: {
+          ...ADJACENCY_CHARTS.countries[ADJ_CODE],
+          tracks: ADJACENCY_CHARTS.countries[ADJ_CODE].tracks.slice(1),
+        },
+      },
+    };
+    const { container } = renderChartScreen(charts, ADJ_CODE);
+
+    fireEvent.keyDown(document.body, { code: "Space" });
+
+    expect(playingRank(container)).toBe("3");
+  });
+
+  test("Space on a chart with no playable row leaves the key to the page", () => {
+    audioEngine.reset();
+    const { container } = renderChartScreen(REDRAW_CHARTS, DRAW_1);
+
+    const handled = !fireEvent.keyDown(document.body, { code: "Space" });
+
+    expect(handled).toBe(false);
+    expect(playingRank(container)).toBeNull();
+  });
+
   test("renders the chart for a country path arrival without touching the URL", () => {
     mockPathname.value = `/c/${CODE_US}`;
 
@@ -398,6 +437,23 @@ describe("ChartScreen globe coupling", () => {
     renderChartScreen(CHARTS, CODE_BR);
 
     expect(globeChartStore.getState().selectedCountry).toBe(CODE_US);
+  });
+
+  test("publishes the countries whose entries have tracks to the globe", () => {
+    renderChartScreen(
+      {
+        ...CHARTS,
+        countries: {
+          ...CHARTS.countries,
+          zz: emptyCountry("Entry without tracks"),
+        },
+      },
+      CODE_US,
+    );
+
+    expect(globeChartStore.getState().drawableCodes).toEqual(
+      Object.keys(CHARTS.countries),
+    );
   });
 
   test("publishes the rolled landing country to the globe when the URL names none", () => {
@@ -963,6 +1019,28 @@ describe("ChartScreen end-of-chart roll", () => {
 
     expect(screen.getByText(REDRAW_START)).toBeTruthy();
     expect(globeChartStore.getState().selectedCountry).toBe(DRAW_2);
+  });
+
+  test("a roll draws past entries without tracks instead of spending its redraws on them", async () => {
+    const withoutTracks = COUNTRIES.slice(0, MAX_ROLL_ATTEMPTS);
+    const target = COUNTRIES[MAX_ROLL_ATTEMPTS].code;
+    await playLastPlayable({
+      ...ADJACENCY_CHARTS,
+      countries: {
+        ...ADJACENCY_CHARTS.countries,
+        ...Object.fromEntries(
+          withoutTracks.map((c) => [c.code, emptyCountry(c.name)]),
+        ),
+        [target]: rollCountry([
+          rollTrack(1, LANDING_START, "https://example.com/landing.m4a"),
+        ]),
+      },
+    });
+
+    await advance(() => audioEngine.end());
+
+    expect(screen.getByText(LANDING_START)).toBeTruthy();
+    expect(globeChartStore.getState().selectedCountry).toBe(target);
   });
 
   test("when every redraw fails the chart dead-stops as before", async () => {

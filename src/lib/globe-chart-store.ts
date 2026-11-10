@@ -56,6 +56,11 @@ export interface GlobeChartState {
   // draws from it too: an end-of-chart roll picks its country with the same
   // visited-weighting a shuffle uses.
   visited: ReadonlySet<string>;
+  // The countries whose entry has tracks, the pool a shuffle and an
+  // end-of-chart roll draw from so neither lands where nothing can play. The
+  // chart publishes it because the chart file never reaches the layout-backdrop
+  // globe. Empty until the charts load, which a draw reads as every country.
+  drawableCodes: readonly string[];
   // The country a shuffle just drew, set by the globe when it lands one. The
   // screen-reader announcement and the landing's playback both key on this
   // rather than on the next selectedCountry change, so a selection from another
@@ -65,6 +70,7 @@ export interface GlobeChartState {
   shuffleLanded: { code: string; nonce: number } | null;
   setSelectedCountry: (code: string | null) => void;
   setVisited: (visited: ReadonlySet<string>) => void;
+  setDrawableCodes: (codes: readonly string[]) => void;
   setReadMode: (readMode: boolean) => void;
   setChartMode: (mode: ChartMode) => void;
   signalSettle: (viaTap?: boolean) => void;
@@ -84,10 +90,12 @@ export const globeChartStore = createStore<GlobeChartState>()((set) => ({
   chartMode: DEFAULT_CHART_MODE,
   skipIntent: { dir: 1, nonce: 0 },
   visited: new Set<string>(),
+  drawableCodes: [],
   shuffleSignal: 0,
   shuffleLanded: null,
   setSelectedCountry: (selectedCountry) => set({ selectedCountry }),
   setVisited: (visited) => set({ visited }),
+  setDrawableCodes: (drawableCodes) => set({ drawableCodes }),
   setReadMode: (readMode) => set({ readMode }),
   setChartMode: (chartMode) => set({ chartMode }),
   signalSettle: (viaTap = false) =>

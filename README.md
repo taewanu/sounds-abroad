@@ -35,7 +35,7 @@ Next.js 16 (App Router) · React 19 · react-three-fiber / three · topojson-cli
 
 ## For developers
 
-Node 24 + pnpm 10 via [mise](https://mise.jdx.dev). Wrap commands with `mise exec --` so non-interactive shells (CI, git hooks) resolve the right binaries.
+Node 24 + pnpm 10 via [mise](https://mise.jdx.dev). Wrap commands with `mise exec --` so non-interactive shells (CI, git hooks) resolve the right binaries. Copy [`.env.example`](.env.example) to `.env.local` for the configuration it lists.
 
 ```bash
 mise exec -- pnpm install

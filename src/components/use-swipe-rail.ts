@@ -136,17 +136,15 @@ export function useSwipeRail({
     swipedRef.current = false;
     // Drag is 1:1: drop any leftover settle transition before following.
     if (railRef.current) railRef.current.style.transition = "none";
-    // Capture so a swipe that drifts off the bar still delivers its pointerup
-    // here; the browser releases the capture on pointerup/cancel.
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {
-      /* setPointerCapture is unsupported under jsdom; capture is best-effort */
-    }
   };
 
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (!trackingRef.current) return;
+    // An uncaptured mouse released off the bar never sent its pointerup here.
+    if (e.pointerType === "mouse" && e.buttons === 0) {
+      trackingRef.current = false;
+      return;
+    }
     const dx = e.clientX - startXRef.current;
     const dy = e.clientY - startYRef.current;
     // Engage once the travel is decisively horizontal; from then on the rail
@@ -154,6 +152,16 @@ export function useSwipeRail({
     if (!engagedRef.current) {
       if (Math.abs(dx) <= DRAG_ENGAGE_PX || Math.abs(dx) <= Math.abs(dy))
         return;
+      // Captured only now: a pointer captured from the press sends its click to
+      // the bar instead of the control pressed, so no button would work.
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+        // Uncaptured, a release off the bar never arrives here, so the swipe
+        // would hang half-done and swallow the next click: drop it instead.
+        trackingRef.current = false;
+        return;
+      }
       engagedRef.current = true;
       swipedRef.current = true;
     }

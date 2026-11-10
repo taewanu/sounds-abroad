@@ -23,6 +23,7 @@ import {
   createThrottle,
 } from "./throttle";
 import {
+  DATA_CACHE_ENTRY_CAP,
   uploadCharts,
   uploadPlaylistFile,
   uploadPreviousCharts,
@@ -97,7 +98,22 @@ try {
         fetchRss: itunes.fetchRss,
         lookupTracks: itunes.lookupTracks,
         spotify,
-        uploadCharts,
+        // Past the cap nothing fails and every read goes back to the store, so
+        // this warning is the only signal that leaves time to shrink the file.
+        uploadCharts: (chartFile) =>
+          uploadCharts(chartFile, (entrySize) => {
+            console.warn(
+              `[crawl] chart file takes ${entrySize} of the ${DATA_CACHE_ENTRY_CAP} characters a data-cache entry may hold.`,
+            );
+            Sentry.captureMessage("charts:near-cache-cap", {
+              level: "warning",
+              extra: {
+                run_id: process.env.GITHUB_RUN_ID,
+                entry_size: entrySize,
+                entry_cap: DATA_CACHE_ENTRY_CAP,
+              },
+            });
+          }),
         uploadSongsTail,
         // Never rejects: a lost snapshot generation only lags the movement
         // diff one run, which must not abort a finished crawl. It still pages,

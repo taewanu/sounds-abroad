@@ -1,7 +1,16 @@
 import { expect, test } from "vitest";
 
+import { CHARTS } from "./__fixtures__";
+import { emptyCountry } from "./chart-schema";
 import { COUNTRIES } from "./countries";
-import { addVisited, pickShuffleCountry, weightedDraw } from "./fairness-draw";
+import {
+  addVisited,
+  codesWithTracks,
+  pickShuffleCountry,
+  weightedDraw,
+} from "./fairness-draw";
+
+const EVERY_CODE = COUNTRIES.map((c) => c.code);
 
 test("weightedDraw overwhelmingly prefers an unvisited country in the pool", () => {
   const [seen, unseen] = COUNTRIES;
@@ -27,9 +36,9 @@ test("pickShuffleCountry never returns an excluded country", () => {
 
   // Sweep the whole draw range: none of it may land on an excluded country.
   for (let r = 0; r < 1; r += 0.02) {
-    expect(pickShuffleCountry(new Set(), [excluded], () => r)).not.toBe(
-      excluded,
-    );
+    expect(
+      pickShuffleCountry(new Set(), [excluded], EVERY_CODE, () => r),
+    ).not.toBe(excluded);
   }
 });
 
@@ -38,7 +47,7 @@ test("pickShuffleCountry excludes every listed code, not only the first", () => 
 
   for (let r = 0; r < 1; r += 0.02) {
     expect(excluded).not.toContain(
-      pickShuffleCountry(new Set(), excluded, () => r),
+      pickShuffleCountry(new Set(), excluded, EVERY_CODE, () => r),
     );
   }
 });
@@ -50,11 +59,15 @@ test("pickShuffleCountry draws from the whole globe, not a rest-direction cluste
   const excluded = COUNTRIES[1].code;
   const firstOther = COUNTRIES.find((c) => c.code !== excluded)!.code;
 
-  expect(pickShuffleCountry(new Set(), [excluded], () => 0)).toBe(firstOther);
+  expect(pickShuffleCountry(new Set(), [excluded], EVERY_CODE, () => 0)).toBe(
+    firstOther,
+  );
 });
 
 test("pickShuffleCountry allows any country when nothing is excluded", () => {
-  expect(pickShuffleCountry(new Set(), [], () => 0)).toBe(COUNTRIES[0].code);
+  expect(pickShuffleCountry(new Set(), [], EVERY_CODE, () => 0)).toBe(
+    COUNTRIES[0].code,
+  );
 });
 
 test("pickShuffleCountry favours an unvisited country over any single visited one", () => {
@@ -71,7 +84,7 @@ test("pickShuffleCountry favours an unvisited country over any single visited on
 
   const counts = new Map<string, number>();
   for (let r = 0; r < 1; r += 0.001) {
-    const code = pickShuffleCountry(visited, [excluded], () => r);
+    const code = pickShuffleCountry(visited, [excluded], EVERY_CODE, () => r);
     counts.set(code, (counts.get(code) ?? 0) + 1);
   }
 
@@ -83,6 +96,82 @@ test("pickShuffleCountry favours an unvisited country over any single visited on
   );
   expect(counts.has(excluded)).toBe(false);
   expect(unseenCount).toBeGreaterThan(maxVisited);
+});
+
+test("pickShuffleCountry never draws a country outside the drawable set", () => {
+  const withoutTracks = EVERY_CODE.slice(0, 3);
+  const drawable = EVERY_CODE.slice(3);
+
+  for (let r = 0; r < 1; r += 0.001) {
+    expect(withoutTracks).not.toContain(
+      pickShuffleCountry(new Set(), [], drawable, () => r),
+    );
+  }
+});
+
+test("pickShuffleCountry stays inside the drawable set across a session of draws", () => {
+  const drawable = EVERY_CODE.filter((_, i) => i % 3 !== 0);
+  let seed = 1;
+  const rng = () => {
+    seed = (seed * 48271) % 2147483647;
+    return seed / 2147483647;
+  };
+  let visited: ReadonlySet<string> = new Set();
+  let current = EVERY_CODE[0];
+
+  const landings: string[] = [];
+  for (let i = 0; i < 2000; i++) {
+    current = pickShuffleCountry(visited, [current], drawable, rng);
+    visited = addVisited(visited, current);
+    landings.push(current);
+  }
+
+  expect(landings.filter((code) => !drawable.includes(code))).toEqual([]);
+  expect(new Set(landings)).toEqual(new Set(drawable));
+});
+
+test("pickShuffleCountry ignores a visited country outside the drawable set", () => {
+  const withoutTracks = EVERY_CODE.slice(0, 3);
+  const drawable = EVERY_CODE.slice(3);
+  const draws = (visited: ReadonlySet<string>) => {
+    const codes: string[] = [];
+    for (let r = 0; r < 1; r += 0.01) {
+      codes.push(pickShuffleCountry(visited, [], drawable, () => r));
+    }
+    return codes;
+  };
+
+  expect(draws(new Set(withoutTracks))).toEqual(draws(new Set()));
+});
+
+test("pickShuffleCountry draws from every listed country when none is drawable", () => {
+  const excluded = EVERY_CODE[0];
+
+  for (let r = 0; r < 1; r += 0.02) {
+    expect(pickShuffleCountry(new Set(), [excluded], [], () => r)).toBe(
+      pickShuffleCountry(new Set(), [excluded], EVERY_CODE, () => r),
+    );
+  }
+});
+
+test("pickShuffleCountry draws from every listed country when the only drawable one is excluded", () => {
+  const only = EVERY_CODE[0];
+
+  for (let r = 0; r < 1; r += 0.02) {
+    expect(EVERY_CODE.slice(1)).toContain(
+      pickShuffleCountry(new Set(), [only], [only], () => r),
+    );
+  }
+});
+
+test("codesWithTracks leaves out a country whose entry has no tracks", () => {
+  const countries = {
+    aa: emptyCountry("First without tracks"),
+    ...CHARTS.countries,
+    zz: emptyCountry("Last without tracks"),
+  };
+
+  expect(codesWithTracks(countries)).toEqual(Object.keys(CHARTS.countries));
 });
 
 test("addVisited records a newly settled country in the visited set", () => {

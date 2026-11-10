@@ -7,7 +7,7 @@ import { VolumeMuteIcon } from "@/components/icons/volume-mute";
 import { useAudioStore } from "@/providers/audio-store-provider";
 
 const MUTE_TRIGGER_CLASS =
-  "focus-visible:outline-aurora text-fg-2 hover:bg-orbit hover:text-fg-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]";
+  "focus-visible:outline-aurora text-fg-2 hover:bg-orbit hover:text-fg-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-[color,background-color,scale] duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]";
 
 /** The mute toggle alone, for where the level belongs to the hardware buttons. */
 export function MuteButton() {
@@ -84,7 +84,7 @@ export function VolumeControl() {
         aria-label="Volume"
         aria-expanded={open}
         aria-controls="mini-player-volume"
-        className={`focus-visible:outline-aurora flex h-10 w-10 items-center justify-center rounded-full transition-all duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] ${
+        className={`focus-visible:outline-aurora flex h-10 w-10 items-center justify-center rounded-full transition-[color,background-color,scale] duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] ${
           open
             ? "bg-orbit text-fg-1"
             : "text-fg-2 hover:bg-orbit hover:text-fg-1"
@@ -95,6 +95,9 @@ export function VolumeControl() {
       {open ? (
         <div
           id="mini-player-volume"
+          // The popover sits inside the mini-player's swipe surface, so a slider
+          // drag would otherwise read as a swipe and skip the track.
+          onPointerDown={(event) => event.stopPropagation()}
           className="border-fg-1/10 bg-atmos absolute right-0 bottom-[calc(100%+8px)] z-10 flex w-44 items-center gap-2.5 rounded-xl border px-3 py-2.5 shadow-md"
         >
           <button

@@ -501,6 +501,140 @@ describe("MiniPlayer", () => {
     expect(container.querySelector("[data-track-change]")).toBeNull();
   });
 
+  test("a press on a control leaves the pointer uncaptured, so its click reaches the control", () => {
+    const capture = vi.spyOn(HTMLElement.prototype, "setPointerCapture");
+    try {
+      const onNext = vi.fn();
+      renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
+
+      const next = screen.getByRole("button", { name: /next track/i });
+      fireEvent.pointerDown(next, { clientX: 200, clientY: 10, pointerId: 1 });
+      fireEvent.pointerMove(next, { clientX: 204, clientY: 10, pointerId: 1 });
+      fireEvent.pointerUp(next, { clientX: 204, clientY: 10, pointerId: 1 });
+      fireEvent.click(next);
+
+      expect(capture).not.toHaveBeenCalled();
+      expect(onNext).toHaveBeenCalledTimes(1);
+    } finally {
+      capture.mockRestore();
+    }
+  });
+
+  test("a drag whose pointer cannot be captured is dropped, so the next click still lands", () => {
+    const capture = vi
+      .spyOn(HTMLElement.prototype, "setPointerCapture")
+      .mockImplementation(() => {
+        throw new DOMException("pointer is not active", "NotFoundError");
+      });
+    try {
+      const onNext = vi.fn();
+      renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
+
+      const area = screen.getByRole("button", { name: /reopen chart/i });
+      fireEvent.pointerDown(area, { clientX: 200, clientY: 10, pointerId: 1 });
+      fireEvent.pointerMove(area, { clientX: 40, clientY: 10, pointerId: 1 });
+      fireEvent.click(screen.getByRole("button", { name: /next track/i }));
+
+      expect(onNext).toHaveBeenCalledTimes(1);
+    } finally {
+      capture.mockRestore();
+    }
+  });
+
+  test("a drag captures the pointer once it engages", () => {
+    const capture = vi.spyOn(HTMLElement.prototype, "setPointerCapture");
+    try {
+      renderMiniPlayer({}, { currentTrack: makeTrack() });
+
+      const area = screen.getByRole("button", { name: /reopen chart/i });
+      fireEvent.pointerDown(area, { clientX: 200, clientY: 10, pointerId: 1 });
+      fireEvent.pointerMove(area, { clientX: 40, clientY: 10, pointerId: 1 });
+
+      expect(capture).toHaveBeenCalledTimes(1);
+    } finally {
+      capture.mockRestore();
+    }
+  });
+
+  test("a pointer click on a control leaves nothing focused, so Space reaches play and pause", () => {
+    const onNext = vi.fn();
+    renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
+    const next = screen.getByRole("button", { name: /next track/i });
+    next.focus();
+
+    fireEvent.click(next, { detail: 1 });
+
+    expect(onNext).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  test("a pointer click on the volume slider keeps its focus, so arrow keys still adjust it", () => {
+    renderMiniPlayer({}, { currentTrack: makeTrack() });
+    fireEvent.click(screen.getByRole("button", { name: /^volume$/i }));
+    const slider = screen.getByRole("slider", { name: /volume/i });
+    slider.focus();
+
+    fireEvent.click(slider, { detail: 1 });
+
+    expect(document.activeElement).toBe(slider);
+  });
+
+  test("a keyboard click on a control keeps its focus", () => {
+    const onNext = vi.fn();
+    renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
+    const next = screen.getByRole("button", { name: /next track/i });
+    next.focus();
+
+    fireEvent.click(next, { detail: 0 });
+
+    expect(onNext).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(next);
+  });
+
+  test("dragging the volume slider does not swipe the track", () => {
+    vi.useFakeTimers();
+    try {
+      const onNext = vi.fn();
+
+      renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
+      fireEvent.click(screen.getByRole("button", { name: /^volume$/i }));
+      const slider = screen.getByRole("slider", { name: /volume/i });
+      fireEvent.pointerDown(slider, { clientX: 200, clientY: 10 });
+      fireEvent.pointerMove(slider, { clientX: 40, clientY: 10 });
+      fireEvent.pointerUp(slider, { clientX: 40, clientY: 10 });
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+
+      expect(onNext).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("a mouse released off the bar before dragging does not swipe when it hovers back", () => {
+    const onNext = vi.fn();
+
+    renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
+
+    const area = screen.getByRole("button", { name: /reopen chart/i });
+    fireEvent.pointerDown(area, {
+      clientX: 200,
+      clientY: 10,
+      pointerType: "mouse",
+      buttons: 1,
+    });
+    fireEvent.pointerMove(area, {
+      clientX: 40,
+      clientY: 10,
+      pointerType: "mouse",
+      buttons: 0,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /next track/i }));
+
+    expect(onNext).toHaveBeenCalledTimes(1);
+  });
+
   test("a short press below the swipe threshold still taps", () => {
     const onNext = vi.fn();
     const onPrev = vi.fn();

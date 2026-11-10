@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { type MouseEvent, useState } from "react";
 
 import { ExpandIcon } from "@/components/icons/expand";
 import { PauseIcon } from "@/components/icons/pause";
@@ -15,6 +15,15 @@ import { trackKey } from "@/lib/track-identity";
 import { useAudioStore } from "@/providers/audio-store-provider";
 
 import { RAIL_REST, useSwipeRail } from "./use-swipe-rail";
+
+// A pointer click on a control leaves nothing focused, so Space reaches the
+// app's play and pause shortcut instead of pressing that control again. A
+// keyboard click (detail 0) keeps its focus.
+function releaseFocusAfterPointerClick(event: MouseEvent<HTMLDivElement>) {
+  if (event.detail === 0 || !(event.target as Element).closest("button"))
+    return;
+  (document.activeElement as HTMLElement | null)?.blur();
+}
 
 export interface MiniPlayerProps {
   onTap: () => void;
@@ -31,7 +40,7 @@ export interface MiniPlayerProps {
 }
 
 const SKIP_BUTTON_CLASS =
-  "text-fg-2 hover:bg-orbit hover:text-fg-1 focus-visible:outline-aurora flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-30";
+  "text-fg-2 hover:bg-orbit hover:text-fg-1 focus-visible:outline-aurora flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-[color,background-color,scale,opacity] duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-30";
 
 // A non-interactive preview of an adjacent track for the rail: only the current
 // card carries the marquee, EQ, and a11y text, so the neighbours stay plain and
@@ -136,6 +145,10 @@ export function MiniPlayer({
           swipe leaves behind before it reaches any control. */}
       <div
         {...swipeHandlers}
+        onClickCapture={(event) => {
+          releaseFocusAfterPointerClick(event);
+          swipeHandlers.onClickCapture(event);
+        }}
         className="flex touch-pan-y items-center gap-[14px] px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)]"
       >
         <button
@@ -218,7 +231,7 @@ export function MiniPlayer({
               ? `Pause preview of ${currentTrack.name}`
               : `Play preview of ${currentTrack.name}`
           }
-          className="text-fg-1 hover:bg-orbit focus-visible:outline-aurora flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]"
+          className="text-fg-1 hover:bg-orbit focus-visible:outline-aurora flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-[color,background-color,scale] duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]"
         >
           {isPlaying ? (
             <PauseIcon className="h-4 w-4" />

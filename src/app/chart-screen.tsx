@@ -41,6 +41,7 @@ import {
 } from "@/lib/chart-url";
 import {
   backRollTarget,
+  firstPlayable,
   landingTrack,
   planChartContinuation,
   planRoll,
@@ -49,13 +50,13 @@ import {
   type RollRecord,
   type SeatOf,
 } from "@/lib/end-of-chart-roll";
-import { pickShuffleCountry } from "@/lib/fairness-draw";
+import { codesWithTracks, pickShuffleCountry } from "@/lib/fairness-draw";
 import {
   type GlobeChartState,
   globeChartStore,
   useGlobeChart,
 } from "@/lib/globe-chart-store";
-import { randomCountryCode } from "@/lib/landing-code";
+import { pickLandingCountry } from "@/lib/landing-code";
 import { setSkipHandlers } from "@/lib/media-session";
 import { shuffleSeat } from "@/lib/shuffle-seat";
 import { sameTrack } from "@/lib/track-identity";
@@ -83,9 +84,9 @@ const serverLandingSnapshot = () => null;
 
 // The landing roll must happen once per visit and only in the browser: rolling
 // during prerender would bake one pick into the cached HTML for every visitor.
-function createLandingSnapshot(codes: readonly string[]) {
+function createLandingSnapshot(countries: ChartFile["countries"]) {
   let rolled: string | null = null;
-  return () => (rolled ??= randomCountryCode(codes));
+  return () => (rolled ??= pickLandingCountry(countries));
 }
 
 export function ChartScreen({ charts }: ChartScreenProps) {
@@ -101,7 +102,7 @@ export function ChartScreen({ charts }: ChartScreenProps) {
     validateUrlCode(rawCc, charts.countries) ??
     validateUrlCode(countryCodeFromPath(pathname), charts.countries);
   const [clientLandingSnapshot] = useState(() =>
-    createLandingSnapshot(Object.keys(charts.countries)),
+    createLandingSnapshot(charts.countries),
   );
   const landingCode = useSyncExternalStore(
     emptySubscribe,
@@ -117,6 +118,14 @@ export function ChartScreen({ charts }: ChartScreenProps) {
     if (countryCode === null) return;
     globeChartStore.getState().setSelectedCountry(countryCode);
   }, [countryCode]);
+
+  // Publish which countries have tracks for the same reason: the globe draws
+  // the shuffle but never sees the chart file.
+  useEffect(() => {
+    globeChartStore
+      .getState()
+      .setDrawableCodes(codesWithTracks(charts.countries));
+  }, [charts.countries]);
 
   if (countryCode === null) return null;
 
@@ -346,13 +355,21 @@ function ChartScreenInner({
         return;
       }
       const { currentTrack, toggle } = audioStore.getState();
-      if (currentTrack === null) return;
+      if (currentTrack !== null) {
+        e.preventDefault();
+        toggle(currentTrack);
+        return;
+      }
+      // Nothing loaded yet: start the chart on screen from its top, as a press
+      // on its first playable row would.
+      const top = firstPlayable(tracksOf(countryCode, chart.ref) ?? []);
+      if (top === null) return;
       e.preventDefault();
-      toggle(currentTrack);
+      toggle(top, { countryCode, chartRef: chart.ref, mode }, "space_key");
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [audioStore]);
+  }, [audioStore, tracksOf, countryCode, chart.ref, mode]);
 
   // Hidden sheet has no on-screen affordance; the next pointerdown anywhere
   // restores it.
@@ -478,10 +495,10 @@ function ChartScreenInner({
       fromTrack: ChartTrack,
     ): "rolled" | null => {
       const { toggle, signalStep } = audioStore.getState();
-      const { visited, selectedCountry, setSelectedCountry } =
+      const { visited, drawableCodes, selectedCountry, setSelectedCountry } =
         globeChartStore.getState();
       const landing = planRoll(fromCode, seatIn(heardIn()), (exclude) =>
-        pickShuffleCountry(visited, exclude),
+        pickShuffleCountry(visited, exclude, drawableCodes),
       );
       if (!landing) return null;
       // Playback first (same task as the triggering gesture or ended event),

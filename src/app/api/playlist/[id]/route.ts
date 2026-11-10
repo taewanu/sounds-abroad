@@ -12,6 +12,7 @@ import {
   ChartPartValidationError,
   fetchPlaylistFile,
 } from "@/lib/chart-parts";
+import { PlaylistIdSchema } from "@/lib/url-schema";
 
 export const runtime = "nodejs";
 
@@ -29,7 +30,9 @@ export async function readPlaylist(
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
   const { id } = await params;
-  if (!id) return json({ error: "missing playlist id" }, 400, CHART_LIFETIME);
+  if (!PlaylistIdSchema.safeParse(id).success) {
+    return json({ error: "not a playlist id" }, 400, CHART_LIFETIME);
+  }
 
   const chartsUrl = process.env.CHARTS_BLOB_URL;
   if (!chartsUrl) {
