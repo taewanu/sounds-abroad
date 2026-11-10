@@ -95,6 +95,9 @@ export function VolumeControl() {
       {open ? (
         <div
           id="mini-player-volume"
+          // The popover sits inside the mini-player's swipe surface, so a slider
+          // drag would otherwise read as a swipe and skip the track.
+          onPointerDown={(event) => event.stopPropagation()}
           className="border-fg-1/10 bg-atmos absolute right-0 bottom-[calc(100%+8px)] z-10 flex w-44 items-center gap-2.5 rounded-xl border px-3 py-2.5 shadow-md"
         >
           <button

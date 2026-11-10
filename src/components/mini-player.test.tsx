@@ -468,6 +468,27 @@ describe("MiniPlayer", () => {
     }
   });
 
+  test("dragging the volume slider does not swipe the track", () => {
+    vi.useFakeTimers();
+    try {
+      const onNext = vi.fn();
+
+      renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
+      fireEvent.click(screen.getByRole("button", { name: /^volume$/i }));
+      const slider = screen.getByRole("slider", { name: /volume/i });
+      fireEvent.pointerDown(slider, { clientX: 200, clientY: 10 });
+      fireEvent.pointerMove(slider, { clientX: 40, clientY: 10 });
+      fireEvent.pointerUp(slider, { clientX: 40, clientY: 10 });
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+
+      expect(onNext).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   test("a mouse released off the bar before dragging does not swipe when it hovers back", () => {
     const onNext = vi.fn();
 
