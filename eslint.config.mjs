@@ -48,6 +48,12 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  {
+    // The image optimizer this rule steers toward is a metered hosting resource,
+    // so artwork loads straight from the storefront's CDN through one component.
+    files: ["src/components/track-artwork.tsx"],
+    rules: { "@next/next/no-img-element": "off" },
+  },
   prettier,
   {
     files: ["**/*.test.{ts,tsx}"],

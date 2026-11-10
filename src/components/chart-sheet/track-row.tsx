@@ -6,6 +6,7 @@ import { AppleMusicIcon } from "@/components/icons/apple-music";
 import { PauseIcon } from "@/components/icons/pause";
 import { PlayIcon } from "@/components/icons/play";
 import { SpotifyIcon } from "@/components/icons/spotify";
+import { TrackArtwork } from "@/components/track-artwork";
 import { useOverflowMarquee } from "@/components/use-overflow-marquee";
 import { track as trackEvent } from "@/lib/analytics";
 import type { ChartMode } from "@/lib/chart-mode";
@@ -177,11 +178,7 @@ export function TrackRow({
               track.rank
             )}
           </span>
-          <div
-            aria-hidden="true"
-            style={{ backgroundImage: `url(${track.artworkUrl})` }}
-            className="bg-fg-1/5 h-12 w-12 shrink-0 rounded-lg bg-cover bg-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-          />
+          <TrackArtwork url={track.artworkUrl} />
           <div className="min-w-0 flex-1">
             <p
               className={`text-body flex min-w-0 items-center gap-2 font-medium ${

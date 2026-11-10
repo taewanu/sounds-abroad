@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 
 import type { AudioEngine } from "@/lib/audio-engine";
@@ -70,6 +71,29 @@ describe("GemCard", () => {
     expect(screen.getByText("Local Anthem")).toBeDefined();
     expect(screen.getByText("Local Band")).toBeDefined();
     expect(screen.getByText(/a local favorite/i)).toBeDefined();
+  });
+
+  // Rendered as server markup: a DOM style setter discards an invalid value, so
+  // only the serialized attribute shows a declaration a style string would carry.
+  // The renderer preloads an image it emits, hence the second address attribute.
+  test("an artwork address reaches the server markup only as an image address", () => {
+    const artworkUrl =
+      "https://is1-ssl.mzstatic.com/cover.jpg);outline-style:solid;background-image:url(https://is1-ssl.mzstatic.com/other.jpg";
+    const track = makeTrack({ artworkUrl });
+    const store = createAudioStore(() => makeMockAudio());
+
+    const html = renderToStaticMarkup(
+      <AudioStoreContext.Provider value={store}>
+        <GemCard track={track} tier="entirely their own" countryCode="kr" />
+      </AudioStoreContext.Provider>,
+    );
+
+    const elsewhere = html
+      .replaceAll(`src="${artworkUrl}"`, "")
+      .replaceAll(`href="${artworkUrl}"`, "");
+    expect(html).toContain(`src="${artworkUrl}"`);
+    expect(elsewhere).not.toContain(artworkUrl);
+    expect(html).not.toMatch(/style="[^"]*url\(/);
   });
 
   test("clicking the play control toggles the gem track on the audio store", () => {

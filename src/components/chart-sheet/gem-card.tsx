@@ -3,6 +3,7 @@
 import { GemIcon } from "@/components/icons/gem";
 import { PauseIcon } from "@/components/icons/pause";
 import { PlayIcon } from "@/components/icons/play";
+import { TrackArtwork } from "@/components/track-artwork";
 import { DEFAULT_CHART_MODE } from "@/lib/chart-mode";
 import { SONGS_CHART } from "@/lib/chart-ref";
 import type { Track } from "@/lib/chart-schema";
@@ -89,11 +90,7 @@ export function GemCard({ track, tier, countryCode }: GemCardProps) {
             />
           )}
         </span>
-        <div
-          aria-hidden="true"
-          style={{ backgroundImage: `url(${track.artworkUrl})` }}
-          className="bg-fg-1/5 h-12 w-12 shrink-0 rounded-lg bg-cover bg-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-        />
+        <TrackArtwork url={track.artworkUrl} />
         <div className="min-w-0 flex-1">
           <p className="text-gold text-micro mb-0.5 flex items-center gap-1.5 font-medium tracking-wide uppercase">
             <GemIcon className="h-3.5 w-3.5 shrink-0" />

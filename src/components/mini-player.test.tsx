@@ -106,12 +106,76 @@ describe("MiniPlayer", () => {
 
     expect(screen.getByText("Hot Track")).toBeDefined();
     expect(screen.getByText("Hot Artist")).toBeDefined();
-    // The current card's artwork, found among the rail's aria-hidden nodes by
-    // its background image (the empty prev/next preview slots carry none).
-    const artwork = [
-      ...container.querySelectorAll('[aria-hidden="true"]'),
-    ].find((el) => el.getAttribute("style")?.includes(track.artworkUrl));
-    expect(artwork).toBeDefined();
+    // The empty prev/next preview slots carry no artwork, so the one image is
+    // the current card's.
+    const sources = [...container.querySelectorAll("img")].map((img) =>
+      img.getAttribute("src"),
+    );
+    expect(sources).toEqual([track.artworkUrl]);
+    expect(container.innerHTML.split(track.artworkUrl).length - 1).toBe(
+      sources.length,
+    );
+  });
+
+  // Client-rendered, unlike the row and the gem card: the bar renders nothing
+  // on the server, where no track is playing yet. A DOM style setter discards an
+  // invalid value, so the well-formed address above is the one that would show
+  // a style string coming back.
+  test("an artwork address reaches the document only as an image source", () => {
+    const artworkUrl =
+      "https://is1-ssl.mzstatic.com/cover.jpg);outline-style:solid;background-image:url(https://is1-ssl.mzstatic.com/other.jpg";
+    const railCards = [
+      makeTrack({ rank: 1, artworkUrl }),
+      makeTrack({ rank: 2, artworkUrl }),
+      makeTrack({ rank: 3, artworkUrl }),
+    ];
+    const [prevTrack, currentTrack, nextTrack] = railCards;
+
+    const { container } = renderMiniPlayer(
+      { prevTrack, nextTrack },
+      { currentTrack },
+    );
+
+    const sources = [...container.querySelectorAll("img")].map((img) =>
+      img.getAttribute("src"),
+    );
+    expect(sources).toEqual(railCards.map((card) => card.artworkUrl));
+    expect(container.innerHTML.split(artworkUrl).length - 1).toBe(
+      sources.length,
+    );
+  });
+
+  test("a preview card whose track changes gets a fresh artwork element", () => {
+    const prevTrack = makeTrack({ rank: 1 });
+    const currentTrack = makeTrack({ rank: 2 });
+    const nextTrack = makeTrack({
+      rank: 3,
+      artworkUrl: "https://example.com/next.jpg",
+    });
+    const laterTrack = makeTrack({
+      rank: 4,
+      artworkUrl: "https://example.com/later.jpg",
+    });
+    const { container, rerender, store, props } = renderMiniPlayer(
+      { prevTrack, nextTrack },
+      { currentTrack },
+    );
+    const before = container.querySelector(
+      `img[src="${nextTrack.artworkUrl}"]`,
+    );
+
+    rerender(
+      <AudioStoreContext.Provider value={store}>
+        <MiniPlayer {...props} nextTrack={laterTrack} />
+      </AudioStoreContext.Provider>,
+    );
+
+    const after = container.querySelector(
+      `img[src="${laterTrack.artworkUrl}"]`,
+    );
+    expect(before).not.toBeNull();
+    expect(after).not.toBeNull();
+    expect(after).not.toBe(before);
   });
 
   test("tap on main area fires onTap callback", () => {
