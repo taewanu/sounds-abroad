@@ -7,6 +7,7 @@ import { PauseIcon } from "@/components/icons/pause";
 import { PlayIcon } from "@/components/icons/play";
 import { SkipBackIcon } from "@/components/icons/skip-back";
 import { SkipForwardIcon } from "@/components/icons/skip-forward";
+import { TrackArtwork } from "@/components/track-artwork";
 import { useOverflowMarquee } from "@/components/use-overflow-marquee";
 import { MuteButton, VolumeControl } from "@/components/volume-control";
 import type { ChartTrack } from "@/lib/chart-schema";
@@ -40,19 +41,6 @@ export interface MiniPlayerProps {
 
 const SKIP_BUTTON_CLASS =
   "text-fg-2 hover:bg-orbit hover:text-fg-1 focus-visible:outline-aurora flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-[color,background-color,scale,opacity] duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-30";
-
-// The 48px cover thumbnail, shared by the current card and the rail's preview
-// cards so a style change stays in one place. Decorative (the a11y track text
-// lives on the current card's title), so always aria-hidden.
-function TrackArtwork({ url }: { url: string }) {
-  return (
-    <div
-      aria-hidden="true"
-      style={{ backgroundImage: `url(${url})` }}
-      className="bg-fg-1/5 h-12 w-12 shrink-0 rounded-lg bg-cover bg-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-    />
-  );
-}
 
 // A non-interactive preview of an adjacent track for the rail: only the current
 // card carries the marquee, EQ, and a11y text, so the neighbours stay plain and

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 
 import type { AudioEngine } from "@/lib/audio-engine";
@@ -72,8 +73,49 @@ describe("TrackRow", () => {
     expect(screen.getByText(String(track.rank))).toBeDefined();
     expect(screen.getByText(track.name)).toBeDefined();
     expect(screen.getByText(track.artist)).toBeDefined();
-    const artwork = container.querySelector('[aria-hidden="true"]');
-    expect(artwork?.getAttribute("style")).toContain(track.artworkUrl);
+    expect(container.querySelector("img")?.getAttribute("src")).toBe(
+      track.artworkUrl,
+    );
+  });
+
+  // Rendered as server markup: a DOM style setter discards an invalid value, so
+  // only the serialized attribute shows a declaration a style string would carry.
+  // The renderer preloads an image it emits, hence the second address attribute.
+  test("an artwork address reaches the server markup only as an image address", () => {
+    const artworkUrl =
+      "https://is1-ssl.mzstatic.com/cover.jpg);outline-style:solid;background-image:url(https://is1-ssl.mzstatic.com/other.jpg";
+    const track = makeTrack({ artworkUrl });
+    const store = createAudioStore(() => makeMockAudio());
+
+    const html = renderToStaticMarkup(
+      <AudioStoreContext.Provider value={store}>
+        <ul>
+          <TrackRow
+            track={track}
+            countryCode="kr"
+            chartRef={SONGS_CHART}
+            mode="most_played"
+          />
+        </ul>
+      </AudioStoreContext.Provider>,
+    );
+
+    const elsewhere = html
+      .replaceAll(`src="${artworkUrl}"`, "")
+      .replaceAll(`href="${artworkUrl}"`, "");
+    expect(html).toContain(`src="${artworkUrl}"`);
+    expect(elsewhere).not.toContain(artworkUrl);
+    expect(html).not.toMatch(/style="[^"]*url\(/);
+  });
+
+  test("artwork that fails to load is removed, leaving its placeholder box", () => {
+    const { container } = renderTrackRow(makeTrack());
+    const placeholder = container.querySelector("img")?.parentElement;
+
+    fireEvent.error(container.querySelector("img") as HTMLImageElement);
+
+    expect(container.querySelector("img")).toBeNull();
+    expect(placeholder?.isConnected).toBe(true);
   });
 
   test("clicking the row triggers audio store toggle for this track", () => {
