@@ -440,14 +440,38 @@ describe("MiniPlayer", () => {
   test("a press on a control leaves the pointer uncaptured, so its click reaches the control", () => {
     const capture = vi.spyOn(HTMLElement.prototype, "setPointerCapture");
     try {
-      renderMiniPlayer({}, { currentTrack: makeTrack() });
+      const onNext = vi.fn();
+      renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
 
       const next = screen.getByRole("button", { name: /next track/i });
       fireEvent.pointerDown(next, { clientX: 200, clientY: 10, pointerId: 1 });
       fireEvent.pointerMove(next, { clientX: 204, clientY: 10, pointerId: 1 });
       fireEvent.pointerUp(next, { clientX: 204, clientY: 10, pointerId: 1 });
+      fireEvent.click(next);
 
       expect(capture).not.toHaveBeenCalled();
+      expect(onNext).toHaveBeenCalledTimes(1);
+    } finally {
+      capture.mockRestore();
+    }
+  });
+
+  test("a drag whose pointer cannot be captured is dropped, so the next click still lands", () => {
+    const capture = vi
+      .spyOn(HTMLElement.prototype, "setPointerCapture")
+      .mockImplementation(() => {
+        throw new DOMException("pointer is not active", "NotFoundError");
+      });
+    try {
+      const onNext = vi.fn();
+      renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
+
+      const area = screen.getByRole("button", { name: /reopen chart/i });
+      fireEvent.pointerDown(area, { clientX: 200, clientY: 10, pointerId: 1 });
+      fireEvent.pointerMove(area, { clientX: 40, clientY: 10, pointerId: 1 });
+      fireEvent.click(screen.getByRole("button", { name: /next track/i }));
+
+      expect(onNext).toHaveBeenCalledTimes(1);
     } finally {
       capture.mockRestore();
     }

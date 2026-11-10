@@ -152,15 +152,18 @@ export function useSwipeRail({
     if (!engagedRef.current) {
       if (Math.abs(dx) <= DRAG_ENGAGE_PX || Math.abs(dx) <= Math.abs(dy))
         return;
-      engagedRef.current = true;
-      swipedRef.current = true;
       // Captured only now: a pointer captured from the press sends its click to
       // the bar instead of the control pressed, so no button would work.
       try {
         e.currentTarget.setPointerCapture(e.pointerId);
       } catch {
-        /* capture is best-effort; a swipe off the bar then ends at pointerup elsewhere */
+        // Uncaptured, a release off the bar never arrives here, so the swipe
+        // would hang half-done and swallow the next click: drop it instead.
+        trackingRef.current = false;
+        return;
       }
+      engagedRef.current = true;
+      swipedRef.current = true;
     }
     if (railRef.current)
       railRef.current.style.transform = `translateX(calc(-100% + ${dx}px))`;
