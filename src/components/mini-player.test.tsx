@@ -492,30 +492,39 @@ describe("MiniPlayer", () => {
     }
   });
 
-  test("a mouse press on a control leaves nothing focused, so Space reaches play and pause", () => {
-    renderMiniPlayer({}, { currentTrack: makeTrack() });
-    const elsewhere = document.createElement("button");
-    document.body.append(elsewhere);
-    elsewhere.focus();
+  test("a pointer click on a control leaves nothing focused, so Space reaches play and pause", () => {
+    const onNext = vi.fn();
+    renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
+    const next = screen.getByRole("button", { name: /next track/i });
+    next.focus();
 
-    const pressed = fireEvent.mouseDown(
-      screen.getByRole("button", { name: /next track/i }),
-    );
+    fireEvent.click(next, { detail: 1 });
 
-    expect(pressed).toBe(false);
+    expect(onNext).toHaveBeenCalledTimes(1);
     expect(document.activeElement).toBe(document.body);
-    elsewhere.remove();
   });
 
-  test("a mouse press on the volume slider keeps its default, so the slider still drags", () => {
+  test("a pointer click on the volume slider keeps its focus, so arrow keys still adjust it", () => {
     renderMiniPlayer({}, { currentTrack: makeTrack() });
     fireEvent.click(screen.getByRole("button", { name: /^volume$/i }));
+    const slider = screen.getByRole("slider", { name: /volume/i });
+    slider.focus();
 
-    const pressed = fireEvent.mouseDown(
-      screen.getByRole("slider", { name: /volume/i }),
-    );
+    fireEvent.click(slider, { detail: 1 });
 
-    expect(pressed).toBe(true);
+    expect(document.activeElement).toBe(slider);
+  });
+
+  test("a keyboard click on a control keeps its focus", () => {
+    const onNext = vi.fn();
+    renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
+    const next = screen.getByRole("button", { name: /next track/i });
+    next.focus();
+
+    fireEvent.click(next, { detail: 0 });
+
+    expect(onNext).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(next);
   });
 
   test("dragging the volume slider does not swipe the track", () => {

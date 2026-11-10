@@ -15,11 +15,12 @@ import { useAudioStore } from "@/providers/audio-store-provider";
 
 import { RAIL_REST, useSwipeRail } from "./use-swipe-rail";
 
-// A mouse press on a control leaves nothing focused, so Space reaches the app's
-// play and pause shortcut instead of pressing that control again.
-function releaseFocusOnPress(event: MouseEvent<HTMLDivElement>) {
-  if (!(event.target as Element).closest("button")) return;
-  event.preventDefault();
+// A pointer click on a control leaves nothing focused, so Space reaches the
+// app's play and pause shortcut instead of pressing that control again. A
+// keyboard click (detail 0) keeps its focus.
+function releaseFocusAfterPointerClick(event: MouseEvent<HTMLDivElement>) {
+  if (event.detail === 0 || !(event.target as Element).closest("button"))
+    return;
   (document.activeElement as HTMLElement | null)?.blur();
 }
 
@@ -156,7 +157,10 @@ export function MiniPlayer({
           swipe leaves behind before it reaches any control. */}
       <div
         {...swipeHandlers}
-        onMouseDown={releaseFocusOnPress}
+        onClickCapture={(event) => {
+          releaseFocusAfterPointerClick(event);
+          swipeHandlers.onClickCapture(event);
+        }}
         className="flex touch-pan-y items-center gap-[14px] px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)]"
       >
         <button
