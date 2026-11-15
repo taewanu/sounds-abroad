@@ -223,9 +223,11 @@ export function TrackCommentary({
         id={panelId}
         inert={!expanded}
         data-expanded={expanded || undefined}
-        className="max-h-0 overflow-hidden transition-[max-height] duration-300 ease-[var(--ease-out)] data-[expanded]:max-h-96 motion-reduce:transition-none"
+        className="grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 ease-[var(--ease-out)] data-[expanded]:grid-rows-[1fr] motion-reduce:transition-none"
       >
-        <CommentaryDetail commentary={commentary} />
+        <div className="min-h-0 overflow-hidden">
+          <CommentaryDetail commentary={commentary} />
+        </div>
       </div>
     </div>
   );

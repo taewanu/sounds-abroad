@@ -252,6 +252,19 @@ describe("GemCard commentary", () => {
     expect(screen.getByText(COMMENTARY.detail)).toBeDefined();
   });
 
+  test("the expanded panel grows to its content rather than a fixed max height", () => {
+    renderGemCard(makeTrack({ commentary: COMMENTARY }));
+    const toggle = screen.getByRole("button", { expanded: false });
+    const panel = document.getElementById(
+      toggle.getAttribute("aria-controls")!,
+    )!;
+
+    fireEvent.click(toggle);
+
+    expect(panel.className).not.toMatch(/max-h-/);
+    expect(panel.className).toContain("data-[expanded]:grid-rows-[1fr]");
+  });
+
   test("renders no commentary affordance when the gem has none", () => {
     const track = makeTrack();
 
