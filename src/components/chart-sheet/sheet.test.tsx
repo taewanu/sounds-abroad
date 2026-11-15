@@ -1,6 +1,9 @@
+import type { ReactNode } from "react";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
+import { CountrySelector } from "@/components/country-selector";
+import { VolumeControl } from "@/components/volume-control";
 import { COUNTRY_KR, COUNTRY_US } from "@/lib/__fixtures__";
 import type { AudioEngine } from "@/lib/audio-engine";
 import { createAudioStore } from "@/lib/audio-store";
@@ -157,20 +160,28 @@ function renderAtPeek(country: Country, currentTrackRank: number) {
   );
 }
 
-function renderSheet(snap: SnapState) {
+// `alongside` renders next to the sheet, for overlays that stack above it.
+function renderSheet(
+  snap: SnapState,
+  {
+    country = COUNTRY_KR,
+    alongside,
+  }: { country?: Country; alongside?: ReactNode } = {},
+) {
   const onSnapChange = vi.fn();
   const store = createAudioStore(() => makeMockAudio());
   const sheetAt = (s: SnapState) => (
     <AudioStoreContext.Provider value={store}>
       <ChartSheet
-        country={COUNTRY_KR}
-        chart={staticChart(COUNTRY_KR)}
+        country={country}
+        chart={staticChart(country)}
         countryCode="kr"
         mode="most_played"
         onModeChange={() => {}}
         snap={s}
         onSnapChange={onSnapChange}
       />
+      {alongside}
     </AudioStoreContext.Provider>
   );
   const utils = render(sheetAt(snap));
@@ -1339,5 +1350,35 @@ describe("ChartSheet commentary focus", () => {
     rerender(view("kr"));
 
     expect(container.querySelector("[data-commentary-card]")).toBeNull();
+  });
+
+  test("with the volume popover open over a card, one Escape on its mute button closes only the popover", () => {
+    const { container, onSnapChange } = renderSheet("full", {
+      alongside: <VolumeControl />,
+    });
+    fireEvent.click(firstTeaser(container)!);
+    fireEvent.click(screen.getByRole("button", { name: "Volume" }));
+    const mute = screen.getByRole("button", { name: "Mute" });
+    mute.focus();
+
+    fireEvent.keyDown(mute, { key: "Escape" });
+
+    expect(screen.queryByRole("slider")).toBeNull();
+    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+    expect(onSnapChange).not.toHaveBeenCalled();
+  });
+});
+
+describe("ChartSheet under the country list", () => {
+  test("with the country list open over the sheet, one Escape closes only the list", () => {
+    const { onSnapChange } = renderSheet("peek", {
+      alongside: <CountrySelector />,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /choose a country/i }));
+
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    expect(screen.queryByRole("navigation", { name: "Countries" })).toBeNull();
+    expect(onSnapChange).not.toHaveBeenCalled();
   });
 });

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 
+import { ESCAPE_LAYER, useEscapeLayer } from "@/components/use-escape-layer";
 import { countryPath } from "@/lib/chart-url";
 import { COUNTRIES } from "@/lib/countries";
 import { countryByCode } from "@/lib/country-code";
@@ -82,14 +83,7 @@ export function CountrySelector() {
 
   // Escape closes and returns focus to the toggle, the one focus move a
   // disclosure needs. (No focus trap; tab order alone walks in and out.)
-  useEffect(() => {
-    if (!listOpen) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close(true);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [listOpen]);
+  useEscapeLayer(listOpen, ESCAPE_LAYER.popover, () => close(true));
 
   return (
     <>

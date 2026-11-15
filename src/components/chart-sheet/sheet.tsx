@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 
+import { ESCAPE_LAYER, useEscapeLayer } from "@/components/use-escape-layer";
 import {
   prefersReducedMotion,
   usePrefersReducedMotion,
@@ -173,6 +174,7 @@ export function ChartSheet({
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const olRef = useRef<HTMLOListElement | null>(null);
   const reducedMotion = usePrefersReducedMotion();
+  const minimized = snap === "closed" || snap === "hidden";
 
   // Both derive from the songs chart rather than the open one. Commentary and
   // spread are carried by the songs axis alone, so a playlist chart has neither
@@ -361,17 +363,18 @@ export function ChartSheet({
     );
   }
 
-  // While a card is focused, dismiss on Escape or a click outside it (a dimmed
-  // sibling, the sheet chrome). Dismiss on click, not pointerdown: closing
-  // un-dims the siblings, so a pointerdown-close would restore a sibling's
-  // pointer-events before its click landed and play that track. A dimmed
-  // sibling stays pointer-events-none through the whole click, so the click
-  // targets the list behind it (never the row's play button) and only closes.
+  useEscapeLayer(focusedRank !== null, ESCAPE_LAYER.card, () =>
+    setFocusedRank(null),
+  );
+
+  // While a card is focused, dismiss on a click outside it (a dimmed sibling,
+  // the sheet chrome). Dismiss on click, not pointerdown: closing un-dims the
+  // siblings, so a pointerdown-close would restore a sibling's pointer-events
+  // before its click landed and play that track. A dimmed sibling stays
+  // pointer-events-none through the whole click, so the click targets the list
+  // behind it (never the row's play button) and only closes.
   useEffect(() => {
     if (focusedRank === null) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setFocusedRank(null);
-    };
     const onClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
       // Keep the card open for clicks on the card itself, and for anything
@@ -381,21 +384,8 @@ export function ChartSheet({
       if (!sheetRef.current?.contains(target)) return;
       setFocusedRank(null);
     };
-    window.addEventListener("keydown", onKey);
     window.addEventListener("click", onClick, true);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("click", onClick, true);
-    };
-  }, [focusedRank]);
-
-  // The sheet's own long-lived Escape-collapse listener reads focus via this ref
-  // (the file's ref-for-listeners pattern), so an Escape that closes a focused
-  // card doesn't also collapse the sheet: the card takes the first Escape, a
-  // second collapses.
-  const focusedRankRef = useRef(focusedRank);
-  useEffect(() => {
-    focusedRankRef.current = focusedRank;
+    return () => window.removeEventListener("click", onClick, true);
   }, [focusedRank]);
 
   // When a card opens, its grown height can push its own top above the list
@@ -727,29 +717,13 @@ export function ChartSheet({
     onSnapChange(snap === "peek" ? "full" : "peek");
   }, [snap, onSnapChange]);
 
-  // Escape collapses the sheet. Radix's Dialog owned this before; with the
-  // Dialog removed for its focus trap we listen on the window directly.
-  // Mirror the file's long-lived-listener pattern (see the touch controller):
-  // read the latest values from refs so this attaches once, not per render.
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      // Leave Escape to the focused control when it owns a field-local cancel
-      // (a range/text input, a select), matching the Space handler's guard.
-      const target = e.target as HTMLElement | null;
-      const tag = target?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-      // A focused commentary card owns Escape first; only once it's closed does
-      // Escape collapse the sheet.
-      if (focusedRankRef.current !== null) return;
-      // Already collapsed or off-screen: nothing to close, so skip the write.
-      const currentSnap = snapRef.current;
-      if (currentSnap === "closed" || currentSnap === "hidden") return;
-      onSnapChangeRef.current("closed");
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  useEscapeLayer(!minimized, ESCAPE_LAYER.sheet, (e) => {
+    // Leave Escape to the focused control when it owns a field-local cancel
+    // (a range/text input, a select), matching the Space handler's guard.
+    const tag = (e.target as HTMLElement | null)?.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    onSnapChange("closed");
+  });
 
   // Bumped when a ranked row starts a track, so a tap on a partly-clipped row
   // can nudge it into view. Distinct from a step or a reopen: a tap reveals only
