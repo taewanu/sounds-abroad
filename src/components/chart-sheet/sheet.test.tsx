@@ -303,6 +303,76 @@ describe("ChartSheet", () => {
     input.remove();
   });
 
+  test("Escape from a control inside the sheet hands focus to the grip, which stays reachable", () => {
+    renderSheet("full");
+    const row = playButtonFor(COUNTRY_KR.tracks[0]);
+    row.focus();
+
+    fireEvent.keyDown(row, { key: "Escape" });
+
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: /collapse chart/i }),
+    );
+  });
+
+  test("Escape leaves focus outside the sheet where it is", () => {
+    renderSheet("full");
+
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  describe("reachability at each snap", () => {
+    const WITH_RAIL: Country = {
+      ...COUNTRY_KR,
+      playlists: [
+        {
+          id: "pl.a",
+          name: "First playlist",
+          appleUrl: "https://music.apple.com/kr/playlist/pl.a",
+          artworkUrl: "https://art.test/p.jpg",
+          genres: [],
+          trackCount: 20,
+        },
+      ],
+    };
+
+    function reachableControls() {
+      const sheet = screen.getByTestId("chart-sheet");
+      return [
+        ...sheet.querySelectorAll<HTMLElement>(
+          "button, a[href], [tabindex]:not([tabindex='-1'])",
+        ),
+      ].filter((el) => el.closest("[inert]") === null);
+    }
+
+    test("at closed, the grip is the only control left reachable", () => {
+      renderSheet("closed", { country: WITH_RAIL });
+
+      expect(reachableControls()).toEqual([
+        screen.getByRole("button", { name: /expand chart/i }),
+      ]);
+    });
+
+    test("at hidden, nothing in the sheet is reachable", () => {
+      renderSheet("hidden", { country: WITH_RAIL });
+
+      expect(reachableControls()).toEqual([]);
+    });
+
+    test.each<SnapState>(["peek", "full"])(
+      "at %s, the rail and the list stay reachable",
+      (snap) => {
+        renderSheet(snap, { country: WITH_RAIL });
+
+        const reachable = reachableControls();
+        expect(reachable).toContain(screen.getByRole("tabpanel"));
+        expect(reachable).toContain(screen.getAllByRole("tab")[0]);
+      },
+    );
+  });
+
   test("renders the country's gem, matching what selectGem picks", () => {
     const selection = selectGem(COUNTRY_KR.tracks);
     if (!selection) throw new Error("fixture has tracks; expected a gem");
@@ -421,6 +491,40 @@ describe("ChartSheet", () => {
     } finally {
       matchMedia.mockRestore();
     }
+  });
+
+  test.each<[SnapState, string]>([
+    ["full", "true"],
+    ["peek", "false"],
+    ["closed", "false"],
+  ])("at %s, the grip reports aria-expanded=%s", (snap, expanded) => {
+    renderSheet(snap);
+
+    const grip = screen.getByRole("button", {
+      name: /(expand|collapse) chart/i,
+    });
+    expect(grip.getAttribute("aria-expanded")).toBe(expanded);
+  });
+
+  test("a drag that starts on the grip does not also toggle the sheet", () => {
+    const { onSnapChange } = renderSheet("peek");
+    const grip = screen.getByRole("button", { name: /expand chart/i });
+
+    dragBody(grip, 500, 850);
+    fireEvent.click(grip);
+
+    expect(onSnapChange.mock.calls).toEqual([["closed"]]);
+  });
+
+  test("a grip click after a drag has settled still toggles", async () => {
+    const { onSnapChange } = renderSheet("peek");
+    const grip = screen.getByRole("button", { name: /expand chart/i });
+    dragBody(grip, 500, 850);
+    await new Promise((r) => setTimeout(r, 0));
+
+    fireEvent.click(grip);
+
+    expect(onSnapChange).toHaveBeenLastCalledWith("full");
   });
 
   test("scrolls currentTrack into view when sheet transitions from closed", async () => {

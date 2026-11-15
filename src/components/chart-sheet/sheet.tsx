@@ -2,6 +2,7 @@
 
 import {
   type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
@@ -173,7 +174,10 @@ export function ChartSheet({
 }: ChartSheetProps) {
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const olRef = useRef<HTMLOListElement | null>(null);
+  const gripRef = useRef<HTMLButtonElement | null>(null);
+  const dragJustEndedRef = useRef(false);
   const reducedMotion = usePrefersReducedMotion();
+  // Only the grip and title strip is on screen at closed; at hidden, nothing.
   const minimized = snap === "closed" || snap === "hidden";
 
   // Both derive from the songs chart rather than the open one. Commentary and
@@ -589,9 +593,25 @@ export function ChartSheet({
   const endGesture = useCallback(() => {
     document.body.style.userSelect = "";
     pressedRef.current = false;
-    if (draggingRef.current) endDrag();
-    else canHandoffRef.current = false;
+    if (draggingRef.current) {
+      endDrag();
+      // Lapses after the release's task, so a click that never comes cannot
+      // eat a later one.
+      dragJustEndedRef.current = true;
+      setTimeout(() => {
+        dragJustEndedRef.current = false;
+      }, 0);
+    } else canHandoffRef.current = false;
   }, [endDrag]);
+
+  // A press that became a drag must not also click the control it started on,
+  // which the drag carried along under the pointer.
+  const swallowClickAfterDrag = useCallback((e: ReactMouseEvent) => {
+    if (!dragJustEndedRef.current) return;
+    dragJustEndedRef.current = false;
+    e.stopPropagation();
+    e.preventDefault();
+  }, []);
 
   // Settle to the current snap on prop change, and re-place when the mini-player
   // toggles the sheet height. The first run jumps without a transition so the
@@ -722,6 +742,11 @@ export function ChartSheet({
     // (a range/text input, a select), matching the Space handler's guard.
     const tag = (e.target as HTMLElement | null)?.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    // Collapsing makes the list inert, so focus inside it would drop to the
+    // page; the grip stays on screen and is the way back up.
+    if (sheetRef.current?.contains(document.activeElement)) {
+      gripRef.current?.focus();
+    }
     onSnapChange("closed");
   });
 
@@ -851,7 +876,9 @@ export function ChartSheet({
       aria-labelledby="chart-sheet-title"
       data-snap={snap}
       data-testid="chart-sheet"
+      inert={snap === "hidden"}
       onPointerDown={handlePointerDown}
+      onClickCapture={swallowClickAfterDrag}
       style={{
         ...(hasMiniPlayer ? SHEET_STYLE_WITH_MINI : SHEET_STYLE_NO_MINI),
         transform: `translateY(${SNAP_Y[initialSnap]})`,
@@ -863,37 +890,47 @@ export function ChartSheet({
       className="group bg-void text-fg-1 border-fg-1/10 shadow-sheet fixed inset-x-0 z-20 flex flex-col rounded-t-2xl border-t"
     >
       <div className="shrink-0 touch-none">
+        {/* The pill stays 48 by 6; the pseudo-element widens the target across
+            the strip between the sheet's top edge and the title. */}
         <button
+          ref={gripRef}
           type="button"
           onClick={handleToggle}
           aria-label={snap === "full" ? "Collapse chart" : "Expand chart"}
-          className="bg-fg-1/15 rounded-pill mx-auto mt-3 mb-2 block h-1.5 w-12"
+          aria-expanded={snap === "full"}
+          className="bg-fg-1/15 rounded-pill focus-visible:outline-aurora relative mx-auto mt-3 mb-2 block h-1.5 w-12 before:absolute before:-inset-x-12 before:-top-3 before:-bottom-2 focus-visible:outline-2 focus-visible:outline-offset-2"
         />
         <h2 id="chart-sheet-title" className="text-h3 px-6 pb-3 font-semibold">
           {country.name}
         </h2>
-        <ChartRail
-          playlists={country.playlists ?? []}
-          current={chart.ref}
-          pending={chart.pending}
-          failed={chart.failed}
-          onOpen={chart.open}
-        />
-        {/* Only the songs axis bakes a spread per track, so only its chart can
-            be read either way; a playlist chart has one reading and no toggle.
-            Kept mounted while it leaves, a removed row having nothing to
-            collapse; 1fr to 0fr because auto heights do not animate. */}
-        <div
-          data-gone={!onSongsChart || undefined}
-          // Out of reach as well as out of sight while it is gone: it stays in
-          // the tree only so it can collapse, and a control nobody can see must
-          // not still answer to a keyboard or a screen reader.
-          aria-hidden={!onSongsChart || undefined}
-          inert={!onSongsChart}
-          className="grid grid-rows-[1fr] transition-[grid-template-rows,opacity] duration-[280ms] ease-[var(--ease-spring)] data-[gone]:grid-rows-[0fr] data-[gone]:opacity-0 motion-reduce:transition-none"
-        >
-          <div className="min-h-0 overflow-hidden">
-            <ModeTabs current={mode} waiting={waitingMode} onOpen={openMode} />
+        <div inert={minimized}>
+          <ChartRail
+            playlists={country.playlists ?? []}
+            current={chart.ref}
+            pending={chart.pending}
+            failed={chart.failed}
+            onOpen={chart.open}
+          />
+          {/* Only the songs axis bakes a spread per track, so only its chart can
+              be read either way; a playlist chart has one reading and no toggle.
+              Kept mounted while it leaves, a removed row having nothing to
+              collapse; 1fr to 0fr because auto heights do not animate. */}
+          <div
+            data-gone={!onSongsChart || undefined}
+            // Out of reach as well as out of sight while it is gone: it stays in
+            // the tree only so it can collapse, and a control nobody can see must
+            // not still answer to a keyboard or a screen reader.
+            aria-hidden={!onSongsChart || undefined}
+            inert={!onSongsChart}
+            className="grid grid-rows-[1fr] transition-[grid-template-rows,opacity] duration-[280ms] ease-[var(--ease-spring)] data-[gone]:grid-rows-[0fr] data-[gone]:opacity-0 motion-reduce:transition-none"
+          >
+            <div className="min-h-0 overflow-hidden">
+              <ModeTabs
+                current={mode}
+                waiting={waitingMode}
+                onOpen={openMode}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -911,6 +948,7 @@ export function ChartSheet({
         tabIndex={hasRail ? 0 : undefined}
         key={listMountKey}
         ref={olRef}
+        inert={minimized}
         data-peek={(snap === "peek" && !isDragging) || undefined}
         // The chart on screen is on its way out; its rows recede and breathe
         // until the next one lands, or until a failed read leaves it in place.
