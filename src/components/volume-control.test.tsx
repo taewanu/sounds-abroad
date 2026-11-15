@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 
 import type { AudioEngine } from "@/lib/audio-engine";
@@ -104,6 +104,63 @@ describe("VolumeControl", () => {
 
     expect(screen.queryByRole("slider")).toBeNull();
     expect(onClick).not.toHaveBeenCalled();
+    outside.remove();
+  });
+
+  test("keyboard focus moving outside closes the popover", () => {
+    renderVolumeControl();
+    fireEvent.click(screen.getByRole("button", { name: /volume/i }));
+    const outside = document.createElement("button");
+    document.body.appendChild(outside);
+
+    act(() => outside.focus());
+
+    expect(screen.queryByRole("slider")).toBeNull();
+    outside.remove();
+  });
+
+  test("focus moving between the popover's controls keeps it open", () => {
+    renderVolumeControl();
+    fireEvent.click(screen.getByRole("button", { name: /volume/i }));
+
+    act(() => screen.getByRole("button", { name: "Mute" }).focus());
+
+    expect(screen.getByRole("slider")).toBeDefined();
+  });
+
+  test("focus released to nothing keeps the popover open", () => {
+    renderVolumeControl();
+    fireEvent.click(screen.getByRole("button", { name: /volume/i }));
+
+    act(() => screen.getByRole("slider").blur());
+
+    expect(screen.getByRole("slider")).toBeDefined();
+  });
+
+  test("pointer focus outside leaves the close to the click, which is still swallowed", () => {
+    renderVolumeControl();
+    fireEvent.click(screen.getByRole("button", { name: /volume/i }));
+    const outside = document.createElement("button");
+    const onClick = vi.fn();
+    outside.addEventListener("click", onClick);
+    document.body.appendChild(outside);
+    const matches = Element.prototype.matches;
+    const spy = vi
+      .spyOn(Element.prototype, "matches")
+      .mockImplementation(function (this: Element, selector: string) {
+        return selector === ":focus-visible"
+          ? false
+          : matches.call(this, selector);
+      });
+
+    act(() => outside.focus());
+    const openAfterFocus = screen.queryByRole("slider") !== null;
+    fireEvent.click(outside);
+
+    expect(openAfterFocus).toBe(true);
+    expect(screen.queryByRole("slider")).toBeNull();
+    expect(onClick).not.toHaveBeenCalled();
+    spy.mockRestore();
     outside.remove();
   });
 
