@@ -514,6 +514,17 @@ describe("TrackRow commentary focus card", () => {
     expect(onCloseCommentary).toHaveBeenCalledTimes(1);
   });
 
+  test("focused: the card's toggle takes its accessible name from the full lead", () => {
+    renderFocusRow({ focused: true });
+
+    const toggle = screen.queryByRole("button", {
+      expanded: true,
+      name: (name) => name.includes(COMMENTARY.lead),
+    });
+
+    expect(toggle).not.toBeNull();
+  });
+
   test("focused: the row is tagged as the commentary card for outside-click", () => {
     const { container } = renderFocusRow({ focused: true });
 
