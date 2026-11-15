@@ -10,7 +10,9 @@ function subscribe(onChange: () => void) {
   return () => query.removeEventListener("change", onChange);
 }
 
-function getSnapshot() {
+// Reads the setting at call time, so code that writes motion imperatively can
+// honor it without putting a hook value in its callback dependencies.
+export function prefersReducedMotion(): boolean {
   return window.matchMedia(QUERY).matches;
 }
 
@@ -18,5 +20,5 @@ function getSnapshot() {
 // matchMedia, so the SSR snapshot assumes motion is allowed; the store corrects
 // it on hydration if the user prefers reduced motion.
 export function usePrefersReducedMotion(): boolean {
-  return useSyncExternalStore(subscribe, getSnapshot, () => false);
+  return useSyncExternalStore(subscribe, prefersReducedMotion, () => false);
 }
