@@ -66,8 +66,8 @@ export function VolumeControl() {
     };
   }, [open]);
 
-  // Keyboard focus landing outside closes the popover. Pointer focus is left to
-  // the click handler above, which closes and swallows that same click.
+  // Keyboard focus landing outside closes the popover, while pointer focus waits
+  // for the click handler above to close it and swallow that click.
   useEffect(() => {
     if (!open) return;
 
