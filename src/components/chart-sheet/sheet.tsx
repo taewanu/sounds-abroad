@@ -10,7 +10,10 @@ import {
   useState,
 } from "react";
 
-import { usePrefersReducedMotion } from "@/components/use-prefers-reduced-motion";
+import {
+  prefersReducedMotion,
+  usePrefersReducedMotion,
+} from "@/components/use-prefers-reduced-motion";
 import { track as trackEvent } from "@/lib/analytics";
 import { songsChartRows, type ChartMode } from "@/lib/chart-mode";
 import { SONGS_CHART, type ChartRef } from "@/lib/chart-ref";
@@ -475,7 +478,8 @@ export function ChartSheet({
   }, []);
 
   const applySnap = useCallback(
-    (s: SnapState, animate: boolean) => {
+    (s: SnapState, settle: boolean) => {
+      const animate = settle && !prefersReducedMotion();
       const el = sheetRef.current;
       if (el) el.style.transition = animate ? SETTLE_TRANSITION : "none";
       // Drive the badge's recede with the same easing, so it settles in step.

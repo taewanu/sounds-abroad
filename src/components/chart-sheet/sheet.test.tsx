@@ -160,7 +160,7 @@ function renderAtPeek(country: Country, currentTrackRank: number) {
 function renderSheet(snap: SnapState) {
   const onSnapChange = vi.fn();
   const store = createAudioStore(() => makeMockAudio());
-  const utils = render(
+  const sheetAt = (s: SnapState) => (
     <AudioStoreContext.Provider value={store}>
       <ChartSheet
         country={COUNTRY_KR}
@@ -168,12 +168,26 @@ function renderSheet(snap: SnapState) {
         countryCode="kr"
         mode="most_played"
         onModeChange={() => {}}
-        snap={snap}
+        snap={s}
         onSnapChange={onSnapChange}
       />
-    </AudioStoreContext.Provider>,
+    </AudioStoreContext.Provider>
   );
-  return { ...utils, onSnapChange, store };
+  const utils = render(sheetAt(snap));
+  const setSnap = (s: SnapState) => utils.rerender(sheetAt(s));
+  return { ...utils, onSnapChange, store, setSnap };
+}
+
+function preferReducedMotion() {
+  return vi.spyOn(window, "matchMedia").mockImplementation(
+    (query: string) =>
+      ({
+        matches: query.includes("reduce"),
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }) as unknown as MediaQueryList,
+  );
 }
 
 // Drag the body with a mouse pointer: press, cross the threshold, drag, release.
@@ -369,6 +383,33 @@ describe("ChartSheet", () => {
     fireEvent.click(screen.getByRole("button", { name: /collapse chart/i }));
 
     expect(onSnapChange).toHaveBeenCalledWith("peek");
+  });
+
+  test("a snap change slides the sheet and the badge recede together", () => {
+    const { setSnap } = renderSheet("peek");
+
+    setSnap("full");
+
+    expect(screen.getByTestId("chart-sheet").style.transition).toContain(
+      "transform",
+    );
+    expect(document.documentElement.style.transition).toContain(
+      "--sheet-cover",
+    );
+  });
+
+  test("under reduced motion a snap change moves the sheet and badge without travel", () => {
+    const matchMedia = preferReducedMotion();
+    try {
+      const { setSnap } = renderSheet("peek");
+
+      setSnap("full");
+
+      expect(screen.getByTestId("chart-sheet").style.transition).toBe("none");
+      expect(document.documentElement.style.transition).toBe("none");
+    } finally {
+      matchMedia.mockRestore();
+    }
   });
 
   test("scrolls currentTrack into view when sheet transitions from closed", async () => {

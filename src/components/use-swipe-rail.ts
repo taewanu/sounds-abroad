@@ -9,6 +9,7 @@ import {
 } from "react";
 
 import { type SwipeCommitConfig, decideSwipeCommit } from "./swipe-commit";
+import { prefersReducedMotion } from "./use-prefers-reduced-motion";
 
 // Horizontal travel (px) past which a press is a drag, not a tap: suppresses the
 // reopen-chart click and lets the rail follow the finger.
@@ -96,11 +97,16 @@ export function useSwipeRail({
     }
   }, [contentKey]);
 
+  // Returns how long the settle runs: zero under reduced motion, where the rail
+  // jumps instead of sliding.
   const settleRail = (transform: string, ms: number, ease: string) => {
+    const reduce = prefersReducedMotion();
     const rail = railRef.current;
-    if (!rail) return;
-    rail.style.transition = `transform ${ms}ms ${ease}`;
-    rail.style.transform = transform;
+    if (rail) {
+      rail.style.transition = reduce ? "none" : `transform ${ms}ms ${ease}`;
+      rail.style.transform = transform;
+    }
+    return reduce ? 0 : ms;
   };
 
   // Run the deferred skip exactly once: the ref is nulled before the call, so
@@ -203,7 +209,7 @@ export function useSwipeRail({
     // skip: onNext/onPrev swaps the store, the neighbour becomes the current
     // card, and the layout effect snaps the rail back to rest seamlessly. The
     // cue is suppressed so the swap doesn't re-animate what the rail just did.
-    settleRail(
+    const slideMs = settleRail(
       outcome === "next" ? RAIL_NEXT : RAIL_PREV,
       COMMIT_MS,
       COMMIT_EASE,
@@ -213,7 +219,7 @@ export function useSwipeRail({
     commitTimerRef.current = window.setTimeout(() => {
       commitTimerRef.current = null;
       flushPendingCommit();
-    }, COMMIT_MS);
+    }, slideMs);
   };
 
   const onPointerCancel = () => {

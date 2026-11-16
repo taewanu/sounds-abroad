@@ -7,6 +7,7 @@ import type { Commentary, Track } from "@/lib/chart-schema";
 import { AudioStoreContext } from "@/providers/audio-store-provider";
 
 import { MiniPlayer, type MiniPlayerProps } from "./mini-player";
+import { RAIL_REST } from "./use-swipe-rail";
 
 function makeMockAudio(overrides: Partial<AudioEngine> = {}): AudioEngine {
   return {
@@ -43,6 +44,18 @@ function makeCommentary(): Commentary {
     sources: ["https://example.com/source"],
     generatedAt: "2026-04-25T03:00:00Z",
   };
+}
+
+function preferReducedMotion() {
+  return vi.spyOn(window, "matchMedia").mockImplementation(
+    (query: string) =>
+      ({
+        matches: query.includes("reduce"),
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }) as unknown as MediaQueryList,
+  );
 }
 
 function renderMiniPlayer(
@@ -363,6 +376,53 @@ describe("MiniPlayer", () => {
       expect(onNext).toHaveBeenCalledTimes(1);
     } finally {
       vi.useRealTimers();
+    }
+  });
+
+  test("under reduced motion a committed swipe jumps the rail and skips without waiting for a slide", () => {
+    vi.useFakeTimers();
+    const matchMedia = preferReducedMotion();
+    try {
+      const onNext = vi.fn();
+      renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
+      const area = screen.getByRole("button", { name: /reopen chart/i });
+      const rail = area.firstElementChild as HTMLElement;
+
+      fireEvent.pointerDown(area, { clientX: 200, clientY: 10 });
+      fireEvent.pointerMove(area, { clientX: 40, clientY: 10 });
+      fireEvent.pointerUp(area, { clientX: 40, clientY: 10 });
+      const transition = rail.style.transition;
+      act(() => {
+        vi.advanceTimersByTime(0);
+      });
+
+      expect(transition).toBe("none");
+      expect(onNext).toHaveBeenCalledTimes(1);
+    } finally {
+      matchMedia.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
+  test("under reduced motion a short swipe returns the rail to rest without travel", () => {
+    const matchMedia = preferReducedMotion();
+    try {
+      const onNext = vi.fn();
+      renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
+      const area = screen.getByRole("button", { name: /reopen chart/i });
+      const rail = area.firstElementChild as HTMLElement;
+      Object.defineProperty(area.parentElement, "clientWidth", { value: 300 });
+
+      fireEvent.pointerDown(area, { clientX: 200, clientY: 10 });
+      fireEvent.pointerMove(area, { clientX: 160, clientY: 10 });
+      fireEvent.pointerMove(area, { clientX: 160, clientY: 10 });
+      fireEvent.pointerUp(area, { clientX: 160, clientY: 10 });
+
+      expect(onNext).not.toHaveBeenCalled();
+      expect(rail.style.transform).toBe(RAIL_REST);
+      expect(rail.style.transition).toBe("none");
+    } finally {
+      matchMedia.mockRestore();
     }
   });
 
