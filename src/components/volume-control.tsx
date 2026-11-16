@@ -38,8 +38,8 @@ export function VolumeControl() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const sliderRef = useRef<HTMLInputElement>(null);
-  // While open, dismiss on an outside click or Escape; Escape returns focus to
-  // the trigger. Opening focuses the slider so arrow keys adjust it immediately.
+  // While open, dismiss on an outside click; opening focuses the slider so arrow
+  // keys adjust it immediately.
   useEffect(() => {
     if (!open) return;
     sliderRef.current?.focus();

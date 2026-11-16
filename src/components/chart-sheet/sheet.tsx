@@ -903,35 +903,28 @@ export function ChartSheet({
         <h2 id="chart-sheet-title" className="text-h3 px-6 pb-3 font-semibold">
           {country.name}
         </h2>
-        {/* The closed strip is 10% of the sheet, so a tall viewport shows the rail. */}
-        <div inert={snap === "hidden"}>
-          <ChartRail
-            playlists={country.playlists ?? []}
-            current={chart.ref}
-            pending={chart.pending}
-            failed={chart.failed}
-            onOpen={chart.open}
-          />
-          {/* Only the songs axis bakes a spread per track, so only its chart can
+        <ChartRail
+          playlists={country.playlists ?? []}
+          current={chart.ref}
+          pending={chart.pending}
+          failed={chart.failed}
+          onOpen={chart.open}
+        />
+        {/* Only the songs axis bakes a spread per track, so only its chart can
               be read either way; a playlist chart has one reading and no toggle.
               Kept mounted while it leaves, a removed row having nothing to
               collapse; 1fr to 0fr because auto heights do not animate. */}
-          <div
-            data-gone={!onSongsChart || undefined}
-            // Out of reach as well as out of sight while it is gone: it stays in
-            // the tree only so it can collapse, and a control nobody can see must
-            // not still answer to a keyboard or a screen reader.
-            aria-hidden={!onSongsChart || undefined}
-            inert={!onSongsChart}
-            className="grid grid-rows-[1fr] transition-[grid-template-rows,opacity] duration-[280ms] ease-[var(--ease-spring)] data-[gone]:grid-rows-[0fr] data-[gone]:opacity-0 motion-reduce:transition-none"
-          >
-            <div className="min-h-0 overflow-hidden">
-              <ModeTabs
-                current={mode}
-                waiting={waitingMode}
-                onOpen={openMode}
-              />
-            </div>
+        <div
+          data-gone={!onSongsChart || undefined}
+          // Out of reach as well as out of sight while it is gone: it stays in
+          // the tree only so it can collapse, and a control nobody can see must
+          // not still answer to a keyboard or a screen reader.
+          aria-hidden={!onSongsChart || undefined}
+          inert={!onSongsChart}
+          className="grid grid-rows-[1fr] transition-[grid-template-rows,opacity] duration-[280ms] ease-[var(--ease-spring)] data-[gone]:grid-rows-[0fr] data-[gone]:opacity-0 motion-reduce:transition-none"
+        >
+          <div className="min-h-0 overflow-hidden">
+            <ModeTabs current={mode} waiting={waitingMode} onOpen={openMode} />
           </div>
         </div>
       </div>
