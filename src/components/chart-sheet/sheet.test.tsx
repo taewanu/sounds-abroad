@@ -338,16 +338,91 @@ describe("ChartSheet", () => {
       ],
     };
 
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
     function reachableControls() {
       const sheet = screen.getByTestId("chart-sheet");
       return [
-        ...sheet.querySelectorAll<HTMLElement>(
-          "button, a[href], [tabindex]:not([tabindex='-1'])",
-        ),
-      ].filter((el) => el.closest("[inert]") === null);
+        ...sheet.querySelectorAll<HTMLElement>("button, a[href], [tabindex]"),
+      ].filter(
+        (el) =>
+          el.getAttribute("tabindex") !== "-1" &&
+          el.closest("[inert]") === null,
+      );
     }
 
-    test("at closed, the grip and rail stay reachable and the list does not", () => {
+    // Reports each observed block as on or off screen the moment it is observed.
+    function stubViewport(onScreen: (block: Element) => boolean) {
+      vi.stubGlobal(
+        "IntersectionObserver",
+        class {
+          constructor(private readonly cb: IntersectionObserverCallback) {}
+          observe(block: Element) {
+            this.cb(
+              [
+                {
+                  target: block,
+                  isIntersecting: onScreen(block),
+                } as IntersectionObserverEntry,
+              ],
+              this as unknown as IntersectionObserver,
+            );
+          }
+          disconnect() {}
+          unobserve() {}
+          takeRecords() {
+            return [];
+          }
+        },
+      );
+    }
+
+    const isRail = (block: Element) =>
+      block.querySelector("[role='tablist']") !== null;
+
+    function modeButtons() {
+      return within(
+        screen.getByRole("group", { name: /chart mode/i }),
+      ).getAllByRole("button");
+    }
+
+    test("at closed, blocks measured below the screen leave the tab order while the grip stays", () => {
+      stubViewport(() => false);
+
+      renderSheet("closed", { country: WITH_RAIL });
+
+      const reachable = reachableControls();
+      expect(reachable).toEqual([
+        screen.getByRole("button", { name: /expand chart/i }),
+      ]);
+    });
+
+    test("at closed, an on-screen rail stays reachable while the list stays out of reach", () => {
+      stubViewport(() => true);
+
+      renderSheet("closed", { country: WITH_RAIL });
+
+      const reachable = reachableControls();
+      expect(reachable).toContain(screen.getAllByRole("tab")[0]);
+      expect(reachable).toContain(modeButtons()[0]);
+      expect(reachable).not.toContain(screen.getByRole("tabpanel"));
+      expect(reachable).not.toContain(playButtonFor(COUNTRY_KR.tracks[0]));
+    });
+
+    test("at closed, each block's reachability follows its own measurement", () => {
+      stubViewport(isRail);
+
+      renderSheet("closed", { country: WITH_RAIL });
+
+      const reachable = reachableControls();
+      expect(reachable).toContain(screen.getAllByRole("tab")[0]);
+      expect(reachable).not.toContain(modeButtons()[0]);
+      expect(reachable).not.toContain(screen.getByRole("tabpanel"));
+    });
+
+    test("at closed with nothing measured, the grip and rail stay reachable and the list does not", () => {
       renderSheet("closed", { country: WITH_RAIL });
 
       const reachable = reachableControls();
@@ -360,20 +435,25 @@ describe("ChartSheet", () => {
       );
     });
 
-    test("at hidden, nothing in the sheet is reachable", () => {
+    test("at hidden, nothing in the sheet is reachable even where measured on screen", () => {
+      stubViewport(() => true);
+
       renderSheet("hidden", { country: WITH_RAIL });
 
       expect(reachableControls()).toEqual([]);
     });
 
     test.each<SnapState>(["peek", "full"])(
-      "at %s, the rail and the list stay reachable",
+      "at %s, the rail, mode tabs and list stay reachable even where measured off screen",
       (snap) => {
+        stubViewport(() => false);
+
         renderSheet(snap, { country: WITH_RAIL });
 
         const reachable = reachableControls();
         expect(reachable).toContain(screen.getByRole("tabpanel"));
         expect(reachable).toContain(screen.getAllByRole("tab")[0]);
+        expect(reachable).toContain(modeButtons()[0]);
       },
     );
   });

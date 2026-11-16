@@ -177,7 +177,7 @@ export function ChartSheet({
   const gripRef = useRef<HTMLButtonElement | null>(null);
   const dragJustEndedRef = useRef(false);
   const reducedMotion = usePrefersReducedMotion();
-  // The list is below the screen at closed, and the whole sheet is at hidden.
+  // Collapsed to its strip or gone below the screen, so Escape has nothing to close.
   const minimized = snap === "closed" || snap === "hidden";
 
   // Both derive from the songs chart rather than the open one. Commentary and
@@ -289,6 +289,31 @@ export function ChartSheet({
   // listKey below, which does carry it.
   const listMountKey = `${countryCode}:${chart.ref}`;
   const listKey = `${listMountKey}:${mode}`;
+
+  // The closed strip's height follows the viewport's, so whether the rail and
+  // tabs show in it is measured; unmeasured, they count as on screen.
+  const railRef = useRef<HTMLDivElement | null>(null);
+  const tabsRef = useRef<HTMLDivElement | null>(null);
+  const [offscreen, setOffscreen] = useState({ rail: false, tabs: false });
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") return;
+    const parts = new Map<Element, keyof typeof offscreen>();
+    if (railRef.current) parts.set(railRef.current, "rail");
+    if (tabsRef.current) parts.set(tabsRef.current, "tabs");
+    const observer = new IntersectionObserver((entries) =>
+      setOffscreen((prev) => {
+        const next = { ...prev };
+        for (const entry of entries) {
+          const part = parts.get(entry.target);
+          if (part) next[part] = !entry.isIntersecting;
+        }
+        return next.rail === prev.rail && next.tabs === prev.tabs ? prev : next;
+      }),
+    );
+    for (const el of parts.keys()) observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const closed = snap === "closed";
 
   // The rows to render, each tagged for the collapse/expand a mode switch plays.
   const displayRows = useRowTransitions(rows, listMountKey, mode);
@@ -742,8 +767,8 @@ export function ChartSheet({
     // (a range/text input, a select), matching the Space handler's guard.
     const tag = (e.target as HTMLElement | null)?.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-    // Collapsing makes the list inert, so focus inside it would drop to the
-    // page; the grip stays on screen and is the way back up.
+    // Collapsing can leave the focused control below the screen and inert, so
+    // focus moves to the grip, which stays on screen as the way back up.
     if (sheetRef.current?.contains(document.activeElement)) {
       gripRef.current?.focus();
     }
@@ -903,24 +928,27 @@ export function ChartSheet({
         <h2 id="chart-sheet-title" className="text-h3 px-6 pb-3 font-semibold">
           {country.name}
         </h2>
-        <ChartRail
-          playlists={country.playlists ?? []}
-          current={chart.ref}
-          pending={chart.pending}
-          failed={chart.failed}
-          onOpen={chart.open}
-        />
+        <div ref={railRef} inert={closed && offscreen.rail}>
+          <ChartRail
+            playlists={country.playlists ?? []}
+            current={chart.ref}
+            pending={chart.pending}
+            failed={chart.failed}
+            onOpen={chart.open}
+          />
+        </div>
         {/* Only the songs axis bakes a spread per track, so only its chart can
               be read either way; a playlist chart has one reading and no toggle.
               Kept mounted while it leaves, a removed row having nothing to
               collapse; 1fr to 0fr because auto heights do not animate. */}
         <div
+          ref={tabsRef}
           data-gone={!onSongsChart || undefined}
           // Out of reach as well as out of sight while it is gone: it stays in
           // the tree only so it can collapse, and a control nobody can see must
           // not still answer to a keyboard or a screen reader.
           aria-hidden={!onSongsChart || undefined}
-          inert={!onSongsChart}
+          inert={!onSongsChart || (closed && offscreen.tabs)}
           className="grid grid-rows-[1fr] transition-[grid-template-rows,opacity] duration-[280ms] ease-[var(--ease-spring)] data-[gone]:grid-rows-[0fr] data-[gone]:opacity-0 motion-reduce:transition-none"
         >
           <div className="min-h-0 overflow-hidden">
