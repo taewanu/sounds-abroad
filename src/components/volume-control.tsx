@@ -66,6 +66,21 @@ export function VolumeControl() {
     };
   }, [open]);
 
+  // Keyboard focus landing outside closes the popover, while pointer focus waits
+  // for the click handler above to close it and swallow that click.
+  useEffect(() => {
+    if (!open) return;
+
+    function handleFocusIn(event: FocusEvent) {
+      const target = event.target as Element;
+      if (wrapperRef.current?.contains(target)) return;
+      if (!target.matches(":focus-visible")) return;
+      setOpen(false);
+    }
+    document.addEventListener("focusin", handleFocusIn);
+    return () => document.removeEventListener("focusin", handleFocusIn);
+  }, [open]);
+
   const percent = Math.round(volume * 100);
   const Icon = muted || volume === 0 ? VolumeMuteIcon : VolumeIcon;
 

@@ -142,13 +142,13 @@ export function TrackCommentary({
         {active ? (
           // Open: the badge sits on its own top row with the collapse cue, above
           // a full-width lead. The whole button toggles closed (tap the card
-          // again), so there's no separate close control.
+          // again), so there's no separate close control. Its content names it,
+          // so the full lead is announced and aria-expanded carries the action.
           <button
             type="button"
             onClick={onClose}
             aria-expanded
             aria-controls={panelId}
-            aria-label="Collapse commentary"
             className="focus-visible:outline-aurora block w-full text-left focus-visible:outline-2 focus-visible:outline-offset-2"
           >
             <div className="flex items-center gap-2">
@@ -223,9 +223,11 @@ export function TrackCommentary({
         id={panelId}
         inert={!expanded}
         data-expanded={expanded || undefined}
-        className="max-h-0 overflow-hidden transition-[max-height] duration-300 ease-[var(--ease-out)] data-[expanded]:max-h-96 motion-reduce:transition-none"
+        className="grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 ease-[var(--ease-out)] data-[expanded]:grid-rows-[1fr] motion-reduce:transition-none"
       >
-        <CommentaryDetail commentary={commentary} />
+        <div className="min-h-0 overflow-hidden">
+          <CommentaryDetail commentary={commentary} />
+        </div>
       </div>
     </div>
   );

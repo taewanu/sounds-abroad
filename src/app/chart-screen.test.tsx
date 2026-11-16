@@ -626,7 +626,10 @@ describe("ChartScreen commentary badge", () => {
 
     expect(sheet.dataset.snap).toBe("peek");
     expect(
-      screen.getByRole("button", { name: "Collapse commentary" }),
+      screen.getByRole("button", {
+        expanded: true,
+        name: (name) => name.includes(commentaryTrack.commentary!.lead),
+      }),
     ).toBeDefined();
   });
 });
