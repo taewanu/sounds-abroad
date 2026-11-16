@@ -347,12 +347,17 @@ describe("ChartSheet", () => {
       ].filter((el) => el.closest("[inert]") === null);
     }
 
-    test("at closed, the grip is the only control left reachable", () => {
+    test("at closed, the grip and rail stay reachable and the list does not", () => {
       renderSheet("closed", { country: WITH_RAIL });
 
-      expect(reachableControls()).toEqual([
+      const reachable = reachableControls();
+      expect(reachable).toContain(
         screen.getByRole("button", { name: /expand chart/i }),
-      ]);
+      );
+      expect(reachable).toContain(screen.getAllByRole("tab")[0]);
+      expect(reachable.filter((el) => el.closest("[role='tabpanel']"))).toEqual(
+        [],
+      );
     });
 
     test("at hidden, nothing in the sheet is reachable", () => {

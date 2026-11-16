@@ -177,7 +177,7 @@ export function ChartSheet({
   const gripRef = useRef<HTMLButtonElement | null>(null);
   const dragJustEndedRef = useRef(false);
   const reducedMotion = usePrefersReducedMotion();
-  // Only the grip and title strip is on screen at closed; at hidden, nothing.
+  // The list is below the screen at closed, and the whole sheet is at hidden.
   const minimized = snap === "closed" || snap === "hidden";
 
   // Both derive from the songs chart rather than the open one. Commentary and
@@ -903,7 +903,8 @@ export function ChartSheet({
         <h2 id="chart-sheet-title" className="text-h3 px-6 pb-3 font-semibold">
           {country.name}
         </h2>
-        <div inert={minimized}>
+        {/* The closed strip is 10% of the sheet, so a tall viewport shows the rail. */}
+        <div inert={snap === "hidden"}>
           <ChartRail
             playlists={country.playlists ?? []}
             current={chart.ref}
