@@ -2,6 +2,7 @@
 
 import {
   type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
@@ -10,6 +11,7 @@ import {
   useState,
 } from "react";
 
+import { ESCAPE_LAYER, useEscapeLayer } from "@/components/use-escape-layer";
 import {
   prefersReducedMotion,
   usePrefersReducedMotion,
@@ -172,7 +174,11 @@ export function ChartSheet({
 }: ChartSheetProps) {
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const olRef = useRef<HTMLOListElement | null>(null);
+  const gripRef = useRef<HTMLButtonElement | null>(null);
+  const dragJustEndedRef = useRef(false);
   const reducedMotion = usePrefersReducedMotion();
+  // Collapsed to its strip or gone below the screen, so Escape has nothing to close.
+  const minimized = snap === "closed" || snap === "hidden";
 
   // Both derive from the songs chart rather than the open one. Commentary and
   // spread are carried by the songs axis alone, so a playlist chart has neither
@@ -284,6 +290,31 @@ export function ChartSheet({
   const listMountKey = `${countryCode}:${chart.ref}`;
   const listKey = `${listMountKey}:${mode}`;
 
+  // The closed strip's height follows the viewport's, so whether the rail and
+  // tabs show in it is measured; unmeasured, they count as on screen.
+  const railRef = useRef<HTMLDivElement | null>(null);
+  const tabsRef = useRef<HTMLDivElement | null>(null);
+  const [offscreen, setOffscreen] = useState({ rail: false, tabs: false });
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") return;
+    const parts = new Map<Element, keyof typeof offscreen>();
+    if (railRef.current) parts.set(railRef.current, "rail");
+    if (tabsRef.current) parts.set(tabsRef.current, "tabs");
+    const observer = new IntersectionObserver((entries) =>
+      setOffscreen((prev) => {
+        const next = { ...prev };
+        for (const entry of entries) {
+          const part = parts.get(entry.target);
+          if (part) next[part] = !entry.isIntersecting;
+        }
+        return next.rail === prev.rail && next.tabs === prev.tabs ? prev : next;
+      }),
+    );
+    for (const el of parts.keys()) observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const closed = snap === "closed";
+
   // The rows to render, each tagged for the collapse/expand a mode switch plays.
   const displayRows = useRowTransitions(rows, listMountKey, mode);
 
@@ -361,17 +392,18 @@ export function ChartSheet({
     );
   }
 
-  // While a card is focused, dismiss on Escape or a click outside it (a dimmed
-  // sibling, the sheet chrome). Dismiss on click, not pointerdown: closing
-  // un-dims the siblings, so a pointerdown-close would restore a sibling's
-  // pointer-events before its click landed and play that track. A dimmed
-  // sibling stays pointer-events-none through the whole click, so the click
-  // targets the list behind it (never the row's play button) and only closes.
+  useEscapeLayer(focusedRank !== null, ESCAPE_LAYER.card, () =>
+    setFocusedRank(null),
+  );
+
+  // While a card is focused, dismiss on a click outside it (a dimmed sibling,
+  // the sheet chrome). Dismiss on click, not pointerdown: closing un-dims the
+  // siblings, so a pointerdown-close would restore a sibling's pointer-events
+  // before its click landed and play that track. A dimmed sibling stays
+  // pointer-events-none through the whole click, so the click targets the list
+  // behind it (never the row's play button) and only closes.
   useEffect(() => {
     if (focusedRank === null) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setFocusedRank(null);
-    };
     const onClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
       // Keep the card open for clicks on the card itself, and for anything
@@ -381,21 +413,8 @@ export function ChartSheet({
       if (!sheetRef.current?.contains(target)) return;
       setFocusedRank(null);
     };
-    window.addEventListener("keydown", onKey);
     window.addEventListener("click", onClick, true);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("click", onClick, true);
-    };
-  }, [focusedRank]);
-
-  // The sheet's own long-lived Escape-collapse listener reads focus via this ref
-  // (the file's ref-for-listeners pattern), so an Escape that closes a focused
-  // card doesn't also collapse the sheet: the card takes the first Escape, a
-  // second collapses.
-  const focusedRankRef = useRef(focusedRank);
-  useEffect(() => {
-    focusedRankRef.current = focusedRank;
+    return () => window.removeEventListener("click", onClick, true);
   }, [focusedRank]);
 
   // When a card opens, its grown height can push its own top above the list
@@ -599,9 +618,25 @@ export function ChartSheet({
   const endGesture = useCallback(() => {
     document.body.style.userSelect = "";
     pressedRef.current = false;
-    if (draggingRef.current) endDrag();
-    else canHandoffRef.current = false;
+    if (draggingRef.current) {
+      endDrag();
+      // Lapses after the release's task, so a click that never comes cannot
+      // eat a later one.
+      dragJustEndedRef.current = true;
+      setTimeout(() => {
+        dragJustEndedRef.current = false;
+      }, 0);
+    } else canHandoffRef.current = false;
   }, [endDrag]);
+
+  // A press that became a drag must not also click the control it started on,
+  // which the drag carried along under the pointer.
+  const swallowClickAfterDrag = useCallback((e: ReactMouseEvent) => {
+    if (!dragJustEndedRef.current) return;
+    dragJustEndedRef.current = false;
+    e.stopPropagation();
+    e.preventDefault();
+  }, []);
 
   // Settle to the current snap on prop change, and re-place when the mini-player
   // toggles the sheet height. The first run jumps without a transition so the
@@ -727,29 +762,18 @@ export function ChartSheet({
     onSnapChange(snap === "peek" ? "full" : "peek");
   }, [snap, onSnapChange]);
 
-  // Escape collapses the sheet. Radix's Dialog owned this before; with the
-  // Dialog removed for its focus trap we listen on the window directly.
-  // Mirror the file's long-lived-listener pattern (see the touch controller):
-  // read the latest values from refs so this attaches once, not per render.
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      // Leave Escape to the focused control when it owns a field-local cancel
-      // (a range/text input, a select), matching the Space handler's guard.
-      const target = e.target as HTMLElement | null;
-      const tag = target?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-      // A focused commentary card owns Escape first; only once it's closed does
-      // Escape collapse the sheet.
-      if (focusedRankRef.current !== null) return;
-      // Already collapsed or off-screen: nothing to close, so skip the write.
-      const currentSnap = snapRef.current;
-      if (currentSnap === "closed" || currentSnap === "hidden") return;
-      onSnapChangeRef.current("closed");
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  useEscapeLayer(!minimized, ESCAPE_LAYER.sheet, (e) => {
+    // Leave Escape to the focused control when it owns a field-local cancel
+    // (a range/text input, a select), matching the Space handler's guard.
+    const tag = (e.target as HTMLElement | null)?.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    // Collapsing can leave the focused control below the screen and inert, so
+    // focus moves to the grip, which stays on screen as the way back up.
+    if (sheetRef.current?.contains(document.activeElement)) {
+      gripRef.current?.focus();
+    }
+    onSnapChange("closed");
+  });
 
   // Bumped when a ranked row starts a track, so a tap on a partly-clipped row
   // can nudge it into view. Distinct from a step or a reopen: a tap reveals only
@@ -877,7 +901,9 @@ export function ChartSheet({
       aria-labelledby="chart-sheet-title"
       data-snap={snap}
       data-testid="chart-sheet"
+      inert={snap === "hidden"}
       onPointerDown={handlePointerDown}
+      onClickCapture={swallowClickAfterDrag}
       style={{
         ...(hasMiniPlayer ? SHEET_STYLE_WITH_MINI : SHEET_STYLE_NO_MINI),
         transform: `translateY(${SNAP_Y[initialSnap]})`,
@@ -889,33 +915,40 @@ export function ChartSheet({
       className="group bg-void text-fg-1 border-fg-1/10 shadow-sheet fixed inset-x-0 z-20 flex flex-col rounded-t-2xl border-t"
     >
       <div className="shrink-0 touch-none">
+        {/* The pill stays 48 by 6; the pseudo-element widens the target across
+            the strip between the sheet's top edge and the title. */}
         <button
+          ref={gripRef}
           type="button"
           onClick={handleToggle}
           aria-label={snap === "full" ? "Collapse chart" : "Expand chart"}
-          className="bg-fg-1/15 rounded-pill mx-auto mt-3 mb-2 block h-1.5 w-12"
+          aria-expanded={snap === "full"}
+          className="bg-fg-1/15 rounded-pill focus-visible:outline-aurora relative mx-auto mt-3 mb-2 block h-1.5 w-12 before:absolute before:-inset-x-12 before:-top-3 before:-bottom-2 focus-visible:outline-2 focus-visible:outline-offset-2"
         />
         <h2 id="chart-sheet-title" className="text-h3 px-6 pb-3 font-semibold">
           {country.name}
         </h2>
-        <ChartRail
-          playlists={country.playlists ?? []}
-          current={chart.ref}
-          pending={chart.pending}
-          failed={chart.failed}
-          onOpen={chart.open}
-        />
+        <div ref={railRef} inert={closed && offscreen.rail}>
+          <ChartRail
+            playlists={country.playlists ?? []}
+            current={chart.ref}
+            pending={chart.pending}
+            failed={chart.failed}
+            onOpen={chart.open}
+          />
+        </div>
         {/* Only the songs axis bakes a spread per track, so only its chart can
-            be read either way; a playlist chart has one reading and no toggle.
-            Kept mounted while it leaves, a removed row having nothing to
-            collapse; 1fr to 0fr because auto heights do not animate. */}
+              be read either way; a playlist chart has one reading and no toggle.
+              Kept mounted while it leaves, a removed row having nothing to
+              collapse; 1fr to 0fr because auto heights do not animate. */}
         <div
+          ref={tabsRef}
           data-gone={!onSongsChart || undefined}
           // Out of reach as well as out of sight while it is gone: it stays in
           // the tree only so it can collapse, and a control nobody can see must
           // not still answer to a keyboard or a screen reader.
           aria-hidden={!onSongsChart || undefined}
-          inert={!onSongsChart}
+          inert={!onSongsChart || (closed && offscreen.tabs)}
           className="grid grid-rows-[1fr] transition-[grid-template-rows,opacity] duration-[280ms] ease-[var(--ease-spring)] data-[gone]:grid-rows-[0fr] data-[gone]:opacity-0 motion-reduce:transition-none"
         >
           <div className="min-h-0 overflow-hidden">
@@ -937,6 +970,7 @@ export function ChartSheet({
         tabIndex={hasRail ? 0 : undefined}
         key={listMountKey}
         ref={olRef}
+        inert={minimized}
         data-peek={(snap === "peek" && !isDragging) || undefined}
         // The chart on screen is on its way out; its rows recede and breathe
         // until the next one lands, or until a failed read leaves it in place.

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useStore } from "zustand";
 
 import type { SnapState } from "@/components/chart-sheet/sheet";
+import { ESCAPE_LAYER, useEscapeLayer } from "@/components/use-escape-layer";
 import { globeChartStore, useGlobeChart } from "@/lib/globe-chart-store";
 import { tourBridge } from "@/lib/tour-bridge";
 
@@ -228,15 +229,10 @@ function TourRunner({
     }
   }, [currentTrackKey, beat]);
 
-  // ESC dismisses from any beat (latches dismissed). Window-level, like the Space
-  // play/pause handler in chart-screen.tsx.
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") dispatch({ type: "SKIP" });
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  // Escape dismisses from any beat (latches dismissed).
+  useEscapeLayer(beat !== "done", ESCAPE_LAYER.tour, () =>
+    dispatch({ type: "SKIP" }),
+  );
 
   useEffect(() => {
     if (beat === "done") onDone();

@@ -1780,7 +1780,7 @@ describe("ChartScreen deeper rows", () => {
     spotifyUrl: "https://open.spotify.com/search/deep",
   };
 
-  /** Captures the observer so a test can decide when the list is read that far. */
+  /** Captures the tail sentinel's observer so a test can decide when the list is read that far. */
   function stubObserver(): { reach: () => void } {
     let fire: (() => void) | null = null;
     vi.stubGlobal(
@@ -1788,6 +1788,7 @@ describe("ChartScreen deeper rows", () => {
       class {
         constructor(private readonly cb: IntersectionObserverCallback) {}
         observe(el: Element) {
+          if (el.getAttribute("data-testid") !== "chart-tail-sentinel") return;
           fire = () =>
             this.cb(
               [
@@ -1929,6 +1930,7 @@ describe("ChartScreen stepping past the eager rows", () => {
       class {
         constructor(private readonly cb: IntersectionObserverCallback) {}
         observe(el: Element) {
+          if (el.getAttribute("data-testid") !== "chart-tail-sentinel") return;
           fire = () =>
             this.cb(
               [

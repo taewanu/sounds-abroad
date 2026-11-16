@@ -1,6 +1,9 @@
+import type { ReactNode } from "react";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
+import { CountrySelector } from "@/components/country-selector";
+import { VolumeControl } from "@/components/volume-control";
 import { COUNTRY_KR, COUNTRY_US } from "@/lib/__fixtures__";
 import type { AudioEngine } from "@/lib/audio-engine";
 import { createAudioStore } from "@/lib/audio-store";
@@ -157,20 +160,28 @@ function renderAtPeek(country: Country, currentTrackRank: number) {
   );
 }
 
-function renderSheet(snap: SnapState) {
+// `alongside` renders next to the sheet, for overlays that stack above it.
+function renderSheet(
+  snap: SnapState,
+  {
+    country = COUNTRY_KR,
+    alongside,
+  }: { country?: Country; alongside?: ReactNode } = {},
+) {
   const onSnapChange = vi.fn();
   const store = createAudioStore(() => makeMockAudio());
   const sheetAt = (s: SnapState) => (
     <AudioStoreContext.Provider value={store}>
       <ChartSheet
-        country={COUNTRY_KR}
-        chart={staticChart(COUNTRY_KR)}
+        country={country}
+        chart={staticChart(country)}
         countryCode="kr"
         mode="most_played"
         onModeChange={() => {}}
         snap={s}
         onSnapChange={onSnapChange}
       />
+      {alongside}
     </AudioStoreContext.Provider>
   );
   const utils = render(sheetAt(snap));
@@ -292,6 +303,161 @@ describe("ChartSheet", () => {
     input.remove();
   });
 
+  test("Escape from a control inside the sheet hands focus to the grip, which stays reachable", () => {
+    renderSheet("full");
+    const row = playButtonFor(COUNTRY_KR.tracks[0]);
+    row.focus();
+
+    fireEvent.keyDown(row, { key: "Escape" });
+
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: /collapse chart/i }),
+    );
+  });
+
+  test("Escape leaves focus outside the sheet where it is", () => {
+    renderSheet("full");
+
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  describe("reachability at each snap", () => {
+    const WITH_RAIL: Country = {
+      ...COUNTRY_KR,
+      playlists: [
+        {
+          id: "pl.a",
+          name: "First playlist",
+          appleUrl: "https://music.apple.com/kr/playlist/pl.a",
+          artworkUrl: "https://art.test/p.jpg",
+          genres: [],
+          trackCount: 20,
+        },
+      ],
+    };
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    function reachableControls() {
+      const sheet = screen.getByTestId("chart-sheet");
+      return [
+        ...sheet.querySelectorAll<HTMLElement>("button, a[href], [tabindex]"),
+      ].filter(
+        (el) =>
+          el.getAttribute("tabindex") !== "-1" &&
+          el.closest("[inert]") === null,
+      );
+    }
+
+    // Reports each observed block as on or off screen the moment it is observed.
+    function stubViewport(onScreen: (block: Element) => boolean) {
+      vi.stubGlobal(
+        "IntersectionObserver",
+        class {
+          constructor(private readonly cb: IntersectionObserverCallback) {}
+          observe(block: Element) {
+            this.cb(
+              [
+                {
+                  target: block,
+                  isIntersecting: onScreen(block),
+                } as IntersectionObserverEntry,
+              ],
+              this as unknown as IntersectionObserver,
+            );
+          }
+          disconnect() {}
+          unobserve() {}
+          takeRecords() {
+            return [];
+          }
+        },
+      );
+    }
+
+    const isRail = (block: Element) =>
+      block.querySelector("[role='tablist']") !== null;
+
+    function modeButtons() {
+      return within(
+        screen.getByRole("group", { name: /chart mode/i }),
+      ).getAllByRole("button");
+    }
+
+    test("at closed, blocks measured below the screen leave the tab order while the grip stays", () => {
+      stubViewport(() => false);
+
+      renderSheet("closed", { country: WITH_RAIL });
+
+      const reachable = reachableControls();
+      expect(reachable).toEqual([
+        screen.getByRole("button", { name: /expand chart/i }),
+      ]);
+    });
+
+    test("at closed, an on-screen rail stays reachable while the list stays out of reach", () => {
+      stubViewport(() => true);
+
+      renderSheet("closed", { country: WITH_RAIL });
+
+      const reachable = reachableControls();
+      expect(reachable).toContain(screen.getAllByRole("tab")[0]);
+      expect(reachable).toContain(modeButtons()[0]);
+      expect(reachable).not.toContain(screen.getByRole("tabpanel"));
+      expect(reachable).not.toContain(playButtonFor(COUNTRY_KR.tracks[0]));
+    });
+
+    test("at closed, each block's reachability follows its own measurement", () => {
+      stubViewport(isRail);
+
+      renderSheet("closed", { country: WITH_RAIL });
+
+      const reachable = reachableControls();
+      expect(reachable).toContain(screen.getAllByRole("tab")[0]);
+      expect(reachable).not.toContain(modeButtons()[0]);
+      expect(reachable).not.toContain(screen.getByRole("tabpanel"));
+    });
+
+    test("at closed with nothing measured, the grip and rail stay reachable and the list does not", () => {
+      renderSheet("closed", { country: WITH_RAIL });
+
+      const reachable = reachableControls();
+      expect(reachable).toContain(
+        screen.getByRole("button", { name: /expand chart/i }),
+      );
+      expect(reachable).toContain(screen.getAllByRole("tab")[0]);
+      expect(reachable.filter((el) => el.closest("[role='tabpanel']"))).toEqual(
+        [],
+      );
+    });
+
+    test("at hidden, nothing in the sheet is reachable even where measured on screen", () => {
+      stubViewport(() => true);
+
+      renderSheet("hidden", { country: WITH_RAIL });
+
+      expect(reachableControls()).toEqual([]);
+    });
+
+    test.each<SnapState>(["peek", "full"])(
+      "at %s, the rail, mode tabs and list stay reachable even where measured off screen",
+      (snap) => {
+        stubViewport(() => false);
+
+        renderSheet(snap, { country: WITH_RAIL });
+
+        const reachable = reachableControls();
+        expect(reachable).toContain(screen.getByRole("tabpanel"));
+        expect(reachable).toContain(screen.getAllByRole("tab")[0]);
+        expect(reachable).toContain(modeButtons()[0]);
+      },
+    );
+  });
+
   test("renders the country's gem, matching what selectGem picks", () => {
     const selection = selectGem(COUNTRY_KR.tracks);
     if (!selection) throw new Error("fixture has tracks; expected a gem");
@@ -410,6 +576,40 @@ describe("ChartSheet", () => {
     } finally {
       matchMedia.mockRestore();
     }
+  });
+
+  test.each<[SnapState, string]>([
+    ["full", "true"],
+    ["peek", "false"],
+    ["closed", "false"],
+  ])("at %s, the grip reports aria-expanded=%s", (snap, expanded) => {
+    renderSheet(snap);
+
+    const grip = screen.getByRole("button", {
+      name: /(expand|collapse) chart/i,
+    });
+    expect(grip.getAttribute("aria-expanded")).toBe(expanded);
+  });
+
+  test("a drag that starts on the grip does not also toggle the sheet", () => {
+    const { onSnapChange } = renderSheet("peek");
+    const grip = screen.getByRole("button", { name: /expand chart/i });
+
+    dragBody(grip, 500, 850);
+    fireEvent.click(grip);
+
+    expect(onSnapChange.mock.calls).toEqual([["closed"]]);
+  });
+
+  test("a grip click after a drag has settled still toggles", async () => {
+    const { onSnapChange } = renderSheet("peek");
+    const grip = screen.getByRole("button", { name: /expand chart/i });
+    dragBody(grip, 500, 850);
+    await new Promise((r) => setTimeout(r, 0));
+
+    fireEvent.click(grip);
+
+    expect(onSnapChange).toHaveBeenLastCalledWith("full");
   });
 
   test("scrolls currentTrack into view when sheet transitions from closed", async () => {
@@ -1339,5 +1539,35 @@ describe("ChartSheet commentary focus", () => {
     rerender(view("kr"));
 
     expect(container.querySelector("[data-commentary-card]")).toBeNull();
+  });
+
+  test("with the volume popover open over a card, one Escape on its mute button closes only the popover", () => {
+    const { container, onSnapChange } = renderSheet("full", {
+      alongside: <VolumeControl />,
+    });
+    fireEvent.click(firstTeaser(container)!);
+    fireEvent.click(screen.getByRole("button", { name: "Volume" }));
+    const mute = screen.getByRole("button", { name: "Mute" });
+    mute.focus();
+
+    fireEvent.keyDown(mute, { key: "Escape" });
+
+    expect(screen.queryByRole("slider")).toBeNull();
+    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+    expect(onSnapChange).not.toHaveBeenCalled();
+  });
+});
+
+describe("ChartSheet under the country list", () => {
+  test("with the country list open over the sheet, one Escape closes only the list", () => {
+    const { onSnapChange } = renderSheet("peek", {
+      alongside: <CountrySelector />,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /choose a country/i }));
+
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    expect(screen.queryByRole("navigation", { name: "Countries" })).toBeNull();
+    expect(onSnapChange).not.toHaveBeenCalled();
   });
 });

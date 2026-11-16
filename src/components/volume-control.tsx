@@ -4,6 +4,7 @@ import { type CSSProperties, useEffect, useRef, useState } from "react";
 
 import { VolumeIcon } from "@/components/icons/volume";
 import { VolumeMuteIcon } from "@/components/icons/volume-mute";
+import { ESCAPE_LAYER, useEscapeLayer } from "@/components/use-escape-layer";
 import { useAudioStore } from "@/providers/audio-store-provider";
 
 const MUTE_TRIGGER_CLASS =
@@ -37,8 +38,8 @@ export function VolumeControl() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const sliderRef = useRef<HTMLInputElement>(null);
-  // While open, dismiss on an outside click or Escape; Escape returns focus to
-  // the trigger. Opening focuses the slider so arrow keys adjust it immediately.
+  // While open, dismiss on an outside click; opening focuses the slider so arrow
+  // keys adjust it immediately.
   useEffect(() => {
     if (!open) return;
     sliderRef.current?.focus();
@@ -52,17 +53,9 @@ export function VolumeControl() {
       event.preventDefault();
       setOpen(false);
     }
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setOpen(false);
-        buttonRef.current?.focus();
-      }
-    }
     document.addEventListener("click", handleClickOutside, true);
-    document.addEventListener("keydown", handleKeyDown);
     return () => {
       document.removeEventListener("click", handleClickOutside, true);
-      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [open]);
 
@@ -80,6 +73,11 @@ export function VolumeControl() {
     document.addEventListener("focusin", handleFocusIn);
     return () => document.removeEventListener("focusin", handleFocusIn);
   }, [open]);
+
+  useEscapeLayer(open, ESCAPE_LAYER.popover, () => {
+    setOpen(false);
+    buttonRef.current?.focus();
+  });
 
   const percent = Math.round(volume * 100);
   const Icon = muted || volume === 0 ? VolumeMuteIcon : VolumeIcon;
