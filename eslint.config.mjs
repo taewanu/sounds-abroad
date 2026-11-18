@@ -13,7 +13,7 @@ const noTransitionAll = [
     message: TRANSITION_ALL_MESSAGE,
   },
   {
-    selector: String.raw`TemplateElement[value.raw=/\btransition-all\b/]`,
+    selector: String.raw`TemplateElement[value.cooked=/\btransition-all\b/]`,
     message: TRANSITION_ALL_MESSAGE,
   },
 ];
