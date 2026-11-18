@@ -5,6 +5,32 @@ import nextTs from "eslint-config-next/typescript";
 import prettier from "eslint-config-prettier/flat";
 import unusedImports from "eslint-plugin-unused-imports";
 
+const TRANSITION_ALL_MESSAGE =
+  "transition-all also animates the focus outline. Name the properties instead, e.g. transition-[color,background-color,scale].";
+const noTransitionAll = [
+  {
+    selector: String.raw`Literal[value=/\btransition-all\b/]`,
+    message: TRANSITION_ALL_MESSAGE,
+  },
+  {
+    selector: String.raw`TemplateElement[value.cooked=/\btransition-all\b/]`,
+    message: TRANSITION_ALL_MESSAGE,
+  },
+];
+
+const ESCAPE_MESSAGE =
+  "Register the overlay with useEscapeLayer, so one Escape closes only the top layer.";
+const noBareEscape = [
+  {
+    selector: "BinaryExpression > Literal[value='Escape']",
+    message: ESCAPE_MESSAGE,
+  },
+  {
+    selector: "SwitchCase > Literal[value='Escape']",
+    message: ESCAPE_MESSAGE,
+  },
+];
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -47,6 +73,16 @@ const eslintConfig = defineConfig([
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
     },
+  },
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-syntax": ["error", ...noTransitionAll, ...noBareEscape],
+    },
+  },
+  {
+    files: ["src/components/use-escape-layer.ts"],
+    rules: { "no-restricted-syntax": ["error", ...noTransitionAll] },
   },
   {
     // The image optimizer this rule steers toward is a metered hosting resource,
