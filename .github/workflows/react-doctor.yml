@@ -42,9 +42,9 @@ jobs:
         # a teammate's PR on day one. When your team trusts the signal, graduate
         # the gate: uncomment `blocking` below and set it to "error" (fail on
         # new error-severity findings) or "warning" (fail on any finding).
-        # The pinned react-doctor version is not covered by Dependabot; bump it by hand.
         # Full reference: https://www.react.doctor/ci
         with:
+          # renovate: datasource=npm depName=react-doctor
           version: "0.9.22"
           # blocking: error          # Gate level: "none" (advisory, the default) | "warning" | "error"
           # scope: full              # On PRs, scan the whole project instead of just changed files

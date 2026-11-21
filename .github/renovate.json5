@@ -1,0 +1,65 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: [
+    "config:recommended",
+    "schedule:weekly",
+    // Holds npm updates for three days so a release pulled soon after publishing never reaches a PR.
+    "security:minimumReleaseAgeNpm",
+    "helpers:pinGitHubActionDigests",
+  ],
+  // Later rules override earlier ones, so the catch-all groups come before the coupled sets.
+  packageRules: [
+    {
+      // Keeps dependency PRs typed chore, overriding the preset that marks production bumps as fixes.
+      matchPackageNames: ["*"],
+      semanticCommitType: "chore",
+    },
+    {
+      // Minor and patch bumps batch into one PR per dependency type; majors stay separate because they may need code or config changes.
+      groupName: "tooling",
+      matchDepTypes: ["devDependencies"],
+      matchUpdateTypes: ["minor", "patch"],
+    },
+    {
+      groupName: "runtime",
+      matchDepTypes: ["dependencies"],
+      matchUpdateTypes: ["minor", "patch"],
+    },
+    {
+      // Sentry's SDK packages are versioned together, so bumping one alone leaves them mismatched.
+      groupName: "sentry",
+      matchPackageNames: ["@sentry/*"],
+    },
+    {
+      // three.js breaks its API in minor releases and its React bindings and types follow it, so they move as one.
+      groupName: "three",
+      matchPackageNames: ["three", "@types/three", "@react-three/*"],
+    },
+    {
+      // Actions run only in CI, so one PR for all of them is enough review surface.
+      groupName: "actions",
+      matchManagers: ["github-actions"],
+    },
+    {
+      // mise.lock and package.json#packageManager pin the same pnpm, so their updates share a PR.
+      groupName: "pnpm",
+      matchPackageNames: ["pnpm"],
+    },
+    {
+      // Toolchain majors are raised by hand in mise.toml, whose major-only pins Renovate keeps within their major; @types/node follows Node's major.
+      matchPackageNames: ["node", "@types/node", "pnpm"],
+      matchUpdateTypes: ["major"],
+      enabled: false,
+    },
+  ],
+  customManagers: [
+    {
+      // Updates versions a workflow passes as an action input, marked by a `# renovate:` comment on the line above.
+      customType: "regex",
+      managerFilePatterns: ["/^\\.github/workflows/[^/]+\\.ya?ml$/"],
+      matchStrings: [
+        '# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+version: "(?<currentValue>[^"]+)"',
+      ],
+    },
+  ],
+}
