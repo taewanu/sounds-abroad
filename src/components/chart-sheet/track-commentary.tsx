@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import { Fragment, useId, useState } from "react";
+import { Fragment, useId, useState } from 'react';
 
-import { ChevronDownIcon } from "@/components/icons/chevron-down";
-import { ExpandIcon } from "@/components/icons/expand";
-import { MinimizeIcon } from "@/components/icons/minimize";
-import type { Commentary } from "@/lib/chart-schema";
+import { ChevronDownIcon } from '@/components/icons/chevron-down';
+import { ExpandIcon } from '@/components/icons/expand';
+import { MinimizeIcon } from '@/components/icons/minimize';
+import type { Commentary } from '@/lib/chart-schema';
 
-import { useCommentaryHintPulse } from "./use-commentary-hint-pulse";
+import { useCommentaryHintPulse } from './use-commentary-hint-pulse';
 
 // Cited sources show as bare hostnames; drop a leading www. for scannability.
 const WWW_PREFIX = /^www\./;
 function sourceLabel(url: string): string {
   try {
-    return new URL(url).hostname.replace(WWW_PREFIX, "");
+    return new URL(url).hostname.replace(WWW_PREFIX, '');
   } catch {
     return url;
   }
@@ -24,18 +24,16 @@ function sourceLabel(url: string): string {
 // CommentaryDetail. Both surfaces render identical commentary depth.
 function CommentaryText({ commentary }: { commentary: Commentary }) {
   if (!commentary.detail) return null;
-  return (
-    <p className="text-fg-2 text-small leading-relaxed">{commentary.detail}</p>
-  );
+  return <p className="text-small leading-relaxed text-fg-2">{commentary.detail}</p>;
 }
 
 function CommentarySources({ commentary }: { commentary: Commentary }) {
   return (
-    <div className="text-fg-3 text-micro flex flex-wrap items-center gap-y-1">
+    <div className="flex flex-wrap items-center gap-y-1 text-micro text-fg-3">
       {commentary.sources.map((url, i) => (
         <Fragment key={`${url}-${i}`}>
           {i > 0 ? (
-            <span aria-hidden className="text-fg-4 mx-2">
+            <span aria-hidden className="mx-2 text-fg-4">
               ·
             </span>
           ) : null}
@@ -43,7 +41,7 @@ function CommentarySources({ commentary }: { commentary: Commentary }) {
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-fg-1 focus-visible:outline-aurora underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
+            className="underline-offset-2 hover:text-fg-1 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora"
           >
             {sourceLabel(url)}
           </a>
@@ -64,9 +62,7 @@ function CommentaryDetail({ commentary }: { commentary: Commentary }) {
 
 function TagPill({ tag }: { tag: string }) {
   return (
-    <span className="bg-fg-1/5 text-fg-3 text-micro rounded-pill shrink-0 px-2 py-0.5">
-      {tag}
-    </span>
+    <span className="shrink-0 rounded-pill bg-fg-1/5 px-2 py-0.5 text-micro text-fg-3">{tag}</span>
   );
 }
 
@@ -74,7 +70,7 @@ function ChevronGlyph({ expanded }: { expanded: boolean }) {
   return (
     <ChevronDownIcon
       data-expanded={expanded || undefined}
-      className="text-fg-3 h-4 w-4 transition-transform duration-200 ease-[var(--ease-out)] data-[expanded]:rotate-180 motion-reduce:transition-none"
+      className="h-4 w-4 text-fg-3 transition-transform duration-200 ease-[var(--ease-out)] data-[expanded]:rotate-180 motion-reduce:transition-none"
     />
   );
 }
@@ -95,11 +91,7 @@ function HintedGlyph({ children }: { children: React.ReactNode }) {
 }
 
 function PlainGlyph({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex shrink-0 items-center justify-center">
-      {children}
-    </span>
-  );
+  return <span className="inline-flex shrink-0 items-center justify-center">{children}</span>;
 }
 
 export interface TrackCommentaryProps {
@@ -123,11 +115,7 @@ export interface TrackCommentaryProps {
 // - gem card (no `focusCard`): an inline accordion that expands the detail here.
 // - chart row (`focusCard`): a teaser that opens the row's focused reader card,
 //   so the "why it's here" reads with room instead of fighting the cramped row.
-export function TrackCommentary({
-  commentary,
-  isHintTarget,
-  focusCard,
-}: TrackCommentaryProps) {
+export function TrackCommentary({ commentary, isHintTarget, focusCard }: TrackCommentaryProps) {
   const [expanded, setExpanded] = useState(false);
   const panelId = useId();
 
@@ -138,7 +126,7 @@ export function TrackCommentary({
     // The detail + sources live in an always-mounted reveal so opening AND
     // closing animate (grid-rows height + a springy rise); inert while closed.
     return (
-      <div className="border-fg-1/10 mt-2.5 border-t pt-2.5">
+      <div className="mt-2.5 border-t border-fg-1/10 pt-2.5">
         {active ? (
           // Open: the badge sits on its own top row with the collapse cue, above
           // a full-width lead. The whole button toggles closed (tap the card
@@ -149,15 +137,13 @@ export function TrackCommentary({
             onClick={onClose}
             aria-expanded
             aria-controls={panelId}
-            className="focus-visible:outline-aurora block w-full text-left focus-visible:outline-2 focus-visible:outline-offset-2"
+            className="block w-full text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora"
           >
             <div className="flex items-center gap-2">
               <TagPill tag={commentary.tag} />
-              <MinimizeIcon className="text-fg-3 ml-auto h-4 w-4 shrink-0" />
+              <MinimizeIcon className="ml-auto h-4 w-4 shrink-0 text-fg-3" />
             </div>
-            <p className="text-fg-2 text-small mt-2 leading-relaxed">
-              {commentary.lead}
-            </p>
+            <p className="mt-2 text-small leading-relaxed text-fg-2">{commentary.lead}</p>
           </button>
         ) : (
           // Teaser: the compact hook. Pill + clamped lead + an "open into a
@@ -168,14 +154,14 @@ export function TrackCommentary({
             data-commentary-teaser
             aria-expanded={false}
             aria-controls={panelId}
-            className="focus-visible:outline-aurora flex w-full items-center gap-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2"
+            className="flex w-full items-center gap-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora"
           >
             <TagPill tag={commentary.tag} />
-            <span className="text-fg-2 text-small line-clamp-2 min-w-0 flex-1">
+            <span className="line-clamp-2 min-w-0 flex-1 text-small text-fg-2">
               {commentary.lead}
             </span>
             <Glyph>
-              <ExpandIcon className="text-fg-3 h-4 w-4" />
+              <ExpandIcon className="h-4 w-4 text-fg-3" />
             </Glyph>
           </button>
         )}
@@ -203,18 +189,16 @@ export function TrackCommentary({
   }
 
   return (
-    <div className="border-fg-1/10 mt-2.5 border-t pt-2.5">
+    <div className="mt-2.5 border-t border-fg-1/10 pt-2.5">
       <button
         type="button"
         onClick={() => setExpanded((open) => !open)}
         aria-expanded={expanded}
         aria-controls={panelId}
-        className="focus-visible:outline-aurora flex w-full items-center gap-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2"
+        className="flex w-full items-center gap-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora"
       >
         <TagPill tag={commentary.tag} />
-        <span className="text-fg-2 text-small line-clamp-2 min-w-0 flex-1">
-          {commentary.lead}
-        </span>
+        <span className="line-clamp-2 min-w-0 flex-1 text-small text-fg-2">{commentary.lead}</span>
         <Glyph>
           <ChevronGlyph expanded={expanded} />
         </Glyph>

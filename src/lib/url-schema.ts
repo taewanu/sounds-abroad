@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 /**
  * What a URL or a playlist id is allowed to be, in one place.
@@ -26,11 +26,11 @@ function httpsUrlOn(hostname: RegExp, subject: string) {
  * and the anchor closes the pattern, so `mzstatic.com.evil.test` fails too.
  */
 function domainAndSubdomains(domain: string): RegExp {
-  return new RegExp(`^([a-z0-9-]+\\.)*${domain.replace(/\./g, "\\.")}$`);
+  return new RegExp(`^([a-z0-9-]+\\.)*${domain.replace(/\./g, '\\.')}$`);
 }
 
 function exactly(host: string): RegExp {
-  return new RegExp(`^${host.replace(/\./g, "\\.")}$`);
+  return new RegExp(`^${host.replace(/\./g, '\\.')}$`);
 }
 
 /**
@@ -43,27 +43,24 @@ function exactly(host: string): RegExp {
  */
 export const CitationUrlSchema = z.url({
   protocol: /^https$/,
-  error: "must be an https citation URL",
+  error: 'must be an https citation URL',
 });
 
 /**
  * The media hosts as strings, exported so the content-security policy is built
  * from the same values these schemas pin at ingestion (one list, no drift).
  */
-export const APPLE_ARTWORK_DOMAIN = "mzstatic.com";
-export const APPLE_PREVIEW_HOST = "audio-ssl.itunes.apple.com";
+export const APPLE_ARTWORK_DOMAIN = 'mzstatic.com';
+export const APPLE_PREVIEW_HOST = 'audio-ssl.itunes.apple.com';
 
 /**
  * The storefront host, exported for the fetch-site guard so the pin has one
  * definition to drift from.
  */
-export const APPLE_STOREFRONT_HOST = exactly("music.apple.com");
+export const APPLE_STOREFRONT_HOST = exactly('music.apple.com');
 
 /** The page a listener opens to play a track. */
-export const AppleStorefrontUrlSchema = httpsUrlOn(
-  APPLE_STOREFRONT_HOST,
-  "storefront",
-);
+export const AppleStorefrontUrlSchema = httpsUrlOn(APPLE_STOREFRONT_HOST, 'storefront');
 
 /**
  * Cover art, pinned to the image domain rather than to one host: the shard in an
@@ -73,7 +70,7 @@ export const AppleStorefrontUrlSchema = httpsUrlOn(
  */
 export const AppleArtworkUrlSchema = httpsUrlOn(
   domainAndSubdomains(APPLE_ARTWORK_DOMAIN),
-  "artwork",
+  'artwork',
 );
 
 /**
@@ -81,16 +78,10 @@ export const AppleArtworkUrlSchema = httpsUrlOn(
  * so allowing subdomains here would buy nothing and accept a host the storefront
  * never serves from.
  */
-export const ApplePreviewUrlSchema = httpsUrlOn(
-  exactly(APPLE_PREVIEW_HOST),
-  "preview",
-);
+export const ApplePreviewUrlSchema = httpsUrlOn(exactly(APPLE_PREVIEW_HOST), 'preview');
 
 /** A deep link out to the other streaming service. */
-export const SpotifyUrlSchema = httpsUrlOn(
-  exactly("open.spotify.com"),
-  "Spotify",
-);
+export const SpotifyUrlSchema = httpsUrlOn(exactly('open.spotify.com'), 'Spotify');
 
 /**
  * What a playlist id may be.
@@ -103,4 +94,4 @@ export const SpotifyUrlSchema = httpsUrlOn(
  */
 export const PlaylistIdSchema = z
   .string()
-  .regex(/^pl\.[0-9a-f]{32}$/, "must be a storefront playlist id");
+  .regex(/^pl\.[0-9a-f]{32}$/, 'must be a storefront playlist id');

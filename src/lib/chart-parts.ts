@@ -1,13 +1,13 @@
-import type { ZodType } from "zod";
+import type { ZodType } from 'zod';
 
-import { MUSIC_CHARTS_TAG } from "./cache-tags";
+import { MUSIC_CHARTS_TAG } from './cache-tags';
 import {
   PlaylistFileSchema,
   SongsTailFileSchema,
   type PlaylistFile,
   type SongsTailFile,
-} from "./chart-schema";
-import { chartsStoreHeaders } from "./charts-store-fetch";
+} from './chart-schema';
+import { chartsStoreHeaders } from './charts-store-fetch';
 
 /**
  * How long the server waits on the store. Without a bound a hung connection
@@ -24,7 +24,7 @@ export class ChartPartFetchError extends Error {
     message: string,
   ) {
     super(message);
-    this.name = "ChartPartFetchError";
+    this.name = 'ChartPartFetchError';
   }
 }
 
@@ -35,7 +35,7 @@ export class ChartPartValidationError extends Error {
     message: string,
   ) {
     super(message);
-    this.name = "ChartPartValidationError";
+    this.name = 'ChartPartValidationError';
   }
 }
 
@@ -45,18 +45,10 @@ export class ChartPartValidationError extends Error {
  * Swaps the final segment rather than reassembling the path, so a change of host
  * or prefix carries through untouched.
  */
-export function chartPartUrl(
-  chartsUrl: string,
-  folder: string,
-  name: string,
-): string {
-  const cut = chartsUrl.lastIndexOf("/");
+export function chartPartUrl(chartsUrl: string, folder: string, name: string): string {
+  const cut = chartsUrl.lastIndexOf('/');
   if (cut === -1) {
-    throw new ChartPartFetchError(
-      name,
-      0,
-      `Cannot derive a ${folder} URL from "${chartsUrl}"`,
-    );
+    throw new ChartPartFetchError(name, 0, `Cannot derive a ${folder} URL from "${chartsUrl}"`);
   }
   return `${chartsUrl.slice(0, cut)}/${folder}/${encodeURIComponent(name)}.json`;
 }
@@ -84,7 +76,7 @@ async function fetchChartPart<T>(
   let res: Response;
   try {
     res = await fetch(url, {
-      cache: "force-cache",
+      cache: 'force-cache',
       next: { tags: [MUSIC_CHARTS_TAG] },
       signal: AbortSignal.timeout(READ_TIMEOUT_MS),
       headers: chartsStoreHeaders(),
@@ -93,7 +85,7 @@ async function fetchChartPart<T>(
     throw new ChartPartFetchError(
       name,
       0,
-      `${folder} fetch failed: ${err instanceof Error ? err.message : "network error"}`,
+      `${folder} fetch failed: ${err instanceof Error ? err.message : 'network error'}`,
     );
   }
 
@@ -112,7 +104,7 @@ async function fetchChartPart<T>(
     throw new ChartPartFetchError(
       name,
       res.status,
-      `${folder} fetch failed: invalid JSON (${err instanceof Error ? err.message : "parse error"})`,
+      `${folder} fetch failed: invalid JSON (${err instanceof Error ? err.message : 'parse error'})`,
     );
   }
 
@@ -140,29 +132,11 @@ async function fetchChartPart<T>(
 }
 
 /** Reads one playlist's track list (ADR-0016). */
-export function fetchPlaylistFile(
-  chartsUrl: string,
-  playlistId: string,
-): Promise<PlaylistFile> {
-  return fetchChartPart(
-    chartsUrl,
-    "playlists",
-    playlistId,
-    PlaylistFileSchema,
-    (file) => file.id,
-  );
+export function fetchPlaylistFile(chartsUrl: string, playlistId: string): Promise<PlaylistFile> {
+  return fetchChartPart(chartsUrl, 'playlists', playlistId, PlaylistFileSchema, (file) => file.id);
 }
 
 /** Reads one country's chart beyond the rows that travel eagerly. */
-export function fetchSongsTail(
-  chartsUrl: string,
-  countryCode: string,
-): Promise<SongsTailFile> {
-  return fetchChartPart(
-    chartsUrl,
-    "songs",
-    countryCode,
-    SongsTailFileSchema,
-    (file) => file.code,
-  );
+export function fetchSongsTail(chartsUrl: string, countryCode: string): Promise<SongsTailFile> {
+  return fetchChartPart(chartsUrl, 'songs', countryCode, SongsTailFileSchema, (file) => file.code);
 }

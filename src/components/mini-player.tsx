@@ -1,27 +1,26 @@
-"use client";
+'use client';
 
-import { type MouseEvent, useState } from "react";
+import { type MouseEvent, useState } from 'react';
 
-import { ExpandIcon } from "@/components/icons/expand";
-import { PauseIcon } from "@/components/icons/pause";
-import { PlayIcon } from "@/components/icons/play";
-import { SkipBackIcon } from "@/components/icons/skip-back";
-import { SkipForwardIcon } from "@/components/icons/skip-forward";
-import { TrackArtwork } from "@/components/track-artwork";
-import { useOverflowMarquee } from "@/components/use-overflow-marquee";
-import { MuteButton, VolumeControl } from "@/components/volume-control";
-import type { ChartTrack } from "@/lib/chart-schema";
-import { trackKey } from "@/lib/track-identity";
-import { useAudioStore } from "@/providers/audio-store-provider";
+import { ExpandIcon } from '@/components/icons/expand';
+import { PauseIcon } from '@/components/icons/pause';
+import { PlayIcon } from '@/components/icons/play';
+import { SkipBackIcon } from '@/components/icons/skip-back';
+import { SkipForwardIcon } from '@/components/icons/skip-forward';
+import { TrackArtwork } from '@/components/track-artwork';
+import { useOverflowMarquee } from '@/components/use-overflow-marquee';
+import { MuteButton, VolumeControl } from '@/components/volume-control';
+import type { ChartTrack } from '@/lib/chart-schema';
+import { trackKey } from '@/lib/track-identity';
+import { useAudioStore } from '@/providers/audio-store-provider';
 
-import { RAIL_REST, useSwipeRail } from "./use-swipe-rail";
+import { RAIL_REST, useSwipeRail } from './use-swipe-rail';
 
 // A pointer click on a control leaves nothing focused, so Space reaches the
 // app's play and pause shortcut instead of pressing that control again. A
 // keyboard click (detail 0) keeps its focus.
 function releaseFocusAfterPointerClick(event: MouseEvent<HTMLDivElement>) {
-  if (event.detail === 0 || !(event.target as Element).closest("button"))
-    return;
+  if (event.detail === 0 || !(event.target as Element).closest('button')) return;
   (document.activeElement as HTMLElement | null)?.blur();
 }
 
@@ -40,25 +39,19 @@ export interface MiniPlayerProps {
 }
 
 const SKIP_BUTTON_CLASS =
-  "text-fg-2 hover:bg-orbit hover:text-fg-1 focus-visible:outline-aurora flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-[color,background-color,scale,opacity] duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-30";
+  'text-fg-2 hover:bg-orbit hover:text-fg-1 focus-visible:outline-aurora flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-[color,background-color,scale,opacity] duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-30';
 
 // A non-interactive preview of an adjacent track for the rail: only the current
 // card carries the marquee, EQ, and a11y text, so the neighbours stay plain and
 // hidden from assistive tech. Null (a chart end) renders an empty slot.
 function PreviewCard({ track }: { track: ChartTrack | null }) {
-  if (track === null)
-    return <div className="w-full shrink-0" aria-hidden="true" />;
+  if (track === null) return <div className="w-full shrink-0" aria-hidden="true" />;
   return (
-    <div
-      aria-hidden="true"
-      className="flex w-full shrink-0 items-center gap-[14px]"
-    >
+    <div aria-hidden="true" className="flex w-full shrink-0 items-center gap-[14px]">
       <TrackArtwork url={track.artworkUrl} />
       <div className="min-w-0 flex-1">
-        <p className="text-sunrise text-body truncate font-medium">
-          {track.name}
-        </p>
-        <p className="text-fg-2 text-small truncate">{track.artist}</p>
+        <p className="truncate text-body font-medium text-sunrise">{track.name}</p>
+        <p className="truncate text-small text-fg-2">{track.artist}</p>
       </div>
     </div>
   );
@@ -95,23 +88,15 @@ export function MiniPlayer({
   const [stepCue, setStepCue] = useState<{
     key: string | null;
     nonce: number;
-    dir: "next" | "prev" | null;
+    dir: 'next' | 'prev' | null;
   }>({ key: contentKey, nonce: lastStep?.nonce ?? 0, dir: null });
-  if (
-    stepCue.key !== contentKey ||
-    (lastStep !== null && lastStep.nonce !== stepCue.nonce)
-  ) {
+  if (stepCue.key !== contentKey || (lastStep !== null && lastStep.nonce !== stepCue.nonce)) {
     const fromStep = lastStep !== null && lastStep.nonce !== stepCue.nonce;
     if (suppressCue) setSuppressCue(false);
     setStepCue({
       key: contentKey,
       nonce: lastStep?.nonce ?? 0,
-      dir:
-        fromStep && !suppressCue
-          ? lastStep.dir === 1
-            ? "next"
-            : "prev"
-          : null,
+      dir: fromStep && !suppressCue ? (lastStep.dir === 1 ? 'next' : 'prev') : null,
     });
   }
 
@@ -137,7 +122,7 @@ export function MiniPlayer({
   if (currentTrack === null) return null;
 
   return (
-    <div className="bg-void border-fg-1/10 shadow-sheet fixed inset-x-0 bottom-0 z-50 border-t">
+    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-fg-1/10 bg-void shadow-sheet">
       {/* The whole bar is the swipe surface (grab anywhere to skip); only the
           now-playing strip translates, since the controls don't change per
           track. touch-pan-y hands horizontal drags to JS and lets vertical
@@ -155,7 +140,7 @@ export function MiniPlayer({
           type="button"
           onClick={onTap}
           aria-label="Reopen chart"
-          className="focus-visible:outline-aurora min-w-0 flex-1 overflow-hidden text-left focus-visible:outline-2 focus-visible:outline-offset-2"
+          className="min-w-0 flex-1 overflow-hidden text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora"
         >
           {/* The rail: prev | current | next, each the strip's full width, so a
               drag reveals the neighbours and a commit slides one into place. The
@@ -170,7 +155,7 @@ export function MiniPlayer({
             >
               <TrackArtwork url={currentTrack.artworkUrl} />
               <div className="min-w-0 flex-1">
-                <p className="text-sunrise text-body flex min-w-0 items-center gap-2 font-medium">
+                <p className="flex min-w-0 items-center gap-2 text-body font-medium text-sunrise">
                   <span className="block min-w-0 overflow-hidden">
                     <span
                       ref={titleRef}
@@ -181,19 +166,13 @@ export function MiniPlayer({
                       {currentTrack.name}
                     </span>
                   </span>
-                  <span
-                    className="eq shrink-0"
-                    data-paused={!isPlaying || undefined}
-                    aria-hidden
-                  >
+                  <span className="eq shrink-0" data-paused={!isPlaying || undefined} aria-hidden>
                     <span />
                     <span />
                     <span />
                   </span>
                 </p>
-                <p className="text-fg-2 text-small truncate">
-                  {currentTrack.artist}
-                </p>
+                <p className="truncate text-small text-fg-2">{currentTrack.artist}</p>
               </div>
             </div>
             <PreviewCard track={nextTrack} />
@@ -231,13 +210,9 @@ export function MiniPlayer({
               ? `Pause preview of ${currentTrack.name}`
               : `Play preview of ${currentTrack.name}`
           }
-          className="text-fg-1 hover:bg-orbit focus-visible:outline-aurora flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-[color,background-color,scale] duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-fg-1 transition-[color,background-color,scale] duration-150 ease-[var(--ease-spring)] hover:bg-orbit focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora active:scale-[0.97]"
         >
-          {isPlaying ? (
-            <PauseIcon className="h-4 w-4" />
-          ) : (
-            <PlayIcon className="h-4 w-4" />
-          )}
+          {isPlaying ? <PauseIcon className="h-4 w-4" /> : <PlayIcon className="h-4 w-4" />}
         </button>
         <button
           type="button"

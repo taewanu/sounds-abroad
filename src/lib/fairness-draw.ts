@@ -1,5 +1,5 @@
-import type { ChartFile } from "./chart-schema";
-import { COUNTRIES } from "./countries";
+import type { ChartFile } from './chart-schema';
+import { COUNTRIES } from './countries';
 
 const VISITED_WEIGHT = 0.08; // how strongly an already-seen country is avoided
 
@@ -24,10 +24,7 @@ export function weightedDraw(
 // The visited set with `code` added. Returns the input set unchanged when the
 // code is already present, so settling on the same country does not force a
 // re-render through a functional setState.
-export function addVisited(
-  visited: ReadonlySet<string>,
-  code: string,
-): ReadonlySet<string> {
+export function addVisited(visited: ReadonlySet<string>, code: string): ReadonlySet<string> {
   if (visited.has(code)) return visited;
   const next = new Set(visited);
   next.add(code);
@@ -38,10 +35,8 @@ const ALL_CODES = COUNTRIES.map((c) => c.code);
 
 // The countries a draw can land on and have something to show: those whose
 // entry has tracks. A listed country has none until its first successful crawl.
-export function codesWithTracks(countries: ChartFile["countries"]): string[] {
-  return Object.keys(countries).filter(
-    (code) => countries[code].tracks.length > 0,
-  );
+export function codesWithTracks(countries: ChartFile['countries']): string[] {
+  return Object.keys(countries).filter((code) => countries[code].tracks.length > 0);
 }
 
 // A fair random country from anywhere on the globe, never one in `exclude`

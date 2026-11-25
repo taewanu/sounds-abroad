@@ -1,6 +1,6 @@
-import type { MetadataRoute } from "next";
+import type { MetadataRoute } from 'next';
 
-import { SITE_URL } from "@/lib/site-url";
+import { SITE_URL } from '@/lib/site-url';
 
 // Single entry: the page renders identical server HTML for every country (the
 // selection is client state), so enumerating per-country URLs would be

@@ -1,4 +1,4 @@
-import type { Track } from "@/lib/chart-schema";
+import type { Track } from '@/lib/chart-schema';
 
 // Picks which row gets the one-time commentary pulse: the first track that
 // actually carries commentary. Deliberately not a fixed rank — commentary is

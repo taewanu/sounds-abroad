@@ -1,4 +1,4 @@
-import BezierEasing from "bezier-easing";
+import BezierEasing from 'bezier-easing';
 
 // Source of truth: --ease-spring in src/app/globals.css.
 // Keep these control points in sync with that CSS variable.

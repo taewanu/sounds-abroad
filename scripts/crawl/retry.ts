@@ -8,10 +8,7 @@ export interface RetryOptions {
   shouldRetry?: (err: unknown) => boolean;
 }
 
-export async function withRetry<T>(
-  fn: () => Promise<T>,
-  options: RetryOptions,
-): Promise<T> {
+export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions): Promise<T> {
   const shouldRetry = options.shouldRetry ?? (() => true);
   let attempt = 0;
 

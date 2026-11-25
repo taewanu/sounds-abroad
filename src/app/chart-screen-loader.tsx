@@ -1,17 +1,13 @@
-"use client";
+'use client';
 
-import { use, useSyncExternalStore } from "react";
-import * as Sentry from "@sentry/nextjs";
+import * as Sentry from '@sentry/nextjs';
+import { use, useSyncExternalStore } from 'react';
 
-import type { ChartFile } from "@/lib/chart-schema";
-import {
-  CHARTS_READ_TIMEOUT_MS,
-  CHARTS_ROUTE,
-  EARLY_CHARTS_READ,
-} from "@/lib/charts-client";
-import { startChartsRead } from "@/lib/start-charts-read";
+import type { ChartFile } from '@/lib/chart-schema';
+import { CHARTS_READ_TIMEOUT_MS, CHARTS_ROUTE, EARLY_CHARTS_READ } from '@/lib/charts-client';
+import { startChartsRead } from '@/lib/start-charts-read';
 
-import { ChartScreen } from "./chart-screen";
+import { ChartScreen } from './chart-screen';
 
 declare global {
   interface Window {
@@ -61,13 +57,13 @@ export function ChartScreenLoader() {
     return (
       <div
         role="alert"
-        className="bg-void/55 text-fg-2 ring-aurora/40 fixed inset-x-4 bottom-[max(env(safe-area-inset-bottom),16px)] z-40 mx-auto flex max-w-sm items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm shadow-lg ring-1 backdrop-blur"
+        className="fixed inset-x-4 bottom-[max(env(safe-area-inset-bottom),16px)] z-40 mx-auto flex max-w-sm items-center justify-between gap-3 rounded-2xl bg-void/55 px-4 py-3 text-sm text-fg-2 shadow-lg ring-1 ring-aurora/40 backdrop-blur"
       >
         <span>Charts didn’t load</span>
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="text-aurora focus-visible:outline-aurora rounded-full px-3 py-1 font-medium focus-visible:outline-2 focus-visible:outline-offset-2"
+          className="rounded-full px-3 py-1 font-medium text-aurora focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora"
         >
           Try again
         </button>

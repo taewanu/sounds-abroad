@@ -48,7 +48,7 @@ pnpm test
 pnpm health     # the commit production is serving
 ```
 
-Pre-commit hook (Husky 9 + lint-staged) formats and lints the staged files, then typechecks the whole project.
+The pre-commit hook (Vite+ `vp staged`) formats and lints the staged files, then typechecks the whole project. Lint and format rules live in `vite.config.ts`.
 
 ### Where to look
 

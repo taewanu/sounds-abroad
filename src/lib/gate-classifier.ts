@@ -1,7 +1,7 @@
-import type { Claim, Commentary } from "./chart-schema";
-import { lintCommentary } from "./no-lyric-lint";
-import { findSourceViolations } from "./source-authority";
-import { lintTierConsistency } from "./tier-consistency-lint";
+import type { Claim, Commentary } from './chart-schema';
+import { lintCommentary } from './no-lyric-lint';
+import { findSourceViolations } from './source-authority';
+import { lintTierConsistency } from './tier-consistency-lint';
 
 /**
  * The capstone of the commentary gate: it turns a blurb's claim tier and the
@@ -24,7 +24,7 @@ export interface GateChecks {
   grounding: boolean;
 }
 
-export type GateDecision = "publish" | "drop";
+export type GateDecision = 'publish' | 'drop';
 
 /**
  * The deterministic check outcomes, run from a blurb's own fields. A check
@@ -32,9 +32,7 @@ export type GateDecision = "publish" | "drop";
  * the publish shell adds after the async grounding check, since this layer
  * stays pure and network-free.
  */
-export function deterministicChecks(
-  entry: Commentary,
-): Omit<GateChecks, "grounding"> {
+export function deterministicChecks(entry: Commentary): Omit<GateChecks, 'grounding'> {
   return {
     noLyric: lintCommentary(entry).length === 0,
     sourceAuthority: findSourceViolations(entry).length === 0,
@@ -48,9 +46,6 @@ export function classifyGate(_tier: Claim, checks: GateChecks): GateDecision {
   // the signature documents, but is decision-neutral today. Naming each gate
   // (over iterating the object) forces a future check to be wired in here.
   const allPass =
-    checks.noLyric &&
-    checks.sourceAuthority &&
-    checks.tierConsistency &&
-    checks.grounding;
-  return allPass ? "publish" : "drop";
+    checks.noLyric && checks.sourceAuthority && checks.tierConsistency && checks.grounding;
+  return allPass ? 'publish' : 'drop';
 }

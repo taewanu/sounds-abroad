@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* Sounds Abroad design tokens — cosmic dark theme, warm sunrise accent, editorial type. */
 
@@ -37,10 +37,9 @@
 
   /* Type families — `next/font` injects --font-poppins / --font-instrument /
      --font-jetbrains on <html>; we alias them into Tailwind's font namespaces. */
-  --font-sans:
-    var(--font-poppins), ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-display: var(--font-instrument), "Times New Roman", serif;
-  --font-mono: var(--font-jetbrains), ui-monospace, "SF Mono", monospace;
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-instrument), 'Times New Roman', serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, 'SF Mono', monospace;
 
   /* Type scale (px to keep parity with the design system source) */
   --text-display-lg: 64px;
@@ -66,8 +65,7 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.6), 0 4px 16px rgba(0, 0, 0, 0.4);
-  --shadow-sheet:
-    0 -8px 32px rgba(0, 0, 0, 0.5), 0 -1px 0 rgba(245, 242, 236, 0.06) inset;
+  --shadow-sheet: 0 -8px 32px rgba(0, 0, 0, 0.5), 0 -1px 0 rgba(245, 242, 236, 0.06) inset;
   --shadow-glow-accent: 0 0 24px rgba(255, 107, 71, 0.35);
   --shadow-glow-aurora: 0 0 32px rgba(107, 229, 197, 0.25);
 
@@ -106,7 +104,7 @@
    badge reads it to recede in lockstep. Registered so it interpolates, letting
    the badge animate in step when the sheet settles instead of jumping. */
 @property --sheet-cover {
-  syntax: "<number>";
+  syntax: '<number>';
   inherits: true;
   initial-value: 0;
 }
@@ -116,7 +114,7 @@
    clamp that jumped to the new height would snap the list while the row above it
    was still moving. */
 @property --mode-h {
-  syntax: "<length>";
+  syntax: '<length>';
   inherits: true;
   initial-value: 0px;
 }
@@ -416,8 +414,7 @@
    are multiples of --swipe-travel so the whole gesture scales with the viewport. */
 @keyframes tour-swipe {
   0% {
-    transform: translateX(calc(-1 * var(--swipe-travel))) rotate(0deg)
-      scale(0.55);
+    transform: translateX(calc(-1 * var(--swipe-travel))) rotate(0deg) scale(0.55);
     opacity: 0;
   }
   9% {
@@ -425,18 +422,15 @@
     opacity: 1;
   }
   18% {
-    transform: translateX(calc(-1.2 * var(--swipe-travel))) rotate(11deg)
-      scale(1);
+    transform: translateX(calc(-1.2 * var(--swipe-travel))) rotate(11deg) scale(1);
     opacity: 1;
   }
   24% {
-    transform: translateX(calc(-1.2 * var(--swipe-travel))) rotate(11deg)
-      scale(1);
+    transform: translateX(calc(-1.2 * var(--swipe-travel))) rotate(11deg) scale(1);
     opacity: 1;
   }
   46% {
-    transform: translateX(calc(1.2 * var(--swipe-travel))) rotate(-23deg)
-      scale(1);
+    transform: translateX(calc(1.2 * var(--swipe-travel))) rotate(-23deg) scale(1);
     opacity: 1;
   }
   53% {
@@ -560,7 +554,7 @@
 /* A touch-down ring expands once from the index fingertip (near the icon's
    top-left) during the press, fading before the hand flicks away. */
 .tour-swipe::after {
-  content: "";
+  content: '';
   position: absolute;
   top: 14%;
   left: 35%;
@@ -680,7 +674,7 @@
 }
 
 .tour-pull::after {
-  content: "";
+  content: '';
   position: absolute;
   top: 14%;
   left: 35%;
@@ -754,7 +748,7 @@
 }
 
 .tour-tap::after {
-  content: "";
+  content: '';
   position: absolute;
   top: 14%;
   left: 35%;
@@ -863,7 +857,7 @@
 
 .tour-double-tap::after,
 .tour-edge-echo::after {
-  content: "";
+  content: '';
   position: absolute;
   top: 14%;
   width: 30px;
@@ -907,20 +901,12 @@
 
 .tour-rail-l {
   left: 0;
-  background: linear-gradient(
-    to right,
-    rgba(107, 229, 197, 0.34),
-    rgba(107, 229, 197, 0) 52%
-  );
+  background: linear-gradient(to right, rgba(107, 229, 197, 0.34), rgba(107, 229, 197, 0) 52%);
 }
 
 .tour-rail-r {
   right: 0;
-  background: linear-gradient(
-    to left,
-    rgba(107, 229, 197, 0.34),
-    rgba(107, 229, 197, 0) 52%
-  );
+  background: linear-gradient(to left, rgba(107, 229, 197, 0.34), rgba(107, 229, 197, 0) 52%);
 }
 
 /* The rails fade in over the dim-in window (the 620ms leading edge of tour-dim's
@@ -1083,7 +1069,7 @@
     track-change-slide 200ms var(--ease-out) both;
 }
 
-[data-track-change="prev"] {
+[data-track-change='prev'] {
   --track-change-from: -14px;
 }
 
@@ -1179,8 +1165,8 @@
 }
 
 [data-chart-waiting] > li {
-  animation: chart-row-wait var(--row-wait-dur, 3s) var(--ease-in-out)
-    var(--row-wait-delay, 0s) infinite;
+  animation: chart-row-wait var(--row-wait-dur, 3s) var(--ease-in-out) var(--row-wait-delay, 0s)
+    infinite;
 }
 
 /* The chart being read takes the open chart's fill straight away, so the tap is
@@ -1246,12 +1232,12 @@
    The 300ms below mirrors ROW_COLLAPSE_MS in use-row-transitions.ts, which the
    hook's drop timer and the reveal timer both key on, along with the gem's own
    fold in sheet.tsx; keep the four in step. */
-[data-row-transition="leaving"] {
+[data-row-transition='leaving'] {
   overflow: hidden;
   pointer-events: none;
   animation: chart-row-collapse 300ms var(--ease-out) forwards;
 }
-[data-row-transition="entering"] {
+[data-row-transition='entering'] {
   overflow: hidden;
   animation: chart-row-expand 300ms var(--ease-out) both;
 }
@@ -1284,20 +1270,20 @@
    arrival where a switch lands on a chart that is still coming. Doubled for the
    specificity alone; the two rules set the same property. */
 [data-chart-waiting][data-chart-waiting] > li {
-  animation: chart-row-wait var(--row-wait-dur, 3s) var(--ease-in-out)
-    var(--row-wait-delay, 0s) infinite;
+  animation: chart-row-wait var(--row-wait-dur, 3s) var(--ease-in-out) var(--row-wait-delay, 0s)
+    infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
   /* The rows still arrive and leave, they just do not travel or collapse to do
      it: an entrance is a plain appearance, a departure a plain removal. */
   [data-rows-entering] > li,
-  [data-row-transition="entering"] {
+  [data-row-transition='entering'] {
     animation: none;
   }
   /* A leaving row cannot linger with no motion, or it would sit at full height;
      hide it at once so the list closes over it. */
-  [data-row-transition="leaving"] {
+  [data-row-transition='leaving'] {
     animation: none;
     display: none;
   }

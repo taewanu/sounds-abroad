@@ -1,8 +1,8 @@
-import { COUNTRIES } from "@/lib/countries";
+import { COUNTRIES } from '@/lib/countries';
 
-import { flickToSpin } from "./spin-feel";
-import { pickSnapCountry } from "./spin-select";
-import { type HorizontalThird, classifyTap, isTap } from "./tap-detect";
+import { flickToSpin } from './spin-feel';
+import { pickSnapCountry } from './spin-select';
+import { type HorizontalThird, classifyTap, isTap } from './tap-detect';
 
 // The gesture state machine for the spun globe, as a pure reducer. Every drag,
 // fling, settle, tap, skip, and interruption transition lives here so the
@@ -36,15 +36,13 @@ const SETTLE_EPS = 0.002;
 
 const COUNTRY_BY_CODE = new Map(COUNTRIES.map((c) => [c.code, c]));
 
-const clamp = (v: number, lo: number, hi: number) =>
-  Math.max(lo, Math.min(hi, v));
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 // Shortest signed angle to rotate `from` onto `to`, so settling never unwinds
 // the long way around the globe.
-const shortestAngle = (delta: number) =>
-  Math.atan2(Math.sin(delta), Math.cos(delta));
+const shortestAngle = (delta: number) => Math.atan2(Math.sin(delta), Math.cos(delta));
 
-export type GestureMode = "idle" | "drag" | "fling" | "settle";
+export type GestureMode = 'idle' | 'drag' | 'fling' | 'settle';
 
 // The whole gesture machine as plain data: camera orientation and velocity, the
 // live mode, the settle targets and last-landed country, the one pointer that
@@ -90,10 +88,10 @@ export interface GestureConfig {
 }
 
 export type GestureEvent =
-  | { type: "pointerDown"; id: number; x: number; y: number; t: number }
-  | { type: "pointerMove"; id: number; x: number; y: number; t: number }
+  | { type: 'pointerDown'; id: number; x: number; y: number; t: number }
+  | { type: 'pointerMove'; id: number; x: number; y: number; t: number }
   | {
-      type: "pointerUp";
+      type: 'pointerUp';
       id: number;
       x: number;
       y: number;
@@ -105,31 +103,31 @@ export type GestureEvent =
       hitCode: string | null;
       listening: boolean;
     }
-  | { type: "pointerCancel"; id: number; rng: () => number }
+  | { type: 'pointerCancel'; id: number; rng: () => number }
   // The URL country changed: the a11y list or a shared link drives the globe.
-  | { type: "externalSelect"; code: string | null }
-  | { type: "frame"; dt: number; rng: () => number };
+  | { type: 'externalSelect'; code: string | null }
+  | { type: 'frame'; dt: number; rng: () => number };
 
 // Whether the listener chose this settle as a destination. A gesture (a
 // completed fling or tap) did, so it earns a history entry; everything else is
 // "external" and relabels in place: a followed URL or shared link, a
 // programmatic roll, or an interrupted touch snapping back to the nearest
 // country, none of which is a landing the listener aimed for.
-export type SettleOrigin = "gesture" | "external";
+export type SettleOrigin = 'gesture' | 'external';
 
 // Impure work the shell runs after each reduce. The reducer names the effect;
 // the shell owns how it reaches the DOM, timers, and chart store.
 export type GestureCommand =
   | {
-      kind: "settle";
+      kind: 'settle';
       code: string;
       changed: boolean;
       viaTap: boolean;
       origin: SettleOrigin;
     }
-  | { kind: "signalSkip"; dir: 1 | -1 }
-  | { kind: "capturePointer"; id: number }
-  | { kind: "releasePointer"; id: number };
+  | { kind: 'signalSkip'; dir: 1 | -1 }
+  | { kind: 'capturePointer'; id: number }
+  | { kind: 'releasePointer'; id: number };
 
 export interface ReduceResult {
   state: GestureState;
@@ -149,7 +147,7 @@ export function initGestureState(code: string): GestureState {
     el: startEl,
     vAz: 0,
     vEl: 0,
-    mode: "idle",
+    mode: 'idle',
     settleAz: startAz,
     settleEl: startEl,
     settledCode: code,
@@ -178,11 +176,11 @@ function settleTo(
   cfg: GestureConfig,
   code: string | null,
   viaTap = false,
-  origin: SettleOrigin = "gesture",
+  origin: SettleOrigin = 'gesture',
 ): void {
   const country = code ? COUNTRY_BY_CODE.get(code) : null;
   if (!country) {
-    s.mode = "idle";
+    s.mode = 'idle';
     return;
   }
   s.settleAz = country.lon * DEG;
@@ -193,7 +191,7 @@ function settleTo(
   const changed = s.settledCode !== country.code;
   s.settledCode = country.code;
   commands.push({
-    kind: "settle",
+    kind: 'settle',
     code: country.code,
     changed,
     viaTap,
@@ -207,9 +205,9 @@ function settleTo(
     s.el = s.settleEl;
     s.vAz = 0;
     s.vEl = 0;
-    s.mode = "idle";
+    s.mode = 'idle';
   } else {
-    s.mode = "settle";
+    s.mode = 'settle';
   }
 }
 
@@ -223,23 +221,19 @@ function runSelect(
   cfg: GestureConfig,
   code: string | null,
 ): void {
-  if (cfg.readMode || s.mode === "settle") return;
+  if (cfg.readMode || s.mode === 'settle') return;
   s.lastEdgeTapAt = null;
   // viaTap: a bare tap-select, so the tour's gesture beat can ignore it rather
   // than treat an accidental tap as the flick it teaches.
   settleTo(s, commands, cfg, code ?? s.settledCode, true);
 }
 
-export function reduce(
-  state: GestureState,
-  event: GestureEvent,
-  cfg: GestureConfig,
-): ReduceResult {
+export function reduce(state: GestureState, event: GestureEvent, cfg: GestureConfig): ReduceResult {
   const s = { ...state };
   const commands: GestureCommand[] = [];
 
   switch (event.type) {
-    case "pointerDown": {
+    case 'pointerDown': {
       // Read mode covers the globe; ignore presses so reading never grabs it.
       if (cfg.readMode) break;
       // A gesture already owns a pointer: ignore a second finger rather than let
@@ -247,7 +241,7 @@ export function reduce(
       if (s.activePointerId !== null) break;
       // The armed double-tap window survives this press so a second empty side
       // tap can still skip.
-      s.mode = "drag";
+      s.mode = 'drag';
       s.vAz = 0;
       s.vEl = 0;
       s.activePointerId = event.id;
@@ -258,11 +252,11 @@ export function reduce(
       s.lastT = event.t;
       s.vx = 0;
       s.vy = 0;
-      commands.push({ kind: "capturePointer", id: event.id });
+      commands.push({ kind: 'capturePointer', id: event.id });
       break;
     }
 
-    case "pointerMove": {
+    case 'pointerMove': {
       if (s.activePointerId === null || !owns(s, event.id)) break;
       // Read mode can flip on mid-drag; a move writes az directly, bypassing the
       // frame suspend, so don't rotate. Keep the pointer baseline current so a
@@ -289,18 +283,12 @@ export function reduce(
       break;
     }
 
-    case "pointerUp": {
+    case 'pointerUp': {
       if (s.activePointerId === null || !owns(s, event.id)) break;
       s.activePointerId = null;
-      commands.push({ kind: "releasePointer", id: event.id });
+      commands.push({ kind: 'releasePointer', id: event.id });
 
-      if (
-        isTap(
-          { x: s.downX, y: s.downY },
-          { x: event.x, y: event.y },
-          TAP_MAX_PX,
-        )
-      ) {
+      if (isTap({ x: s.downX, y: s.downY }, { x: event.x, y: event.y }, TAP_MAX_PX)) {
         const action = classifyTap({
           listening: event.listening,
           region: event.region,
@@ -320,19 +308,19 @@ export function reduce(
           const atTarget =
             Math.abs(shortestAngle(s.settleAz - s.az)) < SETTLE_EPS &&
             Math.abs(s.settleEl - s.el) < SETTLE_EPS;
-          s.mode = atTarget ? "idle" : "settle";
+          s.mode = atTarget ? 'idle' : 'settle';
         };
 
-        if (action.kind === "skip") {
+        if (action.kind === 'skip') {
           // A second empty side-third tap within the window: skip instead of
           // select.
           s.lastEdgeTapAt = null;
           resumeFrozenSettle();
-          commands.push({ kind: "signalSkip", dir: action.dir });
+          commands.push({ kind: 'signalSkip', dir: action.dir });
           break;
         }
 
-        if (action.kind === "armSkip") {
+        if (action.kind === 'armSkip') {
           // First empty side-third tap while listening: arm the skip window and
           // select nothing, so a second tap within it reads as a skip.
           s.lastEdgeTapAt = event.t;
@@ -350,17 +338,17 @@ export function reduce(
       s.lastEdgeTapAt = null;
       s.vAz = -flickToSpin(s.vx) * cfg.sensitivity;
       s.vEl = cfg.horizontalLock ? 0 : flickToSpin(s.vy) * cfg.sensitivity;
-      s.mode = "fling";
+      s.mode = 'fling';
       break;
     }
 
-    case "pointerCancel": {
+    case 'pointerCancel': {
       // An interrupted touch (system gesture, multi-touch) fires pointercancel,
       // not pointerup. Snap to the nearest country so it still never rests on
       // open ocean, and end any armed double-tap window.
       if (s.activePointerId === null || !owns(s, event.id)) break;
       s.activePointerId = null;
-      commands.push({ kind: "releasePointer", id: event.id });
+      commands.push({ kind: 'releasePointer', id: event.id });
       s.lastEdgeTapAt = null;
       // The snap-back is recovery, not a chosen landing, so it relabels in place
       // rather than pushing a history entry the back button would have to undo.
@@ -370,24 +358,24 @@ export function reduce(
         cfg,
         pickSnapCountry(s.el, s.az, cfg.visited, cfg.fair, event.rng),
         false,
-        "external",
+        'external',
       );
       break;
     }
 
-    case "externalSelect": {
+    case 'externalSelect': {
       // Follow the URL country: settle to it like a gesture would when we aren't
       // there. A gesture's own settle wrote the URL first, so code === settledCode by the
       // time this runs and it no-ops, no feedback loop. Drop any armed skip
       // window so a following tap isn't misread as a second tap.
       if (event.code && event.code !== s.settledCode) {
         s.lastEdgeTapAt = null;
-        settleTo(s, commands, cfg, event.code, false, "external");
+        settleTo(s, commands, cfg, event.code, false, 'external');
       }
       break;
     }
 
-    case "frame": {
+    case 'frame': {
       const dt = event.dt;
       // Read mode (sheet at full) hides the globe. Suspend the sim so a leftover
       // fling can't drift and settle a new country under the reader. Park an
@@ -397,39 +385,32 @@ export function reduce(
       // the sheet collapses. A fling can't reach settle while reading, so
       // mode === "settle" here is always a real selection, never stray momentum.
       if (cfg.readMode) {
-        if (s.mode === "fling") {
+        if (s.mode === 'fling') {
           s.vAz = 0;
           s.vEl = 0;
-          s.mode = "idle";
+          s.mode = 'idle';
         }
         break;
       }
 
-      if (s.mode === "fling") {
+      if (s.mode === 'fling') {
         s.az += s.vAz * dt;
         s.el = clamp(s.el + s.vEl * dt, -EL_LIMIT, EL_LIMIT);
         const decay = Math.exp(-cfg.friction * dt);
         s.vAz *= decay;
         s.vEl *= decay;
         if (Math.hypot(s.vAz, s.vEl) < SETTLE_VEL) {
-          settleTo(
-            s,
-            commands,
-            cfg,
-            pickSnapCountry(s.el, s.az, cfg.visited, cfg.fair, event.rng),
-          );
+          settleTo(s, commands, cfg, pickSnapCountry(s.el, s.az, cfg.visited, cfg.fair, event.rng));
         }
-      } else if (s.mode === "settle") {
+      } else if (s.mode === 'settle') {
         // Under-damped spring: the view glides past the target country and
         // springs back. Bounce lowers the damping ratio for more overshoot.
         const dtc = Math.min(dt, 0.05);
         const zeta = clamp(1 - 0.7 * cfg.bounce, 0.2, 1);
         const dAz = shortestAngle(s.settleAz - s.az);
         const dEl = s.settleEl - s.el;
-        s.vAz +=
-          (SNAP_OMEGA * SNAP_OMEGA * dAz - 2 * zeta * SNAP_OMEGA * s.vAz) * dtc;
-        s.vEl +=
-          (SNAP_OMEGA * SNAP_OMEGA * dEl - 2 * zeta * SNAP_OMEGA * s.vEl) * dtc;
+        s.vAz += (SNAP_OMEGA * SNAP_OMEGA * dAz - 2 * zeta * SNAP_OMEGA * s.vAz) * dtc;
+        s.vEl += (SNAP_OMEGA * SNAP_OMEGA * dEl - 2 * zeta * SNAP_OMEGA * s.vEl) * dtc;
         const speed = Math.hypot(s.vAz, s.vEl);
         if (speed > MAX_SETTLE_VEL) {
           const k = MAX_SETTLE_VEL / speed;
@@ -450,7 +431,7 @@ export function reduce(
           s.el = s.settleEl;
           s.vAz = 0;
           s.vEl = 0;
-          s.mode = "idle";
+          s.mode = 'idle';
         }
       }
       break;

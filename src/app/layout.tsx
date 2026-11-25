@@ -1,74 +1,74 @@
-import { Suspense } from "react";
-import type { Metadata, Viewport } from "next";
-import localFont from "next/font/local";
+import type { Metadata, Viewport } from 'next';
+import localFont from 'next/font/local';
+import { Suspense } from 'react';
 
-import { CountrySelector } from "@/components/country-selector";
-import { GlobeMount } from "@/components/globe/globe-mount";
-import { ShuffleButton } from "@/components/shuffle-button";
-import { SITE_URL } from "@/lib/site-url";
+import { CountrySelector } from '@/components/country-selector';
+import { GlobeMount } from '@/components/globe/globe-mount';
+import { ShuffleButton } from '@/components/shuffle-button';
+import { SITE_URL } from '@/lib/site-url';
 
-import "./globals.css";
+import './globals.css';
 
 const poppins = localFont({
   src: [
-    { path: "./fonts/Poppins-Light.ttf", weight: "300", style: "normal" },
-    { path: "./fonts/Poppins-Regular.ttf", weight: "400", style: "normal" },
-    { path: "./fonts/Poppins-Medium.ttf", weight: "500", style: "normal" },
-    { path: "./fonts/Poppins-SemiBold.ttf", weight: "600", style: "normal" },
-    { path: "./fonts/Poppins-Bold.ttf", weight: "700", style: "normal" },
+    { path: './fonts/Poppins-Light.ttf', weight: '300', style: 'normal' },
+    { path: './fonts/Poppins-Regular.ttf', weight: '400', style: 'normal' },
+    { path: './fonts/Poppins-Medium.ttf', weight: '500', style: 'normal' },
+    { path: './fonts/Poppins-SemiBold.ttf', weight: '600', style: 'normal' },
+    { path: './fonts/Poppins-Bold.ttf', weight: '700', style: 'normal' },
   ],
-  variable: "--font-poppins",
-  display: "swap",
+  variable: '--font-poppins',
+  display: 'swap',
 });
 
 const instrumentSerif = localFont({
   src: [
     {
-      path: "./fonts/InstrumentSerif-Regular.ttf",
-      weight: "400",
-      style: "normal",
+      path: './fonts/InstrumentSerif-Regular.ttf',
+      weight: '400',
+      style: 'normal',
     },
     {
-      path: "./fonts/InstrumentSerif-Italic.ttf",
-      weight: "400",
-      style: "italic",
+      path: './fonts/InstrumentSerif-Italic.ttf',
+      weight: '400',
+      style: 'italic',
     },
   ],
-  variable: "--font-instrument",
-  display: "swap",
+  variable: '--font-instrument',
+  display: 'swap',
 });
 
 const jetbrainsMono = localFont({
   src: [
     {
-      path: "./fonts/JetBrainsMono-VariableFont_wght.ttf",
-      style: "normal",
+      path: './fonts/JetBrainsMono-VariableFont_wght.ttf',
+      style: 'normal',
     },
     {
-      path: "./fonts/JetBrainsMono-Italic-VariableFont_wght.ttf",
-      style: "italic",
+      path: './fonts/JetBrainsMono-Italic-VariableFont_wght.ttf',
+      style: 'italic',
     },
   ],
-  variable: "--font-jetbrains",
-  display: "swap",
+  variable: '--font-jetbrains',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
-  title: "Sounds Abroad — World music discovery",
+  title: 'Sounds Abroad — World music discovery',
   description:
-    "A 3D globe-based world music discovery web app — explore trending music around the world.",
+    'A 3D globe-based world music discovery web app — explore trending music around the world.',
   metadataBase: new URL(SITE_URL),
   openGraph: {
-    title: "Sounds Abroad",
-    description: "Explore trending music around the world, on a 3D globe.",
-    type: "website",
+    title: 'Sounds Abroad',
+    description: 'Explore trending music around the world, on a 3D globe.',
+    type: 'website',
   },
 };
 
 export const viewport: Viewport = {
-  width: "device-width",
+  width: 'device-width',
   initialScale: 1,
-  themeColor: "#050608",
+  themeColor: '#050608',
 };
 
 export default function RootLayout({
@@ -81,7 +81,7 @@ export default function RootLayout({
       lang="en"
       className={`${poppins.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="bg-void flex min-h-full flex-col">
+      <body className="flex min-h-full flex-col bg-void">
         <div className="fixed inset-0">
           <GlobeMount />
         </div>

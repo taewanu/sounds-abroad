@@ -1,9 +1,9 @@
-import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
-import { triggerRevalidate } from "./revalidate-trigger";
+import { triggerRevalidate } from './revalidate-trigger';
 
-const SITE_URL = "https://example.test";
-const SECRET = "fixture-secret";
+const SITE_URL = 'https://example.test';
+const SECRET = 'fixture-secret';
 
 beforeEach(() => {
   process.env.SITE_URL = SITE_URL;
@@ -21,21 +21,21 @@ afterEach(() => {
   delete process.env.REVALIDATE_SECRET;
 });
 
-test("throws when SITE_URL is missing", async () => {
+test('throws when SITE_URL is missing', async () => {
   delete process.env.SITE_URL;
 
   await expect(triggerRevalidate()).rejects.toThrow(/SITE_URL/);
 });
 
-test("throws when REVALIDATE_SECRET is missing", async () => {
+test('throws when REVALIDATE_SECRET is missing', async () => {
   delete process.env.REVALIDATE_SECRET;
 
   await expect(triggerRevalidate()).rejects.toThrow(/REVALIDATE_SECRET/);
 });
 
-test("issues the bearer POST without waiting on a timer", async () => {
+test('issues the bearer POST without waiting on a timer', async () => {
   const fetchSpy = vi
-    .spyOn(globalThis, "fetch")
+    .spyOn(globalThis, 'fetch')
     .mockResolvedValue(new Response(null, { status: 200 }));
   // Fake timers that nothing advances: a reintroduced delay never resolves, so
   // this times out rather than passing quietly. afterEach restores them.
@@ -47,19 +47,17 @@ test("issues the bearer POST without waiting on a timer", async () => {
   expect(fetchSpy).toHaveBeenCalledWith(
     `${SITE_URL}/api/revalidate`,
     expect.objectContaining({
-      method: "POST",
+      method: 'POST',
       headers: { Authorization: `Bearer ${SECRET}` },
       signal: expect.any(AbortSignal),
     }),
   );
 });
 
-test("fails fast without retrying when revalidate rejects the request", async () => {
+test('fails fast without retrying when revalidate rejects the request', async () => {
   const fetchSpy = vi
-    .spyOn(globalThis, "fetch")
-    .mockResolvedValue(
-      new Response(null, { status: 401, statusText: "Unauthorized" }),
-    );
+    .spyOn(globalThis, 'fetch')
+    .mockResolvedValue(new Response(null, { status: 401, statusText: 'Unauthorized' }));
   const sleep = vi.fn(async () => {});
 
   await expect(triggerRevalidate(sleep)).rejects.toThrow(/401/);
@@ -67,9 +65,9 @@ test("fails fast without retrying when revalidate rejects the request", async ()
   expect(sleep).not.toHaveBeenCalled();
 });
 
-test("retries a server error and succeeds on a later attempt", async () => {
+test('retries a server error and succeeds on a later attempt', async () => {
   const fetchSpy = vi
-    .spyOn(globalThis, "fetch")
+    .spyOn(globalThis, 'fetch')
     .mockResolvedValueOnce(new Response(null, { status: 503 }))
     .mockResolvedValueOnce(new Response(null, { status: 200 }));
   const sleep = vi.fn(async () => {});
@@ -80,10 +78,8 @@ test("retries a server error and succeeds on a later attempt", async () => {
   expect(sleep).toHaveBeenCalledTimes(1);
 });
 
-test("retries a network failure and throws once every attempt fails", async () => {
-  const fetchSpy = vi
-    .spyOn(globalThis, "fetch")
-    .mockRejectedValue(new TypeError("fetch failed"));
+test('retries a network failure and throws once every attempt fails', async () => {
+  const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('fetch failed'));
   const sleep = vi.fn(async () => {});
 
   await expect(triggerRevalidate(sleep)).rejects.toThrow(/fetch failed/);

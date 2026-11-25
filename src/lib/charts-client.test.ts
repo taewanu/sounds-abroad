@@ -1,17 +1,13 @@
-import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
-import { CHARTS, CODE_US } from "./__fixtures__";
-import fixture from "./__fixtures__/charts.json";
-import { MUSIC_CHARTS_TAG } from "./cache-tags";
-import { emptyCountry } from "./chart-schema";
-import {
-  ChartsFetchError,
-  ChartsValidationError,
-  fetchCharts,
-} from "./charts-client";
-import { COUNTRIES } from "./countries";
+import { CHARTS, CODE_US } from './__fixtures__';
+import fixture from './__fixtures__/charts.json';
+import { MUSIC_CHARTS_TAG } from './cache-tags';
+import { emptyCountry } from './chart-schema';
+import { ChartsFetchError, ChartsValidationError, fetchCharts } from './charts-client';
+import { COUNTRIES } from './countries';
 
-const FIXTURE_URL = "https://data.example.com/charts/v1/charts.json";
+const FIXTURE_URL = 'https://data.example.com/charts/v1/charts.json';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -33,24 +29,24 @@ afterEach(() => {
 });
 
 function mockFetch(response: Response): void {
-  vi.spyOn(globalThis, "fetch").mockResolvedValue(response);
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(response);
 }
 
-test("fetchCharts returns parsed ChartFile when body matches schema", async () => {
-  const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+test('fetchCharts returns parsed ChartFile when body matches schema', async () => {
+  const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
     new Response(JSON.stringify(fixture), {
       status: 200,
-      headers: { "content-type": "application/json" },
+      headers: { 'content-type': 'application/json' },
     }),
   );
 
   const result = await fetchCharts(FIXTURE_URL);
 
   expect(result.countries.kr.tracks[0].rank).toBe(1);
-  expect(result.countries.kr.tracks[0].artist).toBe("악뮤");
-  expect(result.lastUpdated).toBe("2026-04-25T03:00:00Z");
+  expect(result.countries.kr.tracks[0].artist).toBe('악뮤');
+  expect(result.lastUpdated).toBe('2026-04-25T03:00:00Z');
   expect(spy).toHaveBeenCalledWith(FIXTURE_URL, {
-    cache: "force-cache",
+    cache: 'force-cache',
     next: { tags: [MUSIC_CHARTS_TAG] },
     // Empty with no key configured, which is how this suite runs. What it
     // carries when one is set has its own test below.
@@ -58,82 +54,70 @@ test("fetchCharts returns parsed ChartFile when body matches schema", async () =
   });
 });
 
-test("fetchCharts throws ChartsValidationError when payload is malformed", async () => {
+test('fetchCharts throws ChartsValidationError when payload is malformed', async () => {
   const malformed = { countries: fixture.countries };
   mockFetch(
     new Response(JSON.stringify(malformed), {
       status: 200,
-      headers: { "content-type": "application/json" },
+      headers: { 'content-type': 'application/json' },
     }),
   );
 
-  await expect(fetchCharts(FIXTURE_URL)).rejects.toBeInstanceOf(
-    ChartsValidationError,
-  );
+  await expect(fetchCharts(FIXTURE_URL)).rejects.toBeInstanceOf(ChartsValidationError);
 });
 
-test("fetchCharts throws ChartsFetchError on non-OK status", async () => {
-  mockFetch(new Response(null, { status: 500, statusText: "Server Error" }));
+test('fetchCharts throws ChartsFetchError on non-OK status', async () => {
+  mockFetch(new Response(null, { status: 500, statusText: 'Server Error' }));
 
-  await expect(fetchCharts(FIXTURE_URL)).rejects.toBeInstanceOf(
-    ChartsFetchError,
-  );
+  await expect(fetchCharts(FIXTURE_URL)).rejects.toBeInstanceOf(ChartsFetchError);
 });
 
-test("fetchCharts throws ChartsFetchError when fetch rejects (network error)", async () => {
-  vi.spyOn(globalThis, "fetch").mockRejectedValue(
-    new TypeError("fetch failed"),
-  );
+test('fetchCharts throws ChartsFetchError when fetch rejects (network error)', async () => {
+  vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('fetch failed'));
 
-  await expect(fetchCharts(FIXTURE_URL)).rejects.toBeInstanceOf(
-    ChartsFetchError,
-  );
+  await expect(fetchCharts(FIXTURE_URL)).rejects.toBeInstanceOf(ChartsFetchError);
 });
 
-test("fetchCharts throws ChartsFetchError when body is not valid JSON", async () => {
+test('fetchCharts throws ChartsFetchError when body is not valid JSON', async () => {
   mockFetch(
-    new Response("not json at all", {
+    new Response('not json at all', {
       status: 200,
-      headers: { "content-type": "application/json" },
+      headers: { 'content-type': 'application/json' },
     }),
   );
 
-  await expect(fetchCharts(FIXTURE_URL)).rejects.toBeInstanceOf(
-    ChartsFetchError,
-  );
+  await expect(fetchCharts(FIXTURE_URL)).rejects.toBeInstanceOf(ChartsFetchError);
 });
 
 // The busiest read of the store, and the one the whole payload comes through, so
 // a credential missing here breaks the home route and every country page rather
 // than a single chart. It was missing until review caught it.
-test("fetchCharts carries the store credential when one is configured", async () => {
-  process.env.CHARTS_READ_KEY = "a-secret";
-  const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+test('fetchCharts carries the store credential when one is configured', async () => {
+  process.env.CHARTS_READ_KEY = 'a-secret';
+  const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
     new Response(JSON.stringify(fixture), {
       status: 200,
-      headers: { "content-type": "application/json" },
+      headers: { 'content-type': 'application/json' },
     }),
   );
 
   await fetchCharts(FIXTURE_URL);
 
   const init = spy.mock.calls[0][1] as RequestInit;
-  expect(init.headers).toMatchObject({ "x-charts-key": "a-secret" });
+  expect(init.headers).toMatchObject({ 'x-charts-key': 'a-secret' });
   // The credential must not cost the caching the read depends on.
-  expect(init.cache).toBe("force-cache");
+  expect(init.cache).toBe('force-cache');
   expect(init.next).toEqual({ tags: [MUSIC_CHARTS_TAG] });
 });
 
-test("fetchCharts gives every listed country the file lacks an empty entry", async () => {
+test('fetchCharts gives every listed country the file lacks an empty entry', async () => {
   const uncharted = COUNTRIES.find((c) => !(c.code in CHARTS.countries));
-  if (!uncharted) throw new Error("the fixture charts every listed country");
+  if (!uncharted) throw new Error('the fixture charts every listed country');
   mockFetch(new Response(JSON.stringify(CHARTS), { status: 200 }));
 
   const charts = await fetchCharts(FIXTURE_URL);
 
   expect(Object.keys(charts.countries)).toHaveLength(COUNTRIES.length);
   expect(charts.countries[CODE_US]).toEqual(CHARTS.countries[CODE_US]);
-  expect(charts.countries[uncharted.code]).toEqual(
-    emptyCountry(uncharted.name),
-  );
+  expect(charts.countries[uncharted.code]).toEqual(emptyCountry(uncharted.name));
 });

@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
+import { useFrame, useThree } from '@react-three/fiber';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { globeChartStore } from "@/lib/globe-chart-store";
+import { globeChartStore } from '@/lib/globe-chart-store';
 
 import {
   type GestureCommand,
@@ -12,9 +12,9 @@ import {
   type SettleOrigin,
   initGestureState,
   reduce,
-} from "./spin-gesture";
-import { pickNearestToPoint, projectFrontCountries } from "./spin-select";
-import { horizontalThird } from "./tap-detect";
+} from './spin-gesture';
+import { pickNearestToPoint, projectFrontCountries } from './spin-select';
+import { horizontalThird } from './tap-detect';
 
 const RADIUS = 3.5;
 const TAP_HIT_PX = 44; // a tap beyond this from every country pin selects nothing
@@ -39,12 +39,7 @@ interface SpinSnapControlsProps {
   // accidental tap from the flick it teaches. `origin` is "gesture" for a fling
   // or tap and "external" for a URL/list/programmatic settle, so the caller can
   // push a history entry for the first and relabel in place for the second.
-  onSettle: (
-    code: string,
-    changed: boolean,
-    viaTap: boolean,
-    origin: SettleOrigin,
-  ) => void;
+  onSettle: (code: string, changed: boolean, viaTap: boolean, origin: SettleOrigin) => void;
 }
 
 // Drives the camera as a spun globe: drag to rotate, release to fling with
@@ -115,30 +110,22 @@ export function SpinSnapControls({
 
   // Run one command: the impure work the reducer can only name (notify, skip,
   // capture/release the pointer).
-  const runCommand = useCallback(
-    (command: GestureCommand, el: HTMLCanvasElement) => {
-      switch (command.kind) {
-        case "settle":
-          onSettleRef.current(
-            command.code,
-            command.changed,
-            command.viaTap,
-            command.origin,
-          );
-          break;
-        case "signalSkip":
-          globeChartStore.getState().signalSkip(command.dir);
-          break;
-        case "capturePointer":
-          el.setPointerCapture?.(command.id);
-          break;
-        case "releasePointer":
-          el.releasePointerCapture?.(command.id);
-          break;
-      }
-    },
-    [],
-  );
+  const runCommand = useCallback((command: GestureCommand, el: HTMLCanvasElement) => {
+    switch (command.kind) {
+      case 'settle':
+        onSettleRef.current(command.code, command.changed, command.viaTap, command.origin);
+        break;
+      case 'signalSkip':
+        globeChartStore.getState().signalSkip(command.dir);
+        break;
+      case 'capturePointer':
+        el.setPointerCapture?.(command.id);
+        break;
+      case 'releasePointer':
+        el.releasePointerCapture?.(command.id);
+        break;
+    }
+  }, []);
 
   // Fold an event into the sim, then run its commands. Stable across renders
   // (gl and runCommand are), so the listener effect subscribes once.
@@ -158,7 +145,7 @@ export function SpinSnapControls({
   // shared link) settle to it like a gesture would. A gesture's own settle
   // writes the URL first, so the reducer no-ops when it already matches.
   useEffect(() => {
-    dispatch({ type: "externalSelect", code: targetCode });
+    dispatch({ type: 'externalSelect', code: targetCode });
   }, [targetCode, dispatch]);
 
   useEffect(() => {
@@ -166,7 +153,7 @@ export function SpinSnapControls({
 
     const onDown = (e: PointerEvent) => {
       dispatch({
-        type: "pointerDown",
+        type: 'pointerDown',
         id: e.pointerId,
         x: e.clientX,
         y: e.clientY,
@@ -176,7 +163,7 @@ export function SpinSnapControls({
 
     const onMove = (e: PointerEvent) => {
       dispatch({
-        type: "pointerMove",
+        type: 'pointerMove',
         id: e.pointerId,
         x: e.clientX,
         y: e.clientY,
@@ -198,7 +185,7 @@ export function SpinSnapControls({
         TAP_HIT_PX,
       );
       dispatch({
-        type: "pointerUp",
+        type: 'pointerUp',
         id: e.pointerId,
         x: e.clientX,
         y: e.clientY,
@@ -210,23 +197,23 @@ export function SpinSnapControls({
     };
 
     const onCancel = (e: PointerEvent) => {
-      dispatch({ type: "pointerCancel", id: e.pointerId, rng: Math.random });
+      dispatch({ type: 'pointerCancel', id: e.pointerId, rng: Math.random });
     };
 
-    el.addEventListener("pointerdown", onDown);
-    el.addEventListener("pointermove", onMove);
-    el.addEventListener("pointerup", onUp);
-    el.addEventListener("pointercancel", onCancel);
+    el.addEventListener('pointerdown', onDown);
+    el.addEventListener('pointermove', onMove);
+    el.addEventListener('pointerup', onUp);
+    el.addEventListener('pointercancel', onCancel);
     return () => {
-      el.removeEventListener("pointerdown", onDown);
-      el.removeEventListener("pointermove", onMove);
-      el.removeEventListener("pointerup", onUp);
-      el.removeEventListener("pointercancel", onCancel);
+      el.removeEventListener('pointerdown', onDown);
+      el.removeEventListener('pointermove', onMove);
+      el.removeEventListener('pointerup', onUp);
+      el.removeEventListener('pointercancel', onCancel);
     };
   }, [gl, camera, dispatch]);
 
   useFrame((_, dt) => {
-    dispatch({ type: "frame", dt, rng: Math.random });
+    dispatch({ type: 'frame', dt, rng: Math.random });
     // Read mode suspends the sim (the frame event leaves az/el frozen); leave
     // the camera untouched too rather than re-pin it every hidden frame.
     if (cfg.current.readMode) return;

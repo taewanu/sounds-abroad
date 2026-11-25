@@ -1,9 +1,9 @@
-import type { Camera } from "three";
-import { Vector3 } from "three";
+import type { Camera } from 'three';
+import { Vector3 } from 'three';
 
-import { COUNTRIES, type CountryEntry } from "@/lib/countries";
-import { weightedDraw } from "@/lib/fairness-draw";
-import { latLonToVec3 } from "@/lib/lat-lon-to-vec3";
+import { COUNTRIES, type CountryEntry } from '@/lib/countries';
+import { weightedDraw } from '@/lib/fairness-draw';
+import { latLonToVec3 } from '@/lib/lat-lon-to-vec3';
 
 const DEG = Math.PI / 180;
 const PIN_ELEVATION = 1.015;
@@ -85,9 +85,7 @@ export function rankNearest(el: number, az: number, n: number): PoolEntry[] {
     const lat = c.lat * DEG;
     const lon = c.lon * DEG;
     const dot =
-      Math.cos(lat) * Math.sin(lon) * cx +
-      Math.sin(lat) * cy +
-      Math.cos(lat) * Math.cos(lon) * cz;
+      Math.cos(lat) * Math.sin(lon) * cx + Math.sin(lat) * cy + Math.cos(lat) * Math.cos(lon) * cz;
     // dot is cos(angle) for unit vectors; clamp guards acos against fp drift.
     return { code: c.code, angle: Math.acos(Math.min(1, Math.max(-1, dot))) };
   })

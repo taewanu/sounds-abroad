@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import type { SVGProps } from 'react';
 
 // Vendored from Lucide (`gem`, MIT) — a faceted gem, marking the hero card as
 // this landing's one deliberately curated pick rather than another chart row.

@@ -1,4 +1,4 @@
-import type { Commentary } from "./chart-schema";
+import type { Commentary } from './chart-schema';
 
 /**
  * Deterministic guard against reproducing song lyrics in commentary, the
@@ -9,7 +9,7 @@ import type { Commentary } from "./chart-schema";
  */
 
 export interface LyricRisk {
-  rule: "quoted-span" | "verse-lines" | "repeated-line";
+  rule: 'quoted-span' | 'verse-lines' | 'repeated-line';
   excerpt: string;
 }
 
@@ -29,7 +29,7 @@ const MIN_REPEATED_LINE_WORDS = 2;
 
 function wordCount(text: string): number {
   const trimmed = text.trim();
-  return trimmed === "" ? 0 : trimmed.split(/\s+/).length;
+  return trimmed === '' ? 0 : trimmed.split(/\s+/).length;
 }
 
 function endsASentence(line: string): boolean {
@@ -41,7 +41,7 @@ function findQuotedSpans(text: string): LyricRisk[] {
   const pattern = /["“]([^"“”\n]+)["”]/g;
   for (const match of text.matchAll(pattern)) {
     if (wordCount(match[1]) > MAX_QUOTED_WORDS) {
-      risks.push({ rule: "quoted-span", excerpt: match[0] });
+      risks.push({ rule: 'quoted-span', excerpt: match[0] });
     }
   }
   return risks;
@@ -51,30 +51,26 @@ function findVerseRuns(lines: string[]): LyricRisk[] {
   let run: string[] = [];
   for (const line of lines) {
     const isVerse =
-      line.trim() !== "" &&
-      wordCount(line) <= VERSE_LINE_MAX_WORDS &&
-      !endsASentence(line);
+      line.trim() !== '' && wordCount(line) <= VERSE_LINE_MAX_WORDS && !endsASentence(line);
     if (isVerse) {
       run.push(line.trim());
     } else {
       if (run.length >= MIN_VERSE_LINES) {
-        return [{ rule: "verse-lines", excerpt: run.join(" / ") }];
+        return [{ rule: 'verse-lines', excerpt: run.join(' / ') }];
       }
       run = [];
     }
   }
-  return run.length >= MIN_VERSE_LINES
-    ? [{ rule: "verse-lines", excerpt: run.join(" / ") }]
-    : [];
+  return run.length >= MIN_VERSE_LINES ? [{ rule: 'verse-lines', excerpt: run.join(' / ') }] : [];
 }
 
 function findRepeatedLines(lines: string[]): LyricRisk[] {
   const seen = new Set<string>();
   for (const raw of lines) {
-    const line = raw.trim().toLowerCase().replace(/\s+/g, " ");
+    const line = raw.trim().toLowerCase().replace(/\s+/g, ' ');
     if (wordCount(line) < MIN_REPEATED_LINE_WORDS) continue;
     if (seen.has(line)) {
-      return [{ rule: "repeated-line", excerpt: raw.trim() }];
+      return [{ rule: 'repeated-line', excerpt: raw.trim() }];
     }
     seen.add(line);
   }
@@ -83,18 +79,14 @@ function findRepeatedLines(lines: string[]): LyricRisk[] {
 
 /** Every lyric risk in a single block of text. */
 export function findLyricRisks(text: string): LyricRisk[] {
-  const lines = text.split("\n");
-  return [
-    ...findQuotedSpans(text),
-    ...findVerseRuns(lines),
-    ...findRepeatedLines(lines),
-  ];
+  const lines = text.split('\n');
+  return [...findQuotedSpans(text), ...findVerseRuns(lines), ...findRepeatedLines(lines)];
 }
 
 /** Every lyric risk across a commentary entry's human-authored fields. */
 export function lintCommentary(entry: Commentary): LyricRisk[] {
   const fields = [entry.lead, entry.detail, entry.tag].filter(
-    (f): f is string => typeof f === "string",
+    (f): f is string => typeof f === 'string',
   );
   return fields.flatMap(findLyricRisks);
 }

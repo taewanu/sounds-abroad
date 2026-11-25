@@ -1,5 +1,5 @@
-import type { ChartTrack } from "./chart-schema";
-import { sameTrack } from "./track-identity";
+import type { ChartTrack } from './chart-schema';
+import { sameTrack } from './track-identity';
 
 /**
  * The next or previous playable track relative to the current one, or null.

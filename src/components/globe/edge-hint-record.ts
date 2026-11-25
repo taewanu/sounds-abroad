@@ -4,10 +4,7 @@
 // permanently the moment the user performs an edge skip. Pure schedule plus its
 // persistence, shaped like the tour record.
 
-import {
-  createMirroredStorage,
-  type MirroredStorage,
-} from "@/lib/mirrored-storage";
+import { createMirroredStorage, type MirroredStorage } from '@/lib/mirrored-storage';
 
 export interface EdgeHintRecord {
   shows: number;
@@ -38,7 +35,7 @@ export function recordUsed(record: EdgeHintRecord): EdgeHintRecord {
 // A fresh key from the boolean flag's :v1 (no migration code, per the seen-flag
 // convention): repeat-until-used is a new contract, so users who saw the old
 // one-shot cue get the full schedule once more.
-const KEY = "sounds-abroad:edge-tap-hint:v2";
+const KEY = 'sounds-abroad:edge-tap-hint:v2';
 
 const store = createMirroredStorage();
 const listeners = new Set<() => void>();
@@ -47,10 +44,10 @@ const listeners = new Set<() => void>();
 // (the cue re-teaches) rather than throwing.
 function parseRecord(raw: string): EdgeHintRecord {
   const parsed: unknown = JSON.parse(raw);
-  if (typeof parsed !== "object" || parsed === null) return emptyRecord;
+  if (typeof parsed !== 'object' || parsed === null) return emptyRecord;
   const value = parsed as Record<string, unknown>;
   return {
-    shows: typeof value.shows === "number" ? value.shows : 0,
+    shows: typeof value.shows === 'number' ? value.shows : 0,
     used: value.used === true,
   };
 }
@@ -64,10 +61,7 @@ export function readRecord(storage: MirroredStorage = store): EdgeHintRecord {
   }
 }
 
-export function writeRecord(
-  record: EdgeHintRecord,
-  storage: MirroredStorage = store,
-): void {
+export function writeRecord(record: EdgeHintRecord, storage: MirroredStorage = store): void {
   try {
     storage.setItem(KEY, JSON.stringify(record));
   } catch {

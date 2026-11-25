@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 import {
   AppleArtworkUrlSchema,
@@ -7,14 +7,14 @@ import {
   CitationUrlSchema,
   PlaylistIdSchema,
   SpotifyUrlSchema,
-} from "./url-schema";
+} from './url-schema';
 
 /**
  * Which kind of claim a blurb makes, set at authoring time. `what-it-is` is a
  * stable note about the song itself; `why-charting` is a time-sensitive note
  * about its current chart movement, which carries a higher risk of going stale.
  */
-export const ClaimSchema = z.enum(["what-it-is", "why-charting"]);
+export const ClaimSchema = z.enum(['what-it-is', 'why-charting']);
 
 export const CommentarySchema = z.object({
   lead: z.string().min(1),
@@ -47,10 +47,7 @@ const FeedNameSchema = z
   .string()
   .min(1)
   .max(1000)
-  .regex(
-    /^[^\u0000-\u001f\u007f-\u009f\u2028\u2029]*$/u,
-    "control characters are not allowed",
-  );
+  .regex(/^[^\u0000-\u001f\u007f-\u009f\u2028\u2029]*$/u, 'control characters are not allowed');
 
 const TrackSchema = z.object({
   rank: z.number().int().min(1).max(100),
@@ -139,7 +136,7 @@ export const ChartFileSchema = z.object({
   countries: z
     .record(z.string().regex(/^[a-z]{2}$/), CountrySchema)
     .refine((c) => Object.keys(c).length > 0, {
-      message: "countries must have at least one entry",
+      message: 'countries must have at least one entry',
     }),
 });
 

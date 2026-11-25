@@ -1,5 +1,5 @@
-import { ChartFileSchema, type ChartFile } from "../../src/lib/chart-schema";
-import { fetchChartsStore } from "../../src/lib/charts-store-fetch";
+import { ChartFileSchema, type ChartFile } from '../../src/lib/chart-schema';
+import { fetchChartsStore } from '../../src/lib/charts-store-fetch';
 
 /**
  * Reads the last published payload so a failed crawl can carry forward

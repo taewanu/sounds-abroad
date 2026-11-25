@@ -1,6 +1,6 @@
-import { expect, test, vi } from "vitest";
+import { expect, test, vi } from 'vitest';
 
-import { withRetry, type RetryOptions } from "./retry";
+import { withRetry, type RetryOptions } from './retry';
 
 function makeOptions(overrides: Partial<RetryOptions> = {}): RetryOptions {
   return {
@@ -11,37 +11,37 @@ function makeOptions(overrides: Partial<RetryOptions> = {}): RetryOptions {
   };
 }
 
-test("withRetry returns the first result without sleeping when fn succeeds", async () => {
-  const fn = vi.fn(async () => "ok");
+test('withRetry returns the first result without sleeping when fn succeeds', async () => {
+  const fn = vi.fn(async () => 'ok');
   const options = makeOptions();
 
   const result = await withRetry(fn, options);
 
-  expect(result).toBe("ok");
+  expect(result).toBe('ok');
   expect(fn).toHaveBeenCalledTimes(1);
   expect(options.sleep).not.toHaveBeenCalled();
 });
 
-test("withRetry retries a transient failure and returns the eventual success", async () => {
+test('withRetry retries a transient failure and returns the eventual success', async () => {
   const fn = vi
     .fn<() => Promise<string>>()
-    .mockRejectedValueOnce(new Error("transient"))
-    .mockResolvedValueOnce("ok");
+    .mockRejectedValueOnce(new Error('transient'))
+    .mockResolvedValueOnce('ok');
   const options = makeOptions();
 
   const result = await withRetry(fn, options);
 
-  expect(result).toBe("ok");
+  expect(result).toBe('ok');
   expect(fn).toHaveBeenCalledTimes(2);
   expect(options.sleep).toHaveBeenCalledTimes(1);
 });
 
-test("withRetry throws the last error after exhausting every attempt", async () => {
-  const lastError = new Error("attempt 3");
+test('withRetry throws the last error after exhausting every attempt', async () => {
+  const lastError = new Error('attempt 3');
   const fn = vi
     .fn<() => Promise<string>>()
-    .mockRejectedValueOnce(new Error("attempt 1"))
-    .mockRejectedValueOnce(new Error("attempt 2"))
+    .mockRejectedValueOnce(new Error('attempt 1'))
+    .mockRejectedValueOnce(new Error('attempt 2'))
     .mockRejectedValueOnce(lastError);
   const options = makeOptions({ retries: 2 });
 
@@ -52,8 +52,8 @@ test("withRetry throws the last error after exhausting every attempt", async () 
   expect(options.sleep).toHaveBeenCalledTimes(2);
 });
 
-test("withRetry does not retry when shouldRetry rejects the error", async () => {
-  const permanent = new Error("permanent");
+test('withRetry does not retry when shouldRetry rejects the error', async () => {
+  const permanent = new Error('permanent');
   const fn = vi.fn<() => Promise<string>>().mockRejectedValue(permanent);
   const options = makeOptions({ shouldRetry: () => false });
 
@@ -64,12 +64,12 @@ test("withRetry does not retry when shouldRetry rejects the error", async () => 
   expect(options.sleep).not.toHaveBeenCalled();
 });
 
-test("withRetry backs off exponentially from backoffMs between attempts", async () => {
+test('withRetry backs off exponentially from backoffMs between attempts', async () => {
   const fn = vi
     .fn<() => Promise<string>>()
-    .mockRejectedValueOnce(new Error("1"))
-    .mockRejectedValueOnce(new Error("2"))
-    .mockResolvedValueOnce("ok");
+    .mockRejectedValueOnce(new Error('1'))
+    .mockRejectedValueOnce(new Error('2'))
+    .mockResolvedValueOnce('ok');
   const sleep = vi.fn(async () => {});
   const options = makeOptions({ retries: 2, backoffMs: 100, sleep });
 

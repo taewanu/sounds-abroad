@@ -1,27 +1,26 @@
-"use client";
+'use client';
 
-import { Suspense, use, useCallback, useEffect, useRef, useState } from "react";
-import { Canvas, useThree } from "@react-three/fiber";
-import { PerspectiveCamera } from "three";
+import { Canvas, useThree } from '@react-three/fiber';
+import { Suspense, use, useCallback, useEffect, useRef, useState } from 'react';
+import { PerspectiveCamera } from 'three';
 
-import { SONGS_CHART } from "@/lib/chart-ref";
-import { chartPath } from "@/lib/chart-url";
-import { COUNTRIES } from "@/lib/countries";
-import { addVisited, pickShuffleCountry } from "@/lib/fairness-draw";
-import { globeChartStore, useGlobeChart } from "@/lib/globe-chart-store";
-import { getCountryOutlinesPromise } from "@/lib/topo-loader";
-import { tourBridge } from "@/lib/tour-bridge";
+import { SONGS_CHART } from '@/lib/chart-ref';
+import { chartPath } from '@/lib/chart-url';
+import { COUNTRIES } from '@/lib/countries';
+import { addVisited, pickShuffleCountry } from '@/lib/fairness-draw';
+import { globeChartStore, useGlobeChart } from '@/lib/globe-chart-store';
+import { getCountryOutlinesPromise } from '@/lib/topo-loader';
+import { tourBridge } from '@/lib/tour-bridge';
 
-import { usePrefersReducedMotion } from "../use-prefers-reduced-motion";
-
-import { cameraForViewport } from "./camera-fit";
-import { CountryFill } from "./country-fill";
-import { CountryOutlinesLayer } from "./country-outlines";
-import { CountryPins } from "./country-pins";
-import { triggerLandingHaptic } from "./landing-haptic";
-import type { SettleOrigin } from "./spin-gesture";
-import { SpinSnapControls } from "./spin-snap-controls";
-import { StarBackdrop } from "./star-backdrop";
+import { usePrefersReducedMotion } from '../use-prefers-reduced-motion';
+import { cameraForViewport } from './camera-fit';
+import { CountryFill } from './country-fill';
+import { CountryOutlinesLayer } from './country-outlines';
+import { CountryPins } from './country-pins';
+import { triggerLandingHaptic } from './landing-haptic';
+import type { SettleOrigin } from './spin-gesture';
+import { SpinSnapControls } from './spin-snap-controls';
+import { StarBackdrop } from './star-backdrop';
 
 const ISO_BY_CODE = new Map(COUNTRIES.map((c) => [c.code, c.isoNum]));
 
@@ -31,7 +30,7 @@ const SPIN_FRICTION = 2.5;
 const SPIN_BOUNCE = 0.45;
 const SPIN_HORIZONTAL_LOCK = false;
 const SPIN_FAIR = true;
-const FALLBACK_CODE = "us";
+const FALLBACK_CODE = 'us';
 
 // Pins no longer handle selection; the canvas-level tap does. A stable no-op
 // keeps CountryPins' required onSelect from getting a new ref each render.
@@ -49,10 +48,7 @@ function CountryLayers({
   return (
     <>
       <CountryOutlinesLayer data={outlines} hoveredIsoNum={hoveredIsoNum} />
-      <CountryFill
-        selectedIsoNum={selectedIsoNum}
-        byIsoRings={outlines.byIsoRings}
-      />
+      <CountryFill selectedIsoNum={selectedIsoNum} byIsoRings={outlines.byIsoRings} />
     </>
   );
 }
@@ -71,8 +67,7 @@ function SceneContent() {
     hoveredCode !== null && hoveredCode !== selectedCode
       ? (ISO_BY_CODE.get(hoveredCode) ?? null)
       : null;
-  const selectedIsoNum =
-    selectedCode !== null ? (ISO_BY_CODE.get(selectedCode) ?? null) : null;
+  const selectedIsoNum = selectedCode !== null ? (ISO_BY_CODE.get(selectedCode) ?? null) : null;
 
   // The anti-repeat memory lives in the globe-chart store (the chart draws
   // from it too); the globe owns the writes. Seed it once with whatever the
@@ -103,14 +98,13 @@ function SceneContent() {
       globeChartStore.getState().signalSettle(viaTap);
       if (!changed) return;
       triggerLandingHaptic();
-      const { setSelectedCountry, visited, setVisited, chartMode } =
-        globeChartStore.getState();
+      const { setSelectedCountry, visited, setVisited, chartMode } = globeChartStore.getState();
       setSelectedCountry(code);
       const url = chartPath(code, SONGS_CHART, chartMode);
-      if (origin === "gesture") {
-        window.history.pushState(null, "", url);
+      if (origin === 'gesture') {
+        window.history.pushState(null, '', url);
       } else {
-        window.history.replaceState(null, "", url);
+        window.history.replaceState(null, '', url);
       }
       setVisited(addVisited(visited, code));
     },
@@ -130,9 +124,7 @@ function SceneContent() {
     if (shuffleSignal === prevShuffleRef.current) return;
     prevShuffleRef.current = shuffleSignal;
     const { drawableCodes, shuffleTo } = globeChartStore.getState();
-    shuffleTo(
-      pickShuffleCountry(visited, [selectedCode ?? initialCode], drawableCodes),
-    );
+    shuffleTo(pickShuffleCountry(visited, [selectedCode ?? initialCode], drawableCodes));
   }, [shuffleSignal, visited, selectedCode, initialCode]);
 
   return (
@@ -142,17 +134,10 @@ function SceneContent() {
       <StarBackdrop />
       <mesh>
         <sphereGeometry args={[1, 64, 64]} />
-        <meshStandardMaterial
-          color="#0a1a2a"
-          roughness={0.95}
-          metalness={0.05}
-        />
+        <meshStandardMaterial color="#0a1a2a" roughness={0.95} metalness={0.05} />
       </mesh>
       <Suspense fallback={null}>
-        <CountryLayers
-          hoveredIsoNum={hoveredIsoNum}
-          selectedIsoNum={selectedIsoNum}
-        />
+        <CountryLayers hoveredIsoNum={hoveredIsoNum} selectedIsoNum={selectedIsoNum} />
       </Suspense>
       <CountryPins
         selectedCode={selectedCode}
@@ -215,14 +200,12 @@ export function GlobeScene() {
       // touch-callout resets stop a long press from raising iOS Safari's text
       // selection / callout over the canvas mid-gesture.
       style={{
-        touchAction: "none",
-        userSelect: "none",
-        WebkitUserSelect: "none",
-        WebkitTouchCallout: "none",
+        touchAction: 'none',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
       }}
-      className={`transition-opacity duration-700 ease-out ${
-        ready ? "opacity-100" : "opacity-0"
-      }`}
+      className={`transition-opacity duration-700 ease-out ${ready ? 'opacity-100' : 'opacity-0'}`}
     >
       <AspectCameraFit />
       <SceneContent />

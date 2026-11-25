@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useState } from 'react';
 
 /**
  * The 48px cover thumbnail every track surface shows. An image element rather
@@ -14,7 +14,7 @@ export function TrackArtwork({ url }: { url: string }) {
   return (
     <div
       aria-hidden="true"
-      className="bg-fg-1/5 relative h-12 w-12 shrink-0 rounded-lg after:absolute after:inset-0 after:rounded-[inherit] after:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+      className="relative h-12 w-12 shrink-0 rounded-lg bg-fg-1/5 after:absolute after:inset-0 after:rounded-[inherit] after:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
     >
       {/* Keyed so each address starts fresh: a reused element keeps painting
           the previous cover, and a failure belongs to the address it hit. */}

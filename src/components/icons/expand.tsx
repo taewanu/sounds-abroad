@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import type { SVGProps } from 'react';
 
 // Two corner arrows pushing outward: signals "open into a larger view", not the
 // in-place fold a chevron implies.

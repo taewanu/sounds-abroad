@@ -1,9 +1,9 @@
-import { CHART_MODES, DEFAULT_CHART_MODE, type ChartMode } from "./chart-mode";
-import { SONGS_CHART, isPlaylistRef, type ChartRef } from "./chart-ref";
-import type { Country } from "./chart-schema";
+import { CHART_MODES, DEFAULT_CHART_MODE, type ChartMode } from './chart-mode';
+import { SONGS_CHART, isPlaylistRef, type ChartRef } from './chart-ref';
+import type { Country } from './chart-schema';
 
-export const CHART_PARAM = "chart";
-export const MODE_PARAM = "mode";
+export const CHART_PARAM = 'chart';
+export const MODE_PARAM = 'mode';
 
 /** The static per-country page for a country code. */
 export function countryPath(countryCode: string): string {
@@ -48,9 +48,7 @@ export function countryCodeFromPath(pathname: string): string | null {
  */
 export function chartFromUrl(raw: string | null, country: Country): ChartRef {
   if (raw === null) return SONGS_CHART;
-  return country.playlists?.some((playlist) => playlist.id === raw)
-    ? raw
-    : SONGS_CHART;
+  return country.playlists?.some((playlist) => playlist.id === raw) ? raw : SONGS_CHART;
 }
 
 /**
@@ -60,7 +58,5 @@ export function chartFromUrl(raw: string | null, country: Country): ChartRef {
  */
 export function modeFromUrl(raw: string | null): ChartMode {
   if (raw === null) return DEFAULT_CHART_MODE;
-  return CHART_MODES.includes(raw as ChartMode)
-    ? (raw as ChartMode)
-    : DEFAULT_CHART_MODE;
+  return CHART_MODES.includes(raw as ChartMode) ? (raw as ChartMode) : DEFAULT_CHART_MODE;
 }

@@ -1,4 +1,4 @@
-import { normalizeForKey } from "./commentary-store";
+import { normalizeForKey } from './commentary-store';
 
 /** The track fields that establish identity, so callers can pass a partial. */
 type TrackIdentity = { appleUrl: string; artist: string; name: string };
@@ -19,17 +19,14 @@ export function trackKey(track: TrackIdentity): string {
 }
 
 /** Whether two tracks are the same song. Null on either side is never a match. */
-export function sameTrack(
-  a: TrackIdentity | null,
-  b: TrackIdentity | null,
-): boolean {
+export function sameTrack(a: TrackIdentity | null, b: TrackIdentity | null): boolean {
   if (a === null || b === null) return false;
   return trackKey(a) === trackKey(b);
 }
 
 function appleSongId(appleUrl: string): string | null {
   try {
-    return new URL(appleUrl).searchParams.get("i");
+    return new URL(appleUrl).searchParams.get('i');
   } catch {
     return null;
   }

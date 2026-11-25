@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { type CSSProperties, useEffect, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from 'react';
 
-import { SNAP_Y_PCT, type SnapState } from "@/components/chart-sheet/sheet";
-import { ChevronsRightIcon } from "@/components/icons/chevrons-right";
+import { SNAP_Y_PCT, type SnapState } from '@/components/chart-sheet/sheet';
+import { ChevronsRightIcon } from '@/components/icons/chevrons-right';
 
 // Tune the skip cue here: how long the chevron stays on screen and how far it
 // slides toward the tapped edge. Kept brief so it confirms the skip without
@@ -29,9 +29,7 @@ export function SkipFlash({
   sheetSnap: SnapState;
 }) {
   const prevNonceRef = useRef(skip?.nonce ?? null);
-  const [flash, setFlash] = useState<{ dir: 1 | -1; nonce: number } | null>(
-    null,
-  );
+  const [flash, setFlash] = useState<{ dir: 1 | -1; nonce: number } | null>(null);
 
   // Ref-gated so only a fresh skip (a bumped nonce) plays the cue, never a
   // dep-only re-run or the mount baseline.
@@ -59,10 +57,10 @@ export function SkipFlash({
         // viewport, so the covered fraction below is 100 - SNAP_Y% (full covers
         // all, so bottom 0). Centers the cue on visible globe, not the viewport
         // middle the sheet crowds at peek.
-        bottom: sheetSnap === "full" ? "0%" : `${100 - SNAP_Y_PCT[sheetSnap]}%`,
+        bottom: sheetSnap === 'full' ? '0%' : `${100 - SNAP_Y_PCT[sheetSnap]}%`,
       }}
       className={`pointer-events-none fixed top-0 right-0 left-0 z-40 flex items-center px-5 ${
-        isNext ? "justify-end" : "justify-start"
+        isNext ? 'justify-end' : 'justify-start'
       }`}
     >
       <span
@@ -70,14 +68,14 @@ export function SkipFlash({
         className="skip-flash text-aurora"
         style={
           {
-            "--skip-flash-dur": `${FLASH_MS}ms`,
-            "--skip-flash-travel": `${isNext ? TRAVEL_PX : -TRAVEL_PX}px`,
+            '--skip-flash-dur': `${FLASH_MS}ms`,
+            '--skip-flash-travel': `${isNext ? TRAVEL_PX : -TRAVEL_PX}px`,
           } as CSSProperties
         }
       >
         <ChevronsRightIcon
           strokeWidth={2.5}
-          className={`h-16 w-16 ${isNext ? "" : "-scale-x-100"}`}
+          className={`h-16 w-16 ${isNext ? '' : '-scale-x-100'}`}
         />
       </span>
     </div>

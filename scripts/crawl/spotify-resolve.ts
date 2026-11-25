@@ -1,9 +1,8 @@
-import { z } from "zod";
+import { z } from 'zod';
 
-import { SpotifyUrlSchema } from "../../src/lib/url-schema";
+import { SpotifyUrlSchema } from '../../src/lib/url-schema';
 
-export type SpotifyResolveErrorKind =
-  "miss" | "http" | "json" | "shape" | "network" | "auth";
+export type SpotifyResolveErrorKind = 'miss' | 'http' | 'json' | 'shape' | 'network' | 'auth';
 
 export class SpotifyResolveError extends Error {
   constructor(
@@ -11,7 +10,7 @@ export class SpotifyResolveError extends Error {
     message: string,
   ) {
     super(message);
-    this.name = "SpotifyResolveError";
+    this.name = 'SpotifyResolveError';
   }
 }
 
@@ -30,8 +29,8 @@ const SearchSchema = z.object({
   }),
 });
 
-const TOKEN_URL = "https://accounts.spotify.com/api/token";
-const SEARCH_URL = "https://api.spotify.com/v1/search";
+const TOKEN_URL = 'https://accounts.spotify.com/api/token';
+const SEARCH_URL = 'https://api.spotify.com/v1/search';
 
 export interface SpotifyToken {
   accessToken: string;
@@ -53,30 +52,27 @@ export async function fetchSpotifyToken(
   options: SpotifyFetchOptions = {},
 ): Promise<SpotifyToken> {
   const doFetch = options.fetch ?? globalThis.fetch;
-  const basic = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+  const basic = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
   let res: Response;
   try {
     res = await doFetch(TOKEN_URL, {
-      method: "POST",
+      method: 'POST',
       headers: {
         Authorization: `Basic ${basic}`,
-        "Content-Type": "application/x-www-form-urlencoded",
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: "grant_type=client_credentials",
+      body: 'grant_type=client_credentials',
     });
   } catch (err) {
     throw new SpotifyResolveError(
-      "network",
-      `Spotify token network error: ${err instanceof Error ? err.message : "unknown"}`,
+      'network',
+      `Spotify token network error: ${err instanceof Error ? err.message : 'unknown'}`,
     );
   }
 
   if (!res.ok) {
-    throw new SpotifyResolveError(
-      "auth",
-      `Spotify token returned ${res.status} ${res.statusText}`,
-    );
+    throw new SpotifyResolveError('auth', `Spotify token returned ${res.status} ${res.statusText}`);
   }
 
   let json: unknown;
@@ -84,17 +80,14 @@ export async function fetchSpotifyToken(
     json = await res.json();
   } catch (err) {
     throw new SpotifyResolveError(
-      "json",
-      `Spotify token invalid JSON: ${err instanceof Error ? err.message : "parse error"}`,
+      'json',
+      `Spotify token invalid JSON: ${err instanceof Error ? err.message : 'parse error'}`,
     );
   }
 
   const parsed = TokenSchema.safeParse(json);
   if (!parsed.success) {
-    throw new SpotifyResolveError(
-      "shape",
-      `Spotify token shape mismatch: ${parsed.error.message}`,
-    );
+    throw new SpotifyResolveError('shape', `Spotify token shape mismatch: ${parsed.error.message}`);
   }
 
   return {
@@ -125,7 +118,7 @@ async function searchOnce(
   token: string,
   doFetch: typeof fetch,
 ): Promise<string | null> {
-  const params = new URLSearchParams({ q: query, type: "track", limit: "1" });
+  const params = new URLSearchParams({ q: query, type: 'track', limit: '1' });
   const url = `${SEARCH_URL}?${params.toString()}`;
 
   let res: Response;
@@ -133,17 +126,17 @@ async function searchOnce(
     res = await doFetch(url, { headers: { Authorization: `Bearer ${token}` } });
   } catch (err) {
     throw new SpotifyResolveError(
-      "network",
-      `Spotify search network error: ${err instanceof Error ? err.message : "unknown"}`,
+      'network',
+      `Spotify search network error: ${err instanceof Error ? err.message : 'unknown'}`,
     );
   }
 
   if (res.status === 401) {
-    throw new SpotifyResolveError("auth", "Spotify search returned 401");
+    throw new SpotifyResolveError('auth', 'Spotify search returned 401');
   }
   if (!res.ok) {
     throw new SpotifyResolveError(
-      "http",
+      'http',
       `Spotify search returned ${res.status} ${res.statusText}`,
     );
   }
@@ -153,15 +146,15 @@ async function searchOnce(
     json = await res.json();
   } catch (err) {
     throw new SpotifyResolveError(
-      "json",
-      `Spotify search invalid JSON: ${err instanceof Error ? err.message : "parse error"}`,
+      'json',
+      `Spotify search invalid JSON: ${err instanceof Error ? err.message : 'parse error'}`,
     );
   }
 
   const parsed = SearchSchema.safeParse(json);
   if (!parsed.success) {
     throw new SpotifyResolveError(
-      "shape",
+      'shape',
       `Spotify search shape mismatch: ${parsed.error.message}`,
     );
   }
@@ -190,7 +183,7 @@ export async function resolveSpotifyUrl(
   }
 
   throw new SpotifyResolveError(
-    "miss",
+    'miss',
     `Spotify search found no track for "${name}" by "${artist}"`,
   );
 }
@@ -211,9 +204,7 @@ export interface CreateSpotifyResolverOptions extends SpotifyFetchOptions {
  * expiry, so a single long crawl (which outlives the ~1h token) keeps resolving
  * without per-call auth. Returns a function in the `SpotifyResolver` shape.
  */
-export function createSpotifyResolver(
-  options: CreateSpotifyResolverOptions,
-): SpotifyResolver {
+export function createSpotifyResolver(options: CreateSpotifyResolverOptions): SpotifyResolver {
   const now = options.now ?? Date.now;
   const skewMs = options.refreshSkewMs ?? 60_000;
   let token: string | null = null;
@@ -221,11 +212,9 @@ export function createSpotifyResolver(
 
   async function ensureToken(): Promise<string> {
     if (token && now() < expiresAt - skewMs) return token;
-    const fresh = await fetchSpotifyToken(
-      options.clientId,
-      options.clientSecret,
-      { fetch: options.fetch },
-    );
+    const fresh = await fetchSpotifyToken(options.clientId, options.clientSecret, {
+      fetch: options.fetch,
+    });
     token = fresh.accessToken;
     expiresAt = now() + fresh.expiresIn * 1000;
     return token;
@@ -244,11 +233,7 @@ export function createSpotifyResolver(
       // (rotation/revocation) of a token still valid by our clock. Without this,
       // one early 401 would fall every remaining track back to the search URL.
       // Drop the cached token and retry once; a second auth failure propagates.
-      if (
-        !(err instanceof SpotifyResolveError) ||
-        err.kind !== "auth" ||
-        token === null
-      ) {
+      if (!(err instanceof SpotifyResolveError) || err.kind !== 'auth' || token === null) {
         throw err;
       }
       token = null;

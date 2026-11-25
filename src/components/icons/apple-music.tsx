@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { type SVGProps, useId } from "react";
+import { type SVGProps, useId } from 'react';
 
 // Official Apple Music icon (color variant), Apple Music Identity Guidelines, used as-is.
 // Apple ships fixed-color artwork, so this is a deliberate exception to the design system's
@@ -9,12 +9,7 @@ import { type SVGProps, useId } from "react";
 export function AppleMusicIcon(props: SVGProps<SVGSVGElement>) {
   const gradientId = useId();
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 73 73"
-      aria-hidden
-      {...props}
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 73 73" aria-hidden {...props}>
       <linearGradient
         id={gradientId}
         gradientUnits="userSpaceOnUse"

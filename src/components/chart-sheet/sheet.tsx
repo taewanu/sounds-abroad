@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   type CSSProperties,
@@ -9,31 +9,31 @@ import {
   useMemo,
   useRef,
   useState,
-} from "react";
+} from 'react';
 
-import { ESCAPE_LAYER, useEscapeLayer } from "@/components/use-escape-layer";
+import { ESCAPE_LAYER, useEscapeLayer } from '@/components/use-escape-layer';
 import {
   prefersReducedMotion,
   usePrefersReducedMotion,
-} from "@/components/use-prefers-reduced-motion";
-import { track as trackEvent } from "@/lib/analytics";
-import { songsChartRows, type ChartMode } from "@/lib/chart-mode";
-import { SONGS_CHART, type ChartRef } from "@/lib/chart-ref";
-import type { Country } from "@/lib/chart-schema";
-import { selectGem } from "@/lib/select-gem";
+} from '@/components/use-prefers-reduced-motion';
+import { track as trackEvent } from '@/lib/analytics';
+import { songsChartRows, type ChartMode } from '@/lib/chart-mode';
+import { SONGS_CHART, type ChartRef } from '@/lib/chart-ref';
+import type { Country } from '@/lib/chart-schema';
+import { selectGem } from '@/lib/select-gem';
 
-import { ChartRail } from "./chart-rail";
-import { CHART_PANEL_ID, chartTabId } from "./chart-tabs";
-import { firstCommentaryRank } from "./first-commentary-rank";
-import { GemCard } from "./gem-card";
-import { ModeEmpty } from "./mode-empty";
-import { ModeTabs } from "./mode-tabs";
-import { TailUnread } from "./tail-unread";
-import { TrackRow } from "./track-row";
-import type { ChartTracksState } from "./use-chart-tracks";
-import { ROW_COLLAPSE_MS, useRowTransitions } from "./use-row-transitions";
+import { ChartRail } from './chart-rail';
+import { CHART_PANEL_ID, chartTabId } from './chart-tabs';
+import { firstCommentaryRank } from './first-commentary-rank';
+import { GemCard } from './gem-card';
+import { ModeEmpty } from './mode-empty';
+import { ModeTabs } from './mode-tabs';
+import { TailUnread } from './tail-unread';
+import { TrackRow } from './track-row';
+import type { ChartTracksState } from './use-chart-tracks';
+import { ROW_COLLAPSE_MS, useRowTransitions } from './use-row-transitions';
 
-export type SnapState = "hidden" | "closed" | "peek" | "full";
+export type SnapState = 'hidden' | 'closed' | 'peek' | 'full';
 
 export interface ChartSheetProps {
   country: Country;
@@ -97,7 +97,7 @@ function isRowFullyVisible(row: HTMLElement, viewport: HTMLElement): boolean {
 // the rows that carry one. Mirrors chart-rows-in and ENTER_STAGGER_ROWS.
 export const ROWS_ENTER_TOTAL_MS = 320 + 7 * 20;
 
-const SNAP_ORDER: SnapState[] = ["full", "peek", "closed", "hidden"];
+const SNAP_ORDER: SnapState[] = ['full', 'peek', 'closed', 'hidden'];
 
 // Pointer travel (px) before a press becomes a drag, so a tap on the handle
 // toggles cleanly instead of flickering the list clamp.
@@ -105,7 +105,7 @@ const DRAG_THRESHOLD_PX = 4;
 // Release velocity (px/ms) projected this many ms ahead to pick the settle
 // target, so a fast flick carries past the nearest stop.
 const VELOCITY_PROJECTION_MS = 120;
-const SETTLE_TRANSITION = "transform 0.34s cubic-bezier(0.22, 1, 0.36, 1)";
+const SETTLE_TRANSITION = 'transform 0.34s cubic-bezier(0.22, 1, 0.36, 1)';
 // The sheet is bottom-anchored at full height, so its top edge sits at its
 // translateY in px (0 at full). The badge is fixed near the screen top (see
 // country-selector.tsx: ~16px inset, ~48px tall), so the recede is keyed to that
@@ -118,26 +118,22 @@ const RECEDE_LEAD_PX = 76; // begin fading this far before the edge meets the ba
 const RECEDE_DONE_PX = 16; // finish fading this far above the badge's bottom
 const COVER_START_PX = BADGE_BOTTOM_PX + RECEDE_LEAD_PX; // edge here → fade starts
 const COVER_END_PX = BADGE_BOTTOM_PX - RECEDE_DONE_PX; // edge here → badge gone
-const COVER_TRANSITION = "--sheet-cover 0.34s cubic-bezier(0.22, 1, 0.36, 1)";
+const COVER_TRANSITION = '--sheet-cover 0.34s cubic-bezier(0.22, 1, 0.36, 1)';
 
 // Mirror MiniPlayer's rendered height: pt-3 (12px) + h-12 artwork (48px)
 // + pb-[max(env(safe-area-inset-bottom), 12px)]. Tracks the iOS safe-area
 // inset so the sheet doesn't sit under the mini on notched devices.
-const MINI_PLAYER_GAP = "calc(60px + max(env(safe-area-inset-bottom), 12px))";
+const MINI_PLAYER_GAP = 'calc(60px + max(env(safe-area-inset-bottom), 12px))';
 
 const SHEET_STYLE_WITH_MINI = {
   bottom: MINI_PLAYER_GAP,
   height: `calc(100dvh - ${MINI_PLAYER_GAP})`,
 } as const;
-const SHEET_STYLE_NO_MINI = { bottom: 0, height: "100dvh" } as const;
+const SHEET_STYLE_NO_MINI = { bottom: 0, height: '100dvh' } as const;
 
 // Nearest snap to a projected position, restricted to one step from the current
 // snap so every stop is a required waypoint (a drag can't skip peek).
-function nextSnap(
-  current: SnapState,
-  projectedPx: number,
-  height: number,
-): SnapState {
+function nextSnap(current: SnapState, projectedPx: number, height: number): SnapState {
   const projectedPct = (projectedPx / height) * 100;
   const idx = SNAP_ORDER.indexOf(current);
   const candidates: SnapState[] = [current];
@@ -178,7 +174,7 @@ export function ChartSheet({
   const dragJustEndedRef = useRef(false);
   const reducedMotion = usePrefersReducedMotion();
   // Collapsed to its strip or gone below the screen, so Escape has nothing to close.
-  const minimized = snap === "closed" || snap === "hidden";
+  const minimized = snap === 'closed' || snap === 'hidden';
 
   // Both derive from the songs chart rather than the open one. Commentary and
   // spread are carried by the songs axis alone, so a playlist chart has neither
@@ -195,20 +191,16 @@ export function ChartSheet({
 
   // A playlist chart travels whole and carries no spread, so it is shown as it
   // arrived; the songs chart is assembled to the mode.
-  const onlyHereMode = onSongsChart && mode === "only_here";
+  const onlyHereMode = onSongsChart && mode === 'only_here';
   const rows = useMemo(
-    () =>
-      onSongsChart
-        ? songsChartRows(mode, chart.tracks, chart.tail)
-        : chart.tracks,
+    () => (onSongsChart ? songsChartRows(mode, chart.tracks, chart.tail) : chart.tracks),
     [onSongsChart, mode, chart.tracks, chart.tail],
   );
 
   // Only the songs chart has more to fetch, and only until it has been fetched
   // or has failed. The sentinel sits under the last row, so reading that far is
   // the ask: no button, and nothing fetched for a listener who never gets there.
-  const tailReachable =
-    onSongsChart && chart.tail === null && !chart.tailFailed;
+  const tailReachable = onSongsChart && chart.tail === null && !chart.tailFailed;
   const tailSentinelRef = useRef<HTMLLIElement | null>(null);
   const { readTail } = chart;
   useEffect(() => {
@@ -234,7 +226,7 @@ export function ChartSheet({
     (next: ChartMode) => {
       if (next === mode) return;
       onModeChange(next);
-      trackEvent("chart_mode_opened", { country: countryCode, mode: next });
+      trackEvent('chart_mode_opened', { country: countryCode, mode: next });
     },
     [mode, onModeChange, countryCode],
   );
@@ -245,13 +237,11 @@ export function ChartSheet({
   // An answer, but only from a whole chart: still arriving, an empty list is one
   // still loading; never arrived, the mode would answer for a hundred rows from
   // the twenty five it has.
-  const modeIsEmpty =
-    onlyHereMode && rows.length === 0 && !chart.tailPending && !tailUnread;
+  const modeIsEmpty = onlyHereMode && rows.length === 0 && !chart.tailPending && !tailUnread;
 
   // Until the rest lands, Only here is filtering a quarter of the chart, which
   // would otherwise read as a short answer rather than an unfinished one.
-  const waitingMode: ChartMode | null =
-    onlyHereMode && chart.tailPending ? "only_here" : null;
+  const waitingMode: ChartMode | null = onlyHereMode && chart.tailPending ? 'only_here' : null;
 
   // Only a whole list that arrived at once moves: one the listener waited for
   // has already been announced by the wait, and a fresh country by the globe. A
@@ -266,10 +256,7 @@ export function ChartSheet({
   // the chart it was waiting for is the one on screen.
   const [waitedForList, setWaitedForList] = useState(false);
   if (chart.pending !== null && !waitedForList) setWaitedForList(true);
-  if (
-    shownList.countryCode !== countryCode ||
-    shownList.chartRef !== chart.ref
-  ) {
+  if (shownList.countryCode !== countryCode || shownList.chartRef !== chart.ref) {
     setRowsEntering(shownList.countryCode === countryCode && !waitedForList);
     setWaitedForList(false);
     setShownList({ countryCode, chartRef: chart.ref });
@@ -296,10 +283,10 @@ export function ChartSheet({
   const tabsRef = useRef<HTMLDivElement | null>(null);
   const [offscreen, setOffscreen] = useState({ rail: false, tabs: false });
   useEffect(() => {
-    if (typeof IntersectionObserver === "undefined") return;
+    if (typeof IntersectionObserver === 'undefined') return;
     const parts = new Map<Element, keyof typeof offscreen>();
-    if (railRef.current) parts.set(railRef.current, "rail");
-    if (tabsRef.current) parts.set(tabsRef.current, "tabs");
+    if (railRef.current) parts.set(railRef.current, 'rail');
+    if (tabsRef.current) parts.set(tabsRef.current, 'tabs');
     const observer = new IntersectionObserver((entries) =>
       setOffscreen((prev) => {
         const next = { ...prev };
@@ -313,7 +300,7 @@ export function ChartSheet({
     for (const el of parts.keys()) observer.observe(el);
     return () => observer.disconnect();
   }, []);
-  const closed = snap === "closed";
+  const closed = snap === 'closed';
 
   // The rows to render, each tagged for the collapse/expand a mode switch plays.
   const displayRows = useRowTransitions(rows, listMountKey, mode);
@@ -361,7 +348,7 @@ export function ChartSheet({
     const prev = prevFocusedRef.current;
     prevFocusedRef.current = focusedRank;
     if (focusedRank !== null && focusedRank !== prev) {
-      trackEvent("commentary_opened", {
+      trackEvent('commentary_opened', {
         country: countryCode,
         rank: focusedRank,
       });
@@ -381,20 +368,12 @@ export function ChartSheet({
   // toggles: a fresh ask for the row already focused closes it, so the
   // mini-player button both opens and dismisses its own card.
   const [consumedFocusNonce, setConsumedFocusNonce] = useState(0);
-  if (
-    focusIntent !== null &&
-    focusIntent.nonce !== consumedFocusNonce &&
-    !otherChartPlaying
-  ) {
+  if (focusIntent !== null && focusIntent.nonce !== consumedFocusNonce && !otherChartPlaying) {
     setConsumedFocusNonce(focusIntent.nonce);
-    setFocusedRank((cur) =>
-      cur === focusIntent.rank ? null : focusIntent.rank,
-    );
+    setFocusedRank((cur) => (cur === focusIntent.rank ? null : focusIntent.rank));
   }
 
-  useEscapeLayer(focusedRank !== null, ESCAPE_LAYER.card, () =>
-    setFocusedRank(null),
-  );
+  useEscapeLayer(focusedRank !== null, ESCAPE_LAYER.card, () => setFocusedRank(null));
 
   // While a card is focused, dismiss on a click outside it (a dimmed sibling,
   // the sheet chrome). Dismiss on click, not pointerdown: closing un-dims the
@@ -409,12 +388,12 @@ export function ChartSheet({
       // Keep the card open for clicks on the card itself, and for anything
       // outside the sheet (the mini-player and other persistent chrome): only a
       // click on the sheet's own dimmed area collapses it.
-      if (target?.closest("[data-commentary-card]")) return;
+      if (target?.closest('[data-commentary-card]')) return;
       if (!sheetRef.current?.contains(target)) return;
       setFocusedRank(null);
     };
-    window.addEventListener("click", onClick, true);
-    return () => window.removeEventListener("click", onClick, true);
+    window.addEventListener('click', onClick, true);
+    return () => window.removeEventListener('click', onClick, true);
   }, [focusedRank]);
 
   // When a card opens, its grown height can push its own top above the list
@@ -425,18 +404,13 @@ export function ChartSheet({
     if (focusedRank === null) return;
     const id = requestAnimationFrame(() => {
       const ol = olRef.current;
-      const row = ol?.querySelector<HTMLElement>(
-        `[data-rank="${focusedRank}"]`,
-      );
+      const row = ol?.querySelector<HTMLElement>(`[data-rank="${focusedRank}"]`);
       if (!ol || !row) return;
       // Leave a small margin above the card so its top outline clears the
       // viewport edge instead of sitting flush against it (clipped on mobile).
       const MARGIN_PX = 12;
-      const delta =
-        row.getBoundingClientRect().top -
-        ol.getBoundingClientRect().top -
-        MARGIN_PX;
-      if (delta < 0) ol.scrollBy({ top: delta, behavior: "smooth" });
+      const delta = row.getBoundingClientRect().top - ol.getBoundingClientRect().top - MARGIN_PX;
+      if (delta < 0) ol.scrollBy({ top: delta, behavior: 'smooth' });
     });
     return () => cancelAnimationFrame(id);
   }, [focusedRank]);
@@ -472,10 +446,7 @@ export function ChartSheet({
     onSnapChangeRef.current = onSnapChange;
   }, [onSnapChange]);
 
-  const sheetHeight = useCallback(
-    () => sheetRef.current?.offsetHeight || window.innerHeight,
-    [],
-  );
+  const sheetHeight = useCallback(() => sheetRef.current?.offsetHeight || window.innerHeight, []);
 
   const snapPx = useCallback(
     (s: SnapState) => (SNAP_Y_PCT[s] / 100) * sheetHeight(),
@@ -489,22 +460,17 @@ export function ChartSheet({
     curYRef.current = px;
     const el = sheetRef.current;
     if (el) el.style.transform = `translateY(${px}px)`;
-    const cover = Math.min(
-      1,
-      Math.max(0, (COVER_START_PX - px) / (COVER_START_PX - COVER_END_PX)),
-    );
-    document.documentElement.style.setProperty("--sheet-cover", String(cover));
+    const cover = Math.min(1, Math.max(0, (COVER_START_PX - px) / (COVER_START_PX - COVER_END_PX)));
+    document.documentElement.style.setProperty('--sheet-cover', String(cover));
   }, []);
 
   const applySnap = useCallback(
     (s: SnapState, settle: boolean) => {
       const animate = settle && !prefersReducedMotion();
       const el = sheetRef.current;
-      if (el) el.style.transition = animate ? SETTLE_TRANSITION : "none";
+      if (el) el.style.transition = animate ? SETTLE_TRANSITION : 'none';
       // Drive the badge's recede with the same easing, so it settles in step.
-      document.documentElement.style.transition = animate
-        ? COVER_TRANSITION
-        : "none";
+      document.documentElement.style.transition = animate ? COVER_TRANSITION : 'none';
       setY(snapPx(s));
     },
     [setY, snapPx],
@@ -529,9 +495,9 @@ export function ChartSheet({
   // mid-settle picks up its actual position instead of the snap target.
   const readCurrentY = useCallback((): number => {
     const el = sheetRef.current;
-    if (!el || typeof DOMMatrixReadOnly === "undefined") return curYRef.current;
+    if (!el || typeof DOMMatrixReadOnly === 'undefined') return curYRef.current;
     const transform = getComputedStyle(el).transform;
-    if (!transform || transform === "none") return curYRef.current;
+    if (!transform || transform === 'none') return curYRef.current;
     try {
       return new DOMMatrixReadOnly(transform).m42;
     } catch {
@@ -541,9 +507,7 @@ export function ChartSheet({
 
   const moveDrag = useCallback(
     (pointerY: number) => {
-      setY(
-        withResistance(baseTransRef.current + (pointerY - baseYRef.current)),
-      );
+      setY(withResistance(baseTransRef.current + (pointerY - baseYRef.current)));
     },
     [setY, withResistance],
   );
@@ -554,16 +518,16 @@ export function ChartSheet({
     (pointerY: number) => {
       const el = sheetRef.current;
       const currentY = readCurrentY();
-      if (el) el.style.transition = "none";
+      if (el) el.style.transition = 'none';
       // Drop the badge's settle easing too, so it tracks the finger 1:1.
-      document.documentElement.style.transition = "none";
+      document.documentElement.style.transition = 'none';
       heightRef.current = el?.offsetHeight || window.innerHeight;
       baseYRef.current = pointerY;
       baseTransRef.current = currentY;
       setY(currentY);
       pressedRef.current = false;
       draggingRef.current = true;
-      document.body.style.userSelect = "none";
+      document.body.style.userSelect = 'none';
       setIsDragging(true);
     },
     [readCurrentY, setY],
@@ -592,10 +556,7 @@ export function ChartSheet({
         moveDrag(pointerY);
         return true;
       }
-      if (
-        pressedRef.current &&
-        Math.abs(pointerY - startYRef.current) > DRAG_THRESHOLD_PX
-      ) {
+      if (pressedRef.current && Math.abs(pointerY - startYRef.current) > DRAG_THRESHOLD_PX) {
         commitDrag(pointerY);
         moveDrag(pointerY);
         return true;
@@ -616,7 +577,7 @@ export function ChartSheet({
   }, []);
 
   const endGesture = useCallback(() => {
-    document.body.style.userSelect = "";
+    document.body.style.userSelect = '';
     pressedRef.current = false;
     if (draggingRef.current) {
       endDrag();
@@ -653,8 +614,8 @@ export function ChartSheet({
   useEffect(() => {
     return () => {
       const root = document.documentElement;
-      root.style.removeProperty("transition");
-      root.style.setProperty("--sheet-cover", "0");
+      root.style.removeProperty('transition');
+      root.style.setProperty('--sheet-cover', '0');
     };
   }, []);
 
@@ -666,8 +627,8 @@ export function ChartSheet({
     const onResize = () => {
       if (!draggingRef.current) applySnap(snapRef.current, false);
     };
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, [applySnap]);
 
   // Touch controller. Attached imperatively so touchmove is non-passive and can
@@ -683,10 +644,7 @@ export function ChartSheet({
         return;
       }
       const t = e.touches[0];
-      if (
-        snapRef.current === "full" &&
-        olRef.current?.contains(e.target as Node)
-      ) {
+      if (snapRef.current === 'full' && olRef.current?.contains(e.target as Node)) {
         // Full + list: let it scroll natively and watch for the hand-off, so a
         // downward pull past the top continues into a sheet collapse.
         lastYRef.current = t.clientY;
@@ -721,15 +679,15 @@ export function ChartSheet({
 
     const onTouchEnd = () => endGesture();
 
-    sheet.addEventListener("touchstart", onTouchStart, { passive: true });
-    sheet.addEventListener("touchmove", onTouchMove, { passive: false });
-    sheet.addEventListener("touchend", onTouchEnd, { passive: true });
-    sheet.addEventListener("touchcancel", onTouchEnd, { passive: true });
+    sheet.addEventListener('touchstart', onTouchStart, { passive: true });
+    sheet.addEventListener('touchmove', onTouchMove, { passive: false });
+    sheet.addEventListener('touchend', onTouchEnd, { passive: true });
+    sheet.addEventListener('touchcancel', onTouchEnd, { passive: true });
     return () => {
-      sheet.removeEventListener("touchstart", onTouchStart);
-      sheet.removeEventListener("touchmove", onTouchMove);
-      sheet.removeEventListener("touchend", onTouchEnd);
-      sheet.removeEventListener("touchcancel", onTouchEnd);
+      sheet.removeEventListener('touchstart', onTouchStart);
+      sheet.removeEventListener('touchmove', onTouchMove);
+      sheet.removeEventListener('touchend', onTouchEnd);
+      sheet.removeEventListener('touchcancel', onTouchEnd);
     };
   }, [armPress, commitDrag, dragMove, moveDrag, trackVelocity, endGesture]);
 
@@ -738,7 +696,7 @@ export function ChartSheet({
   // with no pointer capture so a tap still fires the handle button's click.
   const handlePointerDown = useCallback(
     (e: ReactPointerEvent) => {
-      if (e.pointerType === "touch") return;
+      if (e.pointerType === 'touch') return;
       const list = olRef.current;
       if (list && list.contains(e.target as Node) && list.scrollTop > 0) return;
       armPress(e.clientY, e.timeStamp);
@@ -746,33 +704,33 @@ export function ChartSheet({
         dragMove(ev.clientY, ev.timeStamp);
       };
       const onUp = () => {
-        window.removeEventListener("pointermove", onMove);
-        window.removeEventListener("pointerup", onUp);
-        window.removeEventListener("pointercancel", onUp);
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+        window.removeEventListener('pointercancel', onUp);
         endGesture();
       };
-      window.addEventListener("pointermove", onMove);
-      window.addEventListener("pointerup", onUp);
-      window.addEventListener("pointercancel", onUp);
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+      window.addEventListener('pointercancel', onUp);
     },
     [armPress, dragMove, endGesture],
   );
 
   const handleToggle = useCallback(() => {
-    onSnapChange(snap === "peek" ? "full" : "peek");
+    onSnapChange(snap === 'peek' ? 'full' : 'peek');
   }, [snap, onSnapChange]);
 
   useEscapeLayer(!minimized, ESCAPE_LAYER.sheet, (e) => {
     // Leave Escape to the focused control when it owns a field-local cancel
     // (a range/text input, a select), matching the Space handler's guard.
     const tag = (e.target as HTMLElement | null)?.tagName;
-    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
     // Collapsing can leave the focused control below the screen and inert, so
     // focus moves to the grip, which stays on screen as the way back up.
     if (sheetRef.current?.contains(document.activeElement)) {
       gripRef.current?.focus();
     }
-    onSnapChange("closed");
+    onSnapChange('closed');
   });
 
   // Bumped when a ranked row starts a track, so a tap on a partly-clipped row
@@ -789,8 +747,7 @@ export function ChartSheet({
   const prevMountKeyRef = useRef(listMountKey);
 
   useEffect(() => {
-    const wasMin =
-      prevSnapRef.current === "closed" || prevSnapRef.current === "hidden";
+    const wasMin = prevSnapRef.current === 'closed' || prevSnapRef.current === 'hidden';
     const signalChanged = prevSignalRef.current !== scrollSignal;
     const stepChanged = prevStepRef.current !== stepSignal;
     const tapped = prevTapRef.current !== tapSignal;
@@ -816,7 +773,7 @@ export function ChartSheet({
       prevSignalRef.current = scrollSignal;
       prevStepRef.current = stepSignal;
     }
-    if (snap === "closed" || snap === "hidden") return;
+    if (snap === 'closed' || snap === 'hidden') return;
     if (currentTrackRank === null) return;
     // The now-playing row only exists in the displayed list when the playing
     // chart is the one on screen. Ranks repeat across charts, so a mismatch
@@ -839,16 +796,14 @@ export function ChartSheet({
 
     const scrollToRow = () => {
       const ol = olRef.current;
-      const el = ol?.querySelector<HTMLElement>(
-        `[data-rank="${currentTrackRank}"]`,
-      );
+      const el = ol?.querySelector<HTMLElement>(`[data-rank="${currentTrackRank}"]`);
       if (!ol || !el) return;
       if (!isReopen && isRowFullyVisible(el, ol)) return;
       el.scrollIntoView({
         // A tap only clears the clip, so it settles the row to the nearest edge;
         // an indirect reveal centres it (or tops it at peek) to bring context.
-        block: tapped ? "nearest" : snap === "peek" ? "start" : "center",
-        behavior: "smooth",
+        block: tapped ? 'nearest' : snap === 'peek' ? 'start' : 'center',
+        behavior: 'smooth',
       });
     };
 
@@ -860,9 +815,7 @@ export function ChartSheet({
     let frame = 0;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const waitFrames = (n: number, run: () => void) => {
-      frame = requestAnimationFrame(
-        n <= 1 ? run : () => waitFrames(n - 1, run),
-      );
+      frame = requestAnimationFrame(n <= 1 ? run : () => waitFrames(n - 1, run));
     };
     if (modeSwitched && !reducedMotion) {
       timer = setTimeout(scrollToRow, ROW_COLLAPSE_MS);
@@ -901,18 +854,18 @@ export function ChartSheet({
       aria-labelledby="chart-sheet-title"
       data-snap={snap}
       data-testid="chart-sheet"
-      inert={snap === "hidden"}
+      inert={snap === 'hidden'}
       onPointerDown={handlePointerDown}
       onClickCapture={swallowClickAfterDrag}
       style={{
         ...(hasMiniPlayer ? SHEET_STYLE_WITH_MINI : SHEET_STYLE_NO_MINI),
         transform: `translateY(${SNAP_Y[initialSnap]})`,
-        willChange: "transform",
+        willChange: 'transform',
       }}
       // Explicit z so the edge-tap hint can bracket the sheet: its aurora rails
       // sit below (a lower z) and its sheet-dim above, reproducing the backdrop
       // sandwich. Stays under the mini-player (z-50) and the tour overlay (z-60).
-      className="group bg-void text-fg-1 border-fg-1/10 shadow-sheet fixed inset-x-0 z-20 flex flex-col rounded-t-2xl border-t"
+      className="group fixed inset-x-0 z-20 flex flex-col rounded-t-2xl border-t border-fg-1/10 bg-void text-fg-1 shadow-sheet"
     >
       <div className="shrink-0 touch-none">
         {/* The pill stays 48 by 6; the pseudo-element widens the target across
@@ -921,11 +874,11 @@ export function ChartSheet({
           ref={gripRef}
           type="button"
           onClick={handleToggle}
-          aria-label={snap === "full" ? "Collapse chart" : "Expand chart"}
-          aria-expanded={snap === "full"}
-          className="bg-fg-1/15 rounded-pill focus-visible:outline-aurora relative mx-auto mt-3 mb-2 block h-1.5 w-12 before:absolute before:-inset-x-12 before:-top-3 before:-bottom-2 focus-visible:outline-2 focus-visible:outline-offset-2"
+          aria-label={snap === 'full' ? 'Collapse chart' : 'Expand chart'}
+          aria-expanded={snap === 'full'}
+          className="relative mx-auto mt-3 mb-2 block h-1.5 w-12 rounded-pill bg-fg-1/15 before:absolute before:-inset-x-12 before:-top-3 before:-bottom-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora"
         />
-        <h2 id="chart-sheet-title" className="text-h3 px-6 pb-3 font-semibold">
+        <h2 id="chart-sheet-title" className="px-6 pb-3 text-h3 font-semibold">
           {country.name}
         </h2>
         <div ref={railRef} inert={closed && offscreen.rail}>
@@ -965,26 +918,24 @@ export function ChartSheet({
         // not there. Focusable so one tab off the rail lands on the list itself
         // rather than on whichever control happens to come first.
         id={hasRail ? CHART_PANEL_ID : undefined}
-        role={hasRail ? "tabpanel" : undefined}
+        role={hasRail ? 'tabpanel' : undefined}
         aria-labelledby={hasRail ? chartTabId(chart.ref) : undefined}
         tabIndex={hasRail ? 0 : undefined}
         key={listMountKey}
         ref={olRef}
         inert={minimized}
-        data-peek={(snap === "peek" && !isDragging) || undefined}
+        data-peek={(snap === 'peek' && !isDragging) || undefined}
         // The chart on screen is on its way out; its rows recede and breathe
         // until the next one lands, or until a failed read leaves it in place.
-        data-chart-waiting={
-          chart.pending !== null || waitingMode !== null || undefined
-        }
+        data-chart-waiting={chart.pending !== null || waitingMode !== null || undefined}
         data-rows-entering={rowsEntering || undefined}
         // The peek clamp sizes the list against the header above it, so it has
         // to know whether a rail and a mode row are there. Declared rather than
         // measured: each is one row of fixed height.
         style={
           {
-            "--rail-h": hasRail ? "46px" : "0px",
-            "--mode-h": onSongsChart ? "45px" : "0px",
+            '--rail-h': hasRail ? '46px' : '0px',
+            '--mode-h': onSongsChart ? '45px' : '0px',
           } as CSSProperties
         }
         className="chart-list min-h-0 flex-1 touch-none [scrollbar-width:none] overflow-y-auto overscroll-y-contain px-4 pb-12 [-ms-overflow-style:none] group-data-[snap=full]:touch-pan-y data-[peek]:max-h-[calc(35dvh-62px-var(--rail-h)-var(--mode-h))] [&::-webkit-scrollbar]:hidden"
@@ -1008,8 +959,8 @@ export function ChartSheet({
               // the grid row above collapse it to nothing.
               className={`min-h-0 overflow-hidden ${
                 focusedRank !== null
-                  ? "pointer-events-none opacity-40 transition-opacity duration-[240ms] ease-[var(--ease-out)] motion-reduce:transition-none"
-                  : ""
+                  ? 'pointer-events-none opacity-40 transition-opacity duration-[240ms] ease-[var(--ease-out)] motion-reduce:transition-none'
+                  : ''
               }`}
             >
               <GemCard

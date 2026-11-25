@@ -1,6 +1,6 @@
-import { z } from "zod";
+import { z } from 'zod';
 
-import { ApplePreviewUrlSchema } from "../../src/lib/url-schema";
+import { ApplePreviewUrlSchema } from '../../src/lib/url-schema';
 
 export interface LookupResult {
   id: string;
@@ -8,7 +8,7 @@ export interface LookupResult {
   genre: string | null;
 }
 
-export type ItunesLookupErrorKind = "http" | "json" | "shape" | "network";
+export type ItunesLookupErrorKind = 'http' | 'json' | 'shape' | 'network';
 
 export class ItunesLookupError extends Error {
   constructor(
@@ -18,7 +18,7 @@ export class ItunesLookupError extends Error {
     message: string,
   ) {
     super(message);
-    this.name = "ItunesLookupError";
+    this.name = 'ItunesLookupError';
   }
 }
 
@@ -56,22 +56,19 @@ const LookupResponseSchema = z.object({
 
 function lookupUrl(ids: readonly string[], cc: string): string {
   const params = new URLSearchParams({
-    id: ids.join(","),
+    id: ids.join(','),
     country: cc,
-    entity: "song",
+    entity: 'song',
     // Pinned so one playlist's genre histogram is mergeable with another's;
     // unpinned, each storefront answers in its own language. Track and artist
     // names are unaffected.
-    lang: "en_us",
+    lang: 'en_us',
   });
   return `https://itunes.apple.com/lookup?${params.toString()}`;
 }
 
 /** Splits ids into request-sized batches, preserving order. */
-export function batchIds(
-  ids: readonly string[],
-  size: number = LOOKUP_BATCH_MAX,
-): string[][] {
+export function batchIds(ids: readonly string[], size: number = LOOKUP_BATCH_MAX): string[][] {
   const batches: string[][] = [];
   for (let i = 0; i < ids.length; i += size) {
     batches.push(ids.slice(i, i + size));
@@ -113,8 +110,8 @@ export async function lookupTracks(
     throw new ItunesLookupError(
       ids,
       cc,
-      "network",
-      `iTunes Lookup network error: ${err instanceof Error ? err.message : "unknown"}`,
+      'network',
+      `iTunes Lookup network error: ${err instanceof Error ? err.message : 'unknown'}`,
     );
   }
 
@@ -122,7 +119,7 @@ export async function lookupTracks(
     throw new ItunesLookupError(
       ids,
       cc,
-      "http",
+      'http',
       `iTunes Lookup returned ${res.status} ${res.statusText}`,
     );
   }
@@ -134,8 +131,8 @@ export async function lookupTracks(
     throw new ItunesLookupError(
       ids,
       cc,
-      "json",
-      `iTunes Lookup invalid JSON: ${err instanceof Error ? err.message : "parse error"}`,
+      'json',
+      `iTunes Lookup invalid JSON: ${err instanceof Error ? err.message : 'parse error'}`,
     );
   }
 
@@ -144,7 +141,7 @@ export async function lookupTracks(
     throw new ItunesLookupError(
       ids,
       cc,
-      "shape",
+      'shape',
       `iTunes Lookup envelope mismatch: ${envelope.error.message}`,
     );
   }

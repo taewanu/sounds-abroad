@@ -28,6 +28,7 @@ Add a row when you add an ADR. Move a record to Historical only once no running 
 | [0021](0021-chart-file-fetched-apart-from-pages.md)        | Delivery   | The browser fetches the chart file from one route; pages carry no chart data                                                  |
 | [0022](0022-bare-audio-element-without-web-audio-graph.md) | Client     | Play the bare audio element, with no Web Audio graph                                                                          |
 | [0023](0023-package-json-pins-node-and-pnpm.md)            | Toolchain  | `package.json` pins Node and pnpm, with no version manager                                                                    |
+| [0024](0024-vite-plus-lints-formats-and-runs-hooks.md)     | Toolchain  | Vite+ lints, formats and runs the git hooks; Next.js still builds                                                             |
 
 ## Historical
 

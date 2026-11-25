@@ -1,7 +1,7 @@
-import { useStore } from "zustand";
-import { createStore } from "zustand/vanilla";
+import { useStore } from 'zustand';
+import { createStore } from 'zustand/vanilla';
 
-import { DEFAULT_CHART_MODE, type ChartMode } from "./chart-mode";
+import { DEFAULT_CHART_MODE, type ChartMode } from './chart-mode';
 
 // Couples the two independent client trees that the URL can't: the globe
 // (a fixed backdrop in the layout) and the chart sheet (page children). Read
@@ -108,8 +108,7 @@ export const globeChartStore = createStore<GlobeChartState>()((set) => ({
     set((state) => ({
       skipIntent: { dir, nonce: state.skipIntent.nonce + 1 },
     })),
-  requestShuffle: () =>
-    set((state) => ({ shuffleSignal: state.shuffleSignal + 1 })),
+  requestShuffle: () => set((state) => ({ shuffleSignal: state.shuffleSignal + 1 })),
   shuffleTo: (code) =>
     set((state) => ({
       selectedCountry: code,

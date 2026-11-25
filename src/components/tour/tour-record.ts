@@ -4,8 +4,8 @@
 // run's outcome back in. Only the three linear beats are teachable here; the
 // double-tap skip lives in its own contextual hint with its own record.
 
-import type { TeachBeat } from "./tour-step";
-import { TEACH_ORDER } from "./tour-step";
+import type { TeachBeat } from './tour-step';
+import { TEACH_ORDER } from './tour-step';
 
 export interface TourRecord {
   learned: TeachBeat[];

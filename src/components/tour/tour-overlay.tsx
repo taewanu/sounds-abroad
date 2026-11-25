@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import type { CSSProperties } from "react";
+import type { CSSProperties } from 'react';
 
-import { PointerIcon } from "@/components/icons/pointer";
+import { PointerIcon } from '@/components/icons/pointer';
 
-import type { Beat } from "./tour-step";
+import type { Beat } from './tour-step';
 
 // "done" never renders an overlay; the host unmounts at that point.
-export type VisibleBeat = Exclude<Beat, "done">;
+export type VisibleBeat = Exclude<Beat, 'done'>;
 
 export interface TourOverlayProps {
   beat: VisibleBeat;
@@ -28,42 +28,36 @@ export interface TourOverlayProps {
 // role below), not as a separate sr-only string.
 function badgeLabel(beat: VisibleBeat): string {
   switch (beat) {
-    case "gesture":
-      return "Flick to spin";
-    case "sheet":
-      return "Pull up the chart";
-    case "audio":
-      return "Tap a track";
+    case 'gesture':
+      return 'Flick to spin';
+    case 'sheet':
+      return 'Pull up the chart';
+    case 'audio':
+      return 'Tap a track';
   }
 }
 
 // The nudge badge is announced politely on appear and carries the per-beat
 // breathe rhythm (matched to that beat's hand hint) plus the aurora glow. It is
 // not aria-hidden: its text is the tour's a11y fallback for the wordless look.
-function NudgeBadge({
-  beat,
-  spotlight,
-}: {
-  beat: VisibleBeat;
-  spotlight: DOMRect | null;
-}) {
+function NudgeBadge({ beat, spotlight }: { beat: VisibleBeat; spotlight: DOMRect | null }) {
   // Gesture and sheet badges sit at a fixed screen fraction (globe centre, and
   // above the sheet handle); the tap badge tracks the spotlit row, below it.
   const style: CSSProperties =
-    beat === "audio" && spotlight
+    beat === 'audio' && spotlight
       ? {
           left: spotlight.left + spotlight.width / 2,
           top: spotlight.bottom + 24,
         }
-      : beat === "gesture"
-        ? { left: "50%", top: "53%" }
-        : { left: "50%", top: "38%" };
+      : beat === 'gesture'
+        ? { left: '50%', top: '53%' }
+        : { left: '50%', top: '38%' };
   const rhythm =
-    beat === "gesture"
-      ? "tour-badge-flick"
-      : beat === "sheet"
-        ? "tour-badge-sheet"
-        : "tour-badge-tap";
+    beat === 'gesture'
+      ? 'tour-badge-flick'
+      : beat === 'sheet'
+        ? 'tour-badge-sheet'
+        : 'tour-badge-tap';
 
   return (
     <div
@@ -98,18 +92,18 @@ function FlickHint() {
         <div className="tour-swipe-trail">
           <div className="tour-swipe-smear" />
           <div className="tour-swipe-streak-lines">
-            <div className="tour-swipe-line" style={{ top: "40%" }}>
+            <div className="tour-swipe-line" style={{ top: '40%' }}>
               <i
                 style={{
-                  width: "calc(var(--swipe-travel) * 0.8)",
+                  width: 'calc(var(--swipe-travel) * 0.8)',
                   background: trailLine(0.5),
                 }}
               />
             </div>
-            <div className="tour-swipe-line" style={{ top: "60%" }}>
+            <div className="tour-swipe-line" style={{ top: '60%' }}>
               <i
                 style={{
-                  width: "calc(var(--swipe-travel) * 0.72)",
+                  width: 'calc(var(--swipe-travel) * 0.72)',
                   background: trailLine(0.46),
                 }}
               />
@@ -171,17 +165,17 @@ const SPOTLIGHT_PAD = 0;
 // through to the target with no masking tricks.
 function scrimStrips(hole: Rect): { key: string; style: CSSProperties }[] {
   return [
-    { key: "top", style: { top: 0, left: 0, right: 0, height: hole.top } },
+    { key: 'top', style: { top: 0, left: 0, right: 0, height: hole.top } },
     {
-      key: "bottom",
+      key: 'bottom',
       style: { top: hole.bottom, left: 0, right: 0, bottom: 0 },
     },
     {
-      key: "left",
+      key: 'left',
       style: { top: hole.top, left: 0, width: hole.left, height: hole.height },
     },
     {
-      key: "right",
+      key: 'right',
       style: { top: hole.top, left: hole.right, right: 0, height: hole.height },
     },
   ];
@@ -219,7 +213,7 @@ export function TourOverlay({
       data-testid="tour-overlay"
       data-beat={beat}
       className="fixed inset-0 z-[60]"
-      style={{ pointerEvents: "none" }}
+      style={{ pointerEvents: 'none' }}
     >
       {hole ? (
         <div data-testid="tour-scrim">
@@ -242,21 +236,21 @@ export function TourOverlay({
               width: hole.right - hole.left,
               height: hole.height,
               borderRadius: spotlightRadius,
-              pointerEvents: "none",
+              pointerEvents: 'none',
               // Soft aurora halo instead of a hard ring: a full-width bottom sheet
               // only shows a hard ring's top edge, which reads as a stray line. The
               // outer glow feathers the dim→bright boundary; for the tall sheet an
               // inset glow bleeds down from the top, filling its rounded corners.
               boxShadow:
-                beat === "sheet"
-                  ? "0 0 30px 6px rgba(107, 229, 197, 0.2), inset 0 16px 28px -12px rgba(107, 229, 197, 0.32)"
-                  : "0 0 20px 4px rgba(107, 229, 197, 0.28)",
+                beat === 'sheet'
+                  ? '0 0 30px 6px rgba(107, 229, 197, 0.2), inset 0 16px 28px -12px rgba(107, 229, 197, 0.32)'
+                  : '0 0 20px 4px rgba(107, 229, 197, 0.28)',
             }}
           />
         </div>
       ) : null}
 
-      {beat === "gesture" ? (
+      {beat === 'gesture' ? (
         <div
           aria-hidden
           data-testid="tour-vignette"
@@ -265,18 +259,16 @@ export function TourOverlay({
             // Soft vignette: peak 0.82 at the edges through a half-strength
             // midpoint, settling with the scrim to the shared 0.5 residual.
             background:
-              "radial-gradient(ellipse 46% 26% at 50% 44%, transparent 40%, rgba(5, 6, 8, 0.41) 70%, rgba(5, 6, 8, 0.82) 100%)",
+              'radial-gradient(ellipse 46% 26% at 50% 44%, transparent 40%, rgba(5, 6, 8, 0.41) 70%, rgba(5, 6, 8, 0.82) 100%)',
           }}
         />
       ) : null}
 
-      {beat === "gesture" && !hideFlickHint ? <FlickHint /> : null}
+      {beat === 'gesture' && !hideFlickHint ? <FlickHint /> : null}
 
-      {beat === "sheet" && spotlight ? (
-        <SheetPullHint spotlight={spotlight} />
-      ) : null}
+      {beat === 'sheet' && spotlight ? <SheetPullHint spotlight={spotlight} /> : null}
 
-      {beat === "audio" && spotlight ? <TapHint spotlight={spotlight} /> : null}
+      {beat === 'audio' && spotlight ? <TapHint spotlight={spotlight} /> : null}
 
       <NudgeBadge beat={beat} spotlight={spotlight} />
 
@@ -284,7 +276,7 @@ export function TourOverlay({
         type="button"
         onClick={onSkip}
         aria-label="Dismiss tour"
-        className="text-fg-1 focus-visible:outline-aurora pointer-events-auto fixed top-[56px] right-4 grid h-[42px] w-[42px] place-items-center rounded-full bg-[rgba(10,11,16,0.62)] shadow-[inset_0_0_0_1px_rgba(245,242,236,0.14)] backdrop-blur-md focus-visible:outline-2 focus-visible:outline-offset-2"
+        className="pointer-events-auto fixed top-[56px] right-4 grid h-[42px] w-[42px] place-items-center rounded-full bg-[rgba(10,11,16,0.62)] text-fg-1 shadow-[inset_0_0_0_1px_rgba(245,242,236,0.14)] backdrop-blur-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora"
       >
         <svg
           viewBox="0 0 24 24"

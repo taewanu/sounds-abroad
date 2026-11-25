@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test } from 'vitest';
 
 import {
   decideShow,
@@ -7,29 +7,29 @@ import {
   recordLearned,
   recordShown,
   type TourRecord,
-} from "./tour-record";
+} from './tour-record';
 
-describe("decideShow", () => {
-  test("a first-run (empty) record shows all three teachable beats in order", () => {
+describe('decideShow', () => {
+  test('a first-run (empty) record shows all three teachable beats in order', () => {
     expect(decideShow(emptyRecord)).toEqual({
       show: true,
-      beats: ["gesture", "sheet", "audio"],
+      beats: ['gesture', 'sheet', 'audio'],
     });
   });
 
-  test("shows only the beats the user has not yet learned", () => {
+  test('shows only the beats the user has not yet learned', () => {
     const record: TourRecord = {
-      learned: ["gesture", "audio"],
+      learned: ['gesture', 'audio'],
       shows: 1,
       dismissed: false,
     };
 
-    expect(decideShow(record)).toEqual({ show: true, beats: ["sheet"] });
+    expect(decideShow(record)).toEqual({ show: true, beats: ['sheet'] });
   });
 
-  test("a fully-learned user is shown nothing", () => {
+  test('a fully-learned user is shown nothing', () => {
     const record: TourRecord = {
-      learned: ["gesture", "sheet", "audio"],
+      learned: ['gesture', 'sheet', 'audio'],
       shows: 1,
       dismissed: false,
     };
@@ -37,9 +37,9 @@ describe("decideShow", () => {
     expect(decideShow(record)).toEqual({ show: false, beats: [] });
   });
 
-  test("a dismissed record never shows again, even with un-learned beats", () => {
+  test('a dismissed record never shows again, even with un-learned beats', () => {
     const record: TourRecord = {
-      learned: ["gesture"],
+      learned: ['gesture'],
       shows: 1,
       dismissed: true,
     };
@@ -47,9 +47,9 @@ describe("decideShow", () => {
     expect(decideShow(record)).toEqual({ show: false, beats: [] });
   });
 
-  test("the tour is capped at two appearances", () => {
+  test('the tour is capped at two appearances', () => {
     const record: TourRecord = {
-      learned: ["gesture"],
+      learned: ['gesture'],
       shows: 2,
       dismissed: false,
     };
@@ -58,8 +58,8 @@ describe("decideShow", () => {
   });
 });
 
-describe("recordShown", () => {
-  test("counts an appearance so the cap can be reached, without touching learned or dismissed", () => {
+describe('recordShown', () => {
+  test('counts an appearance so the cap can be reached, without touching learned or dismissed', () => {
     expect(recordShown(emptyRecord)).toEqual({
       learned: [],
       shows: 1,
@@ -67,9 +67,9 @@ describe("recordShown", () => {
     });
   });
 
-  test("increments from a prior count", () => {
+  test('increments from a prior count', () => {
     const record: TourRecord = {
-      learned: ["gesture"],
+      learned: ['gesture'],
       shows: 1,
       dismissed: false,
     };
@@ -78,23 +78,23 @@ describe("recordShown", () => {
   });
 });
 
-describe("recordLearned", () => {
+describe('recordLearned', () => {
   test("unions the run's performed gestures into learned without duplicating", () => {
     const record: TourRecord = {
-      learned: ["gesture"],
+      learned: ['gesture'],
       shows: 1,
       dismissed: false,
     };
 
     const next = recordLearned(record, {
-      learned: ["gesture", "sheet"],
+      learned: ['gesture', 'sheet'],
       dismissedByX: false,
     });
 
-    expect(next.learned).toEqual(["gesture", "sheet"]);
+    expect(next.learned).toEqual(['gesture', 'sheet']);
   });
 
-  test("latches dismissed on an X dismissal", () => {
+  test('latches dismissed on an X dismissal', () => {
     const next = recordLearned(emptyRecord, {
       learned: [],
       dismissedByX: true,
@@ -103,7 +103,7 @@ describe("recordLearned", () => {
     expect(next.dismissed).toBe(true);
   });
 
-  test("keeps dismissed once latched, even on a later non-X outcome", () => {
+  test('keeps dismissed once latched, even on a later non-X outcome', () => {
     const record: TourRecord = {
       learned: [],
       shows: 1,
@@ -111,7 +111,7 @@ describe("recordLearned", () => {
     };
 
     const next = recordLearned(record, {
-      learned: ["gesture"],
+      learned: ['gesture'],
       dismissedByX: false,
     });
 
@@ -120,7 +120,7 @@ describe("recordLearned", () => {
 
   test("does not change the shows count (that is recordShown's job)", () => {
     const next = recordLearned(emptyRecord, {
-      learned: ["gesture"],
+      learned: ['gesture'],
       dismissedByX: false,
     });
 
@@ -128,28 +128,26 @@ describe("recordLearned", () => {
   });
 });
 
-describe("hasConcluded", () => {
-  test("a first-run record has not concluded (the tour will still show)", () => {
+describe('hasConcluded', () => {
+  test('a first-run record has not concluded (the tour will still show)', () => {
     expect(hasConcluded(emptyRecord)).toBe(false);
   });
 
-  test("concludes once dismissed", () => {
+  test('concludes once dismissed', () => {
     expect(hasConcluded({ learned: [], shows: 1, dismissed: true })).toBe(true);
   });
 
-  test("concludes once every gesture is learned", () => {
+  test('concludes once every gesture is learned', () => {
     expect(
       hasConcluded({
-        learned: ["gesture", "sheet", "audio"],
+        learned: ['gesture', 'sheet', 'audio'],
         shows: 1,
         dismissed: false,
       }),
     ).toBe(true);
   });
 
-  test("concludes once the appearance cap is reached", () => {
-    expect(
-      hasConcluded({ learned: ["gesture"], shows: 2, dismissed: false }),
-    ).toBe(true);
+  test('concludes once the appearance cap is reached', () => {
+    expect(hasConcluded({ learned: ['gesture'], shows: 2, dismissed: false })).toBe(true);
   });
 });

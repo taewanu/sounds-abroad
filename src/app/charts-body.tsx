@@ -1,13 +1,9 @@
-import { Suspense } from "react";
+import { Suspense } from 'react';
 
-import {
-  CHARTS_READ_TIMEOUT_MS,
-  CHARTS_ROUTE,
-  EARLY_CHARTS_READ,
-} from "@/lib/charts-client";
-import { startChartsRead } from "@/lib/start-charts-read";
+import { CHARTS_READ_TIMEOUT_MS, CHARTS_ROUTE, EARLY_CHARTS_READ } from '@/lib/charts-client';
+import { startChartsRead } from '@/lib/start-charts-read';
 
-import { ChartScreenLoader } from "./chart-screen-loader";
+import { ChartScreenLoader } from './chart-screen-loader';
 
 // Starts the chart read while the page is still parsing, beside the JavaScript
 // rather than after hydration. The screen takes over this same request, so

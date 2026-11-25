@@ -5,7 +5,7 @@
  */
 export function TailUnread() {
   return (
-    <li className="text-fg-3 text-small px-2 py-6 text-center">
+    <li className="px-2 py-6 text-center text-small text-fg-3">
       The rest of this chart would not load.
     </li>
   );

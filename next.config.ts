@@ -1,10 +1,10 @@
-import type { NextConfig } from "next";
-import { withSentryConfig } from "@sentry/nextjs/config";
+import { withSentryConfig } from '@sentry/nextjs/config';
+import type { NextConfig } from 'next';
 
-import { POSTHOG_HOST } from "./src/lib/analytics-host";
-import { APPLE_ARTWORK_DOMAIN, APPLE_PREVIEW_HOST } from "./src/lib/url-schema";
+import { POSTHOG_HOST } from './src/lib/analytics-host';
+import { APPLE_ARTWORK_DOMAIN, APPLE_PREVIEW_HOST } from './src/lib/url-schema';
 
-const isDev = process.env.NODE_ENV === "development";
+const isDev = process.env.NODE_ENV === 'development';
 
 /**
  * The policy is the backstop for the sinks closed at ingestion: an address that
@@ -17,7 +17,7 @@ const isDev = process.env.NODE_ENV === "development";
  */
 const contentSecurityPolicy = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
   // Media hosts come from the ingestion schemas, so the allowance and the
   // validation are one list.
@@ -26,7 +26,7 @@ const contentSecurityPolicy = [
   "font-src 'self'",
   // Error reporting rides the same-origin /monitoring tunnel; analytics is the
   // one processor spoken to directly. Dev adds ws: for hot reload.
-  `connect-src 'self' ${POSTHOG_HOST}${isDev ? " ws:" : ""}`,
+  `connect-src 'self' ${POSTHOG_HOST}${isDev ? ' ws:' : ''}`,
   // Session replay compresses in a blob: worker; child-src covers old Safari.
   "worker-src 'self' blob:",
   "child-src 'self' blob:",
@@ -34,7 +34,7 @@ const contentSecurityPolicy = [
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'none'",
-].join("; ");
+].join('; ');
 
 /**
  * Sentry's browser-report intake, derived from the DSN so the reporting target
@@ -46,7 +46,7 @@ function sentrySecurityEndpoint(): string | null {
   if (!dsn) return null;
   try {
     const url = new URL(dsn);
-    const projectId = url.pathname.replace(/^\//, "");
+    const projectId = url.pathname.replace(/^\//, '');
     if (!url.username || !projectId) return null;
     return `https://${url.host}/api/${projectId}/security/?sentry_key=${url.username}`;
   } catch {
@@ -59,10 +59,10 @@ function cspHeaders() {
   const value = endpoint
     ? `${contentSecurityPolicy}; report-uri ${endpoint}; report-to csp-endpoint`
     : contentSecurityPolicy;
-  const headers = [{ key: "Content-Security-Policy-Report-Only", value }];
+  const headers = [{ key: 'Content-Security-Policy-Report-Only', value }];
   if (endpoint) {
     headers.push({
-      key: "Reporting-Endpoints",
+      key: 'Reporting-Endpoints',
       value: `csp-endpoint="${endpoint}"`,
     });
   }
@@ -70,26 +70,24 @@ function cspHeaders() {
 }
 
 const securityHeaders = [
-  { key: "X-Content-Type-Options", value: "nosniff" },
-  { key: "X-Frame-Options", value: "DENY" },
-  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'X-Frame-Options', value: 'DENY' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   {
-    key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=()",
+    key: 'Permissions-Policy',
+    value: 'camera=(), microphone=(), geolocation=()',
   },
   // No preload: submitting to the browser preload list is a near-irreversible commitment.
   {
-    key: "Strict-Transport-Security",
-    value: "max-age=63072000; includeSubDomains",
+    key: 'Strict-Transport-Security',
+    value: 'max-age=63072000; includeSubDomains',
   },
 ];
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   async headers() {
-    return [
-      { source: "/(.*)", headers: [...securityHeaders, ...cspHeaders()] },
-    ];
+    return [{ source: '/(.*)', headers: [...securityHeaders, ...cspHeaders()] }];
   },
 };
 
@@ -114,7 +112,7 @@ export default withSentryConfig(nextConfig, {
   // This can increase your server load as well as your hosting bill.
   // Note: Check that the configured route will not match with your Next.js middleware, otherwise reporting of client-
   // side errors will fail.
-  tunnelRoute: "/monitoring",
+  tunnelRoute: '/monitoring',
 
   // Strip source maps from the public deployment. They are still uploaded to Sentry for stack-trace de-minification.
   sourcemaps: {

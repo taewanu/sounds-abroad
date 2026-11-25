@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import type { GeometryCollection, Topology } from "topojson-specification";
+import type { GeometryCollection, Topology } from 'topojson-specification';
 
-import { buildCountryOutlines, type CountryOutlines } from "./country-outlines";
+import { buildCountryOutlines, type CountryOutlines } from './country-outlines';
 
-const TOPOLOGY_URL = "/data/countries-50m.json";
+const TOPOLOGY_URL = '/data/countries-50m.json';
 
 export async function loadCountryOutlines(
   url: string = TOPOLOGY_URL,
@@ -24,7 +24,7 @@ let outlinesPromise: Promise<CountryOutlines | null> | null = null;
 
 export function getCountryOutlinesPromise(): Promise<CountryOutlines | null> {
   outlinesPromise ??= loadCountryOutlines().catch((err: unknown) => {
-    console.error("Failed to load country outlines", err);
+    console.error('Failed to load country outlines', err);
     outlinesPromise = null;
     return null;
   });

@@ -1,7 +1,4 @@
-import {
-  CommentaryStoreSchema,
-  type CommentaryStore,
-} from "../../src/lib/commentary-store";
+import { CommentaryStoreSchema, type CommentaryStore } from '../../src/lib/commentary-store';
 
 /**
  * The structural precondition for publishing: a candidate file must parse to
@@ -12,8 +9,7 @@ import {
  * which drops a failing card instead of blocking the store (ADR-0009). Pure, so
  * the parse is tested without touching the blob store.
  */
-export type ParseResult =
-  { ok: true; store: CommentaryStore } | { ok: false; errors: string[] };
+export type ParseResult = { ok: true; store: CommentaryStore } | { ok: false; errors: string[] };
 
 export function parseCandidateStore(raw: unknown): ParseResult {
   const parsed = CommentaryStoreSchema.safeParse(raw);
@@ -21,8 +17,7 @@ export function parseCandidateStore(raw: unknown): ParseResult {
     return {
       ok: false,
       errors: parsed.error.issues.map(
-        (issue) =>
-          `schema: ${issue.path.join(".") || "(root)"} — ${issue.message}`,
+        (issue) => `schema: ${issue.path.join('.') || '(root)'} — ${issue.message}`,
       ),
     };
   }

@@ -1,8 +1,8 @@
-import { act, render } from "@testing-library/react";
-import { renderToString } from "react-dom/server";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { act, render } from '@testing-library/react';
+import { renderToString } from 'react-dom/server';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 
-import { usePrefersReducedMotion } from "./use-prefers-reduced-motion";
+import { usePrefersReducedMotion } from './use-prefers-reduced-motion';
 
 let changeListener: (() => void) | null = null;
 let currentMatches = false;
@@ -10,11 +10,11 @@ let currentMatches = false;
 function stubMatchMedia(initial: boolean) {
   currentMatches = initial;
   changeListener = null;
-  vi.spyOn(window, "matchMedia").mockImplementation(
+  vi.spyOn(window, 'matchMedia').mockImplementation(
     (query: string) =>
       ({
         get matches() {
-          return query.includes("reduce") ? currentMatches : false;
+          return query.includes('reduce') ? currentMatches : false;
         },
         media: query,
         addEventListener: (_type: string, cb: () => void) => {
@@ -34,24 +34,24 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("usePrefersReducedMotion", () => {
-  test("is false when the OS allows motion", () => {
+describe('usePrefersReducedMotion', () => {
+  test('is false when the OS allows motion', () => {
     stubMatchMedia(false);
 
     const { getByTestId } = render(<Harness />);
 
-    expect(getByTestId("probe").getAttribute("data-reduced")).toBeNull();
+    expect(getByTestId('probe').getAttribute('data-reduced')).toBeNull();
   });
 
-  test("is true when the OS prefers reduced motion", () => {
+  test('is true when the OS prefers reduced motion', () => {
     stubMatchMedia(true);
 
     const { getByTestId } = render(<Harness />);
 
-    expect(getByTestId("probe").getAttribute("data-reduced")).toBe("true");
+    expect(getByTestId('probe').getAttribute('data-reduced')).toBe('true');
   });
 
-  test("updates when the OS setting changes", () => {
+  test('updates when the OS setting changes', () => {
     stubMatchMedia(false);
     const { getByTestId } = render(<Harness />);
 
@@ -60,12 +60,12 @@ describe("usePrefersReducedMotion", () => {
       changeListener?.();
     });
 
-    expect(getByTestId("probe").getAttribute("data-reduced")).toBe("true");
+    expect(getByTestId('probe').getAttribute('data-reduced')).toBe('true');
   });
 
-  test("assumes motion is allowed when rendered without matchMedia (SSR)", () => {
+  test('assumes motion is allowed when rendered without matchMedia (SSR)', () => {
     const html = renderToString(<Harness />);
 
-    expect(html).not.toContain("data-reduced");
+    expect(html).not.toContain('data-reduced');
   });
 });

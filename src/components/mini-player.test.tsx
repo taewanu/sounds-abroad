@@ -1,17 +1,17 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, test, vi } from "vitest";
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, test, vi } from 'vitest';
 
-import type { AudioEngine } from "@/lib/audio-engine";
-import { type AudioState, createAudioStore } from "@/lib/audio-store";
-import type { Commentary, Track } from "@/lib/chart-schema";
-import { AudioStoreContext } from "@/providers/audio-store-provider";
+import type { AudioEngine } from '@/lib/audio-engine';
+import { type AudioState, createAudioStore } from '@/lib/audio-store';
+import type { Commentary, Track } from '@/lib/chart-schema';
+import { AudioStoreContext } from '@/providers/audio-store-provider';
 
-import { MiniPlayer, type MiniPlayerProps } from "./mini-player";
-import { RAIL_REST } from "./use-swipe-rail";
+import { MiniPlayer, type MiniPlayerProps } from './mini-player';
+import { RAIL_REST } from './use-swipe-rail';
 
 function makeMockAudio(overrides: Partial<AudioEngine> = {}): AudioEngine {
   return {
-    src: "",
+    src: '',
     play: vi.fn().mockResolvedValue(undefined),
     pause: vi.fn(),
     volumeAdjustable: true,
@@ -26,31 +26,31 @@ function makeMockAudio(overrides: Partial<AudioEngine> = {}): AudioEngine {
 function makeTrack(overrides: Partial<Track> = {}): Track {
   return {
     rank: 1,
-    name: "Test Track",
-    artist: "Test Artist",
-    previewUrl: "https://example.com/preview.m4a",
-    artworkUrl: "https://example.com/artwork.jpg",
-    appleUrl: "https://music.apple.com/track/1",
-    spotifyUrl: "https://open.spotify.com/search/Test%20Track",
+    name: 'Test Track',
+    artist: 'Test Artist',
+    previewUrl: 'https://example.com/preview.m4a',
+    artworkUrl: 'https://example.com/artwork.jpg',
+    appleUrl: 'https://music.apple.com/track/1',
+    spotifyUrl: 'https://open.spotify.com/search/Test%20Track',
     ...overrides,
   };
 }
 
 function makeCommentary(): Commentary {
   return {
-    lead: "Test lead",
-    tag: "test-tag",
-    claim: "what-it-is",
-    sources: ["https://example.com/source"],
-    generatedAt: "2026-04-25T03:00:00Z",
+    lead: 'Test lead',
+    tag: 'test-tag',
+    claim: 'what-it-is',
+    sources: ['https://example.com/source'],
+    generatedAt: '2026-04-25T03:00:00Z',
   };
 }
 
 function preferReducedMotion() {
-  return vi.spyOn(window, "matchMedia").mockImplementation(
+  return vi.spyOn(window, 'matchMedia').mockImplementation(
     (query: string) =>
       ({
-        matches: query.includes("reduce"),
+        matches: query.includes('reduce'),
         media: query,
         addEventListener: vi.fn(),
         removeEventListener: vi.fn(),
@@ -86,57 +86,47 @@ function renderMiniPlayer(
   return { ...utils, store, props: fullProps };
 }
 
-describe("MiniPlayer", () => {
-  test("renders nothing when currentTrack is null", () => {
+describe('MiniPlayer', () => {
+  test('renders nothing when currentTrack is null', () => {
     const { container } = renderMiniPlayer({ onTap: vi.fn() });
 
     expect(container.firstChild).toBeNull();
   });
 
-  test("renders whenever currentTrack is set, regardless of sheet state", () => {
+  test('renders whenever currentTrack is set, regardless of sheet state', () => {
     const track = makeTrack();
 
-    const { container } = renderMiniPlayer(
-      { onTap: vi.fn() },
-      { currentTrack: track },
-    );
+    const { container } = renderMiniPlayer({ onTap: vi.fn() }, { currentTrack: track });
 
     expect(container.firstChild).not.toBeNull();
     expect(screen.getByText(track.name)).toBeDefined();
   });
 
-  test("renders name, artist, artwork when currentTrack set", () => {
+  test('renders name, artist, artwork when currentTrack set', () => {
     const track = makeTrack({
-      name: "Hot Track",
-      artist: "Hot Artist",
-      artworkUrl: "https://example.com/cover.jpg",
+      name: 'Hot Track',
+      artist: 'Hot Artist',
+      artworkUrl: 'https://example.com/cover.jpg',
     });
 
-    const { container } = renderMiniPlayer(
-      { onTap: vi.fn() },
-      { currentTrack: track },
-    );
+    const { container } = renderMiniPlayer({ onTap: vi.fn() }, { currentTrack: track });
 
-    expect(screen.getByText("Hot Track")).toBeDefined();
-    expect(screen.getByText("Hot Artist")).toBeDefined();
+    expect(screen.getByText('Hot Track')).toBeDefined();
+    expect(screen.getByText('Hot Artist')).toBeDefined();
     // The empty prev/next preview slots carry no artwork, so the one image is
     // the current card's.
-    const sources = [...container.querySelectorAll("img")].map((img) =>
-      img.getAttribute("src"),
-    );
+    const sources = [...container.querySelectorAll('img')].map((img) => img.getAttribute('src'));
     expect(sources).toEqual([track.artworkUrl]);
-    expect(container.innerHTML.split(track.artworkUrl).length - 1).toBe(
-      sources.length,
-    );
+    expect(container.innerHTML.split(track.artworkUrl).length - 1).toBe(sources.length);
   });
 
   // Client-rendered, unlike the row and the gem card: the bar renders nothing
   // on the server, where no track is playing yet. A DOM style setter discards an
   // invalid value, so the well-formed address above is the one that would show
   // a style string coming back.
-  test("an artwork address reaches the document only as an image source", () => {
+  test('an artwork address reaches the document only as an image source', () => {
     const artworkUrl =
-      "https://is1-ssl.mzstatic.com/cover.jpg);outline-style:solid;background-image:url(https://is1-ssl.mzstatic.com/other.jpg";
+      'https://is1-ssl.mzstatic.com/cover.jpg);outline-style:solid;background-image:url(https://is1-ssl.mzstatic.com/other.jpg';
     const railCards = [
       makeTrack({ rank: 1, artworkUrl }),
       makeTrack({ rank: 2, artworkUrl }),
@@ -144,38 +134,29 @@ describe("MiniPlayer", () => {
     ];
     const [prevTrack, currentTrack, nextTrack] = railCards;
 
-    const { container } = renderMiniPlayer(
-      { prevTrack, nextTrack },
-      { currentTrack },
-    );
+    const { container } = renderMiniPlayer({ prevTrack, nextTrack }, { currentTrack });
 
-    const sources = [...container.querySelectorAll("img")].map((img) =>
-      img.getAttribute("src"),
-    );
+    const sources = [...container.querySelectorAll('img')].map((img) => img.getAttribute('src'));
     expect(sources).toEqual(railCards.map((card) => card.artworkUrl));
-    expect(container.innerHTML.split(artworkUrl).length - 1).toBe(
-      sources.length,
-    );
+    expect(container.innerHTML.split(artworkUrl).length - 1).toBe(sources.length);
   });
 
-  test("a preview card whose track changes gets a fresh artwork element", () => {
+  test('a preview card whose track changes gets a fresh artwork element', () => {
     const prevTrack = makeTrack({ rank: 1 });
     const currentTrack = makeTrack({ rank: 2 });
     const nextTrack = makeTrack({
       rank: 3,
-      artworkUrl: "https://example.com/next.jpg",
+      artworkUrl: 'https://example.com/next.jpg',
     });
     const laterTrack = makeTrack({
       rank: 4,
-      artworkUrl: "https://example.com/later.jpg",
+      artworkUrl: 'https://example.com/later.jpg',
     });
     const { container, rerender, store, props } = renderMiniPlayer(
       { prevTrack, nextTrack },
       { currentTrack },
     );
-    const before = container.querySelector(
-      `img[src="${nextTrack.artworkUrl}"]`,
-    );
+    const before = container.querySelector(`img[src="${nextTrack.artworkUrl}"]`);
 
     rerender(
       <AudioStoreContext.Provider value={store}>
@@ -183,49 +164,45 @@ describe("MiniPlayer", () => {
       </AudioStoreContext.Provider>,
     );
 
-    const after = container.querySelector(
-      `img[src="${laterTrack.artworkUrl}"]`,
-    );
+    const after = container.querySelector(`img[src="${laterTrack.artworkUrl}"]`);
     expect(before).not.toBeNull();
     expect(after).not.toBeNull();
     expect(after).not.toBe(before);
   });
 
-  test("tap on main area fires onTap callback", () => {
+  test('tap on main area fires onTap callback', () => {
     const track = makeTrack();
     const onTap = vi.fn();
 
     renderMiniPlayer({ onTap }, { currentTrack: track });
 
-    fireEvent.click(screen.getByRole("button", { name: /reopen chart/i }));
+    fireEvent.click(screen.getByRole('button', { name: /reopen chart/i }));
 
     expect(onTap).toHaveBeenCalledTimes(1);
   });
 
-  test("play/pause button toggles audio store and reflects isPlaying", () => {
-    const track = makeTrack({ name: "Hot Track" });
+  test('play/pause button toggles audio store and reflects isPlaying', () => {
+    const track = makeTrack({ name: 'Hot Track' });
 
     const { store } = renderMiniPlayer(
       { onTap: vi.fn() },
       { currentTrack: track, isPlaying: false },
     );
 
-    const playButton = screen.getByRole("button", {
+    const playButton = screen.getByRole('button', {
       name: /play preview of Hot Track/i,
     });
 
     fireEvent.click(playButton);
 
     expect(store.getState().isPlaying).toBe(true);
-    expect(
-      screen.getByRole("button", { name: /pause preview of Hot Track/i }),
-    ).toBeDefined();
+    expect(screen.getByRole('button', { name: /pause preview of Hot Track/i })).toBeDefined();
   });
 
-  test("renders the volume control", () => {
+  test('renders the volume control', () => {
     renderMiniPlayer({ onTap: vi.fn() }, { currentTrack: makeTrack() });
 
-    expect(screen.getByRole("button", { name: /volume/i })).toBeDefined();
+    expect(screen.getByRole('button', { name: /volume/i })).toBeDefined();
   });
 
   test("offers mute alone when the engine's volume is not adjustable", () => {
@@ -234,64 +211,64 @@ describe("MiniPlayer", () => {
 
     act(() => store.getState().toggle(makeTrack()));
 
-    expect(screen.queryByRole("button", { name: /volume/i })).toBeNull();
-    expect(screen.getByRole("button", { name: "Mute" })).toBeDefined();
+    expect(screen.queryByRole('button', { name: /volume/i })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Mute' })).toBeDefined();
   });
 
-  test("the standalone mute button mutes the store", () => {
+  test('the standalone mute button mutes the store', () => {
     const engine = makeMockAudio({ volumeAdjustable: false });
     const { store } = renderMiniPlayer({}, undefined, engine);
     act(() => store.getState().toggle(makeTrack()));
 
-    fireEvent.click(screen.getByRole("button", { name: "Mute" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mute' }));
 
     expect(store.getState().muted).toBe(true);
   });
 
-  test("keeps the volume control after playback starts with an adjustable engine", () => {
+  test('keeps the volume control after playback starts with an adjustable engine', () => {
     const engine = makeMockAudio({ volumeAdjustable: true });
     const { store } = renderMiniPlayer({}, undefined, engine);
 
     act(() => store.getState().toggle(makeTrack()));
 
-    expect(screen.getByRole("button", { name: /volume/i })).toBeDefined();
+    expect(screen.getByRole('button', { name: /volume/i })).toBeDefined();
   });
 
-  test("next button fires onNext", () => {
+  test('next button fires onNext', () => {
     const onNext = vi.fn();
 
     renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
 
-    fireEvent.click(screen.getByRole("button", { name: /next track/i }));
+    fireEvent.click(screen.getByRole('button', { name: /next track/i }));
 
     expect(onNext).toHaveBeenCalledTimes(1);
   });
 
-  test("prev button fires onPrev", () => {
+  test('prev button fires onPrev', () => {
     const onPrev = vi.fn();
 
     renderMiniPlayer({ onPrev }, { currentTrack: makeTrack() });
 
-    fireEvent.click(screen.getByRole("button", { name: /previous track/i }));
+    fireEvent.click(screen.getByRole('button', { name: /previous track/i }));
 
     expect(onPrev).toHaveBeenCalledTimes(1);
   });
 
-  test("next button is disabled when canNext is false", () => {
+  test('next button is disabled when canNext is false', () => {
     renderMiniPlayer({ canNext: false }, { currentTrack: makeTrack() });
 
-    const nextButton = screen.getByRole("button", { name: /next track/i });
+    const nextButton = screen.getByRole('button', { name: /next track/i });
     expect((nextButton as HTMLButtonElement).disabled).toBe(true);
   });
 
-  test("prev button is disabled when canPrev is false", () => {
+  test('prev button is disabled when canPrev is false', () => {
     renderMiniPlayer({ canPrev: false }, { currentTrack: makeTrack() });
 
-    const prevButton = screen.getByRole("button", { name: /previous track/i });
+    const prevButton = screen.getByRole('button', { name: /previous track/i });
     expect((prevButton as HTMLButtonElement).disabled).toBe(true);
   });
 
-  test("a left swipe fires onNext after the commit slide and suppresses the tap", () => {
+  test('a left swipe fires onNext after the commit slide and suppresses the tap', () => {
     vi.useFakeTimers();
     try {
       const onNext = vi.fn();
@@ -299,7 +276,7 @@ describe("MiniPlayer", () => {
 
       renderMiniPlayer({ onNext, onTap }, { currentTrack: makeTrack() });
 
-      const area = screen.getByRole("button", { name: /reopen chart/i });
+      const area = screen.getByRole('button', { name: /reopen chart/i });
       fireEvent.pointerDown(area, { clientX: 200, clientY: 10 });
       fireEvent.pointerMove(area, { clientX: 40, clientY: 10 });
       fireEvent.pointerUp(area, { clientX: 40, clientY: 10 });
@@ -317,7 +294,7 @@ describe("MiniPlayer", () => {
     }
   });
 
-  test("a right swipe fires onPrev after the commit slide and suppresses the tap", () => {
+  test('a right swipe fires onPrev after the commit slide and suppresses the tap', () => {
     vi.useFakeTimers();
     try {
       const onPrev = vi.fn();
@@ -325,7 +302,7 @@ describe("MiniPlayer", () => {
 
       renderMiniPlayer({ onPrev, onTap }, { currentTrack: makeTrack() });
 
-      const area = screen.getByRole("button", { name: /reopen chart/i });
+      const area = screen.getByRole('button', { name: /reopen chart/i });
       fireEvent.pointerDown(area, { clientX: 40, clientY: 10 });
       fireEvent.pointerMove(area, { clientX: 200, clientY: 10 });
       fireEvent.pointerUp(area, { clientX: 200, clientY: 10 });
@@ -341,14 +318,14 @@ describe("MiniPlayer", () => {
     }
   });
 
-  test("a vertical drag does not skip and still reopens on tap", () => {
+  test('a vertical drag does not skip and still reopens on tap', () => {
     const onNext = vi.fn();
     const onPrev = vi.fn();
     const onTap = vi.fn();
 
     renderMiniPlayer({ onNext, onPrev, onTap }, { currentTrack: makeTrack() });
 
-    const area = screen.getByRole("button", { name: /reopen chart/i });
+    const area = screen.getByRole('button', { name: /reopen chart/i });
     fireEvent.pointerDown(area, { clientX: 100, clientY: 10 });
     fireEvent.pointerMove(area, { clientX: 104, clientY: 90 });
     fireEvent.pointerUp(area, { clientX: 104, clientY: 90 });
@@ -359,13 +336,13 @@ describe("MiniPlayer", () => {
     expect(onTap).toHaveBeenCalledTimes(1);
   });
 
-  test("a swipe that starts on a control still skips: the whole bar is the surface", () => {
+  test('a swipe that starts on a control still skips: the whole bar is the surface', () => {
     vi.useFakeTimers();
     try {
       const onNext = vi.fn();
       renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
 
-      const play = screen.getByRole("button", { name: /play preview/i });
+      const play = screen.getByRole('button', { name: /play preview/i });
       fireEvent.pointerDown(play, { clientX: 200, clientY: 10 });
       fireEvent.pointerMove(play, { clientX: 40, clientY: 10 });
       fireEvent.pointerUp(play, { clientX: 40, clientY: 10 });
@@ -379,13 +356,13 @@ describe("MiniPlayer", () => {
     }
   });
 
-  test("under reduced motion a committed swipe jumps the rail and skips without waiting for a slide", () => {
+  test('under reduced motion a committed swipe jumps the rail and skips without waiting for a slide', () => {
     vi.useFakeTimers();
     const matchMedia = preferReducedMotion();
     try {
       const onNext = vi.fn();
       renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
-      const area = screen.getByRole("button", { name: /reopen chart/i });
+      const area = screen.getByRole('button', { name: /reopen chart/i });
       const rail = area.firstElementChild as HTMLElement;
 
       fireEvent.pointerDown(area, { clientX: 200, clientY: 10 });
@@ -396,7 +373,7 @@ describe("MiniPlayer", () => {
         vi.advanceTimersByTime(0);
       });
 
-      expect(transition).toBe("none");
+      expect(transition).toBe('none');
       expect(onNext).toHaveBeenCalledTimes(1);
     } finally {
       matchMedia.mockRestore();
@@ -404,14 +381,14 @@ describe("MiniPlayer", () => {
     }
   });
 
-  test("under reduced motion a short swipe returns the rail to rest without travel", () => {
+  test('under reduced motion a short swipe returns the rail to rest without travel', () => {
     const matchMedia = preferReducedMotion();
     try {
       const onNext = vi.fn();
       renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
-      const area = screen.getByRole("button", { name: /reopen chart/i });
+      const area = screen.getByRole('button', { name: /reopen chart/i });
       const rail = area.firstElementChild as HTMLElement;
-      Object.defineProperty(area.parentElement, "clientWidth", { value: 300 });
+      Object.defineProperty(area.parentElement, 'clientWidth', { value: 300 });
 
       fireEvent.pointerDown(area, { clientX: 200, clientY: 10 });
       fireEvent.pointerMove(area, { clientX: 160, clientY: 10 });
@@ -420,19 +397,19 @@ describe("MiniPlayer", () => {
 
       expect(onNext).not.toHaveBeenCalled();
       expect(rail.style.transform).toBe(RAIL_REST);
-      expect(rail.style.transition).toBe("none");
+      expect(rail.style.transition).toBe('none');
     } finally {
       matchMedia.mockRestore();
     }
   });
 
-  test("re-grabbing during the commit slide flushes the pending skip once", () => {
+  test('re-grabbing during the commit slide flushes the pending skip once', () => {
     vi.useFakeTimers();
     try {
       const onNext = vi.fn();
       renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
 
-      const area = screen.getByRole("button", { name: /reopen chart/i });
+      const area = screen.getByRole('button', { name: /reopen chart/i });
       fireEvent.pointerDown(area, { clientX: 200, clientY: 10 });
       fireEvent.pointerMove(area, { clientX: 40, clientY: 10 });
       fireEvent.pointerUp(area, { clientX: 40, clientY: 10 });
@@ -453,104 +430,89 @@ describe("MiniPlayer", () => {
     }
   });
 
-  test("commentary badge is absent when the track carries no commentary", () => {
+  test('commentary badge is absent when the track carries no commentary', () => {
     renderMiniPlayer({}, { currentTrack: makeTrack() });
 
-    expect(
-      screen.queryByRole("button", { name: /why this track is trending/i }),
-    ).toBeNull();
+    expect(screen.queryByRole('button', { name: /why this track is trending/i })).toBeNull();
   });
 
-  test("commentary badge is absent when commentary is explicitly null", () => {
+  test('commentary badge is absent when commentary is explicitly null', () => {
     renderMiniPlayer({}, { currentTrack: makeTrack({ commentary: null }) });
 
-    expect(
-      screen.queryByRole("button", { name: /why this track is trending/i }),
-    ).toBeNull();
+    expect(screen.queryByRole('button', { name: /why this track is trending/i })).toBeNull();
   });
 
-  test("commentary badge fires onCommentary, not onTap", () => {
+  test('commentary badge fires onCommentary, not onTap', () => {
     const onCommentary = vi.fn();
     const onTap = vi.fn();
     const track = makeTrack({ commentary: makeCommentary() });
 
     renderMiniPlayer({ onCommentary, onTap }, { currentTrack: track });
 
-    fireEvent.click(
-      screen.getByRole("button", { name: /why this track is trending/i }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: /why this track is trending/i }));
 
     expect(onCommentary).toHaveBeenCalledTimes(1);
     expect(onTap).not.toHaveBeenCalled();
   });
 
-  test("a forward skip marks the incoming content with the forward cue", () => {
+  test('a forward skip marks the incoming content with the forward cue', () => {
     const outgoing = makeTrack({
-      appleUrl: "https://music.apple.com/x/album?i=101",
+      appleUrl: 'https://music.apple.com/x/album?i=101',
     });
     const incoming = makeTrack({
       rank: 2,
-      appleUrl: "https://music.apple.com/x/album?i=102",
+      appleUrl: 'https://music.apple.com/x/album?i=102',
     });
-    const { container, store } = renderMiniPlayer(
-      {},
-      { currentTrack: outgoing },
-    );
+    const { container, store } = renderMiniPlayer({}, { currentTrack: outgoing });
 
     act(() => {
       store.setState({ currentTrack: incoming });
       store.getState().signalStep(1);
     });
 
-    const cue = container.querySelector("[data-track-change]");
-    expect(cue?.getAttribute("data-track-change")).toBe("next");
+    const cue = container.querySelector('[data-track-change]');
+    expect(cue?.getAttribute('data-track-change')).toBe('next');
   });
 
-  test("a backward skip marks the incoming content with the backward cue", () => {
+  test('a backward skip marks the incoming content with the backward cue', () => {
     const outgoing = makeTrack({
       rank: 2,
-      appleUrl: "https://music.apple.com/x/album?i=102",
+      appleUrl: 'https://music.apple.com/x/album?i=102',
     });
     const incoming = makeTrack({
-      appleUrl: "https://music.apple.com/x/album?i=101",
+      appleUrl: 'https://music.apple.com/x/album?i=101',
     });
-    const { container, store } = renderMiniPlayer(
-      {},
-      { currentTrack: outgoing },
-    );
+    const { container, store } = renderMiniPlayer({}, { currentTrack: outgoing });
 
     act(() => {
       store.setState({ currentTrack: incoming });
       store.getState().signalStep(-1);
     });
 
-    const cue = container.querySelector("[data-track-change]");
-    expect(cue?.getAttribute("data-track-change")).toBe("prev");
+    const cue = container.querySelector('[data-track-change]');
+    expect(cue?.getAttribute('data-track-change')).toBe('prev');
   });
 
-  test("a track change without a step stays cue-free", () => {
+  test('a track change without a step stays cue-free', () => {
     const outgoing = makeTrack({
-      appleUrl: "https://music.apple.com/x/album?i=101",
+      appleUrl: 'https://music.apple.com/x/album?i=101',
     });
     const incoming = makeTrack({
       rank: 2,
-      appleUrl: "https://music.apple.com/x/album?i=102",
+      appleUrl: 'https://music.apple.com/x/album?i=102',
     });
-    const { container, store } = renderMiniPlayer(
-      {},
-      { currentTrack: outgoing },
-    );
+    const { container, store } = renderMiniPlayer({}, { currentTrack: outgoing });
 
     act(() => {
       store.setState({ currentTrack: incoming });
     });
 
-    expect(container.querySelector("[data-track-change]")).toBeNull();
+    expect(container.querySelector('[data-track-change]')).toBeNull();
   });
 
-  test("mounting with a step already recorded never animates", () => {
+  test('mounting with a step already recorded never animates', () => {
     const track = makeTrack({
-      appleUrl: "https://music.apple.com/x/album?i=101",
+      appleUrl: 'https://music.apple.com/x/album?i=101',
     });
 
     const { container } = renderMiniPlayer(
@@ -558,16 +520,16 @@ describe("MiniPlayer", () => {
       { currentTrack: track, lastStep: { dir: 1, nonce: 5 } },
     );
 
-    expect(container.querySelector("[data-track-change]")).toBeNull();
+    expect(container.querySelector('[data-track-change]')).toBeNull();
   });
 
-  test("a press on a control leaves the pointer uncaptured, so its click reaches the control", () => {
-    const capture = vi.spyOn(HTMLElement.prototype, "setPointerCapture");
+  test('a press on a control leaves the pointer uncaptured, so its click reaches the control', () => {
+    const capture = vi.spyOn(HTMLElement.prototype, 'setPointerCapture');
     try {
       const onNext = vi.fn();
       renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
 
-      const next = screen.getByRole("button", { name: /next track/i });
+      const next = screen.getByRole('button', { name: /next track/i });
       fireEvent.pointerDown(next, { clientX: 200, clientY: 10, pointerId: 1 });
       fireEvent.pointerMove(next, { clientX: 204, clientY: 10, pointerId: 1 });
       fireEvent.pointerUp(next, { clientX: 204, clientY: 10, pointerId: 1 });
@@ -580,20 +542,18 @@ describe("MiniPlayer", () => {
     }
   });
 
-  test("a drag whose pointer cannot be captured is dropped, so the next click still lands", () => {
-    const capture = vi
-      .spyOn(HTMLElement.prototype, "setPointerCapture")
-      .mockImplementation(() => {
-        throw new DOMException("pointer is not active", "NotFoundError");
-      });
+  test('a drag whose pointer cannot be captured is dropped, so the next click still lands', () => {
+    const capture = vi.spyOn(HTMLElement.prototype, 'setPointerCapture').mockImplementation(() => {
+      throw new DOMException('pointer is not active', 'NotFoundError');
+    });
     try {
       const onNext = vi.fn();
       renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
 
-      const area = screen.getByRole("button", { name: /reopen chart/i });
+      const area = screen.getByRole('button', { name: /reopen chart/i });
       fireEvent.pointerDown(area, { clientX: 200, clientY: 10, pointerId: 1 });
       fireEvent.pointerMove(area, { clientX: 40, clientY: 10, pointerId: 1 });
-      fireEvent.click(screen.getByRole("button", { name: /next track/i }));
+      fireEvent.click(screen.getByRole('button', { name: /next track/i }));
 
       expect(onNext).toHaveBeenCalledTimes(1);
     } finally {
@@ -601,12 +561,12 @@ describe("MiniPlayer", () => {
     }
   });
 
-  test("a drag captures the pointer once it engages", () => {
-    const capture = vi.spyOn(HTMLElement.prototype, "setPointerCapture");
+  test('a drag captures the pointer once it engages', () => {
+    const capture = vi.spyOn(HTMLElement.prototype, 'setPointerCapture');
     try {
       renderMiniPlayer({}, { currentTrack: makeTrack() });
 
-      const area = screen.getByRole("button", { name: /reopen chart/i });
+      const area = screen.getByRole('button', { name: /reopen chart/i });
       fireEvent.pointerDown(area, { clientX: 200, clientY: 10, pointerId: 1 });
       fireEvent.pointerMove(area, { clientX: 40, clientY: 10, pointerId: 1 });
 
@@ -616,10 +576,10 @@ describe("MiniPlayer", () => {
     }
   });
 
-  test("a pointer click on a control leaves nothing focused, so Space reaches play and pause", () => {
+  test('a pointer click on a control leaves nothing focused, so Space reaches play and pause', () => {
     const onNext = vi.fn();
     renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
-    const next = screen.getByRole("button", { name: /next track/i });
+    const next = screen.getByRole('button', { name: /next track/i });
     next.focus();
 
     fireEvent.click(next, { detail: 1 });
@@ -628,10 +588,10 @@ describe("MiniPlayer", () => {
     expect(document.activeElement).toBe(document.body);
   });
 
-  test("a pointer click on the volume slider keeps its focus, so arrow keys still adjust it", () => {
+  test('a pointer click on the volume slider keeps its focus, so arrow keys still adjust it', () => {
     renderMiniPlayer({}, { currentTrack: makeTrack() });
-    fireEvent.click(screen.getByRole("button", { name: /^volume$/i }));
-    const slider = screen.getByRole("slider", { name: /volume/i });
+    fireEvent.click(screen.getByRole('button', { name: /^volume$/i }));
+    const slider = screen.getByRole('slider', { name: /volume/i });
     slider.focus();
 
     fireEvent.click(slider, { detail: 1 });
@@ -639,10 +599,10 @@ describe("MiniPlayer", () => {
     expect(document.activeElement).toBe(slider);
   });
 
-  test("a keyboard click on a control keeps its focus", () => {
+  test('a keyboard click on a control keeps its focus', () => {
     const onNext = vi.fn();
     renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
-    const next = screen.getByRole("button", { name: /next track/i });
+    const next = screen.getByRole('button', { name: /next track/i });
     next.focus();
 
     fireEvent.click(next, { detail: 0 });
@@ -651,14 +611,14 @@ describe("MiniPlayer", () => {
     expect(document.activeElement).toBe(next);
   });
 
-  test("dragging the volume slider does not swipe the track", () => {
+  test('dragging the volume slider does not swipe the track', () => {
     vi.useFakeTimers();
     try {
       const onNext = vi.fn();
 
       renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
-      fireEvent.click(screen.getByRole("button", { name: /^volume$/i }));
-      const slider = screen.getByRole("slider", { name: /volume/i });
+      fireEvent.click(screen.getByRole('button', { name: /^volume$/i }));
+      const slider = screen.getByRole('slider', { name: /volume/i });
       fireEvent.pointerDown(slider, { clientX: 200, clientY: 10 });
       fireEvent.pointerMove(slider, { clientX: 40, clientY: 10 });
       fireEvent.pointerUp(slider, { clientX: 40, clientY: 10 });
@@ -672,37 +632,37 @@ describe("MiniPlayer", () => {
     }
   });
 
-  test("a mouse released off the bar before dragging does not swipe when it hovers back", () => {
+  test('a mouse released off the bar before dragging does not swipe when it hovers back', () => {
     const onNext = vi.fn();
 
     renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });
 
-    const area = screen.getByRole("button", { name: /reopen chart/i });
+    const area = screen.getByRole('button', { name: /reopen chart/i });
     fireEvent.pointerDown(area, {
       clientX: 200,
       clientY: 10,
-      pointerType: "mouse",
+      pointerType: 'mouse',
       buttons: 1,
     });
     fireEvent.pointerMove(area, {
       clientX: 40,
       clientY: 10,
-      pointerType: "mouse",
+      pointerType: 'mouse',
       buttons: 0,
     });
-    fireEvent.click(screen.getByRole("button", { name: /next track/i }));
+    fireEvent.click(screen.getByRole('button', { name: /next track/i }));
 
     expect(onNext).toHaveBeenCalledTimes(1);
   });
 
-  test("a short press below the swipe threshold still taps", () => {
+  test('a short press below the swipe threshold still taps', () => {
     const onNext = vi.fn();
     const onPrev = vi.fn();
     const onTap = vi.fn();
 
     renderMiniPlayer({ onNext, onPrev, onTap }, { currentTrack: makeTrack() });
 
-    const area = screen.getByRole("button", { name: /reopen chart/i });
+    const area = screen.getByRole('button', { name: /reopen chart/i });
     fireEvent.pointerDown(area, { clientX: 100, clientY: 10 });
     fireEvent.pointerUp(area, { clientX: 110, clientY: 10 });
     fireEvent.click(area);

@@ -1,29 +1,21 @@
-import { fireEvent, render } from "@testing-library/react";
-import { describe, expect, test, vi } from "vitest";
+import { fireEvent, render } from '@testing-library/react';
+import { describe, expect, test, vi } from 'vitest';
 
-import { ESCAPE_LAYER, useEscapeLayer } from "./use-escape-layer";
+import { ESCAPE_LAYER, useEscapeLayer } from './use-escape-layer';
 
 type Rank = (typeof ESCAPE_LAYER)[keyof typeof ESCAPE_LAYER];
 
-function Layer({
-  active,
-  rank,
-  onEscape,
-}: {
-  active: boolean;
-  rank: Rank;
-  onEscape: () => void;
-}) {
+function Layer({ active, rank, onEscape }: { active: boolean; rank: Rank; onEscape: () => void }) {
   useEscapeLayer(active, rank, onEscape);
   return null;
 }
 
 function pressEscape() {
-  fireEvent.keyDown(window, { key: "Escape" });
+  fireEvent.keyDown(window, { key: 'Escape' });
 }
 
-describe("useEscapeLayer", () => {
-  test("one Escape reaches only the highest-ranked open layer", () => {
+describe('useEscapeLayer', () => {
+  test('one Escape reaches only the highest-ranked open layer', () => {
     const lower = vi.fn();
     const upper = vi.fn();
     render(
@@ -39,7 +31,7 @@ describe("useEscapeLayer", () => {
     expect(lower).not.toHaveBeenCalled();
   });
 
-  test("a higher-ranked layer wins even when a lower one activated after it", () => {
+  test('a higher-ranked layer wins even when a lower one activated after it', () => {
     const lower = vi.fn();
     const upper = vi.fn();
     const { rerender } = render(
@@ -61,7 +53,7 @@ describe("useEscapeLayer", () => {
     expect(lower).not.toHaveBeenCalled();
   });
 
-  test("between equal ranks, the most recently activated layer wins", () => {
+  test('between equal ranks, the most recently activated layer wins', () => {
     const earlier = vi.fn();
     const later = vi.fn();
     const { rerender } = render(
@@ -83,7 +75,7 @@ describe("useEscapeLayer", () => {
     expect(earlier).not.toHaveBeenCalled();
   });
 
-  test("once the top layer closes, the next Escape reaches the layer below", () => {
+  test('once the top layer closes, the next Escape reaches the layer below', () => {
     const lower = vi.fn();
     const upper = vi.fn();
     const { rerender } = render(
@@ -105,12 +97,10 @@ describe("useEscapeLayer", () => {
     expect(upper).not.toHaveBeenCalled();
   });
 
-  test("calls the handler from the latest render", () => {
+  test('calls the handler from the latest render', () => {
     const stale = vi.fn();
     const fresh = vi.fn();
-    const { rerender } = render(
-      <Layer active rank={ESCAPE_LAYER.sheet} onEscape={stale} />,
-    );
+    const { rerender } = render(<Layer active rank={ESCAPE_LAYER.sheet} onEscape={stale} />);
     rerender(<Layer active rank={ESCAPE_LAYER.sheet} onEscape={fresh} />);
 
     pressEscape();

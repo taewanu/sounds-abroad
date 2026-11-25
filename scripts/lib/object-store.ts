@@ -4,7 +4,7 @@ import {
   NoSuchKey,
   PutObjectCommand,
   S3Client,
-} from "@aws-sdk/client-s3";
+} from '@aws-sdk/client-s3';
 
 /**
  * How long a published object may be served from cache before it is
@@ -13,7 +13,7 @@ import {
  */
 const CACHE_MAX_AGE_SECONDS = 60;
 
-const BUCKET = "sounds-abroad-charts";
+const BUCKET = 'sounds-abroad-charts';
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -22,10 +22,10 @@ function requireEnv(name: string): string {
 }
 
 const REQUIRED_ENV = [
-  "R2_ACCOUNT_ID",
-  "R2_ACCESS_KEY_ID",
-  "R2_SECRET_ACCESS_KEY",
-  "R2_PUBLIC_BASE_URL",
+  'R2_ACCOUNT_ID',
+  'R2_ACCESS_KEY_ID',
+  'R2_SECRET_ACCESS_KEY',
+  'R2_PUBLIC_BASE_URL',
 ] as const;
 
 /**
@@ -35,7 +35,7 @@ const REQUIRED_ENV = [
 export function assertObjectStoreEnv(howToRun: string): void {
   const missing = REQUIRED_ENV.filter((name) => !process.env[name]);
   if (missing.length > 0) {
-    throw new Error(`${missing.join(", ")} missing. ${howToRun}`);
+    throw new Error(`${missing.join(', ')} missing. ${howToRun}`);
   }
 }
 
@@ -50,11 +50,11 @@ let client: S3Client | undefined;
  */
 function objectStore(): S3Client {
   client ??= new S3Client({
-    region: "auto",
-    endpoint: `https://${requireEnv("R2_ACCOUNT_ID")}.r2.cloudflarestorage.com`,
+    region: 'auto',
+    endpoint: `https://${requireEnv('R2_ACCOUNT_ID')}.r2.cloudflarestorage.com`,
     credentials: {
-      accessKeyId: requireEnv("R2_ACCESS_KEY_ID"),
-      secretAccessKey: requireEnv("R2_SECRET_ACCESS_KEY"),
+      accessKeyId: requireEnv('R2_ACCESS_KEY_ID'),
+      secretAccessKey: requireEnv('R2_SECRET_ACCESS_KEY'),
     },
   });
   return client;
@@ -62,7 +62,7 @@ function objectStore(): S3Client {
 
 /** The public URL a published object is served from. */
 export function publicUrl(key: string): string {
-  return `${requireEnv("R2_PUBLIC_BASE_URL").replace(/\/$/, "")}/${key}`;
+  return `${requireEnv('R2_PUBLIC_BASE_URL').replace(/\/$/, '')}/${key}`;
 }
 
 /**
@@ -71,9 +71,7 @@ export function publicUrl(key: string): string {
  */
 export async function getJson(key: string): Promise<unknown> {
   try {
-    const res = await objectStore().send(
-      new GetObjectCommand({ Bucket: BUCKET, Key: key }),
-    );
+    const res = await objectStore().send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
     const body = await res.Body?.transformToString();
     if (body === undefined) throw new Error(`Empty body at ${key}.`);
     return JSON.parse(body);
@@ -90,7 +88,7 @@ export async function putJson(key: string, body: string): Promise<string> {
       Bucket: BUCKET,
       Key: key,
       Body: body,
-      ContentType: "application/json",
+      ContentType: 'application/json',
       CacheControl: `max-age=${CACHE_MAX_AGE_SECONDS}`,
     }),
   );
@@ -98,17 +96,14 @@ export async function putJson(key: string, body: string): Promise<string> {
 }
 
 /** Copies an already-published object to a second key within the bucket. */
-export async function copyObject(
-  fromKey: string,
-  toKey: string,
-): Promise<string> {
+export async function copyObject(fromKey: string, toKey: string): Promise<string> {
   await objectStore().send(
     new CopyObjectCommand({
       Bucket: BUCKET,
       CopySource: `${BUCKET}/${fromKey}`,
       Key: toKey,
-      ContentType: "application/json",
-      MetadataDirective: "REPLACE",
+      ContentType: 'application/json',
+      MetadataDirective: 'REPLACE',
       CacheControl: `max-age=${CACHE_MAX_AGE_SECONDS}`,
     }),
   );

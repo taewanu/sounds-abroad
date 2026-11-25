@@ -1,105 +1,82 @@
-import { expect, test, vi } from "vitest";
+import { expect, test, vi } from 'vitest';
 
-import {
-  commentaryKey,
-  type CommentaryStore,
-} from "../../src/lib/commentary-store";
+import { commentaryKey, type CommentaryStore } from '../../src/lib/commentary-store';
+import { fetchCommentaryStore, withCommentaryDegradationSignal } from './fetch-commentary';
 
-import {
-  fetchCommentaryStore,
-  withCommentaryDegradationSignal,
-} from "./fetch-commentary";
-
-const URL = "https://blob/commentary/v1/commentary.json";
+const URL = 'https://blob/commentary/v1/commentary.json';
 
 function validStore(): CommentaryStore {
   return {
-    [commentaryKey("en", "Artist", "Song")]: {
-      lead: "A blurb about the song.",
-      tag: "new entry",
-      claim: "why-charting",
-      sources: ["https://example.com/a"],
-      generatedAt: "2026-05-16T00:00:00.000Z",
+    [commentaryKey('en', 'Artist', 'Song')]: {
+      lead: 'A blurb about the song.',
+      tag: 'new entry',
+      claim: 'why-charting',
+      sources: ['https://example.com/a'],
+      generatedAt: '2026-05-16T00:00:00.000Z',
     },
   };
 }
 
-function fakeFetch(response: {
-  ok?: boolean;
-  status?: number;
-  body: string;
-}): typeof fetch {
+function fakeFetch(response: { ok?: boolean; status?: number; body: string }): typeof fetch {
   return (async () =>
     new Response(response.body, {
       status: response.status ?? (response.ok === false ? 500 : 200),
     })) as typeof fetch;
 }
 
-test("returns the parsed store on a valid response", async () => {
+test('returns the parsed store on a valid response', async () => {
   const store = validStore();
 
-  const result = await fetchCommentaryStore(
-    URL,
-    fakeFetch({ body: JSON.stringify(store) }),
-  );
+  const result = await fetchCommentaryStore(URL, fakeFetch({ body: JSON.stringify(store) }));
 
   expect(result).toEqual(store);
 });
 
-test("returns null on a non-OK response", async () => {
+test('returns null on a non-OK response', async () => {
   const result = await fetchCommentaryStore(
     URL,
-    fakeFetch({ ok: false, status: 404, body: "Not Found" }),
+    fakeFetch({ ok: false, status: 404, body: 'Not Found' }),
   );
 
   expect(result).toBeNull();
 });
 
-test("returns null on invalid JSON", async () => {
-  const result = await fetchCommentaryStore(
-    URL,
-    fakeFetch({ body: "<html>nope</html>" }),
-  );
+test('returns null on invalid JSON', async () => {
+  const result = await fetchCommentaryStore(URL, fakeFetch({ body: '<html>nope</html>' }));
 
   expect(result).toBeNull();
 });
 
-test("keeps valid entries when another entry fails the schema", async () => {
+test('keeps valid entries when another entry fails the schema', async () => {
   // One entry a since-tightened schema rejects must cost only itself: the
   // bake is authoritative, so voiding the whole store would clear every
   // freshly-crawled card.
   const store = validStore();
-  const mixed = { ...store, "en:a|b": { lead: "" } };
+  const mixed = { ...store, 'en:a|b': { lead: '' } };
 
-  const result = await fetchCommentaryStore(
-    URL,
-    fakeFetch({ body: JSON.stringify(mixed) }),
-  );
+  const result = await fetchCommentaryStore(URL, fakeFetch({ body: JSON.stringify(mixed) }));
 
   expect(result).toEqual(store);
 });
 
-test("returns null when no entry survives validation", async () => {
+test('returns null when no entry survives validation', async () => {
   // Total loss on a non-empty store reads as schema drift, not content:
   // skipping the bake beats baking an empty store over every card.
   const result = await fetchCommentaryStore(
     URL,
-    fakeFetch({ body: JSON.stringify({ "en:a|b": { lead: "" } }) }),
+    fakeFetch({ body: JSON.stringify({ 'en:a|b': { lead: '' } }) }),
   );
 
   expect(result).toBeNull();
 });
 
-test("returns an empty store as-is, distinct from total validation loss", async () => {
-  const result = await fetchCommentaryStore(
-    URL,
-    fakeFetch({ body: JSON.stringify({}) }),
-  );
+test('returns an empty store as-is, distinct from total validation loss', async () => {
+  const result = await fetchCommentaryStore(URL, fakeFetch({ body: JSON.stringify({}) }));
 
   expect(result).toEqual({});
 });
 
-test("returns null on a payload that is not an object", async () => {
+test('returns null on a payload that is not an object', async () => {
   const result = await fetchCommentaryStore(
     URL,
     fakeFetch({ body: JSON.stringify([validStore()]) }),
@@ -108,9 +85,9 @@ test("returns null on a payload that is not an object", async () => {
   expect(result).toBeNull();
 });
 
-test("returns null when fetch rejects", async () => {
+test('returns null when fetch rejects', async () => {
   const failingFetch: typeof fetch = (async () => {
-    throw new TypeError("network down");
+    throw new TypeError('network down');
   }) as typeof fetch;
 
   const result = await fetchCommentaryStore(URL, failingFetch);
@@ -118,12 +95,9 @@ test("returns null when fetch rejects", async () => {
   expect(result).toBeNull();
 });
 
-test("withCommentaryDegradationSignal fires on a null read and passes the null through", async () => {
+test('withCommentaryDegradationSignal fires on a null read and passes the null through', async () => {
   const onUnavailable = vi.fn();
-  const wrapped = withCommentaryDegradationSignal(
-    async () => null,
-    onUnavailable,
-  );
+  const wrapped = withCommentaryDegradationSignal(async () => null, onUnavailable);
 
   const result = await wrapped();
 
@@ -131,12 +105,9 @@ test("withCommentaryDegradationSignal fires on a null read and passes the null t
   expect(onUnavailable).toHaveBeenCalledTimes(1);
 });
 
-test("withCommentaryDegradationSignal stays silent on an empty store", async () => {
+test('withCommentaryDegradationSignal stays silent on an empty store', async () => {
   const onUnavailable = vi.fn();
-  const wrapped = withCommentaryDegradationSignal(
-    async () => ({}),
-    onUnavailable,
-  );
+  const wrapped = withCommentaryDegradationSignal(async () => ({}), onUnavailable);
 
   const result = await wrapped();
 
@@ -144,13 +115,10 @@ test("withCommentaryDegradationSignal stays silent on an empty store", async () 
   expect(onUnavailable).not.toHaveBeenCalled();
 });
 
-test("withCommentaryDegradationSignal passes a loaded store through untouched", async () => {
+test('withCommentaryDegradationSignal passes a loaded store through untouched', async () => {
   const store = validStore();
   const onUnavailable = vi.fn();
-  const wrapped = withCommentaryDegradationSignal(
-    async () => store,
-    onUnavailable,
-  );
+  const wrapped = withCommentaryDegradationSignal(async () => store, onUnavailable);
 
   const result = await wrapped();
 

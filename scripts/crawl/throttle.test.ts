@@ -1,6 +1,6 @@
-import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
-import { createSpotifyThrottle, createThrottle } from "./throttle";
+import { createSpotifyThrottle, createThrottle } from './throttle';
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -10,10 +10,10 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-test("runs the first call without scheduling any delay", async () => {
+test('runs the first call without scheduling any delay', async () => {
   const throttle = createThrottle();
   let resolved = false;
-  const pending = throttle(async () => "first").then((v) => {
+  const pending = throttle(async () => 'first').then((v) => {
     resolved = true;
     return v;
   });
@@ -21,15 +21,15 @@ test("runs the first call without scheduling any delay", async () => {
   await vi.advanceTimersByTimeAsync(0);
 
   expect(resolved).toBe(true);
-  expect(await pending).toBe("first");
+  expect(await pending).toBe('first');
 });
 
-test("delays the second call by exactly 3000ms (Apple 20/min ceiling)", async () => {
+test('delays the second call by exactly 3000ms (Apple 20/min ceiling)', async () => {
   const throttle = createThrottle();
-  await throttle(async () => "a");
+  await throttle(async () => 'a');
 
   let resolved = false;
-  const pending = throttle(async () => "b").then((v) => {
+  const pending = throttle(async () => 'b').then((v) => {
     resolved = true;
     return v;
   });
@@ -39,16 +39,16 @@ test("delays the second call by exactly 3000ms (Apple 20/min ceiling)", async ()
 
   await vi.advanceTimersByTimeAsync(1);
   expect(resolved).toBe(true);
-  expect(await pending).toBe("b");
+  expect(await pending).toBe('b');
 });
 
-test("skips the delay when natural elapsed time already meets the gap", async () => {
+test('skips the delay when natural elapsed time already meets the gap', async () => {
   const throttle = createThrottle();
-  await throttle(async () => "a");
+  await throttle(async () => 'a');
   await vi.advanceTimersByTimeAsync(5000);
 
   let resolved = false;
-  const pending = throttle(async () => "b").then((v) => {
+  const pending = throttle(async () => 'b').then((v) => {
     resolved = true;
     return v;
   });
@@ -56,15 +56,15 @@ test("skips the delay when natural elapsed time already meets the gap", async ()
   await vi.advanceTimersByTimeAsync(0);
 
   expect(resolved).toBe(true);
-  expect(await pending).toBe("b");
+  expect(await pending).toBe('b');
 });
 
-test("honors a custom gap, spacing the second call by the given interval", async () => {
+test('honors a custom gap, spacing the second call by the given interval', async () => {
   const throttle = createThrottle(500);
-  await throttle(async () => "a");
+  await throttle(async () => 'a');
 
   let resolved = false;
-  const pending = throttle(async () => "b").then((v) => {
+  const pending = throttle(async () => 'b').then((v) => {
     resolved = true;
     return v;
   });
@@ -74,15 +74,15 @@ test("honors a custom gap, spacing the second call by the given interval", async
 
   await vi.advanceTimersByTimeAsync(1);
   expect(resolved).toBe(true);
-  expect(await pending).toBe("b");
+  expect(await pending).toBe('b');
 });
 
-test("the Spotify throttle spaces calls well under the 3000ms iTunes gap", async () => {
+test('the Spotify throttle spaces calls well under the 3000ms iTunes gap', async () => {
   const throttle = createSpotifyThrottle();
-  await throttle(async () => "a");
+  await throttle(async () => 'a');
 
   let resolved = false;
-  const pending = throttle(async () => "b").then((v) => {
+  const pending = throttle(async () => 'b').then((v) => {
     resolved = true;
     return v;
   });
@@ -90,7 +90,7 @@ test("the Spotify throttle spaces calls well under the 3000ms iTunes gap", async
   // Far below the iTunes gap, so resolution calls fill its idle windows.
   await vi.advanceTimersByTimeAsync(1000);
   expect(resolved).toBe(true);
-  expect(await pending).toBe("b");
+  expect(await pending).toBe('b');
 });
 
 test("passes the wrapped fn's resolved value through", async () => {
@@ -99,30 +99,30 @@ test("passes the wrapped fn's resolved value through", async () => {
   expect(await throttle(async () => 42)).toBe(42);
 });
 
-test("propagates errors thrown by the wrapped fn", async () => {
+test('propagates errors thrown by the wrapped fn', async () => {
   const throttle = createThrottle();
 
   await expect(
     throttle(async () => {
-      throw new Error("boom");
+      throw new Error('boom');
     }),
-  ).rejects.toThrow("boom");
+  ).rejects.toThrow('boom');
 });
 
-test("serializes concurrent calls — each reserves its slot synchronously", async () => {
+test('serializes concurrent calls — each reserves its slot synchronously', async () => {
   const throttle = createThrottle();
   // First call on a throttle doesn't wait. Use it here so the next two calls wait.
-  await throttle(async () => "first");
+  await throttle(async () => 'first');
 
   let secondDone = false;
   let thirdDone = false;
   const secondCall = throttle(async () => {
     secondDone = true;
-    return "second";
+    return 'second';
   });
   const thirdCall = throttle(async () => {
     thirdDone = true;
-    return "third";
+    return 'third';
   });
 
   await vi.advanceTimersByTimeAsync(2999);
@@ -139,6 +139,6 @@ test("serializes concurrent calls — each reserves its slot synchronously", asy
   await vi.advanceTimersByTimeAsync(1); // t = +6000
   expect(thirdDone).toBe(true);
 
-  expect(await secondCall).toBe("second");
-  expect(await thirdCall).toBe("third");
+  expect(await secondCall).toBe('second');
+  expect(await thirdCall).toBe('third');
 });

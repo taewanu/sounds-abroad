@@ -11,7 +11,7 @@
  * store, which is why the songs-tail and playlist-chart routes exist.
  */
 
-export const CHARTS_STORE_KEY_HEADER = "x-charts-key";
+export const CHARTS_STORE_KEY_HEADER = 'x-charts-key';
 
 /**
  * The header when a key is configured, and nothing when it is not.

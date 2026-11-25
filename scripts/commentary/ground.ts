@@ -1,17 +1,13 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 
-import type { Commentary } from "../../src/lib/chart-schema";
+import type { Commentary } from '../../src/lib/chart-schema';
 import {
   gradeGrounding,
   type GroundingClient,
   type GroundingVerdict,
-} from "../../src/lib/grounding";
-import {
-  assertAllowedTarget,
-  guardedFetch,
-  RefusedTargetError,
-} from "../lib/outbound-fetch";
+} from '../../src/lib/grounding';
+import { assertAllowedTarget, guardedFetch, RefusedTargetError } from '../lib/outbound-fetch';
 
 /**
  * The grounding shell: the network-and-subprocess half of the check whose pure
@@ -37,12 +33,12 @@ export const SOURCE_TEXT_CEILING = 40_000;
  * shape means the shell reads one validated field instead of parsing prose.
  */
 const JUDGE_SCHEMA = JSON.stringify({
-  type: "object",
+  type: 'object',
   properties: {
-    status: { type: "string", enum: ["grounded", "ungrounded", "uncertain"] },
-    reason: { type: "string" },
+    status: { type: 'string', enum: ['grounded', 'ungrounded', 'uncertain'] },
+    reason: { type: 'string' },
   },
-  required: ["status", "reason"],
+  required: ['status', 'reason'],
   additionalProperties: false,
 });
 
@@ -63,10 +59,10 @@ export async function fetchSourceText(
     const res = await (fetchImpl ? fetchImpl(url) : guardedFetch(url));
     if (!res.ok) return null;
     const text = (await res.text())
-      .replace(/<script[\s\S]*?<\/script>/gi, " ")
-      .replace(/<style[\s\S]*?<\/style>/gi, " ")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
       .trim();
     return text.length > 0 ? text : null;
   } catch (err) {
@@ -90,18 +86,18 @@ export function createClaudeJudge(timeoutMs = 60_000): GroundingClient {
   return async (prompt) => {
     try {
       const { stdout } = await execFileAsync(
-        "claude",
+        'claude',
         [
-          "-p",
+          '-p',
           prompt,
-          "--output-format",
-          "json",
-          "--json-schema",
+          '--output-format',
+          'json',
+          '--json-schema',
           JUDGE_SCHEMA,
-          "--tools",
-          "",
-          "--setting-sources",
-          "",
+          '--tools',
+          '',
+          '--setting-sources',
+          '',
         ],
         // The judge answers a small JSON verdict; sized to that, not to the
         // fetched pages, which are already truncated before the prompt (#322).
@@ -112,15 +108,15 @@ export function createClaudeJudge(timeoutMs = 60_000): GroundingClient {
         structured_output?: { status?: unknown; reason?: unknown };
       };
       const out = envelope.structured_output;
-      if (envelope.is_error || !out || typeof out.status !== "string") {
-        return { status: "error", reason: "Judge returned no usable verdict." };
+      if (envelope.is_error || !out || typeof out.status !== 'string') {
+        return { status: 'error', reason: 'Judge returned no usable verdict.' };
       }
       return {
         status: out.status,
-        reason: typeof out.reason === "string" ? out.reason : undefined,
+        reason: typeof out.reason === 'string' ? out.reason : undefined,
       };
     } catch {
-      return { status: "error", reason: "Judge invocation failed." };
+      return { status: 'error', reason: 'Judge invocation failed.' };
     }
   };
 }
@@ -137,9 +133,7 @@ export function createClaudeJudge(timeoutMs = 60_000): GroundingClient {
 export function combineSourceTexts(
   texts: Array<string | null>,
 ): { ok: true; sourceText: string } | { ok: false; verdict: GroundingVerdict } {
-  const loaded = texts
-    .filter((t) => t !== null)
-    .map((t) => t.slice(0, SOURCE_TEXT_CEILING));
+  const loaded = texts.filter((t) => t !== null).map((t) => t.slice(0, SOURCE_TEXT_CEILING));
 
   if (loaded.length === 0) {
     return {
@@ -153,16 +147,14 @@ export function combineSourceTexts(
 
   return {
     ok: true,
-    sourceText: loaded.join("\n\n"),
+    sourceText: loaded.join('\n\n'),
   };
 }
 
 function refusedVerdict(err: unknown): GroundingVerdict {
   return {
     grounded: false,
-    reason: `Cited source is a refused target: ${
-      err instanceof Error ? err.message : String(err)
-    }`,
+    reason: `Cited source is a refused target: ${err instanceof Error ? err.message : String(err)}`,
   };
 }
 
@@ -217,16 +209,11 @@ export async function groundEntry(
   const combined = combineSourceTexts(texts);
   if (!combined.ok) return combined.verdict;
   try {
-    return await gradeGrounding(
-      entry.lead,
-      entry.detail,
-      combined.sourceText,
-      deps.judge,
-    );
+    return await gradeGrounding(entry.lead, entry.detail, combined.sourceText, deps.judge);
   } catch {
     return {
       grounded: false,
-      reason: "Grounding judge failed; dropping the card.",
+      reason: 'Grounding judge failed; dropping the card.',
     };
   }
 }

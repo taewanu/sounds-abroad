@@ -1,18 +1,13 @@
-import { expect, test } from "vitest";
+import { expect, test } from 'vitest';
 
-import { CHARTS } from "./__fixtures__";
-import { emptyCountry } from "./chart-schema";
-import { COUNTRIES } from "./countries";
-import {
-  addVisited,
-  codesWithTracks,
-  pickShuffleCountry,
-  weightedDraw,
-} from "./fairness-draw";
+import { CHARTS } from './__fixtures__';
+import { emptyCountry } from './chart-schema';
+import { COUNTRIES } from './countries';
+import { addVisited, codesWithTracks, pickShuffleCountry, weightedDraw } from './fairness-draw';
 
 const EVERY_CODE = COUNTRIES.map((c) => c.code);
 
-test("weightedDraw overwhelmingly prefers an unvisited country in the pool", () => {
+test('weightedDraw overwhelmingly prefers an unvisited country in the pool', () => {
   const [seen, unseen] = COUNTRIES;
   const pool = [seen.code, unseen.code];
   const visited = new Set([seen.code]);
@@ -22,7 +17,7 @@ test("weightedDraw overwhelmingly prefers an unvisited country in the pool", () 
   }
 });
 
-test("weightedDraw flattens to a uniform draw once every pool member is visited", () => {
+test('weightedDraw flattens to a uniform draw once every pool member is visited', () => {
   const [first, second] = COUNTRIES;
   const pool = [first.code, second.code];
   const visited = new Set([first.code, second.code]);
@@ -31,55 +26,45 @@ test("weightedDraw flattens to a uniform draw once every pool member is visited"
   expect(weightedDraw(pool, visited, 0.75)).toBe(second.code);
 });
 
-test("pickShuffleCountry never returns an excluded country", () => {
+test('pickShuffleCountry never returns an excluded country', () => {
   const excluded = COUNTRIES[0].code;
 
   // Sweep the whole draw range: none of it may land on an excluded country.
   for (let r = 0; r < 1; r += 0.02) {
-    expect(
-      pickShuffleCountry(new Set(), [excluded], EVERY_CODE, () => r),
-    ).not.toBe(excluded);
+    expect(pickShuffleCountry(new Set(), [excluded], EVERY_CODE, () => r)).not.toBe(excluded);
   }
 });
 
-test("pickShuffleCountry excludes every listed code, not only the first", () => {
+test('pickShuffleCountry excludes every listed code, not only the first', () => {
   const excluded = COUNTRIES.slice(0, 3).map((c) => c.code);
 
   for (let r = 0; r < 1; r += 0.02) {
-    expect(excluded).not.toContain(
-      pickShuffleCountry(new Set(), excluded, EVERY_CODE, () => r),
-    );
+    expect(excluded).not.toContain(pickShuffleCountry(new Set(), excluded, EVERY_CODE, () => r));
   }
 });
 
-test("pickShuffleCountry draws from the whole globe, not a rest-direction cluster", () => {
+test('pickShuffleCountry draws from the whole globe, not a rest-direction cluster', () => {
   // r=0 takes the first pool member. With one country excluded that is the
   // first entry that isn't it, so the pool spans every country rather than a
   // geographic neighbourhood.
   const excluded = COUNTRIES[1].code;
   const firstOther = COUNTRIES.find((c) => c.code !== excluded)!.code;
 
-  expect(pickShuffleCountry(new Set(), [excluded], EVERY_CODE, () => 0)).toBe(
-    firstOther,
-  );
+  expect(pickShuffleCountry(new Set(), [excluded], EVERY_CODE, () => 0)).toBe(firstOther);
 });
 
-test("pickShuffleCountry allows any country when nothing is excluded", () => {
-  expect(pickShuffleCountry(new Set(), [], EVERY_CODE, () => 0)).toBe(
-    COUNTRIES[0].code,
-  );
+test('pickShuffleCountry allows any country when nothing is excluded', () => {
+  expect(pickShuffleCountry(new Set(), [], EVERY_CODE, () => 0)).toBe(COUNTRIES[0].code);
 });
 
-test("pickShuffleCountry favours an unvisited country over any single visited one", () => {
+test('pickShuffleCountry favours an unvisited country over any single visited one', () => {
   // Visit every country but one; the excluded (also visited) never enters the
   // pool. Across a uniform draw sweep the unvisited country wins far more often
   // than any single visited one, and the excluded country never appears.
   const excluded = COUNTRIES[0].code;
   const unseen = COUNTRIES[COUNTRIES.length - 1].code;
   const visited = new Set(
-    COUNTRIES.filter((c) => c.code !== excluded && c.code !== unseen).map(
-      (c) => c.code,
-    ),
+    COUNTRIES.filter((c) => c.code !== excluded && c.code !== unseen).map((c) => c.code),
   );
 
   const counts = new Map<string, number>();
@@ -90,26 +75,22 @@ test("pickShuffleCountry favours an unvisited country over any single visited on
 
   const unseenCount = counts.get(unseen) ?? 0;
   const maxVisited = Math.max(
-    ...[...counts]
-      .filter(([code]) => code !== unseen)
-      .map(([, count]) => count),
+    ...[...counts].filter(([code]) => code !== unseen).map(([, count]) => count),
   );
   expect(counts.has(excluded)).toBe(false);
   expect(unseenCount).toBeGreaterThan(maxVisited);
 });
 
-test("pickShuffleCountry never draws a country outside the drawable set", () => {
+test('pickShuffleCountry never draws a country outside the drawable set', () => {
   const withoutTracks = EVERY_CODE.slice(0, 3);
   const drawable = EVERY_CODE.slice(3);
 
   for (let r = 0; r < 1; r += 0.001) {
-    expect(withoutTracks).not.toContain(
-      pickShuffleCountry(new Set(), [], drawable, () => r),
-    );
+    expect(withoutTracks).not.toContain(pickShuffleCountry(new Set(), [], drawable, () => r));
   }
 });
 
-test("pickShuffleCountry stays inside the drawable set across a session of draws", () => {
+test('pickShuffleCountry stays inside the drawable set across a session of draws', () => {
   const drawable = EVERY_CODE.filter((_, i) => i % 3 !== 0);
   let seed = 1;
   const rng = () => {
@@ -130,7 +111,7 @@ test("pickShuffleCountry stays inside the drawable set across a session of draws
   expect(new Set(landings)).toEqual(new Set(drawable));
 });
 
-test("pickShuffleCountry ignores a visited country outside the drawable set", () => {
+test('pickShuffleCountry ignores a visited country outside the drawable set', () => {
   const withoutTracks = EVERY_CODE.slice(0, 3);
   const drawable = EVERY_CODE.slice(3);
   const draws = (visited: ReadonlySet<string>) => {
@@ -144,7 +125,7 @@ test("pickShuffleCountry ignores a visited country outside the drawable set", ()
   expect(draws(new Set(withoutTracks))).toEqual(draws(new Set()));
 });
 
-test("pickShuffleCountry draws from every listed country when none is drawable", () => {
+test('pickShuffleCountry draws from every listed country when none is drawable', () => {
   const excluded = EVERY_CODE[0];
 
   for (let r = 0; r < 1; r += 0.02) {
@@ -154,34 +135,32 @@ test("pickShuffleCountry draws from every listed country when none is drawable",
   }
 });
 
-test("pickShuffleCountry draws from every listed country when the only drawable one is excluded", () => {
+test('pickShuffleCountry draws from every listed country when the only drawable one is excluded', () => {
   const only = EVERY_CODE[0];
 
   for (let r = 0; r < 1; r += 0.02) {
-    expect(EVERY_CODE.slice(1)).toContain(
-      pickShuffleCountry(new Set(), [only], [only], () => r),
-    );
+    expect(EVERY_CODE.slice(1)).toContain(pickShuffleCountry(new Set(), [only], [only], () => r));
   }
 });
 
-test("codesWithTracks leaves out a country whose entry has no tracks", () => {
+test('codesWithTracks leaves out a country whose entry has no tracks', () => {
   const countries = {
-    aa: emptyCountry("First without tracks"),
+    aa: emptyCountry('First without tracks'),
     ...CHARTS.countries,
-    zz: emptyCountry("Last without tracks"),
+    zz: emptyCountry('Last without tracks'),
   };
 
   expect(codesWithTracks(countries)).toEqual(Object.keys(CHARTS.countries));
 });
 
-test("addVisited records a newly settled country in the visited set", () => {
-  const result = addVisited(new Set(["us"]), "kr");
+test('addVisited records a newly settled country in the visited set', () => {
+  const result = addVisited(new Set(['us']), 'kr');
 
-  expect([...result].sort()).toEqual(["kr", "us"]);
+  expect([...result].sort()).toEqual(['kr', 'us']);
 });
 
-test("addVisited returns the same set when the country is already visited", () => {
-  const visited = new Set(["us"]);
+test('addVisited returns the same set when the country is already visited', () => {
+  const visited = new Set(['us']);
 
-  expect(addVisited(visited, "us")).toBe(visited);
+  expect(addVisited(visited, 'us')).toBe(visited);
 });

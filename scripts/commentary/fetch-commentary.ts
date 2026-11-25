@@ -1,6 +1,6 @@
-import { CommentarySchema } from "../../src/lib/chart-schema";
-import { fetchChartsStore } from "../../src/lib/charts-store-fetch";
-import { type CommentaryStore } from "../../src/lib/commentary-store";
+import { CommentarySchema } from '../../src/lib/chart-schema';
+import { fetchChartsStore } from '../../src/lib/charts-store-fetch';
+import { type CommentaryStore } from '../../src/lib/commentary-store';
 
 export interface SalvagedStore {
   store: CommentaryStore;
@@ -46,14 +46,14 @@ export async function fetchCommentaryStore(
     const res = await fetchImpl(url);
     if (!res.ok) return null;
     const json: unknown = await res.json();
-    if (json === null || typeof json !== "object" || Array.isArray(json)) {
+    if (json === null || typeof json !== 'object' || Array.isArray(json)) {
       return null;
     }
 
     const { store, droppedKeys } = salvageCommentaryStore(json);
     if (droppedKeys.length > 0) {
       console.warn(
-        `[commentary] dropped ${droppedKeys.length} invalid entr${droppedKeys.length === 1 ? "y" : "ies"}: ${droppedKeys.join(", ")}`,
+        `[commentary] dropped ${droppedKeys.length} invalid entr${droppedKeys.length === 1 ? 'y' : 'ies'}: ${droppedKeys.join(', ')}`,
       );
     }
     if (droppedKeys.length > 0 && Object.keys(store).length === 0) return null;

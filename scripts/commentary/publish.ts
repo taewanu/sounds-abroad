@@ -1,34 +1,27 @@
-import { readFile } from "node:fs/promises";
+import { readFile } from 'node:fs/promises';
 
-import type { Commentary } from "../../src/lib/chart-schema";
-import { assertObjectStoreEnv } from "../lib/object-store";
-
-import { createClaudeJudge, fetchSourceText, groundEntry } from "./ground";
-import { parseCandidateStore } from "./parse-store";
-import { publishStore } from "./publish-store";
-import { routeStore } from "./route";
-import {
-  backupCommentary,
-  readLiveCommentary,
-  uploadCommentary,
-} from "./upload-commentary";
+import type { Commentary } from '../../src/lib/chart-schema';
+import { assertObjectStoreEnv } from '../lib/object-store';
+import { createClaudeJudge, fetchSourceText, groundEntry } from './ground';
+import { parseCandidateStore } from './parse-store';
+import { publishStore } from './publish-store';
+import { routeStore } from './route';
+import { backupCommentary, readLiveCommentary, uploadCommentary } from './upload-commentary';
 
 // Validates a candidate commentary file against the schema, then routes each
 // blurb through the gate: an entry that clears every check is published, any
 // failure drops that one card (ADR-0009). See docs/commentary-playbook.md.
 
-assertObjectStoreEnv("Run via: pnpm commentary:publish <file>.");
+assertObjectStoreEnv('Run via: pnpm commentary:publish <file>.');
 
 const args = process.argv.slice(2);
-const replace = args.includes("--replace");
-const file = args.find((arg) => !arg.startsWith("--"));
+const replace = args.includes('--replace');
+const file = args.find((arg) => !arg.startsWith('--'));
 if (!file) {
-  throw new Error(
-    "Usage: pnpm commentary:publish <candidate.json> [--replace]",
-  );
+  throw new Error('Usage: pnpm commentary:publish <candidate.json> [--replace]');
 }
 
-const raw: unknown = JSON.parse(await readFile(file, "utf8"));
+const raw: unknown = JSON.parse(await readFile(file, 'utf8'));
 const parsed = parseCandidateStore(raw);
 if (!parsed.ok) {
   console.error(`Publish blocked (${parsed.errors.length} schema issue(s)):`);
@@ -41,12 +34,11 @@ if (!parsed.ok) {
 const live = await readLiveCommentary();
 
 const judge = createClaudeJudge();
-const ground = (entry: Commentary) =>
-  groundEntry(entry, { fetchSourceText, judge });
+const ground = (entry: Commentary) => groundEntry(entry, { fetchSourceText, judge });
 
 const { published, dropped } = await routeStore(parsed.store, { ground });
 for (const { key, reasons } of dropped) {
-  console.warn(`Dropped "${key}": ${reasons.join("; ")}`);
+  console.warn(`Dropped "${key}": ${reasons.join('; ')}`);
 }
 
 // Every entry dropping is almost always a systemic failure (the judge is down,

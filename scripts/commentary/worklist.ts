@@ -1,13 +1,8 @@
-import type { ChartFile } from "../../src/lib/chart-schema";
-import {
-  DEFAULT_LANG,
-  commentaryKey,
-  type CommentaryStore,
-} from "../../src/lib/commentary-store";
-import { COUNTRIES, type Region } from "../../src/lib/countries";
-import { selectGem } from "../../src/lib/select-gem";
-
-import { DEFAULT_MAX_ATTEMPTS, type DropsStore } from "./drops";
+import type { ChartFile } from '../../src/lib/chart-schema';
+import { DEFAULT_LANG, commentaryKey, type CommentaryStore } from '../../src/lib/commentary-store';
+import { COUNTRIES, type Region } from '../../src/lib/countries';
+import { selectGem } from '../../src/lib/select-gem';
+import { DEFAULT_MAX_ATTEMPTS, type DropsStore } from './drops';
 
 /**
  * The worklist for a refinement pass: which charting tracks still need a blurb.
@@ -17,8 +12,7 @@ import { DEFAULT_MAX_ATTEMPTS, type DropsStore } from "./drops";
  * quantitative gate, an analog to a significance trigger).
  */
 
-export type WorklistReason =
-  "new-entry" | "rank-jump" | "top-debut" | "local-gem";
+export type WorklistReason = 'new-entry' | 'rank-jump' | 'top-debut' | 'local-gem';
 
 export interface WorklistItem {
   key: string;
@@ -62,10 +56,7 @@ interface Aggregate {
   countries: { cc: string; rank: number }[];
 }
 
-function aggregateByKey(
-  chart: ChartFile,
-  lang: string,
-): Map<string, Aggregate> {
+function aggregateByKey(chart: ChartFile, lang: string): Map<string, Aggregate> {
   const byKey = new Map<string, Aggregate>();
   for (const [cc, country] of Object.entries(chart.countries)) {
     if (!country.valid) continue;
@@ -105,17 +96,13 @@ function aggregateByKey(
  * region (adjacent markets alone don't separate a real regional hit from a
  * thin-market quirk). Adjacency is necessary but not sufficient; breadth is.
  */
-export type ConfidenceLevel = "low" | "ok";
+export type ConfidenceLevel = 'low' | 'ok';
 
 const BROAD_FOOTPRINT_MIN = 3;
 
-const REGION_BY_CC = new Map<string, Region>(
-  COUNTRIES.map((c) => [c.code, c.region]),
-);
+const REGION_BY_CC = new Map<string, Region>(COUNTRIES.map((c) => [c.code, c.region]));
 
-export function chartConfidence(
-  countries: readonly { cc: string }[],
-): ConfidenceLevel {
+export function chartConfidence(countries: readonly { cc: string }[]): ConfidenceLevel {
   const distinctCountries = new Set(countries.map((c) => c.cc));
   const distinctRegions = new Set<Region>();
   for (const cc of distinctCountries) {
@@ -124,13 +111,13 @@ export function chartConfidence(
   }
 
   // Spilled past one region: a hit, not a single-market quirk.
-  if (distinctRegions.size > 1) return "ok";
+  if (distinctRegions.size > 1) return 'ok';
 
   // Broad reach within a single region still reads as a real story.
-  if (distinctCountries.size >= BROAD_FOOTPRINT_MIN) return "ok";
+  if (distinctCountries.size >= BROAD_FOOTPRINT_MIN) return 'ok';
 
   // A lone storefront, or a same-region pair: too thin to trust.
-  return "low";
+  return 'low';
 }
 
 /**
@@ -147,17 +134,13 @@ function gemKeys(chart: ChartFile, lang: string): Set<string> {
   for (const country of Object.values(chart.countries)) {
     if (!country.valid) continue;
     const selection = selectGem(country.tracks);
-    if (!selection || selection.tier === "their most local pick today")
-      continue;
+    if (!selection || selection.tier === 'their most local pick today') continue;
     keys.add(commentaryKey(lang, selection.gem.artist, selection.gem.name));
   }
   return keys;
 }
 
-function bestRankByKey(
-  chart: ChartFile | null,
-  lang: string,
-): Map<string, number> {
+function bestRankByKey(chart: ChartFile | null, lang: string): Map<string, number> {
   const best = new Map<string, number>();
   if (!chart) return best;
   for (const country of Object.values(chart.countries)) {
@@ -182,11 +165,11 @@ function classify(
     // No prior snapshot to diff against (e.g. a first pass): fall back to
     // absolute prominence so the list stays tractable instead of surfacing the
     // whole long tail.
-    return cur <= topDebutMax ? "top-debut" : null;
+    return cur <= topDebutMax ? 'top-debut' : null;
   }
-  if (prev === undefined) return "new-entry";
-  if (prev - cur >= jumpBy) return "rank-jump";
-  if (cur <= topDebutMax && prev > topDebutMax) return "top-debut";
+  if (prev === undefined) return 'new-entry';
+  if (prev - cur >= jumpBy) return 'rank-jump';
+  if (cur <= topDebutMax && prev > topDebutMax) return 'top-debut';
   return null;
 }
 
@@ -225,14 +208,14 @@ export function computeWorklist(input: {
     // A gem queues even with no rank movement (e.g. a stable local #1 that
     // would otherwise never re-trigger); a real movement reason still wins
     // when both apply, since it's the more specific story.
-    const reason = movementReason ?? (isGem ? "local-gem" : null);
+    const reason = movementReason ?? (isGem ? 'local-gem' : null);
     if (!reason) continue;
     const confidence = chartConfidence(agg.countries);
     // A gem is single-market by construction (that's what makes it a gem),
     // which is exactly what chartConfidence reads as a thin-market quirk.
     // Being selected as a gem is itself evidence the position is a real
     // local story, so it bypasses that penalty (ADR-0014).
-    if (confidence === "low" && suppressLowConfidence && !isGem) continue;
+    if (confidence === 'low' && suppressLowConfidence && !isGem) continue;
     items.push({
       key,
       artist: agg.artist,
@@ -250,7 +233,7 @@ export function computeWorklist(input: {
   // reason it bypasses suppression above. Within a tier, by best rank then
   // key for stability.
   const confidenceWeight = (item: WorklistItem) =>
-    item.confidence === "low" && !item.isGem ? 1 : 0;
+    item.confidence === 'low' && !item.isGem ? 1 : 0;
   return items.sort(
     (a, b) =>
       confidenceWeight(a) - confidenceWeight(b) ||

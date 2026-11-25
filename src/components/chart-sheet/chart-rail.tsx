@@ -1,16 +1,11 @@
-"use client";
+'use client';
 
-import type { KeyboardEvent as ReactKeyboardEvent } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 
-import { SONGS_CHART, type ChartRef } from "@/lib/chart-ref";
-import type { Playlist } from "@/lib/chart-schema";
+import { SONGS_CHART, type ChartRef } from '@/lib/chart-ref';
+import type { Playlist } from '@/lib/chart-schema';
 
-import {
-  CHART_PANEL_ID,
-  SONGS_CHART_LABEL,
-  chartTabId,
-  focusAlongTabs,
-} from "./chart-tabs";
+import { CHART_PANEL_ID, SONGS_CHART_LABEL, chartTabId, focusAlongTabs } from './chart-tabs';
 
 // Closes over nothing, so it is built once rather than per render.
 function handleKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
@@ -43,13 +38,7 @@ export interface ChartRailProps {
  * normalisation rule would fire for a small minority and could not shorten the
  * genuinely long descriptive names anyway.
  */
-export function ChartRail({
-  playlists,
-  current,
-  pending,
-  failed,
-  onOpen,
-}: ChartRailProps) {
+export function ChartRail({ playlists, current, pending, failed, onOpen }: ChartRailProps) {
   // A country with no playlists has nothing to choose between, and the row it
   // would cost is scarce at the smaller snaps.
   if (playlists.length === 0) return null;
@@ -95,11 +84,11 @@ export function ChartRail({
             tabIndex={selected ? 0 : -1}
             title={label}
             onClick={() => onOpen(ref)}
-            className={`focus-visible:outline-aurora rounded-pill text-small max-w-[42vw] shrink-0 truncate border px-3.5 py-1.5 transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-30 ${
+            className={`max-w-[42vw] shrink-0 truncate rounded-pill border px-3.5 py-1.5 text-small transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora disabled:opacity-30 ${
               selected
-                ? "bg-fg-1/15 text-fg-1 border-fg-1/20 font-semibold"
-                : "bg-fg-1/5 text-fg-2 border-fg-1/10"
-            } ${waiting ? "chart-tab-waiting" : ""}`}
+                ? 'border-fg-1/20 bg-fg-1/15 font-semibold text-fg-1'
+                : 'border-fg-1/10 bg-fg-1/5 text-fg-2'
+            } ${waiting ? 'chart-tab-waiting' : ''}`}
           >
             {label}
           </button>

@@ -15,23 +15,22 @@ export function isTap(start: Point, end: Point, maxPx: number): boolean {
   return Math.hypot(dx, dy) <= maxPx;
 }
 
-export type HorizontalThird = "left" | "center" | "right";
+export type HorizontalThird = 'left' | 'center' | 'right';
 
 // Which horizontal third of a `width`-wide viewport the point `x` falls in. The
 // caller treats the side thirds as skip zones (left->prev, right->next) and the
 // center as plain select. Boundaries lean toward the center so the side zones
 // never overrun the middle.
 export function horizontalThird(x: number, width: number): HorizontalThird {
-  if (x < width / 3) return "left";
-  if (x >= (width * 2) / 3) return "right";
-  return "center";
+  if (x < width / 3) return 'left';
+  if (x >= (width * 2) / 3) return 'right';
+  return 'center';
 }
 
 // What a settled tap should do: skip a track, select immediately, or arm the
 // double-tap skip window. A skip needs a preview playing and two empty taps in
 // a side third within `windowMs`; the second tap's side picks the direction.
-export type TapAction =
-  { kind: "skip"; dir: 1 | -1 } | { kind: "select" } | { kind: "armSkip" };
+export type TapAction = { kind: 'skip'; dir: 1 | -1 } | { kind: 'select' } | { kind: 'armSkip' };
 
 // A tap that resolves to a country pin (`hit`) selects with no delay wherever
 // it lands, so a country rendered in a side third is never second-class. The
@@ -50,11 +49,11 @@ export function classifyTap(args: {
 }): TapAction {
   const { listening, region, hit, now, lastEdgeTapAt, windowMs } = args;
 
-  if (hit || !listening || region === "center") return { kind: "select" };
+  if (hit || !listening || region === 'center') return { kind: 'select' };
 
   if (lastEdgeTapAt !== null && now - lastEdgeTapAt <= windowMs) {
-    return { kind: "skip", dir: region === "left" ? -1 : 1 };
+    return { kind: 'skip', dir: region === 'left' ? -1 : 1 };
   }
 
-  return { kind: "armSkip" };
+  return { kind: 'armSkip' };
 }

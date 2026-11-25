@@ -1,28 +1,19 @@
-import { expect, test } from "vitest";
+import { expect, test } from 'vitest';
 
-import type { ChartFile, Country, Track } from "../../src/lib/chart-schema";
-import {
-  commentaryKey,
-  type CommentaryStore,
-} from "../../src/lib/commentary-store";
+import type { ChartFile, Country, Track } from '../../src/lib/chart-schema';
+import { commentaryKey, type CommentaryStore } from '../../src/lib/commentary-store';
+import type { DropsStore } from './drops';
+import { chartConfidence, computeWorklist } from './worklist';
 
-import type { DropsStore } from "./drops";
-import { chartConfidence, computeWorklist } from "./worklist";
-
-function track(
-  rank: number,
-  artist: string,
-  name: string,
-  spread?: number,
-): Track {
+function track(rank: number, artist: string, name: string, spread?: number): Track {
   return {
     rank,
     name,
     artist,
     previewUrl: null,
-    artworkUrl: "https://art/x/600x600bb.jpg",
-    appleUrl: "https://music.apple.com/x/1",
-    spotifyUrl: "https://open.spotify.com/search/x",
+    artworkUrl: 'https://art/x/600x600bb.jpg',
+    appleUrl: 'https://music.apple.com/x/1',
+    spotifyUrl: 'https://open.spotify.com/search/x',
     spread,
   };
 }
@@ -31,28 +22,28 @@ function country(name: string, tracks: Track[]): Country {
   return { name, valid: true, tracks };
 }
 
-function chart(countries: ChartFile["countries"]): ChartFile {
-  return { lastUpdated: "2026-05-16T00:00:00.000Z", countries };
+function chart(countries: ChartFile['countries']): ChartFile {
+  return { lastUpdated: '2026-05-16T00:00:00.000Z', countries };
 }
 
 function storeWith(...keys: string[]): CommentaryStore {
   const store: CommentaryStore = {};
   for (const key of keys) {
     store[key] = {
-      lead: "Already written.",
-      tag: "new entry",
-      claim: "why-charting",
-      sources: ["https://example.com/a"],
-      generatedAt: "2026-05-16T00:00:00.000Z",
+      lead: 'Already written.',
+      tag: 'new entry',
+      claim: 'why-charting',
+      sources: ['https://example.com/a'],
+      generatedAt: '2026-05-16T00:00:00.000Z',
     };
   }
   return store;
 }
 
-test("dedups a track that charts in several countries into one item", () => {
+test('dedups a track that charts in several countries into one item', () => {
   const current = chart({
-    kr: country("South Korea", [track(5, "Artist A", "Song A")]),
-    us: country("United States", [track(3, "Artist A", "Song A")]),
+    kr: country('South Korea', [track(5, 'Artist A', 'Song A')]),
+    us: country('United States', [track(3, 'Artist A', 'Song A')]),
   });
 
   const items = computeWorklist({ current, previous: null, commentary: {} });
@@ -60,31 +51,31 @@ test("dedups a track that charts in several countries into one item", () => {
   expect(items).toHaveLength(1);
   expect(items[0].bestRank).toBe(3);
   expect(items[0].countries).toEqual([
-    { cc: "us", rank: 3 },
-    { cc: "kr", rank: 5 },
+    { cc: 'us', rank: 3 },
+    { cc: 'kr', rank: 5 },
   ]);
 });
 
-test("excludes a track that already has commentary (cache hit)", () => {
+test('excludes a track that already has commentary (cache hit)', () => {
   const current = chart({
-    us: country("United States", [track(1, "Artist A", "Song A")]),
+    us: country('United States', [track(1, 'Artist A', 'Song A')]),
   });
-  const commentary = storeWith(commentaryKey("en", "Artist A", "Song A"));
+  const commentary = storeWith(commentaryKey('en', 'Artist A', 'Song A'));
 
   const items = computeWorklist({ current, previous: null, commentary });
 
   expect(items).toEqual([]);
 });
 
-test("excludes a track that has spent its drop attempts (tombstoned)", () => {
+test('excludes a track that has spent its drop attempts (tombstoned)', () => {
   const current = chart({
-    us: country("United States", [track(1, "Artist A", "Song A")]),
+    us: country('United States', [track(1, 'Artist A', 'Song A')]),
   });
   const drops: DropsStore = {
-    [commentaryKey("en", "Artist A", "Song A")]: {
+    [commentaryKey('en', 'Artist A', 'Song A')]: {
       attempts: 2,
-      reasons: ["tier-consistency"],
-      lastTriedAt: "2026-06-23T00:00:00.000Z",
+      reasons: ['tier-consistency'],
+      lastTriedAt: '2026-06-23T00:00:00.000Z',
     },
   };
 
@@ -98,15 +89,15 @@ test("excludes a track that has spent its drop attempts (tombstoned)", () => {
   expect(items).toEqual([]);
 });
 
-test("still includes a track dropped fewer times than the budget", () => {
+test('still includes a track dropped fewer times than the budget', () => {
   const current = chart({
-    us: country("United States", [track(1, "Artist A", "Song A")]),
+    us: country('United States', [track(1, 'Artist A', 'Song A')]),
   });
   const drops: DropsStore = {
-    [commentaryKey("en", "Artist A", "Song A")]: {
+    [commentaryKey('en', 'Artist A', 'Song A')]: {
       attempts: 1,
-      reasons: ["grounding: thin"],
-      lastTriedAt: "2026-06-23T00:00:00.000Z",
+      reasons: ['grounding: thin'],
+      lastTriedAt: '2026-06-23T00:00:00.000Z',
     },
   };
 
@@ -120,15 +111,15 @@ test("still includes a track dropped fewer times than the budget", () => {
   expect(items).toHaveLength(1);
 });
 
-test("honors a custom maxAttempts budget", () => {
+test('honors a custom maxAttempts budget', () => {
   const current = chart({
-    us: country("United States", [track(1, "Artist A", "Song A")]),
+    us: country('United States', [track(1, 'Artist A', 'Song A')]),
   });
   const drops: DropsStore = {
-    [commentaryKey("en", "Artist A", "Song A")]: {
+    [commentaryKey('en', 'Artist A', 'Song A')]: {
       attempts: 1,
-      reasons: ["no-lyric"],
-      lastTriedAt: "2026-06-23T00:00:00.000Z",
+      reasons: ['no-lyric'],
+      lastTriedAt: '2026-06-23T00:00:00.000Z',
     },
   };
 
@@ -143,82 +134,79 @@ test("honors a custom maxAttempts budget", () => {
   expect(items).toEqual([]);
 });
 
-test("includes a significant track with no commentary yet (cache miss)", () => {
+test('includes a significant track with no commentary yet (cache miss)', () => {
   const current = chart({
-    us: country("United States", [track(1, "Artist A", "Song A")]),
+    us: country('United States', [track(1, 'Artist A', 'Song A')]),
   });
 
   const items = computeWorklist({ current, previous: null, commentary: {} });
 
-  expect(items.map((i) => i.name)).toEqual(["Song A"]);
+  expect(items.map((i) => i.name)).toEqual(['Song A']);
 });
 
-test("without history, keeps only prominently-ranked tracks", () => {
+test('without history, keeps only prominently-ranked tracks', () => {
   const current = chart({
-    us: country("United States", [
-      track(2, "Artist A", "Top Song"),
-      track(18, "Artist B", "Deep Cut"),
+    us: country('United States', [
+      track(2, 'Artist A', 'Top Song'),
+      track(18, 'Artist B', 'Deep Cut'),
     ]),
   });
 
   const items = computeWorklist({ current, previous: null, commentary: {} });
 
-  expect(items.map((i) => i.name)).toEqual(["Top Song"]);
-  expect(items[0].reason).toBe("top-debut");
+  expect(items.map((i) => i.name)).toEqual(['Top Song']);
+  expect(items[0].reason).toBe('top-debut');
 });
 
-test("flags a track absent from the previous snapshot as a new entry", () => {
+test('flags a track absent from the previous snapshot as a new entry', () => {
   const previous = chart({
-    us: country("United States", [track(1, "Artist A", "Song A")]),
+    us: country('United States', [track(1, 'Artist A', 'Song A')]),
   });
   const current = chart({
-    us: country("United States", [
-      track(1, "Artist A", "Song A"),
-      track(2, "Artist B", "Song B"),
-    ]),
+    us: country('United States', [track(1, 'Artist A', 'Song A'), track(2, 'Artist B', 'Song B')]),
   });
-  const commentary = storeWith(commentaryKey("en", "Artist A", "Song A"));
+  const commentary = storeWith(commentaryKey('en', 'Artist A', 'Song A'));
 
   const items = computeWorklist({ current, previous, commentary });
 
-  expect(items.map((i) => i.name)).toEqual(["Song B"]);
-  expect(items[0].reason).toBe("new-entry");
+  expect(items.map((i) => i.name)).toEqual(['Song B']);
+  expect(items[0].reason).toBe('new-entry');
 });
 
-test("flags a large climb as a rank jump", () => {
+test('flags a large climb as a rank jump', () => {
   const previous = chart({
-    us: country("United States", [track(20, "Artist A", "Climber")]),
+    us: country('United States', [track(20, 'Artist A', 'Climber')]),
   });
   const current = chart({
-    us: country("United States", [track(5, "Artist A", "Climber")]),
+    us: country('United States', [track(5, 'Artist A', 'Climber')]),
   });
 
   const items = computeWorklist({ current, previous, commentary: {} });
 
   expect(items).toHaveLength(1);
-  expect(items[0].reason).toBe("rank-jump");
+  expect(items[0].reason).toBe('rank-jump');
 });
 
-test("flags entering the top band from outside it as a top debut", () => {
+test('flags entering the top band from outside it as a top debut', () => {
   const previous = chart({
-    us: country("United States", [track(14, "Artist A", "Riser")]),
+    us: country('United States', [track(14, 'Artist A', 'Riser')]),
   });
   const current = chart({
-    us: country("United States", [track(8, "Artist A", "Riser")]),
+    us: country('United States', [track(8, 'Artist A', 'Riser')]),
   });
 
   const items = computeWorklist({ current, previous, commentary: {} });
 
   expect(items).toHaveLength(1);
-  expect(items[0].reason).toBe("top-debut");
+  expect(items[0].reason).toBe('top-debut');
 });
 
-test("skips a track that holds a stable rank", () => {
+test('skips a track that holds a stable rank', () => {
   const previous = chart({
-    us: country("United States", [track(5, "Artist A", "Steady")]),
+    us: country('United States', [track(5, 'Artist A', 'Steady')]),
   });
   const current = chart({
-    us: country("United States", [track(6, "Artist A", "Steady")]),
+    us: country('United States', [track(6, 'Artist A', 'Steady')]),
   });
 
   const items = computeWorklist({ current, previous, commentary: {} });
@@ -226,12 +214,12 @@ test("skips a track that holds a stable rank", () => {
   expect(items).toEqual([]);
 });
 
-test("ignores tracks from invalid (failed) countries", () => {
+test('ignores tracks from invalid (failed) countries', () => {
   const current = chart({
     us: {
-      name: "United States",
+      name: 'United States',
       valid: false,
-      tracks: [track(1, "Artist A", "Song A")],
+      tracks: [track(1, 'Artist A', 'Song A')],
     },
   });
 
@@ -240,98 +228,98 @@ test("ignores tracks from invalid (failed) countries", () => {
   expect(items).toEqual([]);
 });
 
-test("sorts the worklist by best rank ascending", () => {
+test('sorts the worklist by best rank ascending', () => {
   const current = chart({
-    us: country("United States", [
-      track(9, "Artist A", "Third"),
-      track(1, "Artist B", "First"),
-      track(4, "Artist C", "Second"),
+    us: country('United States', [
+      track(9, 'Artist A', 'Third'),
+      track(1, 'Artist B', 'First'),
+      track(4, 'Artist C', 'Second'),
     ]),
   });
 
   const items = computeWorklist({ current, previous: null, commentary: {} });
 
-  expect(items.map((i) => i.name)).toEqual(["First", "Second", "Third"]);
+  expect(items.map((i) => i.name)).toEqual(['First', 'Second', 'Third']);
 });
 
-test("chartConfidence flags a lone-storefront placement as low", () => {
-  const level = chartConfidence([{ cc: "jp" }]);
+test('chartConfidence flags a lone-storefront placement as low', () => {
+  const level = chartConfidence([{ cc: 'jp' }]);
 
-  expect(level).toBe("low");
+  expect(level).toBe('low');
 });
 
-test("chartConfidence still flags a same-region pair as low (adjacency alone is thin)", () => {
-  const level = chartConfidence([{ cc: "jp" }, { cc: "kr" }]);
+test('chartConfidence still flags a same-region pair as low (adjacency alone is thin)', () => {
+  const level = chartConfidence([{ cc: 'jp' }, { cc: 'kr' }]);
 
-  expect(level).toBe("low");
+  expect(level).toBe('low');
 });
 
-test("chartConfidence trusts a placement reaching across two regions", () => {
-  const level = chartConfidence([{ cc: "jp" }, { cc: "us" }]);
+test('chartConfidence trusts a placement reaching across two regions', () => {
+  const level = chartConfidence([{ cc: 'jp' }, { cc: 'us' }]);
 
-  expect(level).toBe("ok");
+  expect(level).toBe('ok');
 });
 
-test("chartConfidence trusts a broad same-region footprint of three countries", () => {
-  const level = chartConfidence([{ cc: "jp" }, { cc: "kr" }, { cc: "tw" }]);
+test('chartConfidence trusts a broad same-region footprint of three countries', () => {
+  const level = chartConfidence([{ cc: 'jp' }, { cc: 'kr' }, { cc: 'tw' }]);
 
-  expect(level).toBe("ok");
+  expect(level).toBe('ok');
 });
 
-test("flags a thin-market top placement with no breadth as low confidence", () => {
+test('flags a thin-market top placement with no breadth as low confidence', () => {
   const current = chart({
-    jp: country("Japan", [track(1, "Artist A", "Deep Cut")]),
+    jp: country('Japan', [track(1, 'Artist A', 'Deep Cut')]),
   });
 
   const items = computeWorklist({ current, previous: null, commentary: {} });
 
-  expect(items.map((i) => i.name)).toEqual(["Deep Cut"]);
-  expect(items[0].confidence).toBe("low");
+  expect(items.map((i) => i.name)).toEqual(['Deep Cut']);
+  expect(items[0].confidence).toBe('low');
 });
 
-test("flags a placement in two same-region storefronts as low confidence", () => {
+test('flags a placement in two same-region storefronts as low confidence', () => {
   const current = chart({
-    jp: country("Japan", [track(1, "Artist A", "Regional Quirk")]),
-    kr: country("South Korea", [track(2, "Artist A", "Regional Quirk")]),
+    jp: country('Japan', [track(1, 'Artist A', 'Regional Quirk')]),
+    kr: country('South Korea', [track(2, 'Artist A', 'Regional Quirk')]),
   });
 
   const items = computeWorklist({ current, previous: null, commentary: {} });
 
-  expect(items.map((i) => i.name)).toEqual(["Regional Quirk"]);
-  expect(items[0].confidence).toBe("low");
+  expect(items.map((i) => i.name)).toEqual(['Regional Quirk']);
+  expect(items[0].confidence).toBe('low');
 });
 
-test("trusts a genuine broad mover charting across countries", () => {
+test('trusts a genuine broad mover charting across countries', () => {
   const current = chart({
-    us: country("United States", [track(3, "Artist A", "Hit")]),
-    de: country("Germany", [track(5, "Artist A", "Hit")]),
-    kr: country("South Korea", [track(7, "Artist A", "Hit")]),
+    us: country('United States', [track(3, 'Artist A', 'Hit')]),
+    de: country('Germany', [track(5, 'Artist A', 'Hit')]),
+    kr: country('South Korea', [track(7, 'Artist A', 'Hit')]),
   });
 
   const items = computeWorklist({ current, previous: null, commentary: {} });
 
-  expect(items.map((i) => i.name)).toEqual(["Hit"]);
-  expect(items[0].confidence).toBe("ok");
+  expect(items.map((i) => i.name)).toEqual(['Hit']);
+  expect(items[0].confidence).toBe('ok');
 });
 
-test("down-ranks low-confidence items below confident ones by default", () => {
+test('down-ranks low-confidence items below confident ones by default', () => {
   const current = chart({
-    jp: country("Japan", [track(1, "Artist A", "Thin #1")]),
-    us: country("United States", [track(8, "Artist B", "Broad Mover")]),
-    kr: country("South Korea", [track(9, "Artist B", "Broad Mover")]),
+    jp: country('Japan', [track(1, 'Artist A', 'Thin #1')]),
+    us: country('United States', [track(8, 'Artist B', 'Broad Mover')]),
+    kr: country('South Korea', [track(9, 'Artist B', 'Broad Mover')]),
   });
 
   const items = computeWorklist({ current, previous: null, commentary: {} });
 
-  expect(items.map((i) => i.name)).toEqual(["Broad Mover", "Thin #1"]);
-  expect(items.map((i) => i.confidence)).toEqual(["ok", "low"]);
+  expect(items.map((i) => i.name)).toEqual(['Broad Mover', 'Thin #1']);
+  expect(items.map((i) => i.confidence)).toEqual(['ok', 'low']);
 });
 
-test("suppresses low-confidence items entirely when asked", () => {
+test('suppresses low-confidence items entirely when asked', () => {
   const current = chart({
-    jp: country("Japan", [track(1, "Artist A", "Thin #1")]),
-    us: country("United States", [track(8, "Artist B", "Broad Mover")]),
-    kr: country("South Korea", [track(9, "Artist B", "Broad Mover")]),
+    jp: country('Japan', [track(1, 'Artist A', 'Thin #1')]),
+    us: country('United States', [track(8, 'Artist B', 'Broad Mover')]),
+    kr: country('South Korea', [track(9, 'Artist B', 'Broad Mover')]),
   });
 
   const items = computeWorklist({
@@ -341,41 +329,41 @@ test("suppresses low-confidence items entirely when asked", () => {
     options: { suppressLowConfidence: true },
   });
 
-  expect(items.map((i) => i.name)).toEqual(["Broad Mover"]);
+  expect(items.map((i) => i.name)).toEqual(['Broad Mover']);
 });
 
 test("queues a country's stable gem for commentary even with no rank movement", () => {
   const previous = chart({
-    kr: country("South Korea", [
-      track(1, "Artist A", "Local Hit", 1),
-      track(2, "Artist B", "Global Hit", 40),
+    kr: country('South Korea', [
+      track(1, 'Artist A', 'Local Hit', 1),
+      track(2, 'Artist B', 'Global Hit', 40),
     ]),
   });
   const current = chart({
-    kr: country("South Korea", [
-      track(1, "Artist A", "Local Hit", 1),
-      track(2, "Artist B", "Global Hit", 40),
+    kr: country('South Korea', [
+      track(1, 'Artist A', 'Local Hit', 1),
+      track(2, 'Artist B', 'Global Hit', 40),
     ]),
   });
 
   const items = computeWorklist({ current, previous, commentary: {} });
 
-  expect(items.map((i) => i.name)).toEqual(["Local Hit"]);
-  expect(items[0].reason).toBe("local-gem");
+  expect(items.map((i) => i.name)).toEqual(['Local Hit']);
+  expect(items[0].reason).toBe('local-gem');
   expect(items[0].isGem).toBe(true);
 });
 
-test("does not queue a fallback-tier gem picked from a market with no real local track", () => {
+test('does not queue a fallback-tier gem picked from a market with no real local track', () => {
   const previous = chart({
-    kr: country("South Korea", [
-      track(1, "Artist A", "Global A", 40),
-      track(2, "Artist B", "Global B", 38),
+    kr: country('South Korea', [
+      track(1, 'Artist A', 'Global A', 40),
+      track(2, 'Artist B', 'Global B', 38),
     ]),
   });
   const current = chart({
-    kr: country("South Korea", [
-      track(1, "Artist A", "Global A", 40),
-      track(2, "Artist B", "Global B", 38),
+    kr: country('South Korea', [
+      track(1, 'Artist A', 'Global A', 40),
+      track(2, 'Artist B', 'Global B', 38),
     ]),
   });
 
@@ -384,11 +372,11 @@ test("does not queue a fallback-tier gem picked from a market with no real local
   expect(items).toEqual([]);
 });
 
-test("a local-gem bypasses suppressLowConfidence", () => {
+test('a local-gem bypasses suppressLowConfidence', () => {
   const current = chart({
-    jp: country("Japan", [
-      track(1, "Artist A", "Local Hit", 1),
-      track(2, "Artist B", "Global Hit", 40),
+    jp: country('Japan', [
+      track(1, 'Artist A', 'Local Hit', 1),
+      track(2, 'Artist B', 'Global Hit', 40),
     ]),
   });
 
@@ -399,24 +387,20 @@ test("a local-gem bypasses suppressLowConfidence", () => {
     options: { suppressLowConfidence: true },
   });
 
-  expect(items.map((i) => i.name)).toEqual(["Local Hit"]);
+  expect(items.map((i) => i.name)).toEqual(['Local Hit']);
 });
 
-test("a local-gem sorts ahead of similarly thin non-gems despite a worse rank", () => {
+test('a local-gem sorts ahead of similarly thin non-gems despite a worse rank', () => {
   const current = chart({
-    jp: country("Japan", [
-      track(9, "Artist A", "Local Hit", 1),
-      track(1, "Artist B", "Filler", 40),
+    jp: country('Japan', [
+      track(9, 'Artist A', 'Local Hit', 1),
+      track(1, 'Artist B', 'Filler', 40),
     ]),
-    kr: country("South Korea", [track(2, "Artist C", "Thin Mover")]),
+    kr: country('South Korea', [track(2, 'Artist C', 'Thin Mover')]),
   });
 
   const items = computeWorklist({ current, previous: null, commentary: {} });
 
-  expect(items.map((i) => i.name)).toEqual([
-    "Local Hit",
-    "Filler",
-    "Thin Mover",
-  ]);
+  expect(items.map((i) => i.name)).toEqual(['Local Hit', 'Filler', 'Thin Mover']);
   expect(items[0].isGem).toBe(true);
 });

@@ -1,4 +1,4 @@
-import { Vector3 } from "three";
+import { Vector3 } from 'three';
 
 export function latLonToVec3(lat: number, lon: number, r = 1): Vector3 {
   const latR = (lat * Math.PI) / 180;

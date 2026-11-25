@@ -8,15 +8,11 @@ const LANDING_PULSE_MS = 10;
 
 type Vibrator = { vibrate: (pattern: number | number[]) => boolean };
 
-const supportsVibration = (
-  nav: Navigator | undefined,
-): nav is Navigator & Vibrator =>
-  typeof nav !== "undefined" && typeof nav.vibrate === "function";
+const supportsVibration = (nav: Navigator | undefined): nav is Navigator & Vibrator =>
+  typeof nav !== 'undefined' && typeof nav.vibrate === 'function';
 
 export function triggerLandingHaptic(
-  nav: Navigator | undefined = typeof navigator === "undefined"
-    ? undefined
-    : navigator,
+  nav: Navigator | undefined = typeof navigator === 'undefined' ? undefined : navigator,
 ): void {
   if (!supportsVibration(nav)) return;
   nav.vibrate(LANDING_PULSE_MS);

@@ -1,4 +1,4 @@
-import { expect, test, vi } from "vitest";
+import { expect, test, vi } from 'vitest';
 
 import {
   ChartFileSchema,
@@ -6,50 +6,46 @@ import {
   type ChartFile,
   type Country,
   type SongsTailFile,
-} from "../../src/lib/chart-schema";
-import {
-  commentaryKey,
-  type CommentaryStore,
-} from "../../src/lib/commentary-store";
-import type { CountryEntry } from "../../src/lib/countries";
-
-import { AppleRssError, type AppleRssTrack } from "./apple-rss";
-import { ItunesLookupError, type LookupResult } from "./itunes-lookup";
-import type { BatchLookup } from "./lookup-retry";
+} from '../../src/lib/chart-schema';
+import { commentaryKey, type CommentaryStore } from '../../src/lib/commentary-store';
+import type { CountryEntry } from '../../src/lib/countries';
+import { AppleRssError, type AppleRssTrack } from './apple-rss';
+import { ItunesLookupError, type LookupResult } from './itunes-lookup';
+import type { BatchLookup } from './lookup-retry';
 import {
   crawlAll,
   crawlCountry,
   summarizeValidity,
   type CrawlAllDeps,
   type CrawlCountryDeps,
-} from "./run";
-import { SpotifyResolveError } from "./spotify-resolve";
+} from './run';
+import { SpotifyResolveError } from './spotify-resolve';
 
 function sampleRssTracks(): AppleRssTrack[] {
   return [
     {
       rank: 1,
-      id: "1",
-      name: "REDRED",
-      artist: "코르티스",
-      appleUrl: "https://music.apple.com/kr/album/1",
-      artworkUrl: "https://is1-ssl.mzstatic.com/1/600x600bb.jpg",
+      id: '1',
+      name: 'REDRED',
+      artist: '코르티스',
+      appleUrl: 'https://music.apple.com/kr/album/1',
+      artworkUrl: 'https://is1-ssl.mzstatic.com/1/600x600bb.jpg',
     },
     {
       rank: 2,
-      id: "2",
+      id: '2',
       name: "It's Me",
-      artist: "아일릿",
-      appleUrl: "https://music.apple.com/kr/album/2",
-      artworkUrl: "https://is1-ssl.mzstatic.com/2/600x600bb.jpg",
+      artist: '아일릿',
+      appleUrl: 'https://music.apple.com/kr/album/2',
+      artworkUrl: 'https://is1-ssl.mzstatic.com/2/600x600bb.jpg',
     },
     {
       rank: 3,
-      id: "3",
-      name: "TICK TOCK",
-      artist: "BLOCKERS",
-      appleUrl: "https://music.apple.com/kr/album/3",
-      artworkUrl: "https://is1-ssl.mzstatic.com/3/600x600bb.jpg",
+      id: '3',
+      name: 'TICK TOCK',
+      artist: 'BLOCKERS',
+      appleUrl: 'https://music.apple.com/kr/album/3',
+      artworkUrl: 'https://is1-ssl.mzstatic.com/3/600x600bb.jpg',
     },
   ];
 }
@@ -59,25 +55,21 @@ function previewUrlForId(id: string): string {
 }
 
 function resolvedPreviews(ids: readonly string[]): Map<string, LookupResult> {
-  return new Map(
-    ids.map((id) => [id, { id, previewUrl: previewUrlForId(id), genre: null }]),
-  );
+  return new Map(ids.map((id) => [id, { id, previewUrl: previewUrlForId(id), genre: null }]));
 }
 
-function makeCrawlCountryDeps(
-  overrides: Partial<CrawlCountryDeps> = {},
-): CrawlCountryDeps {
+function makeCrawlCountryDeps(overrides: Partial<CrawlCountryDeps> = {}): CrawlCountryDeps {
   const tracks = sampleRssTracks();
   return {
-    cc: "kr",
-    name: "South Korea",
+    cc: 'kr',
+    name: 'South Korea',
     fetchRss: vi.fn(async () => tracks),
     lookupTracks: vi.fn<BatchLookup>(async (ids) => resolvedPreviews(ids)),
     ...overrides,
   };
 }
 
-test("crawlCountry returns valid=true with all tracks on full success", async () => {
+test('crawlCountry returns valid=true with all tracks on full success', async () => {
   const deps = makeCrawlCountryDeps();
 
   const { cc, country } = await crawlCountry(deps);
@@ -88,7 +80,7 @@ test("crawlCountry returns valid=true with all tracks on full success", async ()
   expect(country.tracks).toHaveLength(sampleRssTracks().length);
 });
 
-test("crawlCountry falls back to the search URL when Spotify resolution is unconfigured", async () => {
+test('crawlCountry falls back to the search URL when Spotify resolution is unconfigured', async () => {
   const [firstRss] = sampleRssTracks();
   const deps = makeCrawlCountryDeps();
 
@@ -107,8 +99,8 @@ test("crawlCountry falls back to the search URL when Spotify resolution is uncon
   });
 });
 
-test("crawlCountry stores the resolved track URL when Spotify resolution succeeds", async () => {
-  const resolved = "https://open.spotify.com/track/abc123";
+test('crawlCountry stores the resolved track URL when Spotify resolution succeeds', async () => {
+  const resolved = 'https://open.spotify.com/track/abc123';
   const deps = makeCrawlCountryDeps({
     spotify: {
       resolve: vi.fn(async () => resolved),
@@ -123,7 +115,7 @@ test("crawlCountry stores the resolved track URL when Spotify resolution succeed
 
 test("crawlCountry passes each track's name and artist to the resolver", async () => {
   const [firstRss] = sampleRssTracks();
-  const resolve = vi.fn(async () => "https://open.spotify.com/track/abc123");
+  const resolve = vi.fn(async () => 'https://open.spotify.com/track/abc123');
   const deps = makeCrawlCountryDeps({
     spotify: { resolve, throttle: async (fn) => fn() },
   });
@@ -133,12 +125,12 @@ test("crawlCountry passes each track's name and artist to the resolver", async (
   expect(resolve).toHaveBeenCalledWith(firstRss.name, firstRss.artist);
 });
 
-test("crawlCountry falls back to the search URL on SpotifyResolveError", async () => {
+test('crawlCountry falls back to the search URL on SpotifyResolveError', async () => {
   const [firstRss] = sampleRssTracks();
   const deps = makeCrawlCountryDeps({
     spotify: {
       resolve: vi.fn(async () => {
-        throw new SpotifyResolveError("miss", "no track");
+        throw new SpotifyResolveError('miss', 'no track');
       }),
       throttle: async (fn) => fn(),
     },
@@ -147,14 +139,12 @@ test("crawlCountry falls back to the search URL on SpotifyResolveError", async (
   const { country } = await crawlCountry(deps);
 
   expect(country.tracks[0].spotifyUrl).toBe(
-    `https://open.spotify.com/search/${encodeURIComponent(
-      `${firstRss.name} ${firstRss.artist}`,
-    )}`,
+    `https://open.spotify.com/search/${encodeURIComponent(`${firstRss.name} ${firstRss.artist}`)}`,
   );
 });
 
-test("crawlCountry rethrows a non-SpotifyResolveError from the resolver", async () => {
-  const errorMessage = "unexpected resolve error";
+test('crawlCountry rethrows a non-SpotifyResolveError from the resolver', async () => {
+  const errorMessage = 'unexpected resolve error';
   const deps = makeCrawlCountryDeps({
     spotify: {
       resolve: vi.fn(async () => {
@@ -167,11 +157,11 @@ test("crawlCountry rethrows a non-SpotifyResolveError from the resolver", async 
   await expect(crawlCountry(deps)).rejects.toThrow(errorMessage);
 });
 
-test("crawlCountry routes resolution through the Spotify throttle", async () => {
+test('crawlCountry routes resolution through the Spotify throttle', async () => {
   let spotifyCount = 0;
   const deps = makeCrawlCountryDeps({
     spotify: {
-      resolve: vi.fn(async () => "https://open.spotify.com/track/abc123"),
+      resolve: vi.fn(async () => 'https://open.spotify.com/track/abc123'),
       throttle: async (fn) => {
         spotifyCount += 1;
         return fn();
@@ -184,8 +174,8 @@ test("crawlCountry routes resolution through the Spotify throttle", async () => 
   expect(spotifyCount).toBe(sampleRssTracks().length);
 });
 
-test("crawlCountry inserts a placeholder with previewUrl=null for an id the lookup omits", async () => {
-  const failingId = "2";
+test('crawlCountry inserts a placeholder with previewUrl=null for an id the lookup omits', async () => {
+  const failingId = '2';
   const lookupTracks = vi.fn<BatchLookup>(async (ids) =>
     resolvedPreviews(ids.filter((id) => id !== failingId)),
   );
@@ -205,11 +195,11 @@ test("crawlCountry inserts a placeholder with previewUrl=null for an id the look
   expect(failingTrack?.artworkUrl).toBe(failingRss.artworkUrl);
 });
 
-test("crawlCountry returns valid=false when every lookup fails, keeping the placeholders", async () => {
+test('crawlCountry returns valid=false when every lookup fails, keeping the placeholders', async () => {
   // Zero playable previews means a lookup-host outage, not a real chart:
   // the entry must read as failed so carry-forward can prefer prior data.
   const lookupTracks = vi.fn<BatchLookup>(async (ids, cc) => {
-    throw new ItunesLookupError(ids, cc, "http", "503 Service Unavailable");
+    throw new ItunesLookupError(ids, cc, 'http', '503 Service Unavailable');
   });
   const deps = makeCrawlCountryDeps({ lookupTracks });
 
@@ -220,9 +210,9 @@ test("crawlCountry returns valid=false when every lookup fails, keeping the plac
   expect(country.tracks.every((t) => t.previewUrl === null)).toBe(true);
 });
 
-test("crawlCountry returns valid=false with empty tracks when RSS throws AppleRssError", async () => {
+test('crawlCountry returns valid=false with empty tracks when RSS throws AppleRssError', async () => {
   const fetchRss = vi.fn(async () => {
-    throw new AppleRssError("kr", "503 Service Unavailable");
+    throw new AppleRssError('kr', '503 Service Unavailable');
   });
   const deps = makeCrawlCountryDeps({ fetchRss });
 
@@ -233,8 +223,8 @@ test("crawlCountry returns valid=false with empty tracks when RSS throws AppleRs
   expect(country.name).toBe(deps.name);
 });
 
-test("crawlCountry rethrows non-AppleRssError from fetchRss", async () => {
-  const errorMessage = "unexpected rss error";
+test('crawlCountry rethrows non-AppleRssError from fetchRss', async () => {
+  const errorMessage = 'unexpected rss error';
   const deps = makeCrawlCountryDeps({
     fetchRss: vi.fn(async () => {
       throw new TypeError(errorMessage);
@@ -246,8 +236,8 @@ test("crawlCountry rethrows non-AppleRssError from fetchRss", async () => {
   await expect(promise).rejects.toThrow(errorMessage);
 });
 
-test("crawlCountry rethrows non-ItunesLookupError from lookupTracks", async () => {
-  const errorMessage = "unexpected lookup error";
+test('crawlCountry rethrows non-ItunesLookupError from lookupTracks', async () => {
+  const errorMessage = 'unexpected lookup error';
   const deps = makeCrawlCountryDeps({
     lookupTracks: vi.fn(async () => {
       throw new TypeError(errorMessage);
@@ -259,8 +249,8 @@ test("crawlCountry rethrows non-ItunesLookupError from lookupTracks", async () =
   await expect(promise).rejects.toThrow(errorMessage);
 });
 
-const FROZEN_NOW = new Date("2026-05-15T12:00:00.000Z");
-const BLOB_URL = "https://blob/charts/v1/charts.json";
+const FROZEN_NOW = new Date('2026-05-15T12:00:00.000Z');
+const BLOB_URL = 'https://blob/charts/v1/charts.json';
 
 /** A storefront ranking `count` songs, for splitting the eager rows from the tail. */
 function deepRssFor(cc: string, count: number): AppleRssTrack[] {
@@ -287,10 +277,7 @@ function fakeRssFor(cc: string): AppleRssTrack[] {
   ];
 }
 
-function countryPreviews(
-  ids: readonly string[],
-  cc: string,
-): Map<string, LookupResult> {
+function countryPreviews(ids: readonly string[], cc: string): Map<string, LookupResult> {
   return new Map(
     ids.map((id) => [
       id,
@@ -344,25 +331,25 @@ function makeCrawlAllDeps(input: {
 function commentaryEntry(lead: string) {
   return {
     lead,
-    tag: "new entry",
-    claim: "why-charting" as const,
-    sources: ["https://example.com/a"],
-    generatedAt: "2026-05-15T00:00:00.000Z",
+    tag: 'new entry',
+    claim: 'why-charting' as const,
+    sources: ['https://example.com/a'],
+    generatedAt: '2026-05-15T00:00:00.000Z',
   };
 }
 
 const KR: CountryEntry = {
-  code: "kr",
-  name: "South Korea",
-  region: "Asia",
+  code: 'kr',
+  name: 'South Korea',
+  region: 'Asia',
   lat: 37.5683,
   lon: 126.9978,
   isoNum: 410,
 };
 const NG: CountryEntry = {
-  code: "ng",
-  name: "Nigeria",
-  region: "Africa",
+  code: 'ng',
+  name: 'Nigeria',
+  region: 'Africa',
   lat: 9.0853,
   lon: 7.5314,
   isoNum: 566,
@@ -384,34 +371,31 @@ function priorCountry(name: string, trackCount: number): Country {
   };
 }
 
-function previousChartFile(countries: ChartFile["countries"]): ChartFile {
-  return { lastUpdated: "2026-05-14T12:00:00.000Z", countries };
+function previousChartFile(countries: ChartFile['countries']): ChartFile {
+  return { lastUpdated: '2026-05-14T12:00:00.000Z', countries };
 }
 
-function failRssFor(
-  failingCode: string,
-): (cc: string) => Promise<AppleRssTrack[]> {
+function failRssFor(failingCode: string): (cc: string) => Promise<AppleRssTrack[]> {
   return vi.fn(async (cc: string) => {
-    if (cc === failingCode)
-      throw new AppleRssError(cc, "500 Internal Server Error");
+    if (cc === failingCode) throw new AppleRssError(cc, '500 Internal Server Error');
     return fakeRssFor(cc);
   });
 }
 
-test("crawlAll assembles a valid ChartFile, uploads once, and revalidates once", async () => {
+test('crawlAll assembles a valid ChartFile, uploads once, and revalidates once', async () => {
   const countries: CountryEntry[] = [
     {
-      code: "kr",
-      name: "South Korea",
-      region: "Asia",
+      code: 'kr',
+      name: 'South Korea',
+      region: 'Asia',
       lat: 37.5683,
       lon: 126.9978,
       isoNum: 410,
     },
     {
-      code: "us",
-      name: "United States",
-      region: "Americas",
+      code: 'us',
+      name: 'United States',
+      region: 'Americas',
       lat: 38.9015,
       lon: -77.0114,
       isoNum: 840,
@@ -436,21 +420,21 @@ test("crawlAll assembles a valid ChartFile, uploads once, and revalidates once",
 });
 
 test("crawlAll publishes whatever succeeded when one country's RSS fails", async () => {
-  const failingCode = "ng";
-  const successCode = "kr";
+  const failingCode = 'ng';
+  const successCode = 'kr';
   const countries: CountryEntry[] = [
     {
       code: successCode,
-      name: "South Korea",
-      region: "Asia",
+      name: 'South Korea',
+      region: 'Asia',
       lat: 37.5683,
       lon: 126.9978,
       isoNum: 410,
     },
     {
       code: failingCode,
-      name: "Nigeria",
-      region: "Africa",
+      name: 'Nigeria',
+      region: 'Africa',
       lat: 9.0853,
       lon: 7.5314,
       isoNum: 566,
@@ -458,7 +442,7 @@ test("crawlAll publishes whatever succeeded when one country's RSS fails", async
   ];
   const fetchRss = vi.fn(async (cc: string) => {
     if (cc === failingCode) {
-      throw new AppleRssError(cc, "503 Service Unavailable");
+      throw new AppleRssError(cc, '503 Service Unavailable');
     }
     return fakeRssFor(cc);
   });
@@ -476,7 +460,7 @@ test("crawlAll publishes whatever succeeded when one country's RSS fails", async
   expect(deps.triggerRevalidate).toHaveBeenCalledTimes(1);
 });
 
-test("crawlAll carries forward the previous entry when a country fails but prior data exists", async () => {
+test('crawlAll carries forward the previous entry when a country fails but prior data exists', async () => {
   const priorNg = priorCountry(NG.name, 3);
   const fetchPrevious = vi.fn(async () => previousChartFile({ ng: priorNg }));
   const deps = makeCrawlAllDeps({
@@ -495,8 +479,7 @@ test("crawlAll carries forward the previous entry when a country fails but prior
 test("crawlAll carries forward the previous entry when a country's lookups all fail", async () => {
   const priorNg = priorCountry(NG.name, 3);
   const failNgLookups = vi.fn<BatchLookup>(async (ids, cc) => {
-    if (cc === NG.code)
-      throw new ItunesLookupError(ids, cc, "http", "503 Service Unavailable");
+    if (cc === NG.code) throw new ItunesLookupError(ids, cc, 'http', '503 Service Unavailable');
     return countryPreviews(ids, cc);
   });
   const deps = makeCrawlAllDeps({
@@ -512,10 +495,9 @@ test("crawlAll carries forward the previous entry when a country's lookups all f
   expect(result.carriedCodes).toEqual([NG.code]);
 });
 
-test("crawlAll publishes a zero-playable country as invalid when no prior data exists", async () => {
+test('crawlAll publishes a zero-playable country as invalid when no prior data exists', async () => {
   const failNgLookups = vi.fn<BatchLookup>(async (ids, cc) => {
-    if (cc === NG.code)
-      throw new ItunesLookupError(ids, cc, "http", "503 Service Unavailable");
+    if (cc === NG.code) throw new ItunesLookupError(ids, cc, 'http', '503 Service Unavailable');
     return countryPreviews(ids, cc);
   });
   const deps = makeCrawlAllDeps({
@@ -526,22 +508,20 @@ test("crawlAll publishes a zero-playable country as invalid when no prior data e
   const result = await crawlAll(deps);
 
   expect(result.chartFile.countries.ng.valid).toBe(false);
-  expect(result.chartFile.countries.ng.tracks).toHaveLength(
-    fakeRssFor(NG.code).length,
-  );
+  expect(result.chartFile.countries.ng.tracks).toHaveLength(fakeRssFor(NG.code).length);
   expect(result.carriedCodes).toEqual([]);
 });
 
-test("crawlAll snapshots the outgoing charts before overwriting them", async () => {
+test('crawlAll snapshots the outgoing charts before overwriting them', async () => {
   // Order is the invariant: once the in-place overwrite runs, the outgoing
   // payload is unrecoverable and the movement diff loses a generation.
   const events: string[] = [];
   const previous = previousChartFile({ kr: priorCountry(KR.name, 2) });
   const uploadPrevious = vi.fn(async () => {
-    events.push("snapshot");
+    events.push('snapshot');
   });
   const uploadCharts = vi.fn(async () => {
-    events.push("publish");
+    events.push('publish');
     return BLOB_URL;
   });
   const deps = makeCrawlAllDeps({
@@ -554,10 +534,10 @@ test("crawlAll snapshots the outgoing charts before overwriting them", async () 
   await crawlAll(deps);
 
   expect(uploadPrevious).toHaveBeenCalledWith(previous);
-  expect(events).toEqual(["snapshot", "publish"]);
+  expect(events).toEqual(['snapshot', 'publish']);
 });
 
-test("crawlAll skips the snapshot when no previous payload exists", async () => {
+test('crawlAll skips the snapshot when no previous payload exists', async () => {
   const uploadPrevious = vi.fn(async () => {});
   const deps = makeCrawlAllDeps({
     countries: [KR],
@@ -571,7 +551,7 @@ test("crawlAll skips the snapshot when no previous payload exists", async () => 
   expect(deps.uploadCharts).toHaveBeenCalledTimes(1);
 });
 
-test("crawlAll keeps a failed country invalid when fetchPrevious returns null", async () => {
+test('crawlAll keeps a failed country invalid when fetchPrevious returns null', async () => {
   const deps = makeCrawlAllDeps({
     countries: [KR, NG],
     fetchRss: failRssFor(NG.code),
@@ -584,10 +564,8 @@ test("crawlAll keeps a failed country invalid when fetchPrevious returns null", 
   expect(result.chartFile.countries.ng.tracks).toEqual([]);
 });
 
-test("crawlAll keeps a failed country invalid when the previous payload lacks it", async () => {
-  const fetchPrevious = vi.fn(async () =>
-    previousChartFile({ kr: priorCountry(KR.name, 2) }),
-  );
+test('crawlAll keeps a failed country invalid when the previous payload lacks it', async () => {
+  const fetchPrevious = vi.fn(async () => previousChartFile({ kr: priorCountry(KR.name, 2) }));
   const deps = makeCrawlAllDeps({
     countries: [KR, NG],
     fetchRss: failRssFor(NG.code),
@@ -600,11 +578,9 @@ test("crawlAll keeps a failed country invalid when the previous payload lacks it
   expect(result.chartFile.countries.ng.tracks).toEqual([]);
 });
 
-test("crawlAll does not carry forward a previous entry that was itself empty", async () => {
+test('crawlAll does not carry forward a previous entry that was itself empty', async () => {
   const emptyPriorNg: Country = { name: NG.name, valid: false, tracks: [] };
-  const fetchPrevious = vi.fn(async () =>
-    previousChartFile({ ng: emptyPriorNg }),
-  );
+  const fetchPrevious = vi.fn(async () => previousChartFile({ ng: emptyPriorNg }));
   const deps = makeCrawlAllDeps({
     countries: [KR, NG],
     fetchRss: failRssFor(NG.code),
@@ -617,23 +593,23 @@ test("crawlAll does not carry forward a previous entry that was itself empty", a
   expect(result.chartFile.countries.ng.tracks).toEqual([]);
 });
 
-test("summarizeValidity reports total, valid count, and the invalid codes", async () => {
+test('summarizeValidity reports total, valid count, and the invalid codes', async () => {
   const chartFile = previousChartFile({
-    kr: priorCountry("South Korea", 2),
-    ng: { name: "Nigeria", valid: false, tracks: [] },
-    us: priorCountry("United States", 1),
+    kr: priorCountry('South Korea', 2),
+    ng: { name: 'Nigeria', valid: false, tracks: [] },
+    us: priorCountry('United States', 1),
   });
 
   const summary = summarizeValidity(chartFile);
 
-  expect(summary).toEqual({ total: 3, validCount: 2, invalidCodes: ["ng"] });
+  expect(summary).toEqual({ total: 3, validCount: 2, invalidCodes: ['ng'] });
 });
 
-test("crawlAll bakes spread as the count of countries whose chart contains a matching track", async () => {
+test('crawlAll bakes spread as the count of countries whose chart contains a matching track', async () => {
   const US: CountryEntry = {
-    code: "us",
-    name: "United States",
-    region: "Americas",
+    code: 'us',
+    name: 'United States',
+    region: 'Americas',
     lat: 38.9015,
     lon: -77.0114,
     isoNum: 840,
@@ -641,21 +617,21 @@ test("crawlAll bakes spread as the count of countries whose chart contains a mat
   const sharedTrack = (cc: string): AppleRssTrack => ({
     rank: 1,
     id: `${cc}-shared`,
-    name: "Shared Song",
-    artist: "Shared Artist",
+    name: 'Shared Song',
+    artist: 'Shared Artist',
     appleUrl: `https://music.apple.com/${cc}/album/1?i=999999`,
     artworkUrl: `https://is1-ssl.mzstatic.com/${cc}/1/600x600bb.jpg`,
   });
   const onlyKrTrack: AppleRssTrack = {
     rank: 2,
-    id: "kr-only",
-    name: "KR Only Song",
-    artist: "KR Only Artist",
-    appleUrl: "https://music.apple.com/kr/album/2?i=111111",
-    artworkUrl: "https://is1-ssl.mzstatic.com/kr/2/600x600bb.jpg",
+    id: 'kr-only',
+    name: 'KR Only Song',
+    artist: 'KR Only Artist',
+    appleUrl: 'https://music.apple.com/kr/album/2?i=111111',
+    artworkUrl: 'https://is1-ssl.mzstatic.com/kr/2/600x600bb.jpg',
   };
   const fetchRss = vi.fn(async (cc: string) =>
-    cc === "kr" ? [sharedTrack(cc), onlyKrTrack] : [sharedTrack(cc)],
+    cc === 'kr' ? [sharedTrack(cc), onlyKrTrack] : [sharedTrack(cc)],
   );
   const deps = makeCrawlAllDeps({ countries: [KR, NG, US], fetchRss });
 
@@ -667,10 +643,10 @@ test("crawlAll bakes spread as the count of countries whose chart contains a mat
   expect(result.chartFile.countries.kr.tracks[1].spread).toBe(1);
 });
 
-test("crawlAll bakes a matching blurb and sets null on tracks without one", async () => {
-  const krEntry = commentaryEntry("KR blurb.");
+test('crawlAll bakes a matching blurb and sets null on tracks without one', async () => {
+  const krEntry = commentaryEntry('KR blurb.');
   const store: CommentaryStore = {
-    [commentaryKey("en", "kr artist", "kr song")]: krEntry,
+    [commentaryKey('en', 'kr artist', 'kr song')]: krEntry,
   };
   const deps = makeCrawlAllDeps({
     countries: [KR, NG],
@@ -683,7 +659,7 @@ test("crawlAll bakes a matching blurb and sets null on tracks without one", asyn
   expect(result.chartFile.countries.ng.tracks[0].commentary).toBeNull();
 });
 
-test("crawlAll leaves commentary unset when no commentary source is wired", async () => {
+test('crawlAll leaves commentary unset when no commentary source is wired', async () => {
   const deps = makeCrawlAllDeps({ countries: [KR] });
 
   const result = await crawlAll(deps);
@@ -691,7 +667,7 @@ test("crawlAll leaves commentary unset when no commentary source is wired", asyn
   expect(result.chartFile.countries.kr.tracks[0].commentary).toBeUndefined();
 });
 
-test("crawlAll skips the bake and still publishes when commentary yields null", async () => {
+test('crawlAll skips the bake and still publishes when commentary yields null', async () => {
   const deps = makeCrawlAllDeps({
     countries: [KR],
     fetchCommentary: vi.fn(async () => null),
@@ -703,20 +679,20 @@ test("crawlAll skips the bake and still publishes when commentary yields null", 
   expect(deps.uploadCharts).toHaveBeenCalledTimes(1);
 });
 
-test("crawlAll clears a stale blurb carried forward from a failed country", async () => {
+test('crawlAll clears a stale blurb carried forward from a failed country', async () => {
   const stalePriorNg: Country = {
     name: NG.name,
     valid: true,
     tracks: [
       {
         rank: 1,
-        name: "ng song",
-        artist: "ng artist",
+        name: 'ng song',
+        artist: 'ng artist',
         previewUrl: null,
-        artworkUrl: "https://is1-ssl.mzstatic.com/art/1/600x600bb.jpg",
-        appleUrl: "https://music.apple.com/prior/1",
-        spotifyUrl: "https://open.spotify.com/search/prior1",
-        commentary: commentaryEntry("stale blurb."),
+        artworkUrl: 'https://is1-ssl.mzstatic.com/art/1/600x600bb.jpg',
+        appleUrl: 'https://music.apple.com/prior/1',
+        spotifyUrl: 'https://open.spotify.com/search/prior1',
+        commentary: commentaryEntry('stale blurb.'),
       },
     ],
   };
@@ -732,7 +708,7 @@ test("crawlAll clears a stale blurb carried forward from a failed country", asyn
   expect(result.chartFile.countries.ng.tracks[0].commentary).toBeNull();
 });
 
-test("crawlCountry reports how many ids it asked about against how many resolved", async () => {
+test('crawlCountry reports how many ids it asked about against how many resolved', async () => {
   const deps = makeCrawlCountryDeps();
 
   const { lookups } = await crawlCountry(deps);
@@ -743,8 +719,8 @@ test("crawlCountry reports how many ids it asked about against how many resolved
   });
 });
 
-test("crawlCountry counts an id the lookup omitted as requested but unresolved", async () => {
-  const missing = "2";
+test('crawlCountry counts an id the lookup omitted as requested but unresolved', async () => {
+  const missing = '2';
   const deps = makeCrawlCountryDeps({
     lookupTracks: vi.fn<BatchLookup>(async (ids) =>
       resolvedPreviews(ids.filter((id) => id !== missing)),
@@ -756,10 +732,10 @@ test("crawlCountry counts an id the lookup omitted as requested but unresolved",
   expect(lookups.resolved).toBe(lookups.requested - 1);
 });
 
-test("crawlCountry reports no lookups when the RSS fetch failed", async () => {
+test('crawlCountry reports no lookups when the RSS fetch failed', async () => {
   const deps = makeCrawlCountryDeps({
     fetchRss: vi.fn(async (cc: string) => {
-      throw new AppleRssError(cc, "503 Service Unavailable");
+      throw new AppleRssError(cc, '503 Service Unavailable');
     }),
   });
 
@@ -768,7 +744,7 @@ test("crawlCountry reports no lookups when the RSS fetch failed", async () => {
   expect(lookups).toEqual({ requested: 0, resolved: 0 });
 });
 
-test("crawlAll sums the lookup tally across countries", async () => {
+test('crawlAll sums the lookup tally across countries', async () => {
   const deps = makeCrawlAllDeps({ countries: [KR, NG] });
 
   const result = await crawlAll(deps);
@@ -777,7 +753,7 @@ test("crawlAll sums the lookup tally across countries", async () => {
   expect(result.lookups).toEqual({ requested: 2, resolved: 2 });
 });
 
-test("keeps the eager rows in the payload and publishes the rest separately", async () => {
+test('keeps the eager rows in the payload and publishes the rest separately', async () => {
   const uploadSongsTail = vi.fn(async (_file: SongsTailFile) => {});
   const deps = makeCrawlAllDeps({
     countries: [KR],
@@ -799,7 +775,7 @@ test("keeps the eager rows in the payload and publishes the rest separately", as
   expect(tail.tracks.at(-1)?.rank).toBe(40);
 });
 
-test("publishes an empty tail for a country that ranks no deeper than the payload", async () => {
+test('publishes an empty tail for a country that ranks no deeper than the payload', async () => {
   const uploadSongsTail = vi.fn(async (_file: SongsTailFile) => {});
   const deps = makeCrawlAllDeps({
     countries: [KR],
@@ -809,23 +785,19 @@ test("publishes an empty tail for a country that ranks no deeper than the payloa
 
   const result = await crawlAll(deps);
 
-  expect(result.chartFile.countries[KR.code].tracks).toHaveLength(
-    EAGER_TRACK_COUNT,
-  );
+  expect(result.chartFile.countries[KR.code].tracks).toHaveLength(EAGER_TRACK_COUNT);
   // Written rather than skipped: an earlier run's rows are still in the store,
   // and a reader finding them would take them as this chart's.
   expect(uploadSongsTail).toHaveBeenCalledTimes(1);
   expect(uploadSongsTail.mock.calls[0][0].tracks).toEqual([]);
 });
 
-test("writes no tail for a country carried forward from an earlier run", async () => {
+test('writes no tail for a country carried forward from an earlier run', async () => {
   const uploadSongsTail = vi.fn(async (_file: SongsTailFile) => {});
   const deps = makeCrawlAllDeps({
     countries: [KR, NG],
     fetchRss: failRssFor(NG.code),
-    fetchPrevious: vi.fn(async () =>
-      previousChartFile({ ng: priorCountry(NG.name, 3) }),
-    ),
+    fetchPrevious: vi.fn(async () => previousChartFile({ ng: priorCountry(NG.name, 3) })),
     uploadSongsTail,
   });
 
@@ -834,12 +806,10 @@ test("writes no tail for a country carried forward from an earlier run", async (
   // Its chart is the earlier run's, so the tail that run left still belongs to
   // the rows the payload carries; an empty write would drop rows still current.
   expect(result.carriedCodes).toEqual([NG.code]);
-  expect(uploadSongsTail.mock.calls.map((call) => call[0].code)).toEqual([
-    KR.code,
-  ]);
+  expect(uploadSongsTail.mock.calls.map((call) => call[0].code)).toEqual([KR.code]);
 });
 
-test("publishes an empty tail for a chart that no longer ranks past the payload", async () => {
+test('publishes an empty tail for a chart that no longer ranks past the payload', async () => {
   const uploadSongsTail = vi.fn(async (_file: SongsTailFile) => {});
   const deps = makeCrawlAllDeps({
     countries: [KR],
@@ -852,18 +822,18 @@ test("publishes an empty tail for a chart that no longer ranks past the payload"
   expect(uploadSongsTail.mock.calls[0][0].tracks).toEqual([]);
 });
 
-test("counts spread across the whole chart, not only the eager rows", async () => {
-  const shared = "shared song";
+test('counts spread across the whole chart, not only the eager rows', async () => {
+  const shared = 'shared song';
   const rssWithSharedDeepTrack = (cc: string): AppleRssTrack[] => {
     const tracks = deepRssFor(cc, 30);
     // The same song sits deep in one country and deep in the other, so it is
     // only visible to spread if the counting reaches past the eager rows.
     tracks[29] = {
       ...tracks[29],
-      id: "shared-id",
+      id: 'shared-id',
       name: shared,
-      artist: "shared artist",
-      appleUrl: "https://music.apple.com/xx/album/shared?i=999",
+      artist: 'shared artist',
+      appleUrl: 'https://music.apple.com/xx/album/shared?i=999',
     };
     return tracks;
   };
@@ -880,15 +850,15 @@ test("counts spread across the whole chart, not only the eager rows", async () =
   expect(tail.at(-1)?.spread).toBe(2);
 });
 
-test("publishes no charts when a songs tail fails to upload", async () => {
+test('publishes no charts when a songs tail fails to upload', async () => {
   const deps = makeCrawlAllDeps({
     countries: [KR],
     fetchRss: vi.fn(async (cc) => deepRssFor(cc, 40)),
     uploadSongsTail: vi.fn(async () => {
-      throw new Error("tail write failed");
+      throw new Error('tail write failed');
     }),
   });
 
-  await expect(crawlAll(deps)).rejects.toThrow("tail write failed");
+  await expect(crawlAll(deps)).rejects.toThrow('tail write failed');
   expect(deps.uploadCharts).not.toHaveBeenCalled();
 });

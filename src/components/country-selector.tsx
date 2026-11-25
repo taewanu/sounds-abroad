@@ -1,22 +1,16 @@
-"use client";
+'use client';
 
-import { useId, useRef, useState } from "react";
+import { useId, useRef, useState } from 'react';
 
-import { ESCAPE_LAYER, useEscapeLayer } from "@/components/use-escape-layer";
-import { countryPath } from "@/lib/chart-url";
-import { COUNTRIES } from "@/lib/countries";
-import { countryByCode } from "@/lib/country-code";
-import { globeChartStore, useGlobeChart } from "@/lib/globe-chart-store";
+import { ESCAPE_LAYER, useEscapeLayer } from '@/components/use-escape-layer';
+import { countryPath } from '@/lib/chart-url';
+import { COUNTRIES } from '@/lib/countries';
+import { countryByCode } from '@/lib/country-code';
+import { globeChartStore, useGlobeChart } from '@/lib/globe-chart-store';
 
 // Group the grid by continent, west-to-east so it mirrors the globe's eastward
 // spin; alphabetical within each region.
-const REGION_ORDER = [
-  "Americas",
-  "Europe",
-  "Africa",
-  "Asia",
-  "Oceania",
-] as const;
+const REGION_ORDER = ['Americas', 'Europe', 'Africa', 'Asia', 'Oceania'] as const;
 
 const COUNTRIES_BY_REGION = REGION_ORDER.map((region) => ({
   region,
@@ -29,11 +23,8 @@ const COUNTRIES_BY_REGION = REGION_ORDER.map((region) => ({
 // country name carries the meaning); degrades to the letter pair on platforms
 // without flag glyphs (e.g. Windows).
 function flagEmoji(code: string): string {
-  const offset = 0x1f1e6 - "a".charCodeAt(0);
-  return String.fromCodePoint(
-    code.charCodeAt(0) + offset,
-    code.charCodeAt(1) + offset,
-  );
+  const offset = 0x1f1e6 - 'a'.charCodeAt(0);
+  return String.fromCodePoint(code.charCodeAt(0) + offset, code.charCodeAt(1) + offset);
 }
 
 // A keyboard- and screen-reader-first way to pick a country, equal to the globe
@@ -53,7 +44,7 @@ export function CountrySelector() {
   const readMode = useGlobeChart((s) => s.readMode);
 
   const [open, setOpen] = useState(false);
-  const [announcement, setAnnouncement] = useState("");
+  const [announcement, setAnnouncement] = useState('');
   const toggleRef = useRef<HTMLButtonElement>(null);
   const navId = useId();
 
@@ -74,7 +65,7 @@ export function CountrySelector() {
     // to a settle that lands where it already was. Writing history before the
     // store keeps back working whatever the store's listeners do.
     if (code !== currentCode) {
-      window.history.pushState(null, "", countryPath(code));
+      window.history.pushState(null, '', countryPath(code));
     }
     // The store reaches the layout globe, whose useSearchParams cannot see this.
     globeChartStore.getState().setSelectedCountry(code);
@@ -106,12 +97,11 @@ export function CountrySelector() {
         inert={readMode}
         data-testid="country-toggle-region"
         style={{
-          transform:
-            "translateY(calc(var(--sheet-cover, 0) * var(--badge-recede-rise, -64px)))",
-          opacity: "calc(1 - var(--sheet-cover, 0))",
+          transform: 'translateY(calc(var(--sheet-cover, 0) * var(--badge-recede-rise, -64px)))',
+          opacity: 'calc(1 - var(--sheet-cover, 0))',
         }}
         className={`fixed top-[max(env(safe-area-inset-top),16px)] left-4 z-40 ${
-          readMode ? "pointer-events-none" : ""
+          readMode ? 'pointer-events-none' : ''
         }`}
       >
         <button
@@ -121,22 +111,18 @@ export function CountrySelector() {
           aria-expanded={listOpen}
           aria-controls={navId}
           aria-label={
-            current
-              ? `Choose a country, currently showing ${current.name}`
-              : "Choose a country"
+            current ? `Choose a country, currently showing ${current.name}` : 'Choose a country'
           }
-          className="bg-void/85 border-aurora/70 text-fg-1 text-small focus-visible:outline-aurora flex max-w-[60vw] items-center gap-2 rounded-full border px-3.5 py-2.5 font-medium backdrop-blur-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+          className="flex max-w-[60vw] items-center gap-2 rounded-full border border-aurora/70 bg-void/85 px-3.5 py-2.5 text-small font-medium text-fg-1 backdrop-blur-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora"
         >
           <span aria-hidden="true" className="text-base leading-none">
-            {current ? flagEmoji(current.code) : "🌐"}
+            {current ? flagEmoji(current.code) : '🌐'}
           </span>
-          <span className="min-w-0 truncate">
-            {current ? current.name : "Countries"}
-          </span>
+          <span className="min-w-0 truncate">{current ? current.name : 'Countries'}</span>
           <span
             aria-hidden="true"
             className={`text-fg-3 transition-transform duration-200 ${
-              listOpen ? "rotate-180" : ""
+              listOpen ? 'rotate-180' : ''
             }`}
           >
             ▾
@@ -147,32 +133,27 @@ export function CountrySelector() {
           id={navId}
           aria-label="Countries"
           hidden={!listOpen}
-          className="bg-night/95 border-fg-1/10 absolute top-[calc(100%+8px)] left-0 flex max-h-[58vh] w-[min(86vw,360px)] flex-col overflow-hidden rounded-2xl border shadow-lg backdrop-blur-lg"
+          className="absolute top-[calc(100%+8px)] left-0 flex max-h-[58vh] w-[min(86vw,360px)] flex-col overflow-hidden rounded-2xl border border-fg-1/10 bg-night/95 shadow-lg backdrop-blur-lg"
         >
-          <div className="border-fg-1/10 flex flex-none items-center justify-between border-b px-3 py-2">
-            <span className="text-fg-3 text-[10px] font-medium tracking-wider uppercase">
+          <div className="flex flex-none items-center justify-between border-b border-fg-1/10 px-3 py-2">
+            <span className="text-[10px] font-medium tracking-wider text-fg-3 uppercase">
               Jump to a country
             </span>
             <button
               type="button"
               onClick={() => close(true)}
               aria-label="Close country list"
-              className="bg-orbit text-fg-2 hover:text-fg-1 focus-visible:outline-aurora flex h-6 w-6 items-center justify-center rounded-full text-xs leading-none focus-visible:outline-2 focus-visible:outline-offset-1"
+              className="flex h-6 w-6 items-center justify-center rounded-full bg-orbit text-xs leading-none text-fg-2 hover:text-fg-1 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-aurora"
             >
               ✕
             </button>
           </div>
           <div className="overflow-y-auto p-2.5">
             {COUNTRIES_BY_REGION.map(({ region, countries }) => (
-              <div
-                key={region}
-                role="group"
-                aria-label={region}
-                className="mt-3 first:mt-0"
-              >
+              <div key={region} role="group" aria-label={region} className="mt-3 first:mt-0">
                 <p
                   aria-hidden="true"
-                  className="text-aurora px-1 pb-1.5 text-[10px] font-medium tracking-wider uppercase"
+                  className="px-1 pb-1.5 text-[10px] font-medium tracking-wider text-aurora uppercase"
                 >
                   {region}
                 </p>
@@ -182,15 +163,10 @@ export function CountrySelector() {
                       <button
                         type="button"
                         onClick={() => handleSelect(c.code, c.name)}
-                        aria-current={
-                          c.code === currentCode ? "true" : undefined
-                        }
-                        className="border-fg-1/15 bg-dusk text-fg-2 hover:text-fg-1 hover:border-fg-3 focus-visible:outline-aurora aria-[current=true]:border-aurora aria-[current=true]:bg-aurora/10 aria-[current=true]:text-fg-1 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-1"
+                        aria-current={c.code === currentCode ? 'true' : undefined}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-fg-1/15 bg-dusk px-2.5 py-1.5 text-[11px] text-fg-2 transition-colors hover:border-fg-3 hover:text-fg-1 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-aurora aria-[current=true]:border-aurora aria-[current=true]:bg-aurora/10 aria-[current=true]:text-fg-1"
                       >
-                        <span
-                          aria-hidden="true"
-                          className="text-sm leading-none"
-                        >
+                        <span aria-hidden="true" className="text-sm leading-none">
                           {flagEmoji(c.code)}
                         </span>
                         <span className="whitespace-nowrap">{c.name}</span>

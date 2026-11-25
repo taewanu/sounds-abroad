@@ -5,7 +5,7 @@ permissions: {}
 
 on:
   schedule:
-    - cron: "17 4,11,16,22 * * *" # UTC; ADR-0002. Minute off :00 to avoid GH Actions scheduler peak.
+    - cron: '17 4,11,16,22 * * *' # UTC; ADR-0002. Minute off :00 to avoid GH Actions scheduler peak.
   workflow_dispatch:
 
 # A run is long (a large share of its timeout); never cancel an in-flight run

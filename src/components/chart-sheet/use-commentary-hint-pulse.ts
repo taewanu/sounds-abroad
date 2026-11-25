@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from 'react';
 
-import { useTourGateOpen } from "@/components/tour/use-tour-gate-open";
-import { useSeenFlag } from "@/lib/use-seen-flag";
+import { useTourGateOpen } from '@/components/tour/use-tour-gate-open';
+import { useSeenFlag } from '@/lib/use-seen-flag';
 
-import { commentarySeen } from "./seen-commentary-hint";
+import { commentarySeen } from './seen-commentary-hint';
 
 // Wait a beat after the gate opens so the pulse reads as its own moment rather
 // than a continuation of the just-dismissed tour.

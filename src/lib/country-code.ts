@@ -1,8 +1,6 @@
-import { COUNTRIES, type CountryEntry } from "./countries";
+import { COUNTRIES, type CountryEntry } from './countries';
 
-const BY_CODE: ReadonlyMap<string, CountryEntry> = new Map(
-  COUNTRIES.map((c) => [c.code, c]),
-);
+const BY_CODE: ReadonlyMap<string, CountryEntry> = new Map(COUNTRIES.map((c) => [c.code, c]));
 
 const ALL_CODES: ReadonlySet<string> = new Set(BY_CODE.keys());
 
