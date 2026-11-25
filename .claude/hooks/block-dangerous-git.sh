@@ -2,7 +2,6 @@
 
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command')
-CWD=$(echo "$INPUT" | jq -r '.cwd // empty')
 
 # One shell word: quoted parts, command substitutions, escapes and bare characters.
 WORD="((\"[^\"]*\"|'[^']*'|\\\$\\([^)]*\\)|\\\\.|[^[:space:];&|\"'\\\\])+)"
@@ -29,7 +28,7 @@ FORCE="(-[[:alpha:]]*f[[:alpha:]]*|--force)"
 DOT="\.\.?/?( |;|&|\||\)|\$)"
 
 DANGEROUS_PATTERNS=(
-  # These stop pushes that rewrite, delete, or mass-update remote branches, or name main; a push's checkout is checked further down.
+  # These stop pushes that rewrite, delete, or mass-update remote branches, or name main; in this repository, GitHub's ruleset rejects any other push that lands on main.
   "git push $ARGS(-[[:alpha:]]*[df]|--force|--delete|--mirror|--all|\+|:)"
   "git push $ARGS([^ ]*:)?(refs/heads/)?main( |;|&|\||\)|\$)"
   "git reset --hard"
@@ -69,17 +68,10 @@ if echo "$TEXT" | grep -oE "$RESTORE_ALL" | grep -qvE -- " (--staged|-S) "; then
   block "$RESTORE_ALL"
 fi
 
-# Where a push lands depends on the checkout it runs in, so it must run in the one the hook can read, and that one can't be main.
-if echo "$WITHOUT_OPTIONS" | grep -qE "git push"; then
-  if [[ "$WITHOUT_OPTIONS" != "$FLATTENED" ]]; then
-    block "git <global option> push"
-  fi
-  if echo "$FLATTENED" | grep -qE "(^|[;&|( ])cd "; then
-    block "cd before git push"
-  fi
-  if [[ "$(git -C "${CWD:-.}" symbolic-ref --quiet --short HEAD 2>/dev/null)" == "main" ]]; then
-    block "git push from main"
-  fi
+# A config option can turn a plain-looking push into a mirror or force push, so a push may not carry one.
+if echo "$WITHOUT_OPTIONS" | grep -qE "git push" &&
+  echo "$FLATTENED" | grep -qE "(^|[^[:alnum:]_-])git( ($VALUE_OPTION|$ANY_OPTION))* (-c|--config-env)( |=)"; then
+  block "git -c ... push"
 fi
 
 exit 0
