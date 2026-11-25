@@ -1,3 +1,5 @@
+import { matchesGlob } from 'node:path';
+
 import { RuleTester } from 'vite-plus/lint/plugins-dev';
 import { describe, expect, test } from 'vitest';
 
@@ -58,17 +60,21 @@ describe('no-bare-escape', () => {
   });
 });
 
-test('the config enables both rules on src and exempts the escape layer from no-bare-escape', () => {
+test('the config applies both rules to src files and exempts the escape layer from no-bare-escape', () => {
   const overrides = config.lint?.overrides ?? [];
-  const severityFor = (file: string, rule: string) =>
+  const effectiveSeverity = (file: string, rule: string) =>
     overrides
-      .filter((o) => o.files.includes(file) && o.rules && rule in o.rules)
+      .filter((o) => o.files.some((glob) => matchesGlob(file, glob)) && o.rules && rule in o.rules)
       .map((o) => o.rules?.[rule])
       .at(-1);
 
-  expect(severityFor('src/**/*.{ts,tsx}', 'sounds-abroad/no-transition-all')).toBe('error');
-  expect(severityFor('src/**/*.{ts,tsx}', 'sounds-abroad/no-bare-escape')).toBe('error');
-  expect(severityFor('src/components/use-escape-layer.ts', 'sounds-abroad/no-bare-escape')).toBe(
-    'off',
-  );
+  expect(
+    effectiveSeverity('src/components/shuffle-button.tsx', 'sounds-abroad/no-transition-all'),
+  ).toBe('error');
+  expect(
+    effectiveSeverity('src/components/shuffle-button.tsx', 'sounds-abroad/no-bare-escape'),
+  ).toBe('error');
+  expect(
+    effectiveSeverity('src/components/use-escape-layer.ts', 'sounds-abroad/no-bare-escape'),
+  ).toBe('off');
 });
