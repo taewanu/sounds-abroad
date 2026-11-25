@@ -8,7 +8,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "vp lint",
+    "lint": "vp lint --deny-warnings",
     "format": "vp fmt",
     "format:check": "vp fmt --check",
     "typecheck": "tsc --noEmit",

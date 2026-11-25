@@ -54,6 +54,7 @@ export function ChartRail({ playlists, current, pending, failed, onOpen }: Chart
   const active = pending ?? current;
 
   return (
+    // oxlint-disable-next-line jsx-a11y/interactive-supports-focus -- The tabs hold the roving focus and the tablist only hears their bubbled keys.
     <div
       role="tablist"
       aria-label="Charts"

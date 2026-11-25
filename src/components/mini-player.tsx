@@ -105,7 +105,7 @@ export function MiniPlayer({
     ref: titleRef,
     active: titleScrolling,
     style: titleStyle,
-  } = useOverflowMarquee<HTMLSpanElement>({
+  } = useOverflowMarquee({
     enabled: currentTrack !== null,
     text: currentTrack?.name,
   });

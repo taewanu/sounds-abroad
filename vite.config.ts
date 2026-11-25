@@ -22,6 +22,9 @@ export default defineConfig({
       // react.dev eslint-plugin-react-hooks recommended; oxlint files these under pedantic/restriction
       'react/rules-of-hooks': 'error',
       'react/unsupported-syntax': 'error',
+      // eslint-plugin-react-hooks 7.1.1 leaves this off; `exhaustive-deps` already checks for missing dependencies.
+      'react/exhaustive-effect-dependencies': 'off',
+      // eslint-config-next turns this off: the automatic JSX runtime needs no React import.
       'react/react-in-jsx-scope': 'off',
       // Turned back on for test files below; elsewhere it flags prose comments.
       'vitest/no-commented-out-tests': 'off',
@@ -80,10 +83,42 @@ export default defineConfig({
       'vitest/require-to-throw-message': 'off',
       // Packages that re-export dynamically, such as @sentry/nextjs, read as missing names.
       'import/namespace': 'off',
-      // Real findings, but each fix changes markup, so they warn rather than block.
-      'jsx-a11y/prefer-tag-over-role': 'warn',
-      'jsx-a11y/interactive-supports-focus': 'warn',
-      'jsx-a11y/no-noninteractive-element-interactions': 'warn',
+      // eslint-plugin-jsx-a11y 6.10.2 `recommended` options, where Oxlint's defaults differ
+      'jsx-a11y/no-noninteractive-element-interactions': [
+        'error',
+        {
+          handlers: [
+            'onClick',
+            'onError',
+            'onLoad',
+            'onMouseDown',
+            'onMouseUp',
+            'onKeyPress',
+            'onKeyDown',
+            'onKeyUp',
+          ],
+          alert: ['onKeyUp', 'onKeyDown', 'onKeyPress'],
+          body: ['onError', 'onLoad'],
+          dialog: ['onKeyUp', 'onKeyDown', 'onKeyPress'],
+          iframe: ['onError', 'onLoad'],
+          img: ['onError', 'onLoad'],
+        },
+      ],
+      'jsx-a11y/no-static-element-interactions': ['error', { allowExpressionValues: true }],
+      // Outside eslint:recommended, typescript-eslint `recommended-type-checked`, and the react and jsx-a11y
+      // `recommended` presets, and every hit was deliberate.
+      'typescript/consistent-return': 'off',
+      'eslint/no-await-in-loop': 'off',
+      'eslint/no-shadow': 'off',
+      'eslint/no-underscore-dangle': 'off',
+      'eslint/no-unmodified-loop-condition': 'off',
+      'jsx-a11y/prefer-tag-over-role': 'off',
+      'react/no-array-index-key': 'off',
+      'typescript/no-extraneous-class': 'off',
+      'typescript/no-unnecessary-boolean-literal-compare': 'off',
+      'typescript/no-unsafe-type-assertion': 'off',
+      // `toSorted` is ES2023, which some browsers in Next's supported floor lack, so the TypeScript lib stops at ES2022.
+      'unicorn/no-array-sort': 'off',
     },
     overrides: [
       {
@@ -104,6 +139,11 @@ export default defineConfig({
         rules: { 'nextjs/no-img-element': 'off' },
       },
       {
+        // PostHog documents the default import, which is the same client as the named export.
+        files: ['src/lib/analytics.ts', 'src/instrumentation-client.ts'],
+        rules: { 'import/no-named-as-default': 'off' },
+      },
+      {
         // The schema rejects control characters in text on purpose.
         files: ['src/lib/chart-schema.ts'],
         rules: { 'eslint/no-control-regex': 'off' },
@@ -120,11 +160,13 @@ export default defineConfig({
           'vitest/no-mocks-import': 'error',
           'vitest/no-unneeded-async-expect-function': 'error',
           'vitest/prefer-called-exactly-once-with': 'error',
+          // A test's doubles and helpers stay inside the test or describe block that uses them.
+          'unicorn/consistent-function-scoping': 'off',
           // React documents `await act(async () => ...)` even with nothing to await, and async test doubles are the natural stand-in for promise-returning dependencies.
           'typescript/require-await': 'off',
         },
       },
     ],
   },
-  staged: { '*': 'vp check --fix' },
+  staged: { '*': 'vp check --fix --deny-warnings' },
 });
