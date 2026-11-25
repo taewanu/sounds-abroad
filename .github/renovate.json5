@@ -34,6 +34,7 @@
       // three.js can break its API in a minor release and its React bindings and types follow it, so they move as one.
       groupName: "three",
       matchPackageNames: ["three", "@types/three", "@react-three/*"],
+      separateMajorMinor: false,
     },
     {
       // Actions run only in CI, so one PR for all of them is enough review surface.
