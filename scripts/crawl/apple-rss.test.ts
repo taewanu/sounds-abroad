@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { assert, expect, test } from 'vitest';
 
+import { requestUrl } from '../../src/lib/__fixtures__/request-url';
 import { AppleRssError, fetchAppleRss } from './apple-rss';
 
 const FIXTURE_PATH = resolve(dirname(fileURLToPath(import.meta.url)), '__fixtures__/rss-kr.json');
@@ -57,7 +58,7 @@ test('hits the canonical rss.marketingtools.apple.com endpoint', async () => {
   const body = await loadFixture();
   const seen: string[] = [];
   const spyFetch: typeof fetch = async (input: RequestInfo | URL) => {
-    seen.push(input instanceof Request ? input.url : String(input));
+    seen.push(requestUrl(input));
     return new Response(body, { status: 200 });
   };
 

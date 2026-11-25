@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { expect, test } from 'vitest';
 
+import { requestUrl } from '../../src/lib/__fixtures__/request-url';
 import { ApplePlaylistsError, fetchPlaylists, resizeArtwork } from './apple-playlists';
 
 const FIXTURE_PATH = resolve(
@@ -47,7 +48,7 @@ test('requests the playlists feed at the depth ceiling', async () => {
   const body = await loadFixture();
   const seen: string[] = [];
   const spyFetch: typeof fetch = async (input: RequestInfo | URL) => {
-    seen.push(input instanceof Request ? input.url : String(input));
+    seen.push(requestUrl(input));
     return new Response(body, { status: 200 });
   };
 

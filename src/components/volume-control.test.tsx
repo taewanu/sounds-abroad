@@ -142,14 +142,11 @@ describe('VolumeControl', () => {
     const onClick = vi.fn();
     outside.addEventListener('click', onClick);
     document.body.appendChild(outside);
-    // oxlint-disable-next-line typescript/unbound-method -- the native method is saved to be called below with an explicit `this`
-    const matches = Element.prototype.matches;
-    const spy = vi.spyOn(Element.prototype, 'matches').mockImplementation(function (
-      this: Element,
-      selector: string,
-    ) {
-      return selector === ':focus-visible' ? false : matches.call(this, selector);
-    });
+    const spy = vi
+      .spyOn(outside, 'matches')
+      .mockImplementation((selector) =>
+        selector === ':focus-visible' ? false : Element.prototype.matches.call(outside, selector),
+      );
 
     act(() => outside.focus());
     const openAfterFocus = screen.queryByRole('slider') !== null;

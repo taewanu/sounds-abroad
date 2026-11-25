@@ -304,7 +304,7 @@ describe('createAudioStore', () => {
     const track = makeTrack();
     store.getState().toggle(track, at('br', PLAYLIST_REF));
     store.getState().toggle(track); // pause
-    assert(!store.getState().isPlaying, 'arrange: paused');
+    assert(store.getState().isPlaying === false, 'arrange: paused');
 
     store.getState().toggle(track); // resume with no location
 

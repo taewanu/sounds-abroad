@@ -48,6 +48,22 @@ export default defineConfig({
       'typescript/prefer-promise-reject-errors': 'error',
       'typescript/require-await': 'error',
       'typescript/restrict-plus-operands': 'error',
+      // `recommended-type-checked` turns the core rule off in favor of `typescript/no-implied-eval`.
+      'eslint/no-implied-eval': 'off',
+      // Type-aware rules outside `recommended-type-checked` that the categories would turn on
+      'typescript/consistent-return': 'off',
+      'typescript/no-generated-empty-object-type': 'off',
+      'typescript/no-meaningless-void-operator': 'off',
+      'typescript/no-misused-spread': 'off',
+      'typescript/no-unnecessary-boolean-literal-compare': 'off',
+      'typescript/no-unnecessary-template-expression': 'off',
+      'typescript/no-unnecessary-type-arguments': 'off',
+      'typescript/no-unnecessary-type-conversion': 'off',
+      'typescript/no-unnecessary-type-parameters': 'off',
+      'typescript/no-unsafe-enum-assignment': 'off',
+      'typescript/no-unsafe-type-assertion': 'off',
+      'typescript/no-useless-default-assignment': 'off',
+      'typescript/require-array-sort-compare': 'off',
       // typescript-eslint `eslint-recommended`
       'eslint/no-var': 'error',
       'eslint/prefer-const': 'error',

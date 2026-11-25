@@ -40,7 +40,7 @@ function sizeElement(el: Element, scrollWidth: number, clientWidth: number) {
 }
 
 function Harness({ enabled }: { enabled: boolean }) {
-  const { ref, active, style } = useOverflowMarquee({
+  const { ref, active, style } = useOverflowMarquee<HTMLSpanElement>({
     enabled,
     text: 'title',
   });

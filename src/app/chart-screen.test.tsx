@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, test, vi, type MockInstance } 
 import { readRecord } from '@/components/globe/edge-hint-record';
 import { writeRecord as writeTourRecord } from '@/components/tour/tour-record-store';
 import { CHARTS, CODE_BR, CODE_US, COUNTRY_BR, COUNTRY_US } from '@/lib/__fixtures__';
+import { requestUrl } from '@/lib/__fixtures__/request-url';
 import type { AudioEngine } from '@/lib/audio-engine';
 import { SONGS_CHART } from '@/lib/chart-ref';
 import { emptyCountry, type ChartFile, type Country, type Track } from '@/lib/chart-schema';
@@ -1870,7 +1871,7 @@ describe('ChartScreen stepping past the eager rows', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request) =>
-        (input instanceof Request ? input.url : String(input)).endsWith(`/${DEEP_CODE}`)
+        requestUrl(input).endsWith(`/${DEEP_CODE}`)
           ? new Response(
               JSON.stringify({
                 code: DEEP_CODE,
@@ -1919,7 +1920,7 @@ describe('ChartScreen stepping past the eager rows', () => {
   function tailsRead(): string[] {
     return vi
       .mocked(fetch)
-      .mock.calls.map(([input]) => (input instanceof Request ? input.url : String(input)))
+      .mock.calls.map(([input]) => requestUrl(input))
       .filter((url) => url.startsWith('/api/songs/'))
       .map((url) => url.slice('/api/songs/'.length));
   }

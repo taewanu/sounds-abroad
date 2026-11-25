@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { expect, test } from 'vitest';
 
+import { requestUrl } from '../../src/lib/__fixtures__/request-url';
 import { batchIds, ItunesLookupError, LOOKUP_BATCH_MAX, lookupTracks } from './itunes-lookup';
 
 const FIXTURE_PATH = resolve(
@@ -57,7 +58,7 @@ test('sends every requested id in one comma-separated request', async () => {
   const ids = ['11', '22', '33'];
   const seen: string[] = [];
   const spyFetch: typeof fetch = async (input: RequestInfo | URL) => {
-    seen.push(input instanceof Request ? input.url : String(input));
+    seen.push(requestUrl(input));
     return new Response(responseBody(ids.map((id) => trackRecord(Number(id)))), {
       status: 200,
     });
@@ -131,7 +132,7 @@ test('returns an empty map when the response holds no results', async () => {
 test('makes no request for an empty id set', async () => {
   const seen: string[] = [];
   const spyFetch: typeof fetch = async (input: RequestInfo | URL) => {
-    seen.push(input instanceof Request ? input.url : String(input));
+    seen.push(requestUrl(input));
     return new Response(responseBody([]), { status: 200 });
   };
 

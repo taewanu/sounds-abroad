@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { expect, test } from 'vitest';
 
+import { requestUrl } from '../../src/lib/__fixtures__/request-url';
 import { fetchPlaylistPage, parsePlaylistPage, PlaylistPageError } from './playlist-page';
 
 const PLAYLIST_ID = 'pl.48229b41bbfc47d7af39dae8e8b5276e';
@@ -13,11 +14,6 @@ const FIXTURE_PATH = resolve(
   '__fixtures__/playlist-page-kr.json',
 );
 
-/**
- * The fixture holds the embedded block alone, not the ~700 KB page around it.
- * Telemetry keys the parser never reads were pruned when it was captured, so
- * what it pins is exactly the shape the contract depends on.
- */
 interface RawTrackItem {
   contentDescriptor: { url: string };
   artwork: { dictionary: { url: string } };
@@ -27,6 +23,11 @@ interface RawServerData {
   data: { data: { sections: { itemKind?: string; items: RawTrackItem[] }[] } }[];
 }
 
+/**
+ * The fixture holds the embedded block alone, not the ~700 KB page around it.
+ * Telemetry keys the parser never reads were pruned when it was captured, so
+ * what it pins is exactly the shape the contract depends on.
+ */
 async function loadServerData(): Promise<string> {
   return readFile(FIXTURE_PATH, 'utf8');
 }
@@ -175,7 +176,7 @@ test("fetchPlaylistPage requests the playlist's own URL", async () => {
   const appleUrl = 'https://music.apple.com/kr/playlist/kpopwrld/pl.482';
   const seen: string[] = [];
   const spyFetch: typeof fetch = async (input: RequestInfo | URL) => {
-    seen.push(input instanceof Request ? input.url : String(input));
+    seen.push(requestUrl(input));
     return new Response(pageHtml(serverData), { status: 200 });
   };
 
