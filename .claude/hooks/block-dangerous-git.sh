@@ -28,7 +28,7 @@ FORCE="(-[[:alpha:]]*f[[:alpha:]]*|--force)"
 DOT="\.\.?/?( |;|&|\||\)|\$)"
 
 DANGEROUS_PATTERNS=(
-  # These stop pushes that rewrite, delete, or mass-update remote branches, or name main; GitHub's ruleset rejects any other push that lands on main.
+  # These stop pushes that rewrite, delete, or mass-update remote branches, or name main; in this repository, GitHub's ruleset rejects any other push that lands on main.
   "git push $ARGS(-[[:alpha:]]*[df]|--force|--delete|--mirror|--all|\+|:)"
   "git push $ARGS([^ ]*:)?(refs/heads/)?main( |;|&|\||\)|\$)"
   "git reset --hard"
@@ -66,6 +66,12 @@ done
 RESTORE_ALL="git restore $ARGS$DOT"
 if echo "$TEXT" | grep -oE "$RESTORE_ALL" | grep -qvE -- " (--staged|-S) "; then
   block "$RESTORE_ALL"
+fi
+
+# A config option can turn a plain-looking push into a mirror or force push, so a push may not carry one.
+if echo "$WITHOUT_OPTIONS" | grep -qE "git push" &&
+  echo "$FLATTENED" | grep -qE "(^|[^[:alnum:]_-])git( ($VALUE_OPTION|$ANY_OPTION))* (-c|--config-env)( |=)"; then
+  block "git -c ... push"
 fi
 
 exit 0

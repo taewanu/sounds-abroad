@@ -62,7 +62,7 @@ Write "No findings." when the reviewers found none.
 
 ## 6. Push
 
-Push from the branch's worktree with `git push -u origin <branch>`, then confirm with `git ls-remote origin <branch>` before opening the PR. The agent hook refuses a push that names main, forces or deletes; GitHub's ruleset rejects any other push to main.
+Push from the branch's worktree with `git push -u origin <branch>`, then confirm with `git ls-remote origin <branch>` before opening the PR. The agent hook refuses a push that names main, forces, deletes or carries a `-c` config option; GitHub's ruleset rejects any other push to this repository's main.
 
 ## 7. Measure the pass after review
 

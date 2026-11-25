@@ -126,6 +126,11 @@ describe("commands the hook blocks", () => {
     "git -C /tmp/x checkout .",
     "git -C /tmp/x restore .",
     "sh -c 'git -C /tmp/x push --force'",
+    "git -c remote.origin.mirror=true push origin",
+    "git -c remote.origin.push=+refs/heads/*:refs/heads/* push origin",
+    "git -C /tmp/x -c remote.origin.mirror=true push",
+    "git --config-env=remote.origin.mirror=MIRROR push",
+    "git -c core.hooksPath=/dev/null push -u origin feature",
   ])("%s", (command) => {
     expect(runHook(command)).toBe(BLOCKED);
   });
@@ -145,6 +150,8 @@ describe("commands the hook allows", () => {
     "git log --grep=push",
     "git stash push",
     "git -C /tmp/x stash push -m wip",
+    "git -C /tmp/x push -u origin feature",
+    "git commit -c HEAD && git push origin feature",
     "git --git-dir push status",
     "git --version; pushd /tmp",
     "git remote -v",
