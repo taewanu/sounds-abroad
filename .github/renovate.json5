@@ -3,7 +3,7 @@
   extends: [
     "config:recommended",
     "schedule:weekly",
-    // Holds npm updates for three days so a release pulled soon after publishing never reaches a PR.
+    // Delays npm updates until a release has aged, so one pulled soon after publishing isn't proposed.
     "security:minimumReleaseAgeNpm",
     "helpers:pinGitHubActionDigests",
   ],
@@ -31,7 +31,7 @@
       matchPackageNames: ["@sentry/*"],
     },
     {
-      // three.js breaks its API in minor releases and its React bindings and types follow it, so they move as one.
+      // three.js can break its API in a minor release and its React bindings and types follow it, so they move as one.
       groupName: "three",
       matchPackageNames: ["three", "@types/three", "@react-three/*"],
     },
@@ -46,8 +46,14 @@
       matchPackageNames: ["pnpm"],
     },
     {
-      // Toolchain majors are raised by hand in mise.toml, whose major-only pins Renovate keeps within their major; @types/node follows Node's major.
-      matchPackageNames: ["node", "@types/node", "pnpm"],
+      // Raised by hand: Renovate can bump packageManager's pnpm major but not mise.toml's major-only pin, and the two must match.
+      matchPackageNames: ["pnpm"],
+      matchUpdateTypes: ["major"],
+      enabled: false,
+    },
+    {
+      // @types/node follows the Node major pinned in mise.toml, not the newest release.
+      matchPackageNames: ["@types/node"],
       matchUpdateTypes: ["major"],
       enabled: false,
     },
