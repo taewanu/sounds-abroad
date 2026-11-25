@@ -34,7 +34,7 @@ skill and this repo's conventions disagree, the convention belongs in the
 document that states it, not in a patch to the skill.
 
 Everything else is byte-identical to upstream, kept that way by the
-`.claude/skills` entry in `.prettierignore`.
+`.claude/skills/**` entry in `fmt.ignorePatterns` in `vite.config.ts`.
 
 ---
 

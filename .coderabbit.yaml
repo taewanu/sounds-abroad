@@ -1,9 +1,9 @@
-language: "en-US"
-tone_instructions: "No emojis. Plain language, no superlatives. Skip nits if pre-commit catches them. Comments only when WHY is non-obvious."
+language: 'en-US'
+tone_instructions: 'No emojis. Plain language, no superlatives. Skip nits if pre-commit catches them. Comments only when WHY is non-obvious.'
 early_access: false
 
 reviews:
-  profile: "chill"
+  profile: 'chill'
   request_changes_workflow: false
   high_level_summary: true
   poem: false
@@ -24,27 +24,27 @@ reviews:
   enable_prompt_for_ai_agents: false
 
   path_filters:
-    - "!**/.next/**"
-    - "!**/.vercel/**"
-    - "!**/node_modules/**"
-    - "!pnpm-lock.yaml"
-    - "!next-env.d.ts"
-    - "!tsconfig.tsbuildinfo"
-    - "!public/**"
-    - "!**/*.svg"
+    - '!**/.next/**'
+    - '!**/.vercel/**'
+    - '!**/node_modules/**'
+    - '!pnpm-lock.yaml'
+    - '!next-env.d.ts'
+    - '!tsconfig.tsbuildinfo'
+    - '!public/**'
+    - '!**/*.svg'
 
   auto_review:
     enabled: true
     drafts: false
     base_branches:
-      - "main"
+      - 'main'
     auto_incremental_review: true
     auto_pause_after_reviewed_commits: 15
     ignore_title_keywords:
-      - "WIP"
+      - 'WIP'
 
   tools:
-    eslint:
+    oxc:
       enabled: true
     markdownlint:
       enabled: true
@@ -69,14 +69,14 @@ reviews:
 
   pre_merge_checks:
     title:
-      mode: "warning"
-      requirements: "Use Conventional Commits: type(scope): description. Types allowed: feat, fix, docs, chore, refactor, test, perf, build, ci."
+      mode: 'warning'
+      requirements: 'Use Conventional Commits: type(scope): description. Types allowed: feat, fix, docs, chore, refactor, test, perf, build, ci.'
     description:
-      mode: "warning"
+      mode: 'warning'
     issue_assessment:
-      mode: "warning"
+      mode: 'warning'
     docstrings:
-      mode: "warning"
+      mode: 'warning'
       threshold: 0
 
 chat:
@@ -90,9 +90,9 @@ knowledge_base:
   code_guidelines:
     enabled: true
     filePatterns:
-      - "CLAUDE.md"
-      - "AGENTS.md"
-      - "docs/adr/**/*.md"
-      - "docs/agents/**/*.md"
+      - 'CLAUDE.md'
+      - 'AGENTS.md'
+      - 'docs/adr/**/*.md'
+      - 'docs/agents/**/*.md'
   learnings:
-    scope: "local"
+    scope: 'local'

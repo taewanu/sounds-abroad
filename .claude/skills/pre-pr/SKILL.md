@@ -7,9 +7,9 @@ description: Review a branch locally before its pull request opens. Runs the CI 
 
 The review runs here, before the PR, so its findings land before anyone else reads the change. The session that wrote the code doesn't review it: agents with a clean context do.
 
-The pre-push hook (`.husky/pre-push`) refuses a branch's first push until a review is recorded, so a skipped review surfaces before the PR rather than after CI. Later pushes pass, because commits that answer a review don't need another full pass. The record shows the step happened, not how well. `--no-verify` skips it for a push that needs no review, so a branch pushed that way and opened as a PR later goes unchecked.
+The pre-push hook (`.vite-hooks/pre-push`) refuses a branch's first push until a review is recorded, so a skipped review surfaces before the PR rather than after CI. Later pushes pass, because commits that answer a review don't need another full pass. The record shows the step happened, not how well. `--no-verify` skips it for a push that needs no review, so a branch pushed that way and opened as a PR later goes unchecked.
 
-The hook lives in each checkout, so it only guards a worktree that has merged it and has run `pnpm install`, which generates `.husky/_`.
+The hook lives in each checkout, so it only guards a worktree that has merged it and has run `pnpm install`, which generates `.vite-hooks/_`.
 
 ## 1. Pin the branch
 
