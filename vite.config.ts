@@ -2,7 +2,6 @@ import { defineConfig } from 'vite-plus';
 
 export default defineConfig({
   fmt: {
-    printWidth: 80,
     singleQuote: true,
     sortImports: true,
     sortTailwindcss: { stylesheet: './src/app/globals.css' },
@@ -16,30 +15,19 @@ export default defineConfig({
     ],
   },
   lint: {
-    plugins: [
-      'typescript',
-      'unicorn',
-      'oxc',
-      'react',
-      'jsx-a11y',
-      'nextjs',
-      'import',
-      'vitest',
-    ],
-    categories: { correctness: 'error' },
-    ignorePatterns: [
-      '.next/**',
-      'out/**',
-      'build/**',
-      'next-env.d.ts',
-      '.claude/worktrees/**',
-    ],
+    plugins: ['typescript', 'unicorn', 'oxc', 'react', 'jsx-a11y', 'nextjs', 'import', 'vitest'],
+    categories: { correctness: 'error', suspicious: 'warn', perf: 'warn' },
+    ignorePatterns: ['.next/**', 'out/**', 'build/**', 'next-env.d.ts', '.claude/worktrees/**'],
     jsPlugins: ['./scripts/lint-plugin.ts'],
     rules: {
       // react.dev eslint-plugin-react-hooks recommended; oxlint files these under pedantic/restriction
       'react/rules-of-hooks': 'error',
       'react/unsupported-syntax': 'error',
       'react/react-in-jsx-scope': 'off',
+      // Turned back on for test files below; elsewhere it flags prose comments.
+      'vitest/no-commented-out-tests': 'off',
+      'import/no-unassigned-import': ['warn', { allow: ['**/*.css', '**/sentry-init'] }],
+      'unicorn/filename-case': ['error', { cases: { kebabCase: true, pascalCase: true } }],
       // typescript-eslint `recommended`, not covered by the categories
       'typescript/ban-ts-comment': 'error',
       'typescript/no-array-constructor': 'error',
@@ -59,10 +47,7 @@ export default defineConfig({
       'react/jsx-no-comment-textnodes': 'error',
       'react/no-unescaped-entities': 'error',
       'typescript/no-unnecessary-type-constraint': 'error',
-      'eslint/no-unused-vars': [
-        'error',
-        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
-      ],
+      'eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       // Oxlint's correctness category has these, but @vitest/eslint-plugin `recommended` leaves them out.
       'vitest/require-mock-type-parameters': 'off',
       'vitest/require-to-throw-message': 'off',
