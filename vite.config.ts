@@ -110,8 +110,6 @@ export default defineConfig({
           'typescript/require-await': 'off',
           // typescript-eslint sends test files to eslint-plugin-jest's variant, which Oxlint lacks, because `expect(mock.method)` reads a mock without calling it.
           'typescript/unbound-method': 'off',
-          // Vitest types asymmetric matchers such as `expect.any()` as `any`, so a matcher inside an expected object has no typed form.
-          'typescript/no-unsafe-assignment': 'off',
         },
       },
     ],
