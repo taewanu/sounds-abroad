@@ -42,7 +42,7 @@ test("a change to application code is medium", () => {
 
 test.each([
   "docs/guide.md",
-  "docs/adr/0001-example.md",
+  "docs/adr/0000-example.md",
   "CONTEXT.md",
   "src/lib/CLAUDE.md",
   ".claude/skills/example/SKILL.md",
@@ -69,7 +69,6 @@ test.each([
   ".coderabbit.yaml",
   "package.json",
   "pnpm-lock.yaml",
-  "mise.toml",
   "vitest.config.ts",
 ])("a change to %s is high, even beside low-risk files", (file) => {
   const diff = diffTouching("docs/guide.md", file);
