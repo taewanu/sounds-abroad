@@ -49,6 +49,3 @@ next-env.d.ts
 # Claude Code — personal/local overrides + runtime artifacts (do not commit)
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
-
-# Fixtures the lint plugin test writes under src/, where the plugin's rules apply
-/src/lint-fixture-*/
