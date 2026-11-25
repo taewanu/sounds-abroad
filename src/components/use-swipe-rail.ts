@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   type MouseEvent as ReactMouseEvent,
@@ -6,10 +6,10 @@ import {
   useEffect,
   useLayoutEffect,
   useRef,
-} from "react";
+} from 'react';
 
-import { type SwipeCommitConfig, decideSwipeCommit } from "./swipe-commit";
-import { prefersReducedMotion } from "./use-prefers-reduced-motion";
+import { type SwipeCommitConfig, decideSwipeCommit } from './swipe-commit';
+import { prefersReducedMotion } from './use-prefers-reduced-motion';
 
 // Horizontal travel (px) past which a press is a drag, not a tap: suppresses the
 // reopen-chart click and lets the rail follow the finger.
@@ -24,15 +24,15 @@ const SWIPE_CFG: SwipeCommitConfig = {
 // Commit slide (ease-out, no overshoot) and the spring-back on a release that
 // didn't commit (a light overshoot gives it life without wobbling).
 const COMMIT_MS = 260;
-const COMMIT_EASE = "cubic-bezier(0.22, 0.61, 0.36, 1)";
+const COMMIT_EASE = 'cubic-bezier(0.22, 0.61, 0.36, 1)';
 const RETURN_MS = 232;
-const RETURN_EASE = "cubic-bezier(0.34, 1.3, 0.64, 1)";
+const RETURN_EASE = 'cubic-bezier(0.34, 1.3, 0.64, 1)';
 // The rail lays out prev | current | next, each the strip's full width, and
 // rests shifted one card left so the current sits in the window. A commit slides
 // the committed neighbour into the window as the current slides out.
-export const RAIL_REST = "translateX(-100%)";
-const RAIL_NEXT = "translateX(-200%)";
-const RAIL_PREV = "translateX(0%)";
+export const RAIL_REST = 'translateX(-100%)';
+const RAIL_NEXT = 'translateX(-200%)';
+const RAIL_PREV = 'translateX(0%)';
 
 export interface SwipeRailOptions {
   // The stable song id of the current track; a change means the store swapped.
@@ -92,7 +92,7 @@ export function useSwipeRail({
   useLayoutEffect(() => {
     const rail = railRef.current;
     if (rail) {
-      rail.style.transition = "none";
+      rail.style.transition = 'none';
       rail.style.transform = RAIL_REST;
     }
   }, [contentKey]);
@@ -103,7 +103,7 @@ export function useSwipeRail({
     const reduce = prefersReducedMotion();
     const rail = railRef.current;
     if (rail) {
-      rail.style.transition = reduce ? "none" : `transform ${ms}ms ${ease}`;
+      rail.style.transition = reduce ? 'none' : `transform ${ms}ms ${ease}`;
       rail.style.transform = transform;
     }
     return reduce ? 0 : ms;
@@ -141,13 +141,13 @@ export function useSwipeRail({
     engagedRef.current = false;
     swipedRef.current = false;
     // Drag is 1:1: drop any leftover settle transition before following.
-    if (railRef.current) railRef.current.style.transition = "none";
+    if (railRef.current) railRef.current.style.transition = 'none';
   };
 
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (!trackingRef.current) return;
     // An uncaptured mouse released off the bar never sent its pointerup here.
-    if (e.pointerType === "mouse" && e.buttons === 0) {
+    if (e.pointerType === 'mouse' && e.buttons === 0) {
       trackingRef.current = false;
       return;
     }
@@ -200,7 +200,7 @@ export function useSwipeRail({
       SWIPE_CFG,
     );
 
-    if (outcome === "cancel") {
+    if (outcome === 'cancel') {
       settleRail(RAIL_REST, RETURN_MS, RETURN_EASE);
       return;
     }
@@ -210,12 +210,12 @@ export function useSwipeRail({
     // card, and the layout effect snaps the rail back to rest seamlessly. The
     // cue is suppressed so the swap doesn't re-animate what the rail just did.
     const slideMs = settleRail(
-      outcome === "next" ? RAIL_NEXT : RAIL_PREV,
+      outcome === 'next' ? RAIL_NEXT : RAIL_PREV,
       COMMIT_MS,
       COMMIT_EASE,
     );
     onCommitStart();
-    pendingCommitRef.current = outcome === "next" ? onNext : onPrev;
+    pendingCommitRef.current = outcome === 'next' ? onNext : onPrev;
     commitTimerRef.current = window.setTimeout(() => {
       commitTimerRef.current = null;
       flushPendingCommit();

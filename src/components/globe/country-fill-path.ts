@@ -1,4 +1,4 @@
-import { type CountryRings, unwrapLongitudes } from "@/lib/country-outlines";
+import { type CountryRings, unwrapLongitudes } from '@/lib/country-outlines';
 
 export interface RingPathContext {
   beginPath(): void;
@@ -32,5 +32,5 @@ export function fillCountryRings(
       ctx.closePath();
     }
   }
-  ctx.fill("evenodd");
+  ctx.fill('evenodd');
 }

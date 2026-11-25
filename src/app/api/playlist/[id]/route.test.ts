@@ -1,38 +1,38 @@
-import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import {
   ChartPartFetchError,
   ChartPartValidationError,
   fetchPlaylistFile,
-} from "@/lib/chart-parts";
-import { PlaylistIdSchema } from "@/lib/url-schema";
+} from '@/lib/chart-parts';
+import { PlaylistIdSchema } from '@/lib/url-schema';
 
-import { readPlaylist } from "./route";
+import { readPlaylist } from './route';
 
-vi.mock("@/lib/chart-parts", async () => {
+vi.mock('@/lib/chart-parts', async () => {
   const actual =
-    await vi.importActual<typeof import("@/lib/chart-parts")>(
-      "@/lib/chart-parts",
+    await vi.importActual<typeof import('@/lib/chart-parts')>(
+      '@/lib/chart-parts',
     );
   return { ...actual, fetchPlaylistFile: vi.fn() };
 });
 
 const fetchPlaylistFileMock = vi.mocked(fetchPlaylistFile);
 
-const CHARTS_URL = "https://data.test/charts/v1/charts.json";
-const PLAYLIST_ID = `pl.${"0123456789abcdef".repeat(2)}`;
+const CHARTS_URL = 'https://data.test/charts/v1/charts.json';
+const PLAYLIST_ID = `pl.${'0123456789abcdef'.repeat(2)}`;
 
 const playlistFile = {
   id: PLAYLIST_ID,
-  lastUpdated: "2026-07-21T00:00:00.000Z",
+  lastUpdated: '2026-07-21T00:00:00.000Z',
   tracks: [
     {
       rank: 1,
-      name: "A Song",
-      artist: "An Artist",
+      name: 'A Song',
+      artist: 'An Artist',
       previewUrl: null,
-      artworkUrl: "https://art.test/a.jpg",
-      appleUrl: "https://music.apple.com/br/song/a/1",
+      artworkUrl: 'https://art.test/a.jpg',
+      appleUrl: 'https://music.apple.com/br/song/a/1',
     },
   ],
 };
@@ -54,7 +54,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-test("returns the track list for a playlist that resolves", async () => {
+test('returns the track list for a playlist that resolves', async () => {
   fetchPlaylistFileMock.mockResolvedValue(playlistFile);
 
   const res = await readPlaylist(makeReq(), params(PLAYLIST_ID));
@@ -64,53 +64,53 @@ test("returns the track list for a playlist that resolves", async () => {
   expect(fetchPlaylistFileMock).toHaveBeenCalledWith(CHARTS_URL, PLAYLIST_ID);
 });
 
-test("passes an upstream not-found through as a not-found", async () => {
+test('passes an upstream not-found through as a not-found', async () => {
   fetchPlaylistFileMock.mockRejectedValue(
-    new ChartPartFetchError(PLAYLIST_ID, 404, "missing"),
+    new ChartPartFetchError(PLAYLIST_ID, 404, 'missing'),
   );
 
   const res = await readPlaylist(makeReq(), params(PLAYLIST_ID));
 
   expect(res.status).toBe(404);
-  expect(res.headers.get("cache-control")).toBe("public, max-age=60");
+  expect(res.headers.get('cache-control')).toBe('public, max-age=60');
 });
 
-test("reports an upstream server error as a bad gateway", async () => {
+test('reports an upstream server error as a bad gateway', async () => {
   fetchPlaylistFileMock.mockRejectedValue(
-    new ChartPartFetchError(PLAYLIST_ID, 500, "upstream exploded"),
+    new ChartPartFetchError(PLAYLIST_ID, 500, 'upstream exploded'),
   );
 
   const res = await readPlaylist(makeReq(), params(PLAYLIST_ID));
 
   expect(res.status).toBe(502);
-  expect(res.headers.get("cache-control")).toBe("no-store");
+  expect(res.headers.get('cache-control')).toBe('no-store');
 });
 
-test("reports a payload that fails validation as a bad gateway", async () => {
+test('reports a payload that fails validation as a bad gateway', async () => {
   fetchPlaylistFileMock.mockRejectedValue(
-    new ChartPartValidationError(PLAYLIST_ID, [], "bad shape"),
+    new ChartPartValidationError(PLAYLIST_ID, [], 'bad shape'),
   );
 
   const res = await readPlaylist(makeReq(), params(PLAYLIST_ID));
 
   expect(res.status).toBe(502);
-  expect(res.headers.get("cache-control")).toBe("no-store");
+  expect(res.headers.get('cache-control')).toBe('no-store');
 });
 
-test.each(["", "pl.fixture", "../charts", "pl.%2e%2e", `${PLAYLIST_ID}x`])(
-  "rejects the malformed id %j without reaching the store",
+test.each(['', 'pl.fixture', '../charts', 'pl.%2e%2e', `${PLAYLIST_ID}x`])(
+  'rejects the malformed id %j without reaching the store',
   async (id) => {
     const res = await readPlaylist(makeReq(), params(id));
 
     expect(res.status).toBe(400);
-    expect(res.headers.get("cache-control")).toBe("public, max-age=60");
+    expect(res.headers.get('cache-control')).toBe('public, max-age=60');
     expect(fetchPlaylistFileMock).not.toHaveBeenCalled();
   },
 );
 
 test("accepts exactly the ids the crawl's schema accepts", async () => {
   fetchPlaylistFileMock.mockResolvedValue(playlistFile);
-  const candidates = [PLAYLIST_ID, PLAYLIST_ID.toUpperCase(), "pl.", "x", ""];
+  const candidates = [PLAYLIST_ID, PLAYLIST_ID.toUpperCase(), 'pl.', 'x', ''];
 
   for (const id of candidates) {
     fetchPlaylistFileMock.mockClear();
@@ -123,20 +123,20 @@ test("accepts exactly the ids the crawl's schema accepts", async () => {
   }
 });
 
-test("fails loudly when the charts location is not configured", async () => {
+test('fails loudly when the charts location is not configured', async () => {
   delete process.env.CHARTS_BLOB_URL;
 
   const res = await readPlaylist(makeReq(), params(PLAYLIST_ID));
 
   expect(res.status).toBe(500);
-  expect(res.headers.get("cache-control")).toBe("no-store");
+  expect(res.headers.get('cache-control')).toBe('no-store');
   expect(fetchPlaylistFileMock).not.toHaveBeenCalled();
 });
 
-test("lets an unrecognized failure through rather than reporting it as upstream", async () => {
-  fetchPlaylistFileMock.mockRejectedValue(new Error("something else"));
+test('lets an unrecognized failure through rather than reporting it as upstream', async () => {
+  fetchPlaylistFileMock.mockRejectedValue(new Error('something else'));
 
   await expect(readPlaylist(makeReq(), params(PLAYLIST_ID))).rejects.toThrow(
-    "something else",
+    'something else',
   );
 });

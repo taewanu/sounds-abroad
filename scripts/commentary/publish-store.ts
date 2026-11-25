@@ -1,4 +1,4 @@
-import type { CommentaryStore } from "../../src/lib/commentary-store";
+import type { CommentaryStore } from '../../src/lib/commentary-store';
 
 export interface PublishStoreDeps {
   backupLiveStore: () => Promise<string>;

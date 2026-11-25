@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useSyncExternalStore } from 'react';
 
-import type { SeenFlag } from "./create-seen-flag";
+import type { SeenFlag } from './create-seen-flag';
 
 export interface SeenFlagState {
   // null only during SSR, where localStorage is unreadable; the real value on

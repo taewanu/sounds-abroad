@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useSyncExternalStore } from "react";
-import { useStore } from "zustand";
+import { useSyncExternalStore } from 'react';
+import { useStore } from 'zustand';
 
-import { tourBridge } from "@/lib/tour-bridge";
+import { tourBridge } from '@/lib/tour-bridge';
 
-import { tourConcluded } from "./tour-concluded";
+import { tourConcluded } from './tour-concluded';
 
 // Reactive read of the tour-done gate. Unlike useSeenFlag's no-op subscribe, the
 // cues that wait on this outlive the tour, so they must re-render when the flag

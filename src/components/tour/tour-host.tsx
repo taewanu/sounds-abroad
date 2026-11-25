@@ -1,24 +1,24 @@
-"use client";
+'use client';
 
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
-import { useStore } from "zustand";
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import { useStore } from 'zustand';
 
-import type { SnapState } from "@/components/chart-sheet/sheet";
-import { ESCAPE_LAYER, useEscapeLayer } from "@/components/use-escape-layer";
-import { globeChartStore, useGlobeChart } from "@/lib/globe-chart-store";
-import { tourBridge } from "@/lib/tour-bridge";
+import type { SnapState } from '@/components/chart-sheet/sheet';
+import { ESCAPE_LAYER, useEscapeLayer } from '@/components/use-escape-layer';
+import { globeChartStore, useGlobeChart } from '@/lib/globe-chart-store';
+import { tourBridge } from '@/lib/tour-bridge';
 
-import { TourOverlay } from "./tour-overlay";
-import { decideShow, recordLearned, recordShown } from "./tour-record";
-import { readRecord, writeRecord } from "./tour-record-store";
+import { TourOverlay } from './tour-overlay';
+import { decideShow, recordLearned, recordShown } from './tour-record';
+import { readRecord, writeRecord } from './tour-record-store';
 import {
   currentBeat,
   initialTourState,
   learnedSoFar,
   type TeachBeat,
   tourReducer,
-} from "./tour-step";
-import { useTourAnchor } from "./use-tour-anchor";
+} from './tour-step';
+import { useTourAnchor } from './use-tour-anchor';
 
 export interface TourHostProps {
   // Observed from ChartScreenInner. The sheet snap and the previewing track's
@@ -112,7 +112,7 @@ function TourRunner({
   // doesn't strand them with no hint and no Next.
   const [engaged, setEngaged] = useState(false);
   useEffect(() => {
-    if (beat !== "gesture") return;
+    if (beat !== 'gesture') return;
     const onDown = (e: PointerEvent) => {
       const target = e.target as HTMLElement | null;
       // Engage on a globe grab, not on the other interactive surfaces in view:
@@ -125,12 +125,12 @@ function TourRunner({
         return;
       setEngaged(true);
     };
-    window.addEventListener("pointerdown", onDown, {
+    window.addEventListener('pointerdown', onDown, {
       capture: true,
       passive: true,
     });
     return () =>
-      window.removeEventListener("pointerdown", onDown, { capture: true });
+      window.removeEventListener('pointerdown', onDown, { capture: true });
   }, [beat]);
 
   // A settle ends the spin: if it changed the country the gesture beat advances
@@ -153,7 +153,7 @@ function TourRunner({
   // per run and never needs resetting back to false.
   const [sheetSettled, setSheetSettled] = useState(false);
   useEffect(() => {
-    if (beat !== "audio") return;
+    if (beat !== 'audio') return;
     let done = false;
     const finish = () => {
       if (done) return;
@@ -163,16 +163,16 @@ function TourRunner({
     const onEnd = (e: TransitionEvent) => {
       const target = e.target as HTMLElement | null;
       if (
-        e.propertyName === "transform" &&
-        target?.getAttribute("data-testid") === "chart-sheet"
+        e.propertyName === 'transform' &&
+        target?.getAttribute('data-testid') === 'chart-sheet'
       ) {
         finish();
       }
     };
-    window.addEventListener("transitionend", onEnd, true);
+    window.addEventListener('transitionend', onEnd, true);
     const fallback = window.setTimeout(finish, 420);
     return () => {
-      window.removeEventListener("transitionend", onEnd, true);
+      window.removeEventListener('transitionend', onEnd, true);
       window.clearTimeout(fallback);
     };
   }, [beat]);
@@ -184,7 +184,7 @@ function TourRunner({
   const prevCodeRef = useRef(selectedCode);
   const tryArmedRef = useRef(false);
   useEffect(() => {
-    if (beat !== "gesture") return;
+    if (beat !== 'gesture') return;
     if (!tryArmedRef.current) {
       tryArmedRef.current = true;
       prevCodeRef.current = selectedCode;
@@ -196,15 +196,15 @@ function TourRunner({
       // beat teaches, so an accidental tap must not skip it. A real fling or a
       // deliberate list pick (both leave lastSettleViaTap false) still advances.
       if (globeChartStore.getState().lastSettleViaTap) return;
-      dispatch({ type: "USER_SELECTED" });
+      dispatch({ type: 'USER_SELECTED' });
     }
   }, [selectedCode, beat]);
 
   // Beat 2 advances when the user pulls the sheet to full; beat 3 when a track
   // starts. Both observe, never drive. Show, don't tell.
   useEffect(() => {
-    if (beat === "sheet" && snap === "full") {
-      dispatch({ type: "SHEET_OPENED" });
+    if (beat === 'sheet' && snap === 'full') {
+      dispatch({ type: 'SHEET_OPENED' });
     }
   }, [snap, beat]);
 
@@ -215,7 +215,7 @@ function TourRunner({
   const audioBaselineRef = useRef<string | null>(null);
   const audioArmedRef = useRef(false);
   useEffect(() => {
-    if (beat !== "audio") return;
+    if (beat !== 'audio') return;
     if (!audioArmedRef.current) {
       audioArmedRef.current = true;
       audioBaselineRef.current = currentTrackKey;
@@ -225,25 +225,25 @@ function TourRunner({
       currentTrackKey !== null &&
       currentTrackKey !== audioBaselineRef.current
     ) {
-      dispatch({ type: "TRACK_PREVIEWED" });
+      dispatch({ type: 'TRACK_PREVIEWED' });
     }
   }, [currentTrackKey, beat]);
 
   // Escape dismisses from any beat (latches dismissed).
-  useEscapeLayer(beat !== "done", ESCAPE_LAYER.tour, () =>
-    dispatch({ type: "SKIP" }),
+  useEscapeLayer(beat !== 'done', ESCAPE_LAYER.tour, () =>
+    dispatch({ type: 'SKIP' }),
   );
 
   useEffect(() => {
-    if (beat === "done") onDone();
+    if (beat === 'done') onDone();
   }, [beat, onDone]);
 
   // Beat 2 frames the whole sheet; beat 3 frames the first track row (the thing
   // to tap), selected by its rank attribute so it needs no id of its own.
   const targetSelector =
-    beat === "sheet"
+    beat === 'sheet'
       ? '[data-testid="chart-sheet"]'
-      : beat === "audio"
+      : beat === 'audio'
         ? '[data-testid="chart-sheet"] li[data-rank="1"]'
         : null;
   // `snap` as the watch value: the sheet slides between snaps via transform,
@@ -252,16 +252,16 @@ function TourRunner({
 
   // The audio beat withholds its spotlight until the sheet has settled (above);
   // every other beat shows it as soon as it's measured.
-  const spotlightReady = beat !== "audio" || sheetSettled;
+  const spotlightReady = beat !== 'audio' || sheetSettled;
 
-  if (beat === "done") return null;
+  if (beat === 'done') return null;
   return (
     <TourOverlay
       beat={beat}
       spotlight={spotlightReady ? (anchor?.rect ?? null) : null}
       spotlightRadius={anchor?.radius ?? 0}
       hideFlickHint={engaged}
-      onSkip={() => dispatch({ type: "SKIP" })}
+      onSkip={() => dispatch({ type: 'SKIP' })}
     />
   );
 }

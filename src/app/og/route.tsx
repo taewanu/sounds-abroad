@@ -1,26 +1,26 @@
-import { readFile } from "node:fs/promises";
+import { readFile } from 'node:fs/promises';
 
-import { ImageResponse } from "next/og";
+import { ImageResponse } from 'next/og';
 
-import { countryByCode, validateCountryCode } from "@/lib/country-code";
+import { countryByCode, validateCountryCode } from '@/lib/country-code';
 
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 
 // Brand tokens (mirrors src/app/globals.css; inlined because next/og can't read CSS variables).
-const VOID = "#050608";
-const FG1 = "#f5f2ec";
-const FG2 = "#b8b5ae";
-const FG3 = "#6e6b66";
-const SUNRISE = "#ff6b47";
+const VOID = '#050608';
+const FG1 = '#f5f2ec';
+const FG2 = '#b8b5ae';
+const FG3 = '#6e6b66';
+const SUNRISE = '#ff6b47';
 
 const BACKGROUND =
-  "radial-gradient(ellipse 90% 90% at 72% 20%, rgba(20,23,32,0.35) 0%, rgba(20,23,32,0) 55%)," +
-  "radial-gradient(ellipse 130% 120% at 50% 118%, #11131b 0%, #0a0b10 42%, #050608 100%)";
+  'radial-gradient(ellipse 90% 90% at 72% 20%, rgba(20,23,32,0.35) 0%, rgba(20,23,32,0) 55%),' +
+  'radial-gradient(ellipse 130% 120% at 50% 118%, #11131b 0%, #0a0b10 42%, #050608 100%)';
 
 // Eyebrow: uppercase, tracked, one uniform dim color (code + dot + label all match).
 function eyebrowStyle(fontSize: number) {
   return {
-    fontFamily: "Poppins",
+    fontFamily: 'Poppins',
     fontWeight: 500,
     fontSize,
     letterSpacing: fontSize * 0.16,
@@ -135,11 +135,11 @@ function GlobeMark({ size, color }: { size: number; color: string }) {
 
 function Wordmark({ glyph, text }: { glyph: number; text: number }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: glyph * 0.46 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: glyph * 0.46 }}>
       <WordmarkGlyph size={glyph} />
       <div
         style={{
-          fontFamily: "Poppins",
+          fontFamily: 'Poppins',
           fontWeight: 500,
           fontSize: text,
           letterSpacing: text * 0.14,
@@ -160,13 +160,13 @@ function CountryName({
   fontSize: number;
 }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column" }}>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
       {lines.map((line, i) => (
         <div
           key={i}
           style={{
-            fontFamily: "Instrument Serif",
-            fontStyle: "italic",
+            fontFamily: 'Instrument Serif',
+            fontStyle: 'italic',
             fontSize,
             lineHeight: 0.95,
             color: FG1,
@@ -183,8 +183,8 @@ function Footer({ fontSize }: { fontSize: number }) {
   return (
     <div
       style={{
-        display: "flex",
-        fontFamily: "Poppins",
+        display: 'flex',
+        fontFamily: 'Poppins',
         fontWeight: 500,
         fontSize,
       }}
@@ -208,23 +208,23 @@ function Landscape({
   return (
     <div
       style={{
-        position: "relative",
-        display: "flex",
-        flexDirection: "column",
-        width: "100%",
-        height: "100%",
-        padding: "78px 80px",
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        width: '100%',
+        height: '100%',
+        padding: '78px 80px',
         backgroundColor: VOID,
         backgroundImage: BACKGROUND,
-        overflow: "hidden",
+        overflow: 'hidden',
       }}
     >
       <div
         style={{
-          position: "absolute",
+          position: 'absolute',
           top: -40,
           right: -150,
-          display: "flex",
+          display: 'flex',
           opacity: 0.55,
         }}
       >
@@ -233,16 +233,16 @@ function Landscape({
       <Wordmark glyph={30} text={24} />
       <div
         style={{
-          display: "flex",
-          flexDirection: "column",
+          display: 'flex',
+          flexDirection: 'column',
           flex: 1,
-          justifyContent: "center",
+          justifyContent: 'center',
         }}
       >
         <div style={{ ...eyebrowStyle(28), marginBottom: 14 }}>{eyebrow}</div>
         <CountryName lines={nameLines} fontSize={nameSize} />
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div
           style={{
             width: 96,
@@ -269,28 +269,28 @@ function Square({
   return (
     <div
       style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "space-between",
-        textAlign: "center",
-        width: "100%",
-        height: "100%",
-        padding: "56px 84px",
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        textAlign: 'center',
+        width: '100%',
+        height: '100%',
+        padding: '56px 84px',
         backgroundColor: VOID,
         backgroundImage: BACKGROUND,
-        overflow: "hidden",
+        overflow: 'hidden',
       }}
     >
       <Wordmark glyph={44} text={30} />
-      <div style={{ display: "flex", opacity: 0.55 }}>
+      <div style={{ display: 'flex', opacity: 0.55 }}>
         <GlobeMark size={480} color={FG3} />
       </div>
       <div
         style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
           gap: 18,
           marginTop: -84,
         }}
@@ -305,19 +305,19 @@ function Square({
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const code = validateCountryCode(searchParams.get("cc"));
+  const code = validateCountryCode(searchParams.get('cc'));
   const entry = code ? countryByCode(code) : undefined;
-  const square = searchParams.get("shape") === "square";
+  const square = searchParams.get('shape') === 'square';
 
-  const nameLines = entry ? [entry.name] : ["What the world", "is playing"];
+  const nameLines = entry ? [entry.name] : ['What the world', 'is playing'];
   const eyebrow = entry
     ? `${entry.code.toUpperCase()} · MOST PLAYED`
-    : "TRENDING WORLDWIDE";
+    : 'TRENDING WORLDWIDE';
   const nameSize = entry ? (square ? 170 : 150) : square ? 112 : 104;
 
   const [poppins, instrument] = await Promise.all([
-    readFile(new URL("../fonts/Poppins-Medium.ttf", import.meta.url)),
-    readFile(new URL("../fonts/InstrumentSerif-Italic.ttf", import.meta.url)),
+    readFile(new URL('../fonts/Poppins-Medium.ttf', import.meta.url)),
+    readFile(new URL('../fonts/InstrumentSerif-Italic.ttf', import.meta.url)),
   ]);
 
   const element = square ? (
@@ -330,15 +330,15 @@ export async function GET(request: Request) {
     width: 1200,
     height: square ? 1200 : 630,
     headers: {
-      "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800",
+      'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=604800',
     },
     fonts: [
-      { name: "Poppins", data: poppins, weight: 500, style: "normal" },
+      { name: 'Poppins', data: poppins, weight: 500, style: 'normal' },
       {
-        name: "Instrument Serif",
+        name: 'Instrument Serif',
         data: instrument,
         weight: 400,
-        style: "italic",
+        style: 'italic',
       },
     ],
   });

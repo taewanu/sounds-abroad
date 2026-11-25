@@ -1,16 +1,16 @@
 import {
   createMirroredStorage,
   type MirroredStorage,
-} from "@/lib/mirrored-storage";
+} from '@/lib/mirrored-storage';
 
-import { emptyRecord, type TourRecord } from "./tour-record";
-import { TEACH_ORDER, type TeachBeat } from "./tour-step";
+import { emptyRecord, type TourRecord } from './tour-record';
+import { TEACH_ORDER, type TeachBeat } from './tour-step';
 
 // Persists the tour record across sessions. A fresh key from the boolean flag's
 // `:v1`, so every existing user starts on the empty record and re-sees the
 // finished tour once. Private-mode resilience (the in-memory mirror) comes from
 // the shared createMirroredStorage, the same one the seen-flags use.
-const KEY = "sounds-abroad:tour:v2";
+const KEY = 'sounds-abroad:tour:v2';
 
 const store = createMirroredStorage();
 const listeners = new Set<() => void>();
@@ -22,17 +22,17 @@ const TEACHABLE = new Set<string>(TEACH_ORDER);
 // dropped so a stale or hand-edited key can't inject beats the machine can't run.
 function parseRecord(raw: string): TourRecord {
   const parsed: unknown = JSON.parse(raw);
-  if (typeof parsed !== "object" || parsed === null) return emptyRecord;
+  if (typeof parsed !== 'object' || parsed === null) return emptyRecord;
   const value = parsed as Record<string, unknown>;
   const learned = Array.isArray(value.learned)
     ? (value.learned.filter(
         (beat): beat is TeachBeat =>
-          typeof beat === "string" && TEACHABLE.has(beat),
+          typeof beat === 'string' && TEACHABLE.has(beat),
       ) as TeachBeat[])
     : [];
   return {
     learned,
-    shows: typeof value.shows === "number" ? value.shows : 0,
+    shows: typeof value.shows === 'number' ? value.shows : 0,
     dismissed: value.dismissed === true,
   };
 }

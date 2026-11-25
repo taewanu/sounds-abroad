@@ -1,1 +1,1 @@
-export const MUSIC_CHARTS_TAG = "music-charts";
+export const MUSIC_CHARTS_TAG = 'music-charts';

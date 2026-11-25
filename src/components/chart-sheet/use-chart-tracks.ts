@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   startTransition,
@@ -7,12 +7,12 @@ import {
   useLayoutEffect,
   useRef,
   useState,
-} from "react";
+} from 'react';
 
-import { track as trackEvent } from "@/lib/analytics";
-import { SONGS_CHART, isPlaylistRef, type ChartRef } from "@/lib/chart-ref";
-import type { ChartTrack, Country } from "@/lib/chart-schema";
-import { PlaylistFileSchema, SongsTailFileSchema } from "@/lib/chart-schema";
+import { track as trackEvent } from '@/lib/analytics';
+import { SONGS_CHART, isPlaylistRef, type ChartRef } from '@/lib/chart-ref';
+import type { ChartTrack, Country } from '@/lib/chart-schema';
+import { PlaylistFileSchema, SongsTailFileSchema } from '@/lib/chart-schema';
 
 export interface ChartTracksState {
   /** The songs chart beyond the eager rows, once read. */
@@ -186,9 +186,9 @@ export function useChartTracks(
   // chart the listener moved off before it landed still counts as asked for.
   const report = useCallback(
     (chart: ChartRef, loaded: boolean, cached: boolean) => {
-      trackEvent("chart_opened", {
+      trackEvent('chart_opened', {
         country: countryCode,
-        chart: isPlaylistRef(chart) ? "playlist" : "songs",
+        chart: isPlaylistRef(chart) ? 'playlist' : 'songs',
         loaded,
         cached,
       });

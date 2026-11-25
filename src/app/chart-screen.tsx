@@ -1,5 +1,6 @@
-"use client";
+'use client';
 
+import { usePathname, useSearchParams } from 'next/navigation';
 import {
   useCallback,
   useEffect,
@@ -8,28 +9,27 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
-} from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+} from 'react';
 
-import { ChartSheet, type SnapState } from "@/components/chart-sheet/sheet";
-import { useChartTracks } from "@/components/chart-sheet/use-chart-tracks";
-import { EdgeChevrons } from "@/components/globe/edge-chevrons";
-import { markUsed } from "@/components/globe/edge-hint-record";
-import { EdgeTapHint } from "@/components/globe/edge-tap-hint";
-import { SkipFlash } from "@/components/globe/skip-flash";
-import { MiniPlayer } from "@/components/mini-player";
-import { TourHost } from "@/components/tour/tour-host";
-import { useTourGateOpen } from "@/components/tour/use-tour-gate-open";
-import { findAdjacentPlayable } from "@/lib/adjacent-playable";
-import { track as trackEvent } from "@/lib/analytics";
+import { ChartSheet, type SnapState } from '@/components/chart-sheet/sheet';
+import { useChartTracks } from '@/components/chart-sheet/use-chart-tracks';
+import { EdgeChevrons } from '@/components/globe/edge-chevrons';
+import { markUsed } from '@/components/globe/edge-hint-record';
+import { EdgeTapHint } from '@/components/globe/edge-tap-hint';
+import { SkipFlash } from '@/components/globe/skip-flash';
+import { MiniPlayer } from '@/components/mini-player';
+import { TourHost } from '@/components/tour/tour-host';
+import { useTourGateOpen } from '@/components/tour/use-tour-gate-open';
+import { findAdjacentPlayable } from '@/lib/adjacent-playable';
+import { track as trackEvent } from '@/lib/analytics';
 import {
   DEFAULT_CHART_MODE,
   songsChartRows,
   withPlaying,
   type ChartMode,
-} from "@/lib/chart-mode";
-import { isPlaylistRef, SONGS_CHART, type ChartRef } from "@/lib/chart-ref";
-import type { ChartFile, ChartTrack, Country } from "@/lib/chart-schema";
+} from '@/lib/chart-mode';
+import { isPlaylistRef, SONGS_CHART, type ChartRef } from '@/lib/chart-ref';
+import type { ChartFile, ChartTrack, Country } from '@/lib/chart-schema';
 import {
   CHART_PARAM,
   chartFromUrl,
@@ -38,7 +38,7 @@ import {
   countryPath,
   MODE_PARAM,
   modeFromUrl,
-} from "@/lib/chart-url";
+} from '@/lib/chart-url';
 import {
   backRollTarget,
   firstPlayable,
@@ -49,26 +49,26 @@ import {
   recordAfterSelection,
   type RollRecord,
   type SeatOf,
-} from "@/lib/end-of-chart-roll";
-import { codesWithTracks, pickShuffleCountry } from "@/lib/fairness-draw";
+} from '@/lib/end-of-chart-roll';
+import { codesWithTracks, pickShuffleCountry } from '@/lib/fairness-draw';
 import {
   type GlobeChartState,
   globeChartStore,
   useGlobeChart,
-} from "@/lib/globe-chart-store";
-import { pickLandingCountry } from "@/lib/landing-code";
-import { setSkipHandlers } from "@/lib/media-session";
-import { shuffleSeat } from "@/lib/shuffle-seat";
-import { sameTrack } from "@/lib/track-identity";
+} from '@/lib/globe-chart-store';
+import { pickLandingCountry } from '@/lib/landing-code';
+import { setSkipHandlers } from '@/lib/media-session';
+import { shuffleSeat } from '@/lib/shuffle-seat';
+import { sameTrack } from '@/lib/track-identity';
 import {
   AudioStoreProvider,
   useAudioStore,
   useAudioStoreApi,
-} from "@/providers/audio-store-provider";
+} from '@/providers/audio-store-provider';
 
 function validateUrlCode(
   raw: string | null,
-  countries: ChartFile["countries"],
+  countries: ChartFile['countries'],
 ): string | null {
   if (raw === null) return null;
   const lower = raw.toLowerCase();
@@ -84,7 +84,7 @@ const serverLandingSnapshot = () => null;
 
 // The landing roll must happen once per visit and only in the browser: rolling
 // during prerender would bake one pick into the cached HTML for every visitor.
-function createLandingSnapshot(countries: ChartFile["countries"]) {
+function createLandingSnapshot(countries: ChartFile['countries']) {
   let rolled: string | null = null;
   return () => (rolled ??= pickLandingCountry(countries));
 }
@@ -92,7 +92,7 @@ function createLandingSnapshot(countries: ChartFile["countries"]) {
 export function ChartScreen({ charts }: ChartScreenProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const rawCc = searchParams.get("cc");
+  const rawCc = searchParams.get('cc');
   const rawChart = searchParams.get(CHART_PARAM);
   const rawMode = searchParams.get(MODE_PARAM);
   // An explicit ?cc= outranks the path segment: legacy links carry the query,
@@ -227,7 +227,7 @@ function ChartScreenInner({
     const want = chartPath(countryCode, chartRef, mode);
     if (urlSays.current === want) return;
     urlSays.current = want;
-    window.history.replaceState(null, "", want);
+    window.history.replaceState(null, '', want);
   }, [urlChart, chartFailed, chartRef, countryCode, mode]);
   const {
     peek: peekChart,
@@ -278,7 +278,7 @@ function ChartScreenInner({
   useEffect(() => {
     onScreenRef.current = { countryCode, chartRef: chart.ref };
   }, [countryCode, chart.ref]);
-  const [snap, setSnap] = useState<SnapState>("peek");
+  const [snap, setSnap] = useState<SnapState>('peek');
   const [scrollSignal, setScrollSignal] = useState(0);
   const [focusIntent, setFocusIntent] = useState<{
     rank: number;
@@ -335,18 +335,18 @@ function ChartScreenInner({
   // would burn one of the hint's capped displays unseen. The tour gate is the
   // third term because playback can start from a row tap the tour never asked
   // for, which would otherwise teach the edge skip over the tour's own lesson.
-  const edgeCuesActive = hasCurrentTrack && snap !== "full" && tourGateOpen;
+  const edgeCuesActive = hasCurrentTrack && snap !== 'full' && tourGateOpen;
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.code !== "Space") return;
+      if (e.code !== 'Space') return;
       if (e.altKey || e.ctrlKey || e.metaKey) return;
       const target = e.target as HTMLElement | null;
       if (
         target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.tagName === "SELECT" ||
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
           target.isContentEditable ||
           target.closest(
             "button, a[href], [role='button'], [role='menuitem'], [role='switch'], [role='checkbox']",
@@ -365,25 +365,25 @@ function ChartScreenInner({
       const top = firstPlayable(tracksOf(countryCode, chart.ref) ?? []);
       if (top === null) return;
       e.preventDefault();
-      toggle(top, { countryCode, chartRef: chart.ref, mode }, "space_key");
+      toggle(top, { countryCode, chartRef: chart.ref, mode }, 'space_key');
     };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, [audioStore, tracksOf, countryCode, chart.ref, mode]);
 
   // Hidden sheet has no on-screen affordance; the next pointerdown anywhere
   // restores it.
   useEffect(() => {
-    if (snap !== "hidden") return;
-    const handler = () => setSnap("peek");
-    window.addEventListener("pointerdown", handler, { once: true });
-    return () => window.removeEventListener("pointerdown", handler);
+    if (snap !== 'hidden') return;
+    const handler = () => setSnap('peek');
+    window.addEventListener('pointerdown', handler, { once: true });
+    return () => window.removeEventListener('pointerdown', handler);
   }, [snap]);
 
   // full = read mode: tell the globe to suspend its spin so a leftover fling
   // can't settle a new country while the chart covers it.
   useEffect(() => {
-    globeChartStore.getState().setReadMode(snap === "full");
+    globeChartStore.getState().setReadMode(snap === 'full');
   }, [snap]);
 
   // Release read mode if the chart unmounts (e.g. a route change) while at full,
@@ -406,7 +406,7 @@ function ChartScreenInner({
       suppressResurfaceRef.current = false;
       return;
     }
-    setSnap((s) => (s === "hidden" || s === "closed" ? "peek" : s));
+    setSnap((s) => (s === 'hidden' || s === 'closed' ? 'peek' : s));
   }, [settleSignal]);
 
   // A chart waiting for its country to arrive, recorded by a mini-player tap
@@ -440,7 +440,7 @@ function ChartScreenInner({
       if (!onPlayingChart) {
         window.history.pushState(
           null,
-          "",
+          '',
           chartPath(
             currentCountryCode,
             currentChartRef,
@@ -468,7 +468,7 @@ function ChartScreenInner({
           };
       }
     }
-    setSnap((s) => (s === "hidden" || s === "closed" ? "peek" : s));
+    setSnap((s) => (s === 'hidden' || s === 'closed' ? 'peek' : s));
     setScrollSignal((n) => n + 1);
   }, [audioStore, countryCode, chartRef, openChart]);
 
@@ -493,7 +493,7 @@ function ChartScreenInner({
       fromCode: string,
       fromRef: ChartRef,
       fromTrack: ChartTrack,
-    ): "rolled" | null => {
+    ): 'rolled' | null => {
       const { toggle, signalStep } = audioStore.getState();
       const { visited, drawableCodes, selectedCountry, setSelectedCountry } =
         globeChartStore.getState();
@@ -531,18 +531,18 @@ function ChartScreenInner({
       // while the mode carries, so a roll in only here lands in only here.
       window.history.replaceState(
         null,
-        "",
+        '',
         chartPath(landing.code, SONGS_CHART, heardIn()),
       );
       signalStep(1);
       flashSkip(1);
-      trackEvent("next_executed", {
+      trackEvent('next_executed', {
         country: fromCode,
-        direction: "next",
-        outcome: "rolled",
+        direction: 'next',
+        outcome: 'rolled',
         from_rank: fromTrack.rank,
       });
-      return "rolled";
+      return 'rolled';
     },
     [audioStore, flashSkip, heardIn, seatIn],
   );
@@ -578,10 +578,10 @@ function ChartScreenInner({
       });
       audioStore.getState().signalStep(1);
       flashSkip(1);
-      trackEvent("next_executed", {
+      trackEvent('next_executed', {
         country: fromCode,
-        direction: "next",
-        outcome: "continued",
+        direction: 'next',
+        outcome: 'continued',
         from_rank: fromTrack.rank,
       });
 
@@ -618,10 +618,10 @@ function ChartScreenInner({
       const { toggle, signalStep } = audioStore.getState();
       toggle(adj, { countryCode: code, chartRef: ref, mode: heardIn() });
       signalStep(dir);
-      trackEvent("next_executed", {
+      trackEvent('next_executed', {
         country: code,
-        direction: dir === 1 ? "next" : "prev",
-        outcome: "adjacent",
+        direction: dir === 1 ? 'next' : 'prev',
+        outcome: 'adjacent',
         from_rank: fromTrack.rank,
       });
     },
@@ -679,7 +679,7 @@ function ChartScreenInner({
   const step = useCallback(
     (
       dir: 1 | -1,
-    ): "adjacent" | "rolled" | "backRolled" | "continued" | null => {
+    ): 'adjacent' | 'rolled' | 'backRolled' | 'continued' | null => {
       const {
         currentTrack,
         currentCountryCode,
@@ -712,7 +712,7 @@ function ChartScreenInner({
           currentTrack,
           dir,
         );
-        return "adjacent";
+        return 'adjacent';
       }
       if (dir === 1) {
         if (
@@ -720,7 +720,7 @@ function ChartScreenInner({
           peekTail(currentCountryCode) === null
         ) {
           void stepIntoTail(currentCountryCode, currentTrack);
-          return "continued";
+          return 'continued';
         }
         if (
           playlistsAfter(charts.countries[currentCountryCode], currentChartRef)
@@ -731,7 +731,7 @@ function ChartScreenInner({
             currentChartRef,
             currentTrack,
           );
-          return "continued";
+          return 'continued';
         }
         return rollOutOfCountry(
           currentCountryCode,
@@ -759,18 +759,18 @@ function ChartScreenInner({
       store.setSelectedCountry(back.countryCode);
       window.history.replaceState(
         null,
-        "",
+        '',
         chartPath(back.countryCode, SONGS_CHART, heardIn()),
       );
       signalStep(dir);
       flashSkip(-1);
-      trackEvent("next_executed", {
+      trackEvent('next_executed', {
         country: currentCountryCode,
-        direction: "prev",
-        outcome: "back_rolled",
+        direction: 'prev',
+        outcome: 'back_rolled',
         from_rank: currentTrack.rank,
       });
-      return "backRolled";
+      return 'backRolled';
     },
     [
       audioStore,
@@ -907,7 +907,7 @@ function ChartScreenInner({
       .toggle(
         seat,
         { countryCode: code, chartRef: SONGS_CHART, mode: DEFAULT_CHART_MODE },
-        "shuffle",
+        'shuffle',
       );
   };
 
@@ -933,7 +933,7 @@ function ChartScreenInner({
         // affordances retire even when step clamps at the end of the chart,
         // matching the hint's own dismiss-on-gesture rule.
         markUsed();
-        if (step(state.skipIntent.dir) === "adjacent") {
+        if (step(state.skipIntent.dir) === 'adjacent') {
           flashSkip(state.skipIntent.dir);
         }
       }

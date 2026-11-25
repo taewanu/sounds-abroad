@@ -1,4 +1,4 @@
-import type { Commentary } from "./chart-schema";
+import type { Commentary } from './chart-schema';
 
 /**
  * Deterministic backstop on a blurb's self-classified claim tier. A
@@ -17,7 +17,7 @@ import type { Commentary } from "./chart-schema";
  */
 
 export interface TierConsistencyViolation {
-  rule: "causal-language" | "temporal-language";
+  rule: 'causal-language' | 'temporal-language';
   marker: string;
 }
 
@@ -27,17 +27,17 @@ export interface TierConsistencyViolation {
  * move. Multi-word markers ("due to", "thanks to") are matched as phrases.
  */
 const CAUSAL_MARKERS = [
-  "because",
-  "due to",
-  "thanks to",
-  "sparked",
-  "drove",
-  "driven by",
-  "fueled",
-  "fuelled",
-  "propelled",
-  "boosted",
-  "powered by",
+  'because',
+  'due to',
+  'thanks to',
+  'sparked',
+  'drove',
+  'driven by',
+  'fueled',
+  'fuelled',
+  'propelled',
+  'boosted',
+  'powered by',
 ];
 
 /**
@@ -46,25 +46,25 @@ const CAUSAL_MARKERS = [
  * what-it-is note has no reason to reach for them.
  */
 const TEMPORAL_MARKERS = [
-  "surged",
-  "surging",
-  "spiked",
-  "soared",
-  "soaring",
-  "viral",
-  "trending",
-  "this week",
-  "exploded",
-  "blew up",
+  'surged',
+  'surging',
+  'spiked',
+  'soared',
+  'soaring',
+  'viral',
+  'trending',
+  'this week',
+  'exploded',
+  'blew up',
   // Charting-context debut phrases only: a bare "debut" describes a release
   // ("their debut album") and must not flag; "debuted at #2" is chart movement.
-  "debuted at",
-  "debuted on",
-  "chart debut",
-  "climbing",
-  "jumped",
-  "skyrocketed",
-  "breakout",
+  'debuted at',
+  'debuted on',
+  'chart debut',
+  'climbing',
+  'jumped',
+  'skyrocketed',
+  'breakout',
 ];
 
 /**
@@ -82,19 +82,19 @@ const TEMPORAL_MARKERS = [
  */
 
 function escapeForRegExp(literal: string): string {
-  return literal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return literal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /** A whole-word, case-insensitive match for a (possibly multi-word) marker. */
 function containsMarker(text: string, marker: string): boolean {
-  const pattern = new RegExp(`\\b${escapeForRegExp(marker)}\\b`, "i");
+  const pattern = new RegExp(`\\b${escapeForRegExp(marker)}\\b`, 'i');
   return pattern.test(text);
 }
 
 function findMarkers(
   text: string,
   markers: string[],
-  rule: TierConsistencyViolation["rule"],
+  rule: TierConsistencyViolation['rule'],
 ): TierConsistencyViolation[] {
   return markers
     .filter((marker) => containsMarker(text, marker))
@@ -104,8 +104,8 @@ function findMarkers(
 /** Every tier-consistency signal in a single block of text. */
 export function findTierSignals(text: string): TierConsistencyViolation[] {
   return [
-    ...findMarkers(text, CAUSAL_MARKERS, "causal-language"),
-    ...findMarkers(text, TEMPORAL_MARKERS, "temporal-language"),
+    ...findMarkers(text, CAUSAL_MARKERS, 'causal-language'),
+    ...findMarkers(text, TEMPORAL_MARKERS, 'temporal-language'),
   ];
 }
 
@@ -117,10 +117,10 @@ export function findTierSignals(text: string): TierConsistencyViolation[] {
 export function lintTierConsistency(
   entry: Commentary,
 ): TierConsistencyViolation[] {
-  if (entry.claim !== "what-it-is") return [];
+  if (entry.claim !== 'what-it-is') return [];
 
   const fields = [entry.lead, entry.detail, entry.tag].filter(
-    (f): f is string => typeof f === "string",
+    (f): f is string => typeof f === 'string',
   );
   return fields.flatMap(findTierSignals);
 }

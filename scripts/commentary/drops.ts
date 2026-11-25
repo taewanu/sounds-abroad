@@ -1,6 +1,6 @@
-import { z } from "zod";
+import { z } from 'zod';
 
-import type { DropRecord } from "./route";
+import type { DropRecord } from './route';
 
 /**
  * The drop ledger: how many times each track's draft has failed the publish gate,
@@ -17,7 +17,7 @@ import type { DropRecord } from "./route";
  */
 export const DEFAULT_MAX_ATTEMPTS = 2;
 
-export const DROPS_PATHNAME = "commentary/v1/drops.json";
+export const DROPS_PATHNAME = 'commentary/v1/drops.json';
 
 export const DropAttemptSchema = z.object({
   attempts: z.number().int().positive(),

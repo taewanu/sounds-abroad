@@ -1,13 +1,13 @@
-import type { ZodType } from "zod";
+import type { ZodType } from 'zod';
 
-import { MUSIC_CHARTS_TAG } from "./cache-tags";
+import { MUSIC_CHARTS_TAG } from './cache-tags';
 import {
   PlaylistFileSchema,
   SongsTailFileSchema,
   type PlaylistFile,
   type SongsTailFile,
-} from "./chart-schema";
-import { chartsStoreHeaders } from "./charts-store-fetch";
+} from './chart-schema';
+import { chartsStoreHeaders } from './charts-store-fetch';
 
 /**
  * How long the server waits on the store. Without a bound a hung connection
@@ -24,7 +24,7 @@ export class ChartPartFetchError extends Error {
     message: string,
   ) {
     super(message);
-    this.name = "ChartPartFetchError";
+    this.name = 'ChartPartFetchError';
   }
 }
 
@@ -35,7 +35,7 @@ export class ChartPartValidationError extends Error {
     message: string,
   ) {
     super(message);
-    this.name = "ChartPartValidationError";
+    this.name = 'ChartPartValidationError';
   }
 }
 
@@ -50,7 +50,7 @@ export function chartPartUrl(
   folder: string,
   name: string,
 ): string {
-  const cut = chartsUrl.lastIndexOf("/");
+  const cut = chartsUrl.lastIndexOf('/');
   if (cut === -1) {
     throw new ChartPartFetchError(
       name,
@@ -84,7 +84,7 @@ async function fetchChartPart<T>(
   let res: Response;
   try {
     res = await fetch(url, {
-      cache: "force-cache",
+      cache: 'force-cache',
       next: { tags: [MUSIC_CHARTS_TAG] },
       signal: AbortSignal.timeout(READ_TIMEOUT_MS),
       headers: chartsStoreHeaders(),
@@ -93,7 +93,7 @@ async function fetchChartPart<T>(
     throw new ChartPartFetchError(
       name,
       0,
-      `${folder} fetch failed: ${err instanceof Error ? err.message : "network error"}`,
+      `${folder} fetch failed: ${err instanceof Error ? err.message : 'network error'}`,
     );
   }
 
@@ -112,7 +112,7 @@ async function fetchChartPart<T>(
     throw new ChartPartFetchError(
       name,
       res.status,
-      `${folder} fetch failed: invalid JSON (${err instanceof Error ? err.message : "parse error"})`,
+      `${folder} fetch failed: invalid JSON (${err instanceof Error ? err.message : 'parse error'})`,
     );
   }
 
@@ -146,7 +146,7 @@ export function fetchPlaylistFile(
 ): Promise<PlaylistFile> {
   return fetchChartPart(
     chartsUrl,
-    "playlists",
+    'playlists',
     playlistId,
     PlaylistFileSchema,
     (file) => file.id,
@@ -160,7 +160,7 @@ export function fetchSongsTail(
 ): Promise<SongsTailFile> {
   return fetchChartPart(
     chartsUrl,
-    "songs",
+    'songs',
     countryCode,
     SongsTailFileSchema,
     (file) => file.code,

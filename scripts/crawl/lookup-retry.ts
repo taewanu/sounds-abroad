@@ -2,16 +2,16 @@ import {
   ItunesLookupError,
   type ItunesLookupErrorKind,
   type LookupResult,
-} from "./itunes-lookup";
-import { withRetry } from "./retry";
+} from './itunes-lookup';
+import { withRetry } from './retry';
 
 // Lookup failures worth retrying: the request never completed (network) or the
 // server returned non-2xx (http). A returned-but-wrong payload (json/shape)
 // will not change on an immediate retry, so those propagate unretried and the
 // batch's tracks resolve to null previews until the next scheduled crawl.
 const TRANSIENT_KINDS: ReadonlySet<ItunesLookupErrorKind> = new Set([
-  "network",
-  "http",
+  'network',
+  'http',
 ]);
 
 function isTransientLookupError(err: unknown): boolean {

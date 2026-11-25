@@ -1,27 +1,27 @@
-import type { ReactNode } from "react";
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 
-import { CountrySelector } from "@/components/country-selector";
-import { VolumeControl } from "@/components/volume-control";
-import { COUNTRY_KR, COUNTRY_US } from "@/lib/__fixtures__";
-import type { AudioEngine } from "@/lib/audio-engine";
-import { createAudioStore } from "@/lib/audio-store";
-import { SONGS_CHART } from "@/lib/chart-ref";
-import type { Country } from "@/lib/chart-schema";
-import { selectGem } from "@/lib/select-gem";
+import { CountrySelector } from '@/components/country-selector';
+import { VolumeControl } from '@/components/volume-control';
+import { COUNTRY_KR, COUNTRY_US } from '@/lib/__fixtures__';
+import type { AudioEngine } from '@/lib/audio-engine';
+import { createAudioStore } from '@/lib/audio-store';
+import { SONGS_CHART } from '@/lib/chart-ref';
+import type { Country } from '@/lib/chart-schema';
+import { selectGem } from '@/lib/select-gem';
 import {
   AudioStoreContext,
   AudioStoreProvider,
-} from "@/providers/audio-store-provider";
+} from '@/providers/audio-store-provider';
 
-import { ChartSheet, type SnapState } from "./sheet";
-import type { ChartTracksState } from "./use-chart-tracks";
-import { ROW_COLLAPSE_MS } from "./use-row-transitions";
+import { ChartSheet, type SnapState } from './sheet';
+import type { ChartTracksState } from './use-chart-tracks';
+import { ROW_COLLAPSE_MS } from './use-row-transitions';
 
 function makeMockAudio(): AudioEngine {
   return {
-    src: "",
+    src: '',
     play: vi.fn().mockResolvedValue(undefined),
     pause: vi.fn(),
     volumeAdjustable: true,
@@ -41,7 +41,7 @@ async function frames(count: number) {
 }
 
 function setScrollTop(el: Element, value: number) {
-  Object.defineProperty(el, "scrollTop", { value, configurable: true });
+  Object.defineProperty(el, 'scrollTop', { value, configurable: true });
 }
 
 const originalScrollIntoView = Element.prototype.scrollIntoView;
@@ -71,8 +71,8 @@ function rect(top: number, bottom: number): DOMRect {
 
 function stubRects(viewport: DOMRect, row: DOMRect) {
   Element.prototype.getBoundingClientRect = function () {
-    if (this.tagName === "OL") return viewport;
-    if (this.hasAttribute("data-rank")) return row;
+    if (this.tagName === 'OL') return viewport;
+    if (this.hasAttribute('data-rank')) return row;
     return rect(0, 0);
   };
 }
@@ -102,7 +102,7 @@ function staticChart(country: Country): ChartTracksState {
 // it down behind the shared rows. Rendered at peek with that track playing on
 // the chart shown, the setup the mode-switch reveal turns on.
 const SPREAD_COUNTRY: Country = {
-  name: "Testland",
+  name: 'Testland',
   valid: true,
   tracks: [
     { ...COUNTRY_KR.tracks[0], rank: 1, spread: 9 },
@@ -111,7 +111,7 @@ const SPREAD_COUNTRY: Country = {
   ],
 };
 
-function playingAtPeek(mode: "most_played" | "only_here") {
+function playingAtPeek(mode: 'most_played' | 'only_here') {
   return (
     <AudioStoreProvider>
       <ChartSheet
@@ -133,9 +133,9 @@ function playingAtPeek(mode: "most_played" | "only_here") {
 // The ranked row's play button for a track, not the gem card's: the gem
 // duplicates one track's name, so a bare name query can match two buttons.
 function playButtonFor(track: { name: string; artist: string }) {
-  const list = document.querySelector("ol");
-  if (!list) throw new Error("the track list has not rendered");
-  return within(list).getByRole("button", {
+  const list = document.querySelector('ol');
+  if (!list) throw new Error('the track list has not rendered');
+  return within(list).getByRole('button', {
     name: `Play preview of ${track.name} by ${track.artist}`,
   });
 }
@@ -190,10 +190,10 @@ function renderSheet(
 }
 
 function preferReducedMotion() {
-  return vi.spyOn(window, "matchMedia").mockImplementation(
+  return vi.spyOn(window, 'matchMedia').mockImplementation(
     (query: string) =>
       ({
-        matches: query.includes("reduce"),
+        matches: query.includes('reduce'),
         media: query,
         addEventListener: vi.fn(),
         removeEventListener: vi.fn(),
@@ -205,7 +205,7 @@ function preferReducedMotion() {
 // The first move both crosses the threshold and baselines the drag at that
 // point, so a second move supplies the actual travel.
 function dragBody(target: Element, fromY: number, toY: number) {
-  fireEvent.pointerDown(target, { clientY: fromY, pointerType: "mouse" });
+  fireEvent.pointerDown(target, { clientY: fromY, pointerType: 'mouse' });
   fireEvent.pointerMove(window, { clientY: fromY + (toY > fromY ? 6 : -6) });
   fireEvent.pointerMove(window, { clientY: toY });
   fireEvent.pointerUp(window);
@@ -218,16 +218,16 @@ function dragBody(target: Element, fromY: number, toY: number) {
 // scroll and the gesture feel are device-verified.
 function dispatchTouch(target: Element, type: string, clientY: number) {
   const event = new Event(type, { bubbles: true, cancelable: true });
-  Object.defineProperty(event, "touches", {
+  Object.defineProperty(event, 'touches', {
     value: [{ clientY }],
     configurable: true,
   });
   target.dispatchEvent(event);
 }
 
-describe("ChartSheet", () => {
-  test("renders each track in the country", () => {
-    renderSheet("peek");
+describe('ChartSheet', () => {
+  test('renders each track in the country', () => {
+    renderSheet('peek');
 
     // getAllByText, not getByText: the gem card duplicates one track's name
     // and artist above the ranked list, so that track's text renders twice.
@@ -237,17 +237,17 @@ describe("ChartSheet", () => {
     }
   });
 
-  test("renders the country name as the sheet title", () => {
-    renderSheet("peek");
+  test('renders the country name as the sheet title', () => {
+    renderSheet('peek');
 
     expect(screen.getByText(COUNTRY_KR.name)).toBeDefined();
   });
 
-  test("labels the sheet region with its title", () => {
-    renderSheet("peek");
+  test('labels the sheet region with its title', () => {
+    renderSheet('peek');
 
-    const sheet = screen.getByTestId("chart-sheet");
-    const labelId = sheet.getAttribute("aria-labelledby");
+    const sheet = screen.getByTestId('chart-sheet');
+    const labelId = sheet.getAttribute('aria-labelledby');
     expect(labelId).toBeTruthy();
     expect(document.getElementById(labelId as string)?.textContent).toBe(
       COUNTRY_KR.name,
@@ -257,81 +257,81 @@ describe("ChartSheet", () => {
   // The sheet must not autofocus its own controls on mount, and Tab off the
   // last control must escape the sheet rather than wrap back into it. Both
   // regress if the sheet is ever rewrapped in a focus-trapping Dialog.
-  test("does not steal focus into the sheet on mount", () => {
-    renderSheet("peek");
+  test('does not steal focus into the sheet on mount', () => {
+    renderSheet('peek');
 
     expect(document.activeElement).toBe(document.body);
   });
 
-  test("does not trap Tab: a Tab keydown on the last control is not intercepted", () => {
-    renderSheet("full");
-    const sheet = screen.getByTestId("chart-sheet");
-    const tabbables = sheet.querySelectorAll<HTMLElement>("button, a[href]");
+  test('does not trap Tab: a Tab keydown on the last control is not intercepted', () => {
+    renderSheet('full');
+    const sheet = screen.getByTestId('chart-sheet');
+    const tabbables = sheet.querySelectorAll<HTMLElement>('button, a[href]');
     const last = tabbables[tabbables.length - 1];
 
     // fireEvent returns false when a handler called preventDefault on the
     // cancelable event; a trapping FocusScope would cancel the wrap here.
-    const notPrevented = fireEvent.keyDown(last, { key: "Tab" });
+    const notPrevented = fireEvent.keyDown(last, { key: 'Tab' });
 
     expect(notPrevented).toBe(true);
   });
 
-  test("collapses to closed on Escape", () => {
-    const { onSnapChange } = renderSheet("full");
+  test('collapses to closed on Escape', () => {
+    const { onSnapChange } = renderSheet('full');
 
-    fireEvent.keyDown(window, { key: "Escape" });
+    fireEvent.keyDown(window, { key: 'Escape' });
 
-    expect(onSnapChange).toHaveBeenCalledWith("closed");
+    expect(onSnapChange).toHaveBeenCalledWith('closed');
   });
 
-  test("ignores Escape when already collapsed off-screen", () => {
-    const { onSnapChange } = renderSheet("hidden");
+  test('ignores Escape when already collapsed off-screen', () => {
+    const { onSnapChange } = renderSheet('hidden');
 
-    fireEvent.keyDown(window, { key: "Escape" });
+    fireEvent.keyDown(window, { key: 'Escape' });
 
     expect(onSnapChange).not.toHaveBeenCalled();
   });
 
-  test("leaves Escape to a focused form control instead of collapsing", () => {
-    const { onSnapChange } = renderSheet("full");
-    const input = document.createElement("input");
+  test('leaves Escape to a focused form control instead of collapsing', () => {
+    const { onSnapChange } = renderSheet('full');
+    const input = document.createElement('input');
     document.body.appendChild(input);
 
-    fireEvent.keyDown(input, { key: "Escape" });
+    fireEvent.keyDown(input, { key: 'Escape' });
 
     expect(onSnapChange).not.toHaveBeenCalled();
     input.remove();
   });
 
-  test("Escape from a control inside the sheet hands focus to the grip, which stays reachable", () => {
-    renderSheet("full");
+  test('Escape from a control inside the sheet hands focus to the grip, which stays reachable', () => {
+    renderSheet('full');
     const row = playButtonFor(COUNTRY_KR.tracks[0]);
     row.focus();
 
-    fireEvent.keyDown(row, { key: "Escape" });
+    fireEvent.keyDown(row, { key: 'Escape' });
 
     expect(document.activeElement).toBe(
-      screen.getByRole("button", { name: /collapse chart/i }),
+      screen.getByRole('button', { name: /collapse chart/i }),
     );
   });
 
-  test("Escape leaves focus outside the sheet where it is", () => {
-    renderSheet("full");
+  test('Escape leaves focus outside the sheet where it is', () => {
+    renderSheet('full');
 
-    fireEvent.keyDown(window, { key: "Escape" });
+    fireEvent.keyDown(window, { key: 'Escape' });
 
     expect(document.activeElement).toBe(document.body);
   });
 
-  describe("reachability at each snap", () => {
+  describe('reachability at each snap', () => {
     const WITH_RAIL: Country = {
       ...COUNTRY_KR,
       playlists: [
         {
-          id: "pl.a",
-          name: "First playlist",
-          appleUrl: "https://music.apple.com/kr/playlist/pl.a",
-          artworkUrl: "https://art.test/p.jpg",
+          id: 'pl.a',
+          name: 'First playlist',
+          appleUrl: 'https://music.apple.com/kr/playlist/pl.a',
+          artworkUrl: 'https://art.test/p.jpg',
           genres: [],
           trackCount: 20,
         },
@@ -343,20 +343,20 @@ describe("ChartSheet", () => {
     });
 
     function reachableControls() {
-      const sheet = screen.getByTestId("chart-sheet");
+      const sheet = screen.getByTestId('chart-sheet');
       return [
-        ...sheet.querySelectorAll<HTMLElement>("button, a[href], [tabindex]"),
+        ...sheet.querySelectorAll<HTMLElement>('button, a[href], [tabindex]'),
       ].filter(
         (el) =>
-          el.getAttribute("tabindex") !== "-1" &&
-          el.closest("[inert]") === null,
+          el.getAttribute('tabindex') !== '-1' &&
+          el.closest('[inert]') === null,
       );
     }
 
     // Reports each observed block as on or off screen the moment it is observed.
     function stubViewport(onScreen: (block: Element) => boolean) {
       vi.stubGlobal(
-        "IntersectionObserver",
+        'IntersectionObserver',
         class {
           constructor(private readonly cb: IntersectionObserverCallback) {}
           observe(block: Element) {
@@ -384,75 +384,75 @@ describe("ChartSheet", () => {
 
     function modeButtons() {
       return within(
-        screen.getByRole("group", { name: /chart mode/i }),
-      ).getAllByRole("button");
+        screen.getByRole('group', { name: /chart mode/i }),
+      ).getAllByRole('button');
     }
 
-    test("at closed, blocks measured below the screen leave the tab order while the grip stays", () => {
+    test('at closed, blocks measured below the screen leave the tab order while the grip stays', () => {
       stubViewport(() => false);
 
-      renderSheet("closed", { country: WITH_RAIL });
+      renderSheet('closed', { country: WITH_RAIL });
 
       const reachable = reachableControls();
       expect(reachable).toEqual([
-        screen.getByRole("button", { name: /expand chart/i }),
+        screen.getByRole('button', { name: /expand chart/i }),
       ]);
     });
 
-    test("at closed, an on-screen rail stays reachable while the list stays out of reach", () => {
+    test('at closed, an on-screen rail stays reachable while the list stays out of reach', () => {
       stubViewport(() => true);
 
-      renderSheet("closed", { country: WITH_RAIL });
+      renderSheet('closed', { country: WITH_RAIL });
 
       const reachable = reachableControls();
-      expect(reachable).toContain(screen.getAllByRole("tab")[0]);
+      expect(reachable).toContain(screen.getAllByRole('tab')[0]);
       expect(reachable).toContain(modeButtons()[0]);
-      expect(reachable).not.toContain(screen.getByRole("tabpanel"));
+      expect(reachable).not.toContain(screen.getByRole('tabpanel'));
       expect(reachable).not.toContain(playButtonFor(COUNTRY_KR.tracks[0]));
     });
 
     test("at closed, each block's reachability follows its own measurement", () => {
       stubViewport(isRail);
 
-      renderSheet("closed", { country: WITH_RAIL });
+      renderSheet('closed', { country: WITH_RAIL });
 
       const reachable = reachableControls();
-      expect(reachable).toContain(screen.getAllByRole("tab")[0]);
+      expect(reachable).toContain(screen.getAllByRole('tab')[0]);
       expect(reachable).not.toContain(modeButtons()[0]);
-      expect(reachable).not.toContain(screen.getByRole("tabpanel"));
+      expect(reachable).not.toContain(screen.getByRole('tabpanel'));
     });
 
-    test("at closed with nothing measured, the grip and rail stay reachable and the list does not", () => {
-      renderSheet("closed", { country: WITH_RAIL });
+    test('at closed with nothing measured, the grip and rail stay reachable and the list does not', () => {
+      renderSheet('closed', { country: WITH_RAIL });
 
       const reachable = reachableControls();
       expect(reachable).toContain(
-        screen.getByRole("button", { name: /expand chart/i }),
+        screen.getByRole('button', { name: /expand chart/i }),
       );
-      expect(reachable).toContain(screen.getAllByRole("tab")[0]);
+      expect(reachable).toContain(screen.getAllByRole('tab')[0]);
       expect(reachable.filter((el) => el.closest("[role='tabpanel']"))).toEqual(
         [],
       );
     });
 
-    test("at hidden, nothing in the sheet is reachable even where measured on screen", () => {
+    test('at hidden, nothing in the sheet is reachable even where measured on screen', () => {
       stubViewport(() => true);
 
-      renderSheet("hidden", { country: WITH_RAIL });
+      renderSheet('hidden', { country: WITH_RAIL });
 
       expect(reachableControls()).toEqual([]);
     });
 
-    test.each<SnapState>(["peek", "full"])(
-      "at %s, the rail, mode tabs and list stay reachable even where measured off screen",
+    test.each<SnapState>(['peek', 'full'])(
+      'at %s, the rail, mode tabs and list stay reachable even where measured off screen',
       (snap) => {
         stubViewport(() => false);
 
         renderSheet(snap, { country: WITH_RAIL });
 
         const reachable = reachableControls();
-        expect(reachable).toContain(screen.getByRole("tabpanel"));
-        expect(reachable).toContain(screen.getAllByRole("tab")[0]);
+        expect(reachable).toContain(screen.getByRole('tabpanel'));
+        expect(reachable).toContain(screen.getAllByRole('tab')[0]);
         expect(reachable).toContain(modeButtons()[0]);
       },
     );
@@ -460,25 +460,25 @@ describe("ChartSheet", () => {
 
   test("renders the country's gem, matching what selectGem picks", () => {
     const selection = selectGem(COUNTRY_KR.tracks);
-    if (!selection) throw new Error("fixture has tracks; expected a gem");
+    if (!selection) throw new Error('fixture has tracks; expected a gem');
 
-    renderSheet("peek");
+    renderSheet('peek');
 
-    const region = screen.getByRole("region", { name: /local gem/i });
+    const region = screen.getByRole('region', { name: /local gem/i });
     expect(region.textContent).toContain(selection.gem.name);
     expect(region.textContent).toContain(selection.tier);
   });
 
-  test("one-tap play from the gem card plays it on the audio store", () => {
+  test('one-tap play from the gem card plays it on the audio store', () => {
     const selection = selectGem(COUNTRY_KR.tracks);
-    if (!selection) throw new Error("fixture has tracks; expected a gem");
+    if (!selection) throw new Error('fixture has tracks; expected a gem');
     const gem = selection.gem;
-    const { store } = renderSheet("peek");
+    const { store } = renderSheet('peek');
 
     // Scoped to the region: the gem also renders as an ordinary row further
     // down the list, which has its own same-named play button.
-    const region = screen.getByRole("region", { name: /local gem/i });
-    fireEvent.click(within(region).getByRole("button", { name: /play/i }));
+    const region = screen.getByRole('region', { name: /local gem/i });
+    fireEvent.click(within(region).getByRole('button', { name: /play/i }));
 
     expect(store.getState().currentTrack).toEqual(gem);
     expect(store.getState().isPlaying).toBe(true);
@@ -504,115 +504,115 @@ describe("ChartSheet", () => {
       ),
     ).not.toThrow();
 
-    expect(screen.queryByRole("region", { name: /local gem/i })).toBeNull();
+    expect(screen.queryByRole('region', { name: /local gem/i })).toBeNull();
   });
 
   test("exposes data-snap='peek' when snap prop is peek", () => {
-    renderSheet("peek");
+    renderSheet('peek');
 
-    const sheet = screen.getByTestId("chart-sheet");
-    expect(sheet.getAttribute("data-snap")).toBe("peek");
+    const sheet = screen.getByTestId('chart-sheet');
+    expect(sheet.getAttribute('data-snap')).toBe('peek');
   });
 
   test("exposes data-snap='full' when snap prop is full", () => {
-    renderSheet("full");
+    renderSheet('full');
 
-    const sheet = screen.getByTestId("chart-sheet");
-    expect(sheet.getAttribute("data-snap")).toBe("full");
+    const sheet = screen.getByTestId('chart-sheet');
+    expect(sheet.getAttribute('data-snap')).toBe('full');
   });
 
   test("exposes data-snap='closed' when snap prop is closed", () => {
-    renderSheet("closed");
+    renderSheet('closed');
 
-    const sheet = screen.getByTestId("chart-sheet");
-    expect(sheet.getAttribute("data-snap")).toBe("closed");
+    const sheet = screen.getByTestId('chart-sheet');
+    expect(sheet.getAttribute('data-snap')).toBe('closed');
   });
 
   test("exposes data-snap='hidden' when snap prop is hidden", () => {
-    renderSheet("hidden");
+    renderSheet('hidden');
 
-    const sheet = screen.getByTestId("chart-sheet");
-    expect(sheet.getAttribute("data-snap")).toBe("hidden");
+    const sheet = screen.getByTestId('chart-sheet');
+    expect(sheet.getAttribute('data-snap')).toBe('hidden');
   });
 
   test("fires onSnapChange with 'full' when handle clicked while peek", () => {
-    const { onSnapChange } = renderSheet("peek");
+    const { onSnapChange } = renderSheet('peek');
 
-    fireEvent.click(screen.getByRole("button", { name: /expand chart/i }));
+    fireEvent.click(screen.getByRole('button', { name: /expand chart/i }));
 
-    expect(onSnapChange).toHaveBeenCalledWith("full");
+    expect(onSnapChange).toHaveBeenCalledWith('full');
   });
 
   test("fires onSnapChange with 'peek' when handle clicked while full", () => {
-    const { onSnapChange } = renderSheet("full");
+    const { onSnapChange } = renderSheet('full');
 
-    fireEvent.click(screen.getByRole("button", { name: /collapse chart/i }));
+    fireEvent.click(screen.getByRole('button', { name: /collapse chart/i }));
 
-    expect(onSnapChange).toHaveBeenCalledWith("peek");
+    expect(onSnapChange).toHaveBeenCalledWith('peek');
   });
 
-  test("a snap change slides the sheet and the badge recede together", () => {
-    const { setSnap } = renderSheet("peek");
+  test('a snap change slides the sheet and the badge recede together', () => {
+    const { setSnap } = renderSheet('peek');
 
-    setSnap("full");
+    setSnap('full');
 
-    expect(screen.getByTestId("chart-sheet").style.transition).toContain(
-      "transform",
+    expect(screen.getByTestId('chart-sheet').style.transition).toContain(
+      'transform',
     );
     expect(document.documentElement.style.transition).toContain(
-      "--sheet-cover",
+      '--sheet-cover',
     );
   });
 
-  test("under reduced motion a snap change moves the sheet and badge without travel", () => {
+  test('under reduced motion a snap change moves the sheet and badge without travel', () => {
     const matchMedia = preferReducedMotion();
     try {
-      const { setSnap } = renderSheet("peek");
+      const { setSnap } = renderSheet('peek');
 
-      setSnap("full");
+      setSnap('full');
 
-      expect(screen.getByTestId("chart-sheet").style.transition).toBe("none");
-      expect(document.documentElement.style.transition).toBe("none");
+      expect(screen.getByTestId('chart-sheet').style.transition).toBe('none');
+      expect(document.documentElement.style.transition).toBe('none');
     } finally {
       matchMedia.mockRestore();
     }
   });
 
   test.each<[SnapState, string]>([
-    ["full", "true"],
-    ["peek", "false"],
-    ["closed", "false"],
-  ])("at %s, the grip reports aria-expanded=%s", (snap, expanded) => {
+    ['full', 'true'],
+    ['peek', 'false'],
+    ['closed', 'false'],
+  ])('at %s, the grip reports aria-expanded=%s', (snap, expanded) => {
     renderSheet(snap);
 
-    const grip = screen.getByRole("button", {
+    const grip = screen.getByRole('button', {
       name: /(expand|collapse) chart/i,
     });
-    expect(grip.getAttribute("aria-expanded")).toBe(expanded);
+    expect(grip.getAttribute('aria-expanded')).toBe(expanded);
   });
 
-  test("a drag that starts on the grip does not also toggle the sheet", () => {
-    const { onSnapChange } = renderSheet("peek");
-    const grip = screen.getByRole("button", { name: /expand chart/i });
+  test('a drag that starts on the grip does not also toggle the sheet', () => {
+    const { onSnapChange } = renderSheet('peek');
+    const grip = screen.getByRole('button', { name: /expand chart/i });
 
     dragBody(grip, 500, 850);
     fireEvent.click(grip);
 
-    expect(onSnapChange.mock.calls).toEqual([["closed"]]);
+    expect(onSnapChange.mock.calls).toEqual([['closed']]);
   });
 
-  test("a grip click after a drag has settled still toggles", async () => {
-    const { onSnapChange } = renderSheet("peek");
-    const grip = screen.getByRole("button", { name: /expand chart/i });
+  test('a grip click after a drag has settled still toggles', async () => {
+    const { onSnapChange } = renderSheet('peek');
+    const grip = screen.getByRole('button', { name: /expand chart/i });
     dragBody(grip, 500, 850);
     await new Promise((r) => setTimeout(r, 0));
 
     fireEvent.click(grip);
 
-    expect(onSnapChange).toHaveBeenLastCalledWith("full");
+    expect(onSnapChange).toHaveBeenLastCalledWith('full');
   });
 
-  test("scrolls currentTrack into view when sheet transitions from closed", async () => {
+  test('scrolls currentTrack into view when sheet transitions from closed', async () => {
     const scrollIntoViewMock = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoViewMock;
     const rank = COUNTRY_KR.tracks[2].rank;
@@ -650,18 +650,18 @@ describe("ChartSheet", () => {
     expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
   });
 
-  test("reveals the playing row when a mode switch re-ranks it off screen", () => {
+  test('reveals the playing row when a mode switch re-ranks it off screen', () => {
     vi.useFakeTimers();
     try {
       const scrollIntoViewMock = vi.fn();
       Element.prototype.scrollIntoView = scrollIntoViewMock;
-      const { rerender } = render(playingAtPeek("only_here"));
+      const { rerender } = render(playingAtPeek('only_here'));
       scrollIntoViewMock.mockClear();
       // The row is pushed below the viewport, as the re-rank does; jsdom has no
       // layout, so the clip must be stubbed or the row reads as visible.
       stubRects(rect(0, 100), rect(200, 240));
 
-      rerender(playingAtPeek("most_played"));
+      rerender(playingAtPeek('most_played'));
       // The reveal waits for the collapse/expand to settle before it measures,
       // so the scroll lands on final positions rather than a layout in motion.
       act(() => {
@@ -674,17 +674,17 @@ describe("ChartSheet", () => {
     }
   });
 
-  test("leaves an already-visible playing row where it is on a mode switch", () => {
+  test('leaves an already-visible playing row where it is on a mode switch', () => {
     vi.useFakeTimers();
     try {
       const scrollIntoViewMock = vi.fn();
       Element.prototype.scrollIntoView = scrollIntoViewMock;
-      const { rerender } = render(playingAtPeek("only_here"));
+      const { rerender } = render(playingAtPeek('only_here'));
       scrollIntoViewMock.mockClear();
       // The row sits inside the viewport, so the switch has no reason to move it.
       stubRects(rect(0, 300), rect(40, 80));
 
-      rerender(playingAtPeek("most_played"));
+      rerender(playingAtPeek('most_played'));
       act(() => {
         vi.advanceTimersByTime(ROW_COLLAPSE_MS);
       });
@@ -695,7 +695,7 @@ describe("ChartSheet", () => {
     }
   });
 
-  test("nudges a clipped row into view when it is tapped at peek", async () => {
+  test('nudges a clipped row into view when it is tapped at peek', async () => {
     const scrollIntoViewMock = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoViewMock;
     renderAtPeek(SPREAD_COUNTRY, 3);
@@ -707,12 +707,12 @@ describe("ChartSheet", () => {
     await frames(1);
 
     expect(scrollIntoViewMock).toHaveBeenCalledWith({
-      block: "nearest",
-      behavior: "smooth",
+      block: 'nearest',
+      behavior: 'smooth',
     });
   });
 
-  test("leaves a fully-visible tapped row where it is", async () => {
+  test('leaves a fully-visible tapped row where it is', async () => {
     const scrollIntoViewMock = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoViewMock;
     renderAtPeek(SPREAD_COUNTRY, 3);
@@ -725,9 +725,9 @@ describe("ChartSheet", () => {
     expect(scrollIntoViewMock).not.toHaveBeenCalled();
   });
 
-  test("a gem play does not scroll the list to its ranked-row duplicate", async () => {
+  test('a gem play does not scroll the list to its ranked-row duplicate', async () => {
     const selection = selectGem(COUNTRY_KR.tracks);
-    if (!selection) throw new Error("fixture has tracks; expected a gem");
+    if (!selection) throw new Error('fixture has tracks; expected a gem');
     const scrollIntoViewMock = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoViewMock;
     renderAtPeek(COUNTRY_KR, selection.gem.rank);
@@ -735,15 +735,15 @@ describe("ChartSheet", () => {
     // The gem's ranked duplicate is below the fold, so a reveal would yank to it.
     stubRects(rect(0, 100), rect(200, 240));
 
-    const region = screen.getByRole("region", { name: /local gem/i });
-    fireEvent.click(within(region).getByRole("button", { name: /play/i }));
+    const region = screen.getByRole('region', { name: /local gem/i });
+    fireEvent.click(within(region).getByRole('button', { name: /play/i }));
     await frames(1);
 
     // The gem card carries no onPlay, so its tap raises no reveal signal.
     expect(scrollIntoViewMock).not.toHaveBeenCalled();
   });
 
-  test("does not scroll when transitioning between peek and full", async () => {
+  test('does not scroll when transitioning between peek and full', async () => {
     const scrollIntoViewMock = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoViewMock;
     const rank = COUNTRY_KR.tracks[0].rank;
@@ -785,7 +785,7 @@ describe("ChartSheet", () => {
     expect(scrollIntoViewMock).not.toHaveBeenCalled();
   });
 
-  test("scrolls currentTrack into view when sheet transitions from hidden", async () => {
+  test('scrolls currentTrack into view when sheet transitions from hidden', async () => {
     const scrollIntoViewMock = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoViewMock;
     const rank = COUNTRY_KR.tracks[2].rank;
@@ -823,7 +823,7 @@ describe("ChartSheet", () => {
     expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
   });
 
-  test("scrolls currentTrack into view when scrollSignal increments while open", async () => {
+  test('scrolls currentTrack into view when scrollSignal increments while open', async () => {
     const scrollIntoViewMock = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoViewMock;
     const rank = COUNTRY_KR.tracks[0].rank;
@@ -865,7 +865,7 @@ describe("ChartSheet", () => {
     expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
   });
 
-  test("does not scroll on a direct tap: a rank change with no step", async () => {
+  test('does not scroll on a direct tap: a rank change with no step', async () => {
     const scrollIntoViewMock = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoViewMock;
     // Off-screen row: a skip would pull it in, but a direct tap must not.
@@ -911,7 +911,7 @@ describe("ChartSheet", () => {
     expect(scrollIntoViewMock).not.toHaveBeenCalled();
   });
 
-  test("does not scroll when currentTrackRank is null", async () => {
+  test('does not scroll when currentTrackRank is null', async () => {
     const scrollIntoViewMock = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoViewMock;
 
@@ -950,7 +950,7 @@ describe("ChartSheet", () => {
     expect(scrollIntoViewMock).not.toHaveBeenCalled();
   });
 
-  test("scrolls the now-playing row into view on a skip while open when the row is off-screen", async () => {
+  test('scrolls the now-playing row into view on a skip while open when the row is off-screen', async () => {
     const scrollIntoViewMock = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoViewMock;
     // Row sits below the peek viewport, so reveal-only must pull it in.
@@ -996,7 +996,7 @@ describe("ChartSheet", () => {
     expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
   });
 
-  test("does not scroll when the playing country differs from the displayed country", async () => {
+  test('does not scroll when the playing country differs from the displayed country', async () => {
     const scrollIntoViewMock = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoViewMock;
     // Row would be off-screen, but the now-playing track belongs to another
@@ -1044,17 +1044,17 @@ describe("ChartSheet", () => {
     expect(scrollIntoViewMock).not.toHaveBeenCalled();
   });
 
-  test("a reopen asked from another country scrolls on the first ask, once the displayed country catches up", async () => {
+  test('a reopen asked from another country scrolls on the first ask, once the displayed country catches up', async () => {
     const scrollIntoViewMock = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoViewMock;
     // A rank the browsed country also has, so a scroll during the mismatch would
     // land on its unrelated row.
     const rank = COUNTRY_KR.tracks[2].rank;
     const props = {
-      snap: "peek" as const,
+      snap: 'peek' as const,
       onSnapChange: vi.fn(),
       currentTrackRank: rank,
-      currentCountryCode: "kr",
+      currentCountryCode: 'kr',
       currentChartRef: SONGS_CHART,
     };
 
@@ -1111,14 +1111,14 @@ describe("ChartSheet", () => {
     expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
   });
 
-  test("a step that lands in another country reveals its row once the displayed country catches up", async () => {
+  test('a step that lands in another country reveals its row once the displayed country catches up', async () => {
     const scrollIntoViewMock = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoViewMock;
     // A roll lands deep in the new chart while its list remounts at the top, so
     // the row needs revealing rather than already sitting in view.
     stubRects(rect(0, 100), rect(200, 240));
     const landed = COUNTRY_KR.tracks[2].rank;
-    const base = { snap: "peek" as const, onSnapChange: vi.fn() };
+    const base = { snap: 'peek' as const, onSnapChange: vi.fn() };
 
     const { rerender } = render(
       <AudioStoreProvider>
@@ -1181,7 +1181,7 @@ describe("ChartSheet", () => {
     expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
   });
 
-  test("drops a held reopen ask once nothing is playing, rather than firing it at the next track", async () => {
+  test('drops a held reopen ask once nothing is playing, rather than firing it at the next track', async () => {
     const scrollIntoViewMock = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoViewMock;
     // The row the user goes on to tap is off-screen, so only a stale reopen
@@ -1189,7 +1189,7 @@ describe("ChartSheet", () => {
     // step, and so must never scroll on its own.
     stubRects(rect(0, 100), rect(200, 240));
     const rank = COUNTRY_KR.tracks[2].rank;
-    const base = { snap: "peek" as const, onSnapChange: vi.fn() };
+    const base = { snap: 'peek' as const, onSnapChange: vi.fn() };
 
     const { rerender } = render(
       <AudioStoreProvider>
@@ -1267,7 +1267,7 @@ describe("ChartSheet", () => {
     expect(scrollIntoViewMock).not.toHaveBeenCalled();
   });
 
-  test("does not scroll when the track changes while open but the row is already fully visible", async () => {
+  test('does not scroll when the track changes while open but the row is already fully visible', async () => {
     const scrollIntoViewMock = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoViewMock;
     // Row sits inside the peek viewport, so reveal-only leaves the list put.
@@ -1310,93 +1310,93 @@ describe("ChartSheet", () => {
     expect(scrollIntoViewMock).not.toHaveBeenCalled();
   });
 
-  test("expands to full when the body is dragged up from peek", () => {
-    const { onSnapChange } = renderSheet("peek");
+  test('expands to full when the body is dragged up from peek', () => {
+    const { onSnapChange } = renderSheet('peek');
 
-    dragBody(screen.getByTestId("chart-sheet"), 500, 150);
+    dragBody(screen.getByTestId('chart-sheet'), 500, 150);
 
-    expect(onSnapChange).toHaveBeenCalledWith("full");
+    expect(onSnapChange).toHaveBeenCalledWith('full');
   });
 
-  test("collapses toward closed when the body is dragged down from peek", () => {
-    const { onSnapChange } = renderSheet("peek");
+  test('collapses toward closed when the body is dragged down from peek', () => {
+    const { onSnapChange } = renderSheet('peek');
 
-    dragBody(screen.getByTestId("chart-sheet"), 500, 850);
+    dragBody(screen.getByTestId('chart-sheet'), 500, 850);
 
-    expect(onSnapChange).toHaveBeenCalledWith("closed");
+    expect(onSnapChange).toHaveBeenCalledWith('closed');
   });
 
-  test("yields to list scroll on pointer down when the list is scrolled", () => {
-    const { onSnapChange } = renderSheet("peek");
-    const list = screen.getByRole("list");
+  test('yields to list scroll on pointer down when the list is scrolled', () => {
+    const { onSnapChange } = renderSheet('peek');
+    const list = screen.getByRole('list');
     setScrollTop(list, 40);
 
-    fireEvent.pointerDown(list, { clientY: 500, pointerType: "mouse" });
+    fireEvent.pointerDown(list, { clientY: 500, pointerType: 'mouse' });
 
     expect(onSnapChange).not.toHaveBeenCalled();
   });
 
-  test("does not change snap on a tap below the drag threshold", () => {
-    const { onSnapChange } = renderSheet("peek");
+  test('does not change snap on a tap below the drag threshold', () => {
+    const { onSnapChange } = renderSheet('peek');
 
-    fireEvent.pointerDown(screen.getByTestId("chart-sheet"), {
+    fireEvent.pointerDown(screen.getByTestId('chart-sheet'), {
       clientY: 500,
-      pointerType: "mouse",
+      pointerType: 'mouse',
     });
     fireEvent.pointerUp(window);
 
     expect(onSnapChange).not.toHaveBeenCalled();
   });
 
-  test("hands off to a collapse when the full list is dragged down from the top", () => {
-    const { onSnapChange } = renderSheet("full");
-    const list = screen.getByRole("list");
+  test('hands off to a collapse when the full list is dragged down from the top', () => {
+    const { onSnapChange } = renderSheet('full');
+    const list = screen.getByRole('list');
     setScrollTop(list, 0);
 
-    dispatchTouch(list, "touchstart", 300);
-    dispatchTouch(list, "touchmove", 340);
-    dispatchTouch(list, "touchmove", 700);
-    dispatchTouch(list, "touchend", 700);
+    dispatchTouch(list, 'touchstart', 300);
+    dispatchTouch(list, 'touchmove', 340);
+    dispatchTouch(list, 'touchmove', 700);
+    dispatchTouch(list, 'touchend', 700);
 
-    expect(onSnapChange).toHaveBeenCalledWith("peek");
+    expect(onSnapChange).toHaveBeenCalledWith('peek');
   });
 
-  test("does not hand off while the full list is still scrolled", () => {
-    const { onSnapChange } = renderSheet("full");
-    const list = screen.getByRole("list");
+  test('does not hand off while the full list is still scrolled', () => {
+    const { onSnapChange } = renderSheet('full');
+    const list = screen.getByRole('list');
     setScrollTop(list, 80);
 
-    dispatchTouch(list, "touchstart", 300);
-    dispatchTouch(list, "touchmove", 340);
-    dispatchTouch(list, "touchend", 340);
+    dispatchTouch(list, 'touchstart', 300);
+    dispatchTouch(list, 'touchmove', 340);
+    dispatchTouch(list, 'touchend', 340);
 
     expect(onSnapChange).not.toHaveBeenCalled();
   });
 });
 
-describe("ChartSheet commentary focus", () => {
+describe('ChartSheet commentary focus', () => {
   // The focus-mode teasers carry data-commentary-teaser; the gem card's accordion
   // does not, so this selects a ranked row's commentary teaser.
   function firstTeaser(container: HTMLElement) {
     return container.querySelector<HTMLButtonElement>(
-      "[data-commentary-teaser]",
+      '[data-commentary-teaser]',
     );
   }
 
-  test("opening a teaser focuses its card and dims the other rows", () => {
-    const { container } = renderSheet("full");
+  test('opening a teaser focuses its card and dims the other rows', () => {
+    const { container } = renderSheet('full');
     const teaser = firstTeaser(container);
     expect(teaser).not.toBeNull();
 
     fireEvent.click(teaser!);
 
-    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+    expect(container.querySelector('[data-commentary-card]')).not.toBeNull();
     expect(
       container.querySelector("li[class*='pointer-events-none']"),
     ).not.toBeNull();
   });
 
-  test("the commentary badge toggles: a repeat focus ask for the open row closes it", () => {
+  test('the commentary badge toggles: a repeat focus ask for the open row closes it', () => {
     const store = createAudioStore(() => makeMockAudio());
     const rank = COUNTRY_KR.tracks[0].rank;
     const view = (nonce: number) => (
@@ -1415,20 +1415,20 @@ describe("ChartSheet commentary focus", () => {
     );
 
     const { container, rerender } = render(view(1));
-    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+    expect(container.querySelector('[data-commentary-card]')).not.toBeNull();
 
     // The same badge pressed again: a fresh nonce for the open row closes it.
     rerender(view(2));
-    expect(container.querySelector("[data-commentary-card]")).toBeNull();
+    expect(container.querySelector('[data-commentary-card]')).toBeNull();
 
     // Pressed once more: it opens again.
     rerender(view(3));
-    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+    expect(container.querySelector('[data-commentary-card]')).not.toBeNull();
   });
 
-  test("a mode switch closes an open commentary card", () => {
+  test('a mode switch closes an open commentary card', () => {
     const store = createAudioStore(() => makeMockAudio());
-    const view = (mode: "most_played" | "only_here") => (
+    const view = (mode: 'most_played' | 'only_here') => (
       <AudioStoreContext.Provider value={store}>
         <ChartSheet
           country={COUNTRY_KR}
@@ -1441,82 +1441,82 @@ describe("ChartSheet commentary focus", () => {
         />
       </AudioStoreContext.Provider>
     );
-    const { container, rerender } = render(view("most_played"));
+    const { container, rerender } = render(view('most_played'));
     fireEvent.click(firstTeaser(container)!);
-    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+    expect(container.querySelector('[data-commentary-card]')).not.toBeNull();
 
     // The card is taller than a collapsing row can hold, and its row may be one
     // the switch drops, so the switch closes it rather than clip it.
-    rerender(view("only_here"));
+    rerender(view('only_here'));
 
-    expect(container.querySelector("[data-commentary-card]")).toBeNull();
+    expect(container.querySelector('[data-commentary-card]')).toBeNull();
   });
 
-  test("dimmed siblings and the gem card recede and go inert", () => {
-    const { container } = renderSheet("full");
+  test('dimmed siblings and the gem card recede and go inert', () => {
+    const { container } = renderSheet('full');
     fireEvent.click(firstTeaser(container)!);
 
     const sibling = container.querySelector(
-      "li[data-rank]:not([data-commentary-card])",
+      'li[data-rank]:not([data-commentary-card])',
     );
-    expect(sibling?.hasAttribute("inert")).toBe(true);
+    expect(sibling?.hasAttribute('inert')).toBe(true);
 
     // The gem card is the one ranked-list <li> without a data-rank; its recede
     // sits on the inner wrapper, the <li> itself carrying the fold-collapse.
-    const gemLi = container.querySelector("ol > li:not([data-rank])");
-    expect(gemLi?.hasAttribute("inert")).toBe(true);
-    expect(gemLi?.querySelector("div")?.className).toContain("opacity-40");
+    const gemLi = container.querySelector('ol > li:not([data-rank])');
+    expect(gemLi?.hasAttribute('inert')).toBe(true);
+    expect(gemLi?.querySelector('div')?.className).toContain('opacity-40');
   });
 
-  test("Escape closes the focused card without collapsing the sheet", () => {
-    const { container, onSnapChange } = renderSheet("full");
+  test('Escape closes the focused card without collapsing the sheet', () => {
+    const { container, onSnapChange } = renderSheet('full');
     fireEvent.click(firstTeaser(container)!);
-    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+    expect(container.querySelector('[data-commentary-card]')).not.toBeNull();
 
-    fireEvent.keyDown(window, { key: "Escape" });
+    fireEvent.keyDown(window, { key: 'Escape' });
 
-    expect(container.querySelector("[data-commentary-card]")).toBeNull();
+    expect(container.querySelector('[data-commentary-card]')).toBeNull();
     // The card owns the first Escape; the sheet-collapse handler stands down.
     expect(onSnapChange).not.toHaveBeenCalled();
   });
 
-  test("a second Escape, after the card closes, collapses the sheet", () => {
-    const { container, onSnapChange } = renderSheet("full");
+  test('a second Escape, after the card closes, collapses the sheet', () => {
+    const { container, onSnapChange } = renderSheet('full');
     fireEvent.click(firstTeaser(container)!);
 
-    fireEvent.keyDown(window, { key: "Escape" });
+    fireEvent.keyDown(window, { key: 'Escape' });
     expect(onSnapChange).not.toHaveBeenCalled();
 
-    fireEvent.keyDown(window, { key: "Escape" });
-    expect(onSnapChange).toHaveBeenCalledWith("closed");
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(onSnapChange).toHaveBeenCalledWith('closed');
   });
 
-  test("a click on the sheet outside the card (a dimmed sibling) closes it", () => {
-    const { container } = renderSheet("full");
+  test('a click on the sheet outside the card (a dimmed sibling) closes it', () => {
+    const { container } = renderSheet('full');
     fireEvent.click(firstTeaser(container)!);
-    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+    expect(container.querySelector('[data-commentary-card]')).not.toBeNull();
 
     const sibling = container.querySelector(
-      "li[data-rank]:not([data-commentary-card])",
+      'li[data-rank]:not([data-commentary-card])',
     );
     fireEvent.click(sibling!);
 
-    expect(container.querySelector("[data-commentary-card]")).toBeNull();
+    expect(container.querySelector('[data-commentary-card]')).toBeNull();
   });
 
-  test("a click outside the sheet (persistent chrome) keeps the card open", () => {
-    const { container } = renderSheet("full");
+  test('a click outside the sheet (persistent chrome) keeps the card open', () => {
+    const { container } = renderSheet('full');
     fireEvent.click(firstTeaser(container)!);
-    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+    expect(container.querySelector('[data-commentary-card]')).not.toBeNull();
 
     // The mini-player and other chrome live outside the sheet element; clicking
     // them must not collapse the card.
     fireEvent.click(document.body);
 
-    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+    expect(container.querySelector('[data-commentary-card]')).not.toBeNull();
   });
 
-  test("switching country closes the card and does not restore it on return", () => {
+  test('switching country closes the card and does not restore it on return', () => {
     const store = createAudioStore(() => makeMockAudio());
     const view = (cc: string) => (
       <AudioStoreContext.Provider value={store}>
@@ -1531,43 +1531,43 @@ describe("ChartSheet commentary focus", () => {
         />
       </AudioStoreContext.Provider>
     );
-    const { container, rerender } = render(view("kr"));
+    const { container, rerender } = render(view('kr'));
     fireEvent.click(firstTeaser(container)!);
-    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+    expect(container.querySelector('[data-commentary-card]')).not.toBeNull();
 
-    rerender(view("us"));
-    rerender(view("kr"));
+    rerender(view('us'));
+    rerender(view('kr'));
 
-    expect(container.querySelector("[data-commentary-card]")).toBeNull();
+    expect(container.querySelector('[data-commentary-card]')).toBeNull();
   });
 
-  test("with the volume popover open over a card, one Escape on its mute button closes only the popover", () => {
-    const { container, onSnapChange } = renderSheet("full", {
+  test('with the volume popover open over a card, one Escape on its mute button closes only the popover', () => {
+    const { container, onSnapChange } = renderSheet('full', {
       alongside: <VolumeControl />,
     });
     fireEvent.click(firstTeaser(container)!);
-    fireEvent.click(screen.getByRole("button", { name: "Volume" }));
-    const mute = screen.getByRole("button", { name: "Mute" });
+    fireEvent.click(screen.getByRole('button', { name: 'Volume' }));
+    const mute = screen.getByRole('button', { name: 'Mute' });
     mute.focus();
 
-    fireEvent.keyDown(mute, { key: "Escape" });
+    fireEvent.keyDown(mute, { key: 'Escape' });
 
-    expect(screen.queryByRole("slider")).toBeNull();
-    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+    expect(screen.queryByRole('slider')).toBeNull();
+    expect(container.querySelector('[data-commentary-card]')).not.toBeNull();
     expect(onSnapChange).not.toHaveBeenCalled();
   });
 });
 
-describe("ChartSheet under the country list", () => {
-  test("with the country list open over the sheet, one Escape closes only the list", () => {
-    const { onSnapChange } = renderSheet("peek", {
+describe('ChartSheet under the country list', () => {
+  test('with the country list open over the sheet, one Escape closes only the list', () => {
+    const { onSnapChange } = renderSheet('peek', {
       alongside: <CountrySelector />,
     });
-    fireEvent.click(screen.getByRole("button", { name: /choose a country/i }));
+    fireEvent.click(screen.getByRole('button', { name: /choose a country/i }));
 
-    fireEvent.keyDown(window, { key: "Escape" });
+    fireEvent.keyDown(window, { key: 'Escape' });
 
-    expect(screen.queryByRole("navigation", { name: "Countries" })).toBeNull();
+    expect(screen.queryByRole('navigation', { name: 'Countries' })).toBeNull();
     expect(onSnapChange).not.toHaveBeenCalled();
   });
 });

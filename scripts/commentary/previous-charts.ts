@@ -1,5 +1,5 @@
-import type { ChartFile } from "../../src/lib/chart-schema";
-import { fetchPublishedCharts } from "../crawl/published-charts";
+import type { ChartFile } from '../../src/lib/chart-schema';
+import { fetchPublishedCharts } from '../crawl/published-charts';
 
 /**
  * Loads the crawl-maintained previous-chart snapshot for the worklist's
@@ -16,7 +16,7 @@ export async function loadPreviousCharts(
 ): Promise<ChartFile | null> {
   if (!prevUrl) {
     console.warn(
-      "[worklist] CHARTS_PREV_BLOB_URL not set: movement triggers inert; only top-debut and local-gem fire.",
+      '[worklist] CHARTS_PREV_BLOB_URL not set: movement triggers inert; only top-debut and local-gem fire.',
     );
     return null;
   }
@@ -27,6 +27,6 @@ export async function loadPreviousCharts(
     );
     return null;
   }
-  console.warn("[worklist] movement triggers live (previous snapshot loaded).");
+  console.warn('[worklist] movement triggers live (previous snapshot loaded).');
   return previous;
 }

@@ -2,19 +2,18 @@ import type {
   Playlist,
   PlaylistFile,
   PlaylistTrack as ChartPlaylistTrack,
-} from "../../src/lib/chart-schema";
-import { spotifySearchUrl } from "../../src/lib/spotify-search-url";
-
-import type { ApplePlaylist } from "./apple-playlists";
+} from '../../src/lib/chart-schema';
+import { spotifySearchUrl } from '../../src/lib/spotify-search-url';
+import type { ApplePlaylist } from './apple-playlists';
 import {
   batchIds,
   ItunesLookupError,
   type LookupResult,
   type LookupTally,
-} from "./itunes-lookup";
-import type { BatchLookup } from "./lookup-retry";
-import { PlaylistPageError, type PlaylistTrack } from "./playlist-page";
-import { genreHistogram } from "./playlist-selection";
+} from './itunes-lookup';
+import type { BatchLookup } from './lookup-retry';
+import { PlaylistPageError, type PlaylistTrack } from './playlist-page';
+import { genreHistogram } from './playlist-selection';
 
 /**
  * Share of a country's page fetches that may fail before the run stops treating
@@ -63,7 +62,7 @@ export function isContractBroken(
   return pageFailures / pagesAttempted > share;
 }
 
-type ResolvedTrack = Pick<LookupResult, "previewUrl" | "genre">;
+type ResolvedTrack = Pick<LookupResult, 'previewUrl' | 'genre'>;
 
 /** Resolves a set of track ids to their preview URL and genre. */
 async function resolveTracks(

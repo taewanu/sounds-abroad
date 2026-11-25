@@ -1,21 +1,21 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, test, vi } from "vitest";
+import { fireEvent, render, screen } from '@testing-library/react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { describe, expect, test, vi } from 'vitest';
 
-import type { AudioEngine } from "@/lib/audio-engine";
-import { type AudioState, createAudioStore } from "@/lib/audio-store";
-import { SONGS_CHART, type ChartRef } from "@/lib/chart-ref";
-import type { Commentary, Track } from "@/lib/chart-schema";
-import { AudioStoreContext } from "@/providers/audio-store-provider";
+import type { AudioEngine } from '@/lib/audio-engine';
+import { type AudioState, createAudioStore } from '@/lib/audio-store';
+import { SONGS_CHART, type ChartRef } from '@/lib/chart-ref';
+import type { Commentary, Track } from '@/lib/chart-schema';
+import { AudioStoreContext } from '@/providers/audio-store-provider';
 
-import { TrackRow } from "./track-row";
+import { TrackRow } from './track-row';
 
 const trackEvent = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/analytics", () => ({ track: trackEvent }));
+vi.mock('@/lib/analytics', () => ({ track: trackEvent }));
 
 function makeMockAudio(): AudioEngine {
   return {
-    src: "",
+    src: '',
     play: vi.fn().mockResolvedValue(undefined),
     pause: vi.fn(),
     volumeAdjustable: true,
@@ -29,12 +29,12 @@ function makeMockAudio(): AudioEngine {
 function makeTrack(overrides: Partial<Track> = {}): Track {
   return {
     rank: 1,
-    name: "Test Track",
-    artist: "Test Artist",
-    previewUrl: "https://example.com/preview.m4a",
-    artworkUrl: "https://example.com/artwork.jpg",
-    appleUrl: "https://music.apple.com/track/1",
-    spotifyUrl: "https://open.spotify.com/search/Test%20Track",
+    name: 'Test Track',
+    artist: 'Test Artist',
+    previewUrl: 'https://example.com/preview.m4a',
+    artworkUrl: 'https://example.com/artwork.jpg',
+    appleUrl: 'https://music.apple.com/track/1',
+    spotifyUrl: 'https://open.spotify.com/search/Test%20Track',
     ...overrides,
   };
 }
@@ -42,7 +42,7 @@ function makeTrack(overrides: Partial<Track> = {}): Track {
 function renderTrackRow(
   track: Track,
   init?: Partial<AudioState>,
-  countryCode = "kr",
+  countryCode = 'kr',
   chartRef: ChartRef = SONGS_CHART,
 ) {
   const store = createAudioStore(() => makeMockAudio());
@@ -64,8 +64,8 @@ function renderTrackRow(
   return { ...utils, store };
 }
 
-describe("TrackRow", () => {
-  test("renders rank, name, artist, artwork", () => {
+describe('TrackRow', () => {
+  test('renders rank, name, artist, artwork', () => {
     const track = makeTrack({ rank: 5 });
 
     const { container } = renderTrackRow(track);
@@ -73,7 +73,7 @@ describe("TrackRow", () => {
     expect(screen.getByText(String(track.rank))).toBeDefined();
     expect(screen.getByText(track.name)).toBeDefined();
     expect(screen.getByText(track.artist)).toBeDefined();
-    expect(container.querySelector("img")?.getAttribute("src")).toBe(
+    expect(container.querySelector('img')?.getAttribute('src')).toBe(
       track.artworkUrl,
     );
   });
@@ -81,9 +81,9 @@ describe("TrackRow", () => {
   // Rendered as server markup: a DOM style setter discards an invalid value, so
   // only the serialized attribute shows a declaration a style string would carry.
   // The renderer preloads an image it emits, hence the second address attribute.
-  test("an artwork address reaches the server markup only as an image address", () => {
+  test('an artwork address reaches the server markup only as an image address', () => {
     const artworkUrl =
-      "https://is1-ssl.mzstatic.com/cover.jpg);outline-style:solid;background-image:url(https://is1-ssl.mzstatic.com/other.jpg";
+      'https://is1-ssl.mzstatic.com/cover.jpg);outline-style:solid;background-image:url(https://is1-ssl.mzstatic.com/other.jpg';
     const track = makeTrack({ artworkUrl });
     const store = createAudioStore(() => makeMockAudio());
 
@@ -101,75 +101,75 @@ describe("TrackRow", () => {
     );
 
     const elsewhere = html
-      .replaceAll(`src="${artworkUrl}"`, "")
-      .replaceAll(`href="${artworkUrl}"`, "");
+      .replaceAll(`src="${artworkUrl}"`, '')
+      .replaceAll(`href="${artworkUrl}"`, '');
     expect(html).toContain(`src="${artworkUrl}"`);
     expect(elsewhere).not.toContain(artworkUrl);
     expect(html).not.toMatch(/style="[^"]*url\(/);
   });
 
-  test("artwork that fails to load is removed, leaving its placeholder box", () => {
+  test('artwork that fails to load is removed, leaving its placeholder box', () => {
     const { container } = renderTrackRow(makeTrack());
-    const placeholder = container.querySelector("img")?.parentElement;
+    const placeholder = container.querySelector('img')?.parentElement;
 
-    fireEvent.error(container.querySelector("img") as HTMLImageElement);
+    fireEvent.error(container.querySelector('img') as HTMLImageElement);
 
-    expect(container.querySelector("img")).toBeNull();
+    expect(container.querySelector('img')).toBeNull();
     expect(placeholder?.isConnected).toBe(true);
   });
 
-  test("clicking the row triggers audio store toggle for this track", () => {
+  test('clicking the row triggers audio store toggle for this track', () => {
     const track = makeTrack();
     const { store } = renderTrackRow(track);
 
-    fireEvent.click(screen.getByRole("button", { name: /preview/i }));
+    fireEvent.click(screen.getByRole('button', { name: /preview/i }));
 
     expect(store.getState().currentTrack).toBe(track);
     expect(store.getState().isPlaying).toBe(true);
   });
 
-  test("clicking the row stores the location it was played from", () => {
+  test('clicking the row stores the location it was played from', () => {
     const track = makeTrack();
-    const { store } = renderTrackRow(track, undefined, "br", "pl.other");
+    const { store } = renderTrackRow(track, undefined, 'br', 'pl.other');
 
-    fireEvent.click(screen.getByRole("button", { name: /preview/i }));
+    fireEvent.click(screen.getByRole('button', { name: /preview/i }));
 
-    expect(store.getState().currentCountryCode).toBe("br");
-    expect(store.getState().currentChartRef).toBe("pl.other");
+    expect(store.getState().currentCountryCode).toBe('br');
+    expect(store.getState().currentChartRef).toBe('pl.other');
   });
 
-  test("data-state idle while the same track plays from another chart", () => {
+  test('data-state idle while the same track plays from another chart', () => {
     const track = makeTrack();
     const { container } = renderTrackRow(
       track,
       {
         currentTrack: track,
         isPlaying: true,
-        currentCountryCode: "kr",
-        currentChartRef: "pl.other",
+        currentCountryCode: 'kr',
+        currentChartRef: 'pl.other',
       },
-      "kr",
+      'kr',
     );
 
-    expect(container.querySelector("[data-state]")).toBeNull();
+    expect(container.querySelector('[data-state]')).toBeNull();
   });
 
-  test("data-state reflects current vs idle, playing vs paused", () => {
+  test('data-state reflects current vs idle, playing vs paused', () => {
     const track = makeTrack();
     const otherTrack = makeTrack({
       rank: 2,
-      appleUrl: "https://music.apple.com/track/2?i=2",
-      previewUrl: "https://example.com/other.m4a",
+      appleUrl: 'https://music.apple.com/track/2?i=2',
+      previewUrl: 'https://example.com/other.m4a',
     });
 
     const { container, rerender, store } = renderTrackRow(track);
 
-    expect(container.querySelector("[data-state]")).toBeNull();
+    expect(container.querySelector('[data-state]')).toBeNull();
 
     store.setState({
       currentTrack: track,
       isPlaying: true,
-      currentCountryCode: "kr",
+      currentCountryCode: 'kr',
       currentChartRef: SONGS_CHART,
     });
     rerender(
@@ -189,7 +189,7 @@ describe("TrackRow", () => {
     store.setState({
       currentTrack: track,
       isPlaying: false,
-      currentCountryCode: "kr",
+      currentCountryCode: 'kr',
       currentChartRef: SONGS_CHART,
     });
     rerender(
@@ -209,7 +209,7 @@ describe("TrackRow", () => {
     store.setState({
       currentTrack: otherTrack,
       isPlaying: true,
-      currentCountryCode: "kr",
+      currentCountryCode: 'kr',
       currentChartRef: SONGS_CHART,
     });
     rerender(
@@ -224,30 +224,30 @@ describe("TrackRow", () => {
         </ul>
       </AudioStoreContext.Provider>,
     );
-    expect(container.querySelector("[data-state]")).toBeNull();
+    expect(container.querySelector('[data-state]')).toBeNull();
   });
 
-  test("data-state idle when same previewUrl plays in a different country", () => {
+  test('data-state idle when same previewUrl plays in a different country', () => {
     const track = makeTrack();
     const { container } = renderTrackRow(
       track,
       {
         currentTrack: track,
         isPlaying: true,
-        currentCountryCode: "a",
+        currentCountryCode: 'a',
         currentChartRef: SONGS_CHART,
       },
-      "b",
+      'b',
     );
 
-    expect(container.querySelector("[data-state]")).toBeNull();
+    expect(container.querySelector('[data-state]')).toBeNull();
   });
 
-  test("disabled state when previewUrl is null: button disabled, label shown, click is no-op", () => {
+  test('disabled state when previewUrl is null: button disabled, label shown, click is no-op', () => {
     const track = makeTrack({ previewUrl: null });
     const { store } = renderTrackRow(track);
 
-    const button = screen.getByRole("button", { name: /preview/i });
+    const button = screen.getByRole('button', { name: /preview/i });
     expect((button as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText(/No preview/)).toBeDefined();
 
@@ -257,97 +257,97 @@ describe("TrackRow", () => {
     expect(store.getState().isPlaying).toBe(false);
   });
 
-  test("Apple Music anchor: href, opens in new tab, noopener", () => {
-    const track = makeTrack({ appleUrl: "https://music.apple.com/song/42" });
+  test('Apple Music anchor: href, opens in new tab, noopener', () => {
+    const track = makeTrack({ appleUrl: 'https://music.apple.com/song/42' });
 
     renderTrackRow(track);
 
-    const apple = screen.getByRole("link", { name: /Apple Music/i });
-    expect(apple.getAttribute("href")).toBe(track.appleUrl);
-    expect(apple.getAttribute("target")).toBe("_blank");
-    expect(apple.getAttribute("rel")).toContain("noopener");
+    const apple = screen.getByRole('link', { name: /Apple Music/i });
+    expect(apple.getAttribute('href')).toBe(track.appleUrl);
+    expect(apple.getAttribute('target')).toBe('_blank');
+    expect(apple.getAttribute('rel')).toContain('noopener');
   });
 
-  test("Spotify anchor: href, opens in new tab, noopener", () => {
+  test('Spotify anchor: href, opens in new tab, noopener', () => {
     const track = makeTrack({
-      spotifyUrl: "https://open.spotify.com/search/foo",
+      spotifyUrl: 'https://open.spotify.com/search/foo',
     });
 
     renderTrackRow(track);
 
-    const spotify = screen.getByRole("link", { name: /Spotify/i });
-    expect(spotify.getAttribute("href")).toBe(track.spotifyUrl);
-    expect(spotify.getAttribute("target")).toBe("_blank");
-    expect(spotify.getAttribute("rel")).toContain("noopener");
+    const spotify = screen.getByRole('link', { name: /Spotify/i });
+    expect(spotify.getAttribute('href')).toBe(track.spotifyUrl);
+    expect(spotify.getAttribute('target')).toBe('_blank');
+    expect(spotify.getAttribute('rel')).toContain('noopener');
   });
 
-  test("clicking Apple Music pauses the preview but keeps the track", () => {
+  test('clicking Apple Music pauses the preview but keeps the track', () => {
     const track = makeTrack();
     const { store } = renderTrackRow(track, {
       currentTrack: track,
       isPlaying: true,
-      currentCountryCode: "kr",
+      currentCountryCode: 'kr',
       currentChartRef: SONGS_CHART,
     });
 
-    fireEvent.click(screen.getByRole("link", { name: /Apple Music/i }));
+    fireEvent.click(screen.getByRole('link', { name: /Apple Music/i }));
 
     expect(store.getState().isPlaying).toBe(false);
     expect(store.getState().currentTrack).toBe(track);
   });
 
-  test("clicking Spotify pauses the preview but keeps the track", () => {
+  test('clicking Spotify pauses the preview but keeps the track', () => {
     const track = makeTrack();
     const { store } = renderTrackRow(track, {
       currentTrack: track,
       isPlaying: true,
-      currentCountryCode: "kr",
+      currentCountryCode: 'kr',
       currentChartRef: SONGS_CHART,
     });
 
-    fireEvent.click(screen.getByRole("link", { name: /Spotify/i }));
+    fireEvent.click(screen.getByRole('link', { name: /Spotify/i }));
 
     expect(store.getState().isPlaying).toBe(false);
     expect(store.getState().currentTrack).toBe(track);
   });
 
-  test("a resolved Spotify link reports the tap as landing on the track", () => {
+  test('a resolved Spotify link reports the tap as landing on the track', () => {
     const track = makeTrack({
-      spotifyUrl: "https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT",
+      spotifyUrl: 'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT',
     });
 
     renderTrackRow(track);
-    fireEvent.click(screen.getByRole("link", { name: /Spotify/i }));
+    fireEvent.click(screen.getByRole('link', { name: /Spotify/i }));
 
     expect(trackEvent).toHaveBeenCalledWith(
-      "deeplink_out",
-      expect.objectContaining({ platform: "spotify", destination: "track" }),
+      'deeplink_out',
+      expect.objectContaining({ platform: 'spotify', destination: 'track' }),
     );
   });
 
-  test("an unresolved Spotify link reports the tap as landing on a search", () => {
+  test('an unresolved Spotify link reports the tap as landing on a search', () => {
     const track = makeTrack({
-      spotifyUrl: "https://open.spotify.com/search/Test%20Track",
+      spotifyUrl: 'https://open.spotify.com/search/Test%20Track',
     });
 
     renderTrackRow(track);
-    fireEvent.click(screen.getByRole("link", { name: /Spotify/i }));
+    fireEvent.click(screen.getByRole('link', { name: /Spotify/i }));
 
     expect(trackEvent).toHaveBeenCalledWith(
-      "deeplink_out",
-      expect.objectContaining({ platform: "spotify", destination: "search" }),
+      'deeplink_out',
+      expect.objectContaining({ platform: 'spotify', destination: 'search' }),
     );
   });
 
-  test("a track carrying no Spotify link falls back to a search for it", () => {
-    const track = makeTrack({ name: "Ice Cream", artist: "연준" });
+  test('a track carrying no Spotify link falls back to a search for it', () => {
+    const track = makeTrack({ name: 'Ice Cream', artist: '연준' });
     delete (track as { spotifyUrl?: string }).spotifyUrl;
 
     renderTrackRow(track);
 
-    const spotify = screen.getByRole("link", { name: /Spotify/i });
-    expect(spotify.getAttribute("href")).toBe(
-      "https://open.spotify.com/search/Ice%20Cream%20%EC%97%B0%EC%A4%80",
+    const spotify = screen.getByRole('link', { name: /Spotify/i });
+    expect(spotify.getAttribute('href')).toBe(
+      'https://open.spotify.com/search/Ice%20Cream%20%EC%97%B0%EC%A4%80',
     );
   });
 
@@ -361,109 +361,109 @@ describe("TrackRow", () => {
     expect(screen.getByText(/Preview unavailable/)).toBeDefined();
   });
 
-  test("error message hidden when lastError matches a different track", () => {
+  test('error message hidden when lastError matches a different track', () => {
     const track = makeTrack();
 
     renderTrackRow(track, {
-      lastError: { previewUrl: "https://example.com/other.m4a" },
+      lastError: { previewUrl: 'https://example.com/other.m4a' },
     });
 
     expect(screen.queryByText(/Preview unavailable/)).toBeNull();
   });
 });
 
-describe("TrackRow commentary card", () => {
+describe('TrackRow commentary card', () => {
   const COMMENTARY = {
-    lead: "A new entry climbing fast this week.",
-    detail: "Brief context on why the track is rising.",
-    tag: "new entry",
-    claim: "why-charting",
+    lead: 'A new entry climbing fast this week.',
+    detail: 'Brief context on why the track is rising.',
+    tag: 'new entry',
+    claim: 'why-charting',
     sources: [
-      "https://www.billboard.com/charts",
-      "https://pitchfork.com/reviews",
+      'https://www.billboard.com/charts',
+      'https://pitchfork.com/reviews',
     ],
-    generatedAt: "2026-04-25T03:00:00Z",
+    generatedAt: '2026-04-25T03:00:00Z',
   } satisfies Commentary;
 
-  test("renders no affordance when commentary is absent", () => {
+  test('renders no affordance when commentary is absent', () => {
     const track = makeTrack();
 
     const { container } = renderTrackRow(track);
 
-    expect(container.querySelector("[aria-expanded]")).toBeNull();
-    expect(screen.queryByRole("button", { expanded: false })).toBeNull();
+    expect(container.querySelector('[aria-expanded]')).toBeNull();
+    expect(screen.queryByRole('button', { expanded: false })).toBeNull();
   });
 
-  test("collapsed: shows tag + lead, panel starts inert", () => {
+  test('collapsed: shows tag + lead, panel starts inert', () => {
     const track = makeTrack({ commentary: COMMENTARY });
 
     renderTrackRow(track);
 
-    const toggle = screen.getByRole("button", { expanded: false });
+    const toggle = screen.getByRole('button', { expanded: false });
     expect(toggle.textContent).toContain(COMMENTARY.lead);
     expect(screen.getByText(COMMENTARY.tag)).toBeDefined();
     const panel = document.getElementById(
-      toggle.getAttribute("aria-controls")!,
+      toggle.getAttribute('aria-controls')!,
     );
-    expect(panel?.hasAttribute("inert")).toBe(true);
+    expect(panel?.hasAttribute('inert')).toBe(true);
   });
 
-  test("tapping the teaser expands: aria-expanded flips and the panel un-inerts", () => {
+  test('tapping the teaser expands: aria-expanded flips and the panel un-inerts', () => {
     const track = makeTrack({ commentary: COMMENTARY });
 
     renderTrackRow(track);
-    const toggle = screen.getByRole("button", { expanded: false });
+    const toggle = screen.getByRole('button', { expanded: false });
     fireEvent.click(toggle);
 
-    expect(screen.getByRole("button", { expanded: true })).toBeDefined();
+    expect(screen.getByRole('button', { expanded: true })).toBeDefined();
     const panel = document.getElementById(
-      toggle.getAttribute("aria-controls")!,
+      toggle.getAttribute('aria-controls')!,
     );
-    expect(panel?.hasAttribute("inert")).toBe(false);
+    expect(panel?.hasAttribute('inert')).toBe(false);
   });
 
-  test("expanded: shows detail and sources as bare hostnames", () => {
+  test('expanded: shows detail and sources as bare hostnames', () => {
     const track = makeTrack({ commentary: COMMENTARY });
 
     renderTrackRow(track);
-    fireEvent.click(screen.getByRole("button", { expanded: false }));
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
 
     expect(screen.getByText(COMMENTARY.detail)).toBeDefined();
-    const source = screen.getByRole("link", { name: "billboard.com" });
-    expect(source.getAttribute("href")).toBe(COMMENTARY.sources[0]);
-    expect(source.getAttribute("target")).toBe("_blank");
-    expect(source.getAttribute("rel")).toContain("noopener");
+    const source = screen.getByRole('link', { name: 'billboard.com' });
+    expect(source.getAttribute('href')).toBe(COMMENTARY.sources[0]);
+    expect(source.getAttribute('target')).toBe('_blank');
+    expect(source.getAttribute('rel')).toContain('noopener');
   });
 
-  test("minimal commentary (no detail) still renders the teaser and sources", () => {
+  test('minimal commentary (no detail) still renders the teaser and sources', () => {
     const track = makeTrack({
       commentary: {
-        lead: "A long-running chart favorite.",
-        tag: "mainstay",
-        claim: "what-it-is",
-        sources: ["https://npr.org/music"],
-        generatedAt: "2026-04-25T03:00:00Z",
+        lead: 'A long-running chart favorite.',
+        tag: 'mainstay',
+        claim: 'what-it-is',
+        sources: ['https://npr.org/music'],
+        generatedAt: '2026-04-25T03:00:00Z',
       },
     });
 
     renderTrackRow(track);
-    const toggle = screen.getByRole("button", { expanded: false });
-    expect(toggle.textContent).toContain("A long-running chart favorite.");
+    const toggle = screen.getByRole('button', { expanded: false });
+    expect(toggle.textContent).toContain('A long-running chart favorite.');
 
     fireEvent.click(toggle);
 
-    expect(screen.getByRole("link", { name: "npr.org" })).toBeDefined();
+    expect(screen.getByRole('link', { name: 'npr.org' })).toBeDefined();
   });
 });
 
-describe("TrackRow commentary focus card", () => {
+describe('TrackRow commentary focus card', () => {
   const COMMENTARY = {
-    lead: "A drill-inflected breakout dominating the charts for three weeks.",
-    detail: "It crossed over from underground clubs after a viral challenge.",
+    lead: 'A drill-inflected breakout dominating the charts for three weeks.',
+    detail: 'It crossed over from underground clubs after a viral challenge.',
     tag: "why it's here",
-    claim: "why-charting",
-    sources: ["https://www.billboard.com/charts"],
-    generatedAt: "2026-04-25T03:00:00Z",
+    claim: 'why-charting',
+    sources: ['https://www.billboard.com/charts'],
+    generatedAt: '2026-04-25T03:00:00Z',
   } satisfies Commentary;
 
   function renderFocusRow(over: { focused?: boolean; dimmed?: boolean } = {}) {
@@ -489,27 +489,27 @@ describe("TrackRow commentary focus card", () => {
     return { ...utils, onOpenCommentary, onCloseCommentary };
   }
 
-  test("closed: the teaser opens the card; the reveal stays collapsed", () => {
+  test('closed: the teaser opens the card; the reveal stays collapsed', () => {
     const { container, onOpenCommentary } = renderFocusRow({ focused: false });
 
-    const teaser = screen.getByRole("button", { expanded: false });
+    const teaser = screen.getByRole('button', { expanded: false });
     expect(teaser.textContent).toContain(COMMENTARY.lead);
     // The reveal is always mounted (so it can animate closed too), but is not
     // opened while the teaser is closed.
-    expect(container.querySelector(".commentary-reveal[data-open]")).toBeNull();
+    expect(container.querySelector('.commentary-reveal[data-open]')).toBeNull();
 
     fireEvent.click(teaser);
 
     expect(onOpenCommentary).toHaveBeenCalledTimes(1);
   });
 
-  test("focused: shows the detail and sources, and the teaser closes it", () => {
+  test('focused: shows the detail and sources, and the teaser closes it', () => {
     const { onCloseCommentary } = renderFocusRow({ focused: true });
 
     expect(screen.getByText(COMMENTARY.detail)).toBeDefined();
-    expect(screen.getByRole("link", { name: "billboard.com" })).toBeDefined();
+    expect(screen.getByRole('link', { name: 'billboard.com' })).toBeDefined();
 
-    fireEvent.click(screen.getByRole("button", { expanded: true }));
+    fireEvent.click(screen.getByRole('button', { expanded: true }));
 
     expect(onCloseCommentary).toHaveBeenCalledTimes(1);
   });
@@ -517,7 +517,7 @@ describe("TrackRow commentary focus card", () => {
   test("focused: the card's toggle takes its accessible name from the full lead", () => {
     renderFocusRow({ focused: true });
 
-    const toggle = screen.queryByRole("button", {
+    const toggle = screen.queryByRole('button', {
       expanded: true,
       name: (name) => name.includes(COMMENTARY.lead),
     });
@@ -525,18 +525,18 @@ describe("TrackRow commentary focus card", () => {
     expect(toggle).not.toBeNull();
   });
 
-  test("focused: the row is tagged as the commentary card for outside-click", () => {
+  test('focused: the row is tagged as the commentary card for outside-click', () => {
     const { container } = renderFocusRow({ focused: true });
 
-    expect(container.querySelector("[data-commentary-card]")).not.toBeNull();
+    expect(container.querySelector('[data-commentary-card]')).not.toBeNull();
   });
 
-  test("dimmed: the row recedes and is inert to pointers", () => {
+  test('dimmed: the row recedes and is inert to pointers', () => {
     const { container } = renderFocusRow({ dimmed: true });
 
-    const li = container.querySelector("li");
-    expect(li?.className).toContain("opacity-40");
-    expect(li?.className).toContain("pointer-events-none");
-    expect(li?.hasAttribute("inert")).toBe(true);
+    const li = container.querySelector('li');
+    expect(li?.className).toContain('opacity-40');
+    expect(li?.className).toContain('pointer-events-none');
+    expect(li?.hasAttribute('inert')).toBe(true);
   });
 });

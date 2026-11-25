@@ -12,7 +12,7 @@ export interface SwipeCommitConfig {
   flickVelPxPerMs: number;
 }
 
-export type SwipeOutcome = "next" | "prev" | "cancel";
+export type SwipeOutcome = 'next' | 'prev' | 'cancel';
 
 export interface SwipeSample {
   // Total horizontal travel since press (px); negative is leftward.
@@ -38,7 +38,7 @@ export function decideSwipeCommit(
   const { dx, vx, width, canPrev, canNext } = sample;
 
   // No travel: nothing to judge.
-  if (dx === 0) return "cancel";
+  if (dx === 0) return 'cancel';
 
   // Distance needs a width to size the threshold against; a flick doesn't, so
   // the width guard sits here, not over the whole decision.
@@ -50,12 +50,12 @@ export function decideSwipeCommit(
     cfg.flickToCommit &&
     Math.abs(vx) >= cfg.flickVelPxPerMs &&
     Math.sign(vx) === Math.sign(dx);
-  if (!pastDistance && !flicked) return "cancel";
+  if (!pastDistance && !flicked) return 'cancel';
 
-  const dir: SwipeOutcome = dx < 0 ? "next" : "prev";
+  const dir: SwipeOutcome = dx < 0 ? 'next' : 'prev';
 
   // Nowhere to skip to on that side (chart end, before the caller's roll): hold.
-  if (dir === "next" && !canNext) return "cancel";
-  if (dir === "prev" && !canPrev) return "cancel";
+  if (dir === 'next' && !canNext) return 'cancel';
+  if (dir === 'prev' && !canPrev) return 'cancel';
   return dir;
 }

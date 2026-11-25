@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import type { SVGProps } from 'react';
 
 // Four corner arrows pulling inward: the counterpart to ExpandIcon, so an open
 // commentary card cues "shrink back" the way the teaser cues "open larger".

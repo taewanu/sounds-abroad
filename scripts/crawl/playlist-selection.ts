@@ -1,6 +1,5 @@
-import type { PlaylistGenre } from "../../src/lib/chart-schema";
-
-import type { ApplePlaylist } from "./apple-playlists";
+import type { PlaylistGenre } from '../../src/lib/chart-schema';
+import type { ApplePlaylist } from './apple-playlists';
 
 /**
  * Share of storefronts above which a playlist reads as global rather than local.

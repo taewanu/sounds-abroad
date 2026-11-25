@@ -1,36 +1,35 @@
-import "./sentry-init";
-import * as Sentry from "@sentry/node";
+import './sentry-init';
+import * as Sentry from '@sentry/node';
 
-import { COUNTRIES } from "../../src/lib/countries";
+import { COUNTRIES } from '../../src/lib/countries';
 import {
   fetchCommentaryStore,
   withCommentaryDegradationSignal,
-} from "../commentary/fetch-commentary";
-import { assertObjectStoreEnv } from "../lib/object-store";
-
-import { fetchPlaylists } from "./apple-playlists";
-import { fetchAppleRss } from "./apple-rss";
-import { createItunesFetchers } from "./itunes-fetchers";
-import { lookupTracks } from "./itunes-lookup";
-import { fetchPlaylistPage } from "./playlist-page";
-import { fetchPublishedCharts } from "./published-charts";
-import { triggerRevalidate } from "./revalidate-trigger";
-import { crawlAll, summarizeValidity, type SpotifyResolution } from "./run";
-import { createSpotifyResolver } from "./spotify-resolve";
+} from '../commentary/fetch-commentary';
+import { assertObjectStoreEnv } from '../lib/object-store';
+import { fetchPlaylists } from './apple-playlists';
+import { fetchAppleRss } from './apple-rss';
+import { createItunesFetchers } from './itunes-fetchers';
+import { lookupTracks } from './itunes-lookup';
+import { fetchPlaylistPage } from './playlist-page';
+import { fetchPublishedCharts } from './published-charts';
+import { triggerRevalidate } from './revalidate-trigger';
+import { crawlAll, summarizeValidity, type SpotifyResolution } from './run';
+import { createSpotifyResolver } from './spotify-resolve';
 import {
   createPlaylistPageThrottle,
   createSpotifyThrottle,
   createThrottle,
-} from "./throttle";
+} from './throttle';
 import {
   DATA_CACHE_ENTRY_CAP,
   uploadCharts,
   uploadPlaylistFile,
   uploadPreviousCharts,
   uploadSongsTail,
-} from "./upload-blob";
+} from './upload-blob';
 
-assertObjectStoreEnv("Set them as workflow secrets.");
+assertObjectStoreEnv('Set them as workflow secrets.');
 
 const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -55,7 +54,7 @@ const spotify: SpotifyResolution | undefined =
     : undefined;
 if (!spotify) {
   console.warn(
-    "[crawl] SPOTIFY_CLIENT_ID/SECRET not set: Spotify links fall back to search URLs.",
+    '[crawl] SPOTIFY_CLIENT_ID/SECRET not set: Spotify links fall back to search URLs.',
   );
 }
 
@@ -66,7 +65,7 @@ if (!commentaryUrl) {
   // Optional by design, so absence must not abort; warn so a missing wire
   // surfaces in the run output instead of silently skipping all commentary.
   console.warn(
-    "[crawl] COMMENTARY_BLOB_URL not set: commentary will not be baked this run.",
+    '[crawl] COMMENTARY_BLOB_URL not set: commentary will not be baked this run.',
   );
 }
 
@@ -75,7 +74,7 @@ if (!commentaryUrl) {
 // the same as the events being transmitted.
 try {
   await Sentry.withMonitor(
-    "charts-crawl",
+    'charts-crawl',
     async () => {
       const itunes = createItunesFetchers({
         fetchRss: fetchAppleRss,
@@ -105,8 +104,8 @@ try {
             console.warn(
               `[crawl] chart file takes ${entrySize} of the ${DATA_CACHE_ENTRY_CAP} characters a data-cache entry may hold.`,
             );
-            Sentry.captureMessage("charts:near-cache-cap", {
-              level: "warning",
+            Sentry.captureMessage('charts:near-cache-cap', {
+              level: 'warning',
               extra: {
                 run_id: process.env.GITHUB_RUN_ID,
                 entry_size: entrySize,
@@ -125,8 +124,8 @@ try {
             console.warn(
               `[crawl] prev snapshot write failed: ${err instanceof Error ? err.message : String(err)}`,
             );
-            Sentry.captureMessage("charts:prev-snapshot-failed", {
-              level: "warning",
+            Sentry.captureMessage('charts:prev-snapshot-failed', {
+              level: 'warning',
               extra: { run_id: process.env.GITHUB_RUN_ID },
             });
           }
@@ -143,10 +142,10 @@ try {
               () => fetchCommentaryStore(commentaryUrl),
               () => {
                 console.warn(
-                  "[crawl] commentary store unreadable: bake skipped this run.",
+                  '[crawl] commentary store unreadable: bake skipped this run.',
                 );
-                Sentry.captureMessage("commentary:unavailable", {
-                  level: "warning",
+                Sentry.captureMessage('commentary:unavailable', {
+                  level: 'warning',
                   extra: { run_id: process.env.GITHUB_RUN_ID },
                 });
               },
@@ -155,8 +154,8 @@ try {
       });
 
       const summary = summarizeValidity(result.chartFile);
-      Sentry.captureMessage("charts:published", {
-        level: "info",
+      Sentry.captureMessage('charts:published', {
+        level: 'info',
         extra: {
           run_id: process.env.GITHUB_RUN_ID,
           country_count: summary.total,
@@ -181,8 +180,8 @@ try {
         result.carriedPlaylistCodes.length > 0 ||
         result.invalidPlaylistCodes.length > 0;
       if (degraded) {
-        Sentry.captureMessage("charts:degraded", {
-          level: "warning",
+        Sentry.captureMessage('charts:degraded', {
+          level: 'warning',
           extra: {
             run_id: process.env.GITHUB_RUN_ID,
             invalid_codes: summary.invalidCodes,
@@ -196,8 +195,8 @@ try {
       }
     },
     {
-      schedule: { type: "crontab", value: "17 4,11,16,22 * * *" },
-      timezone: "UTC",
+      schedule: { type: 'crontab', value: '17 4,11,16,22 * * *' },
+      timezone: 'UTC',
       // GHA scheduled-dispatch delay is unbounded; observed p100 ~120min
       // over ~10 days. 150 = observed max + buffer, kept under the 300min
       // tightest slot gap so per-slot check-in windows stay disjoint.

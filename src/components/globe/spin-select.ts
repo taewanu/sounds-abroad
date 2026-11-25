@@ -1,9 +1,9 @@
-import type { Camera } from "three";
-import { Vector3 } from "three";
+import type { Camera } from 'three';
+import { Vector3 } from 'three';
 
-import { COUNTRIES, type CountryEntry } from "@/lib/countries";
-import { weightedDraw } from "@/lib/fairness-draw";
-import { latLonToVec3 } from "@/lib/lat-lon-to-vec3";
+import { COUNTRIES, type CountryEntry } from '@/lib/countries';
+import { weightedDraw } from '@/lib/fairness-draw';
+import { latLonToVec3 } from '@/lib/lat-lon-to-vec3';
 
 const DEG = Math.PI / 180;
 const PIN_ELEVATION = 1.015;

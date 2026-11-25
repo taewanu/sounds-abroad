@@ -1,12 +1,12 @@
-import type { Commentary } from "../../src/lib/chart-schema";
-import type { CommentaryStore } from "../../src/lib/commentary-store";
+import type { Commentary } from '../../src/lib/chart-schema';
+import type { CommentaryStore } from '../../src/lib/commentary-store';
 import {
   classifyGate,
   deterministicChecks,
   type GateChecks,
-} from "../../src/lib/gate-classifier";
-import type { GroundingVerdict } from "../../src/lib/grounding";
-import { lintCommentary } from "../../src/lib/no-lyric-lint";
+} from '../../src/lib/gate-classifier';
+import type { GroundingVerdict } from '../../src/lib/grounding';
+import { lintCommentary } from '../../src/lib/no-lyric-lint';
 
 /**
  * Per-entry routing: the publish-side half of the gate (ADR-0009). It runs each
@@ -40,17 +40,17 @@ export interface RouteResult {
  */
 function failedDeterministic(
   entry: Commentary,
-  checks: Omit<GateChecks, "grounding">,
+  checks: Omit<GateChecks, 'grounding'>,
 ): string[] {
   const failed: string[] = [];
   if (!checks.noLyric) {
     const detail = lintCommentary(entry)
       .map((risk) => `${risk.rule} ${risk.excerpt}`)
-      .join("; ");
-    failed.push(detail ? `no-lyric: ${detail}` : "no-lyric");
+      .join('; ');
+    failed.push(detail ? `no-lyric: ${detail}` : 'no-lyric');
   }
-  if (!checks.sourceAuthority) failed.push("source-authority");
-  if (!checks.tierConsistency) failed.push("tier-consistency");
+  if (!checks.sourceAuthority) failed.push('source-authority');
+  if (!checks.tierConsistency) failed.push('tier-consistency');
   return failed;
 }
 
@@ -77,13 +77,13 @@ export async function routeStore(
       // A grounding failure must always carry a reason for the drop log, even
       // if the verdict's own reason came back empty.
       if (!grounded)
-        groundingReason = verdict.reason.trim() || "Grounding failed.";
+        groundingReason = verdict.reason.trim() || 'Grounding failed.';
     }
 
     // The classifier is the single arbiter; routing only assembles its inputs
     // and records why a drop happened.
     if (
-      classifyGate(entry.claim, { ...det, grounding: grounded }) === "publish"
+      classifyGate(entry.claim, { ...det, grounding: grounded }) === 'publish'
     ) {
       published[key] = entry;
       continue;

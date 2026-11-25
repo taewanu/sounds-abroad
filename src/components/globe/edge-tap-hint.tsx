@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from 'react';
 
-import type { SnapState } from "@/components/chart-sheet/sheet";
-import { PointerIcon } from "@/components/icons/pointer";
-import { useTourAnchor } from "@/components/tour/use-tour-anchor";
-import { useCoarsePointer } from "@/components/use-coarse-pointer";
-import { globeChartStore } from "@/lib/globe-chart-store";
+import type { SnapState } from '@/components/chart-sheet/sheet';
+import { PointerIcon } from '@/components/icons/pointer';
+import { useTourAnchor } from '@/components/tour/use-tour-anchor';
+import { useCoarsePointer } from '@/components/use-coarse-pointer';
+import { globeChartStore } from '@/lib/globe-chart-store';
 
 import {
   decideShow,
   readRecord,
   recordShown,
   writeRecord,
-} from "./edge-hint-record";
+} from './edge-hint-record';
 
 // If the user never performs the skip, retire the cue rather than let it linger
 // over their listening.
@@ -135,7 +135,7 @@ export function EdgeTapHint({
         <div
           aria-hidden
           className="fixed -translate-x-1/2 -translate-y-1/2"
-          style={{ left: `${HAND_EDGE_PCT}%`, top: "42%" }}
+          style={{ left: `${HAND_EDGE_PCT}%`, top: '42%' }}
         >
           <div className="tour-double-tap">
             <PointerIcon className="tour-swipe-hand" />
@@ -148,7 +148,7 @@ export function EdgeTapHint({
           aria-hidden
           data-testid="edge-tap-echo"
           className="fixed -translate-x-1/2 -translate-y-1/2"
-          style={{ left: `${ECHO_EDGE_PCT}%`, top: "42%" }}
+          style={{ left: `${ECHO_EDGE_PCT}%`, top: '42%' }}
         >
           <div className="tour-edge-echo" />
         </div>
@@ -158,7 +158,7 @@ export function EdgeTapHint({
           aria-live="polite"
           data-testid="edge-tap-badge"
           className="tour-badge tour-badge-breathe tour-badge-glow"
-          style={{ left: "50%", top: "62%" }}
+          style={{ left: '50%', top: '62%' }}
         >
           Double-tap either edge to skip
         </div>

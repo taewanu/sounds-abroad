@@ -1,4 +1,4 @@
-import { createStore } from "zustand/vanilla";
+import { createStore } from 'zustand/vanilla';
 
 export interface TourBridgeState {
   // The globe canvas is live. Gates the first-run tour so it appears only once

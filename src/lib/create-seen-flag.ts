@@ -5,10 +5,10 @@
 // resilience (the in-memory mirror) comes from the shared
 // createMirroredStorage; injected storages (tests) bypass it, staying isolated.
 
-import { createMirroredStorage } from "./mirrored-storage";
+import { createMirroredStorage } from './mirrored-storage';
 
 // The slice of Storage a flag touches; lets tests inject a fake.
-type FlagStorage = Pick<Storage, "getItem" | "setItem">;
+type FlagStorage = Pick<Storage, 'getItem' | 'setItem'>;
 
 export interface SeenFlag {
   // Reads tolerantly: any failure means "not seen", so a storage hiccup lets the
@@ -29,7 +29,7 @@ export function createSeenFlag(key: string): SeenFlag {
 
   function hasSeen(storage: FlagStorage = store): boolean {
     try {
-      return storage.getItem(key) === "1";
+      return storage.getItem(key) === '1';
     } catch {
       return false;
     }
@@ -37,7 +37,7 @@ export function createSeenFlag(key: string): SeenFlag {
 
   function markSeen(storage: FlagStorage = store): void {
     try {
-      storage.setItem(key, "1");
+      storage.setItem(key, '1');
     } catch {
       // An injected storage may throw; the default's mirror already recorded it.
     }

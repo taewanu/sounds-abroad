@@ -1,15 +1,15 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, test, vi } from "vitest";
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, test, vi } from 'vitest';
 
-import type { AudioEngine } from "@/lib/audio-engine";
-import { type AudioState, createAudioStore } from "@/lib/audio-store";
-import { AudioStoreContext } from "@/providers/audio-store-provider";
+import type { AudioEngine } from '@/lib/audio-engine';
+import { type AudioState, createAudioStore } from '@/lib/audio-store';
+import { AudioStoreContext } from '@/providers/audio-store-provider';
 
-import { VolumeControl } from "./volume-control";
+import { VolumeControl } from './volume-control';
 
 function makeMockAudio(): AudioEngine {
   return {
-    src: "",
+    src: '',
     play: vi.fn().mockResolvedValue(undefined),
     pause: vi.fn(),
     volumeAdjustable: true,
@@ -33,183 +33,183 @@ function renderVolumeControl(init?: Partial<AudioState>) {
   return { ...utils, store };
 }
 
-describe("VolumeControl", () => {
-  test("renders the trigger and keeps the slider hidden until opened", () => {
+describe('VolumeControl', () => {
+  test('renders the trigger and keeps the slider hidden until opened', () => {
     renderVolumeControl();
 
-    expect(screen.getByRole("button", { name: /volume/i })).toBeDefined();
-    expect(screen.queryByRole("slider")).toBeNull();
+    expect(screen.getByRole('button', { name: /volume/i })).toBeDefined();
+    expect(screen.queryByRole('slider')).toBeNull();
   });
 
-  test("clicking the trigger reveals the slider", () => {
+  test('clicking the trigger reveals the slider', () => {
     renderVolumeControl();
 
-    fireEvent.click(screen.getByRole("button", { name: /volume/i }));
+    fireEvent.click(screen.getByRole('button', { name: /volume/i }));
 
-    expect(screen.getByRole("slider")).toBeDefined();
+    expect(screen.getByRole('slider')).toBeDefined();
     expect(
       screen
-        .getByRole("button", { name: /volume/i })
-        .getAttribute("aria-expanded"),
-    ).toBe("true");
+        .getByRole('button', { name: /volume/i })
+        .getAttribute('aria-expanded'),
+    ).toBe('true');
   });
 
-  test("the slider reflects the stored volume", () => {
+  test('the slider reflects the stored volume', () => {
     renderVolumeControl({ volume: 0.5 });
 
-    fireEvent.click(screen.getByRole("button", { name: /volume/i }));
+    fireEvent.click(screen.getByRole('button', { name: /volume/i }));
 
-    expect((screen.getByRole("slider") as HTMLInputElement).value).toBe("0.5");
+    expect((screen.getByRole('slider') as HTMLInputElement).value).toBe('0.5');
   });
 
-  test("dragging the slider drives the volume", () => {
+  test('dragging the slider drives the volume', () => {
     const { store } = renderVolumeControl({ volume: 1 });
-    fireEvent.click(screen.getByRole("button", { name: /volume/i }));
+    fireEvent.click(screen.getByRole('button', { name: /volume/i }));
 
-    fireEvent.change(screen.getByRole("slider"), { target: { value: "0.3" } });
+    fireEvent.change(screen.getByRole('slider'), { target: { value: '0.3' } });
 
     expect(store.getState().volume).toBe(0.3);
   });
 
-  test("Escape closes the popover", () => {
+  test('Escape closes the popover', () => {
     renderVolumeControl();
-    fireEvent.click(screen.getByRole("button", { name: /volume/i }));
+    fireEvent.click(screen.getByRole('button', { name: /volume/i }));
 
-    fireEvent.keyDown(document, { key: "Escape" });
+    fireEvent.keyDown(document, { key: 'Escape' });
 
-    expect(screen.queryByRole("slider")).toBeNull();
+    expect(screen.queryByRole('slider')).toBeNull();
   });
 
-  test("a tap outside closes the popover", () => {
+  test('a tap outside closes the popover', () => {
     renderVolumeControl();
-    fireEvent.click(screen.getByRole("button", { name: /volume/i }));
+    fireEvent.click(screen.getByRole('button', { name: /volume/i }));
 
     fireEvent.click(document.body);
 
-    expect(screen.queryByRole("slider")).toBeNull();
+    expect(screen.queryByRole('slider')).toBeNull();
   });
 
   test("the dismissing tap is swallowed, so the control it lands on doesn't fire", () => {
     renderVolumeControl();
-    fireEvent.click(screen.getByRole("button", { name: /volume/i }));
+    fireEvent.click(screen.getByRole('button', { name: /volume/i }));
 
     // A control outside the popover that would fire if the dismissing click
     // reached it; the capture-phase guard must cancel it before its own listener.
-    const outside = document.createElement("button");
+    const outside = document.createElement('button');
     const onClick = vi.fn();
-    outside.addEventListener("click", onClick);
+    outside.addEventListener('click', onClick);
     document.body.appendChild(outside);
 
     fireEvent.click(outside);
 
-    expect(screen.queryByRole("slider")).toBeNull();
+    expect(screen.queryByRole('slider')).toBeNull();
     expect(onClick).not.toHaveBeenCalled();
     outside.remove();
   });
 
-  test("keyboard focus moving outside closes the popover", () => {
+  test('keyboard focus moving outside closes the popover', () => {
     renderVolumeControl();
-    fireEvent.click(screen.getByRole("button", { name: /volume/i }));
-    const outside = document.createElement("button");
+    fireEvent.click(screen.getByRole('button', { name: /volume/i }));
+    const outside = document.createElement('button');
     document.body.appendChild(outside);
 
     act(() => outside.focus());
 
-    expect(screen.queryByRole("slider")).toBeNull();
+    expect(screen.queryByRole('slider')).toBeNull();
     outside.remove();
   });
 
   test("focus moving between the popover's controls keeps it open", () => {
     renderVolumeControl();
-    fireEvent.click(screen.getByRole("button", { name: /volume/i }));
+    fireEvent.click(screen.getByRole('button', { name: /volume/i }));
 
-    act(() => screen.getByRole("button", { name: "Mute" }).focus());
+    act(() => screen.getByRole('button', { name: 'Mute' }).focus());
 
-    expect(screen.getByRole("slider")).toBeDefined();
+    expect(screen.getByRole('slider')).toBeDefined();
   });
 
-  test("focus released to nothing keeps the popover open", () => {
+  test('focus released to nothing keeps the popover open', () => {
     renderVolumeControl();
-    fireEvent.click(screen.getByRole("button", { name: /volume/i }));
+    fireEvent.click(screen.getByRole('button', { name: /volume/i }));
 
-    act(() => screen.getByRole("slider").blur());
+    act(() => screen.getByRole('slider').blur());
 
-    expect(screen.getByRole("slider")).toBeDefined();
+    expect(screen.getByRole('slider')).toBeDefined();
   });
 
-  test("pointer focus outside leaves the close to the click, which is still swallowed", () => {
+  test('pointer focus outside leaves the close to the click, which is still swallowed', () => {
     renderVolumeControl();
-    fireEvent.click(screen.getByRole("button", { name: /volume/i }));
-    const outside = document.createElement("button");
+    fireEvent.click(screen.getByRole('button', { name: /volume/i }));
+    const outside = document.createElement('button');
     const onClick = vi.fn();
-    outside.addEventListener("click", onClick);
+    outside.addEventListener('click', onClick);
     document.body.appendChild(outside);
     const matches = Element.prototype.matches;
     const spy = vi
-      .spyOn(Element.prototype, "matches")
+      .spyOn(Element.prototype, 'matches')
       .mockImplementation(function (this: Element, selector: string) {
-        return selector === ":focus-visible"
+        return selector === ':focus-visible'
           ? false
           : matches.call(this, selector);
       });
 
     act(() => outside.focus());
-    const openAfterFocus = screen.queryByRole("slider") !== null;
+    const openAfterFocus = screen.queryByRole('slider') !== null;
     fireEvent.click(outside);
 
     expect(openAfterFocus).toBe(true);
-    expect(screen.queryByRole("slider")).toBeNull();
+    expect(screen.queryByRole('slider')).toBeNull();
     expect(onClick).not.toHaveBeenCalled();
     spy.mockRestore();
     outside.remove();
   });
 
-  test("a second trigger tap closes the popover", () => {
+  test('a second trigger tap closes the popover', () => {
     renderVolumeControl();
-    const trigger = screen.getByRole("button", { name: /volume/i });
+    const trigger = screen.getByRole('button', { name: /volume/i });
     fireEvent.click(trigger);
 
     fireEvent.click(trigger);
 
-    expect(screen.queryByRole("slider")).toBeNull();
+    expect(screen.queryByRole('slider')).toBeNull();
   });
 
-  test("the popover includes a mute toggle", () => {
+  test('the popover includes a mute toggle', () => {
     renderVolumeControl();
 
-    fireEvent.click(screen.getByRole("button", { name: /volume/i }));
+    fireEvent.click(screen.getByRole('button', { name: /volume/i }));
 
-    expect(screen.getByRole("button", { name: "Mute" })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Mute' })).toBeDefined();
   });
 
-  test("muting silences without changing the level", () => {
+  test('muting silences without changing the level', () => {
     const level = 0.6;
     const { store } = renderVolumeControl({ volume: level });
-    fireEvent.click(screen.getByRole("button", { name: /volume/i }));
+    fireEvent.click(screen.getByRole('button', { name: /volume/i }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Mute" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mute' }));
 
     expect(store.getState().muted).toBe(true);
     expect(store.getState().volume).toBe(level);
   });
 
-  test("unmuting keeps the level held before muting", () => {
+  test('unmuting keeps the level held before muting', () => {
     const level = 0.6;
     const { store } = renderVolumeControl({ volume: level });
-    fireEvent.click(screen.getByRole("button", { name: /volume/i }));
-    fireEvent.click(screen.getByRole("button", { name: "Mute" }));
+    fireEvent.click(screen.getByRole('button', { name: /volume/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mute' }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Unmute" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Unmute' }));
 
     expect(store.getState().muted).toBe(false);
     expect(store.getState().volume).toBe(level);
   });
 
-  test("raising the level lifts a mute", () => {
+  test('raising the level lifts a mute', () => {
     const { store } = renderVolumeControl({ volume: 0.6, muted: true });
-    fireEvent.click(screen.getByRole("button", { name: /volume/i }));
+    fireEvent.click(screen.getByRole('button', { name: /volume/i }));
 
-    fireEvent.change(screen.getByRole("slider"), { target: { value: "0.3" } });
+    fireEvent.change(screen.getByRole('slider'), { target: { value: '0.3' } });
 
     expect(store.getState().muted).toBe(false);
   });

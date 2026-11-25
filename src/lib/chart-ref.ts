@@ -11,7 +11,7 @@
  */
 export type ChartRef = string;
 
-export const SONGS_CHART: ChartRef = "songs";
+export const SONGS_CHART: ChartRef = 'songs';
 
 /** Whether a ref names a playlist rather than the songs chart. */
 export function isPlaylistRef(ref: ChartRef): boolean {

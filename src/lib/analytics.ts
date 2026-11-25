@@ -1,4 +1,4 @@
-import posthog from "posthog-js";
+import posthog from 'posthog-js';
 
 /**
  * The single call site for product analytics (#250). Callers only ever use
@@ -16,7 +16,7 @@ export interface AnalyticsEvent {
   // next_executed. `source` is which surface the user picked it from.
   track_played: {
     country: string;
-    source: "track_row" | "gem_card" | "shuffle" | "space_key";
+    source: 'track_row' | 'gem_card' | 'shuffle' | 'space_key';
   };
 
   // The user advanced to another track. Every next/prev surface routes through
@@ -26,8 +26,8 @@ export interface AnalyticsEvent {
   // consumption depth within a chart.
   next_executed: {
     country: string;
-    direction: "next" | "prev";
-    outcome: "adjacent" | "continued" | "rolled" | "back_rolled";
+    direction: 'next' | 'prev';
+    outcome: 'adjacent' | 'continued' | 'rolled' | 'back_rolled';
     from_rank: number;
   };
 
@@ -39,7 +39,7 @@ export interface AnalyticsEvent {
   // broken". Cached reopens carry `cached`, so a fetch count is recoverable.
   chart_opened: {
     country: string;
-    chart: "songs" | "playlist";
+    chart: 'songs' | 'playlist';
     loaded: boolean;
     cached: boolean;
   };
@@ -49,7 +49,7 @@ export interface AnalyticsEvent {
   // Reported on the ask, so a mode whose rows never landed still counts.
   chart_mode_opened: {
     country: string;
-    mode: "most_played" | "only_here";
+    mode: 'most_played' | 'only_here';
   };
 
   // A preview failed to play. `reason` splits the detectable causes; `errorName`
@@ -57,7 +57,7 @@ export interface AnalyticsEvent {
   // (#148, a rejected play) apart from a plain load failure.
   preview_playback_failed: {
     country: string;
-    reason: "load_error" | "play_rejected" | "empty_preview_url";
+    reason: 'load_error' | 'play_rejected' | 'empty_preview_url';
     errorName?: string;
   };
 
@@ -90,8 +90,8 @@ export interface AnalyticsEvent {
   // hand. Recorded per tap because it cannot be reconstructed later.
   deeplink_out: {
     country: string;
-    platform: "apple" | "spotify";
-    destination: "track" | "search";
+    platform: 'apple' | 'spotify';
+    destination: 'track' | 'search';
     rank: number;
   };
 }
@@ -104,6 +104,6 @@ export function track<E extends keyof AnalyticsEvent>(
   event: E,
   properties: AnalyticsEvent[E],
 ): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === 'undefined') return;
   posthog.capture(event, properties);
 }

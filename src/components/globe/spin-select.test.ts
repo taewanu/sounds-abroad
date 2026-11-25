@@ -1,15 +1,15 @@
-import { PerspectiveCamera, Vector3 } from "three";
-import { expect, test } from "vitest";
+import { PerspectiveCamera, Vector3 } from 'three';
+import { expect, test } from 'vitest';
 
-import { COUNTRIES, type CountryEntry } from "@/lib/countries";
-import { latLonToVec3 } from "@/lib/lat-lon-to-vec3";
+import { COUNTRIES, type CountryEntry } from '@/lib/countries';
+import { latLonToVec3 } from '@/lib/lat-lon-to-vec3';
 
 import {
   pickNearestToPoint,
   pickSnapCountry,
   projectFrontCountries,
   rankNearest,
-} from "./spin-select";
+} from './spin-select';
 
 const GLOBE_RADIUS = 3.5;
 const DEG = Math.PI / 180;
@@ -50,7 +50,7 @@ function screenAt(country: CountryEntry, sx: number, sy: number) {
   return { country, sx, sy };
 }
 
-test("projectFrontCountries keeps the faced country and drops its far-side opposite", () => {
+test('projectFrontCountries keeps the faced country and drops its far-side opposite', () => {
   const faced = COUNTRIES[0];
   const facedDirection = directionOf(faced.code);
   const opposite = farthestFrom(facedDirection);
@@ -65,7 +65,7 @@ test("projectFrontCountries keeps the faced country and drops its far-side oppos
   expect(codes).not.toContain(opposite);
 });
 
-test("pickNearestToPoint returns the candidate closest to the tap point", () => {
+test('pickNearestToPoint returns the candidate closest to the tap point', () => {
   const [near, mid, far] = COUNTRIES;
   const candidates = [
     screenAt(near, 100, 100),
@@ -76,18 +76,18 @@ test("pickNearestToPoint returns the candidate closest to the tap point", () => 
   expect(pickNearestToPoint(candidates, 290, 310, 44)).toBe(mid.code);
 });
 
-test("pickNearestToPoint returns null when the nearest pin is beyond maxPx", () => {
+test('pickNearestToPoint returns null when the nearest pin is beyond maxPx', () => {
   const [only] = COUNTRIES;
   const candidates = [screenAt(only, 100, 100)];
 
   expect(pickNearestToPoint(candidates, 200, 100, 44)).toBeNull();
 });
 
-test("pickNearestToPoint returns null when no candidates are given", () => {
+test('pickNearestToPoint returns null when no candidates are given', () => {
   expect(pickNearestToPoint([], 0, 0, 44)).toBeNull();
 });
 
-test("rankNearest ranks the country under the rest direction first", () => {
+test('rankNearest ranks the country under the rest direction first', () => {
   const target = COUNTRIES[0];
 
   const pool = rankNearest(target.lat * DEG, target.lon * DEG, 10);
@@ -95,12 +95,12 @@ test("rankNearest ranks the country under the rest direction first", () => {
   expect(pool[0].code).toBe(target.code);
 });
 
-test("rankNearest caps the pool at n", () => {
+test('rankNearest caps the pool at n', () => {
   expect(rankNearest(0, 0, 10)).toHaveLength(10);
   expect(rankNearest(0, 0, 5)).toHaveLength(5);
 });
 
-test("pickSnapCountry returns the literal nearest country when fairness is off", () => {
+test('pickSnapCountry returns the literal nearest country when fairness is off', () => {
   const target = COUNTRIES[0];
 
   const result = pickSnapCountry(
@@ -113,7 +113,7 @@ test("pickSnapCountry returns the literal nearest country when fairness is off",
   expect(result).toBe(target.code);
 });
 
-test("pickSnapCountry returns a country from the nearest pool when fairness is on", () => {
+test('pickSnapCountry returns a country from the nearest pool when fairness is on', () => {
   const target = COUNTRIES[0];
   const el = target.lat * DEG;
   const az = target.lon * DEG;
@@ -123,10 +123,10 @@ test("pickSnapCountry returns a country from the nearest pool when fairness is o
   expect(rankNearest(el, az, 10).map((e) => e.code)).toContain(result);
 });
 
-test("pickSnapCountry fair draw is deterministic under an injected rng", () => {
+test('pickSnapCountry fair draw is deterministic under an injected rng', () => {
   // A dense region (the European cluster) keeps the whole pool inside the
   // fairness radius, so the injected draw maps linearly across all of it.
-  const target = COUNTRIES.find((c) => c.code === "de")!;
+  const target = COUNTRIES.find((c) => c.code === 'de')!;
   const el = target.lat * DEG;
   const az = target.lon * DEG;
   const pool = rankNearest(el, az, 10).map((e) => e.code);
@@ -136,7 +136,7 @@ test("pickSnapCountry fair draw is deterministic under an injected rng", () => {
   expect(pickSnapCountry(el, az, new Set(), true, () => 0.95)).toBe(pool[9]);
 });
 
-test("over open water the fair snap holds the nearest country, never a far shore", () => {
+test('over open water the fair snap holds the nearest country, never a far shore', () => {
   // A mid-ocean rest point: every country is well beyond the fairness radius,
   // so the pool straddles both coasts. The draw must collapse to the single
   // nearest rather than randomly lurching across to the far shore.
@@ -149,7 +149,7 @@ test("over open water the fair snap holds the nearest country, never a far shore
   }
 });
 
-test("every country appears in some nearest pool over the reachable sphere", () => {
+test('every country appears in some nearest pool over the reachable sphere', () => {
   const POOL_SIZE = 10; // mirrors the snap pool size in spin-select.ts
   const EL_LIMIT = 75 * DEG; // the spin elevation clamp
   const STEP = 1.5 * DEG;

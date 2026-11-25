@@ -1,6 +1,5 @@
-import { getJson } from "../lib/object-store";
-
-import { DROPS_PATHNAME, DropsStoreSchema, type DropsStore } from "./drops";
+import { getJson } from '../lib/object-store';
+import { DROPS_PATHNAME, DropsStoreSchema, type DropsStore } from './drops';
 
 /**
  * Reads the drop ledger from the key the batch overwrites. A missing ledger has

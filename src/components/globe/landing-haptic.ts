@@ -11,10 +11,10 @@ type Vibrator = { vibrate: (pattern: number | number[]) => boolean };
 const supportsVibration = (
   nav: Navigator | undefined,
 ): nav is Navigator & Vibrator =>
-  typeof nav !== "undefined" && typeof nav.vibrate === "function";
+  typeof nav !== 'undefined' && typeof nav.vibrate === 'function';
 
 export function triggerLandingHaptic(
-  nav: Navigator | undefined = typeof navigator === "undefined"
+  nav: Navigator | undefined = typeof navigator === 'undefined'
     ? undefined
     : navigator,
 ): void {

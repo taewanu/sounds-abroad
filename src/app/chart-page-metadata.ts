@@ -1,25 +1,25 @@
-import type { Metadata } from "next";
+import type { Metadata } from 'next';
 
 // One share-card shape for every chart route; the routes differ only in copy
 // and in which /og variant the card points at.
 export function chartPageMetadata({
   title,
   description,
-  ogQuery = "",
+  ogQuery = '',
 }: {
   title: string;
   description: string;
   ogQuery?: string;
 }): Metadata {
   const landscape = `/og${ogQuery}`;
-  const squareSep = ogQuery ? "&" : "?";
+  const squareSep = ogQuery ? '&' : '?';
   const square = `/og${ogQuery}${squareSep}shape=square`;
 
   return {
     title,
     description,
     openGraph: {
-      type: "website",
+      type: 'website',
       title,
       description,
       images: [
@@ -28,7 +28,7 @@ export function chartPageMetadata({
       ],
     },
     twitter: {
-      card: "summary_large_image",
+      card: 'summary_large_image',
       title,
       description,
       images: [landscape],

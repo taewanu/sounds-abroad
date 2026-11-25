@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 
-import { chartPageMetadata } from "@/app/chart-page-metadata";
-import { ChartsBody } from "@/app/charts-body";
-import { COUNTRIES } from "@/lib/countries";
-import { countryByCode } from "@/lib/country-code";
+import { chartPageMetadata } from '@/app/chart-page-metadata';
+import { ChartsBody } from '@/app/charts-body';
+import { COUNTRIES } from '@/lib/countries';
+import { countryByCode } from '@/lib/country-code';
 
 // Every country page is built ahead of time; an unknown code 404s from the CDN
 // instead of invoking a per-request render, the cost ADR-0018 removed.

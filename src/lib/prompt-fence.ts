@@ -8,6 +8,6 @@
 export function fenceUntrusted(tag: string, content: string): string {
   // Widening `</` to `< /` keeps every closing-tag form inert while leaving
   // ordinary angle brackets intact: legitimate names can carry them.
-  const neutralized = content.replaceAll("</", "< /");
+  const neutralized = content.replaceAll('</', '< /');
   return `<${tag}>${neutralized}</${tag}>`;
 }

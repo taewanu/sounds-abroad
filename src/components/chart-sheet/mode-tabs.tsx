@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from 'react';
 
 import {
   CHART_MODES,
   CHART_MODE_LABELS,
   type ChartMode,
-} from "@/lib/chart-mode";
+} from '@/lib/chart-mode';
 
 export interface ModeTabsProps {
   /** The mode on screen. */
@@ -42,8 +42,8 @@ export function ModeTabs({ current, waiting, onOpen }: ModeTabsProps) {
       }
     };
     place();
-    window.addEventListener("resize", place);
-    return () => window.removeEventListener("resize", place);
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
   }, [current]);
 
   return (
@@ -51,7 +51,7 @@ export function ModeTabs({ current, waiting, onOpen }: ModeTabsProps) {
       ref={railRef}
       role="group"
       aria-label="Chart mode"
-      className="border-fg-1/10 relative mx-6 mb-2 flex gap-5 border-b"
+      className="relative mx-6 mb-2 flex gap-5 border-b border-fg-1/10"
     >
       {CHART_MODES.map((mode) => {
         const selected = mode === current;
@@ -61,9 +61,9 @@ export function ModeTabs({ current, waiting, onOpen }: ModeTabsProps) {
             type="button"
             aria-pressed={selected}
             onClick={() => onOpen(mode)}
-            className={`focus-visible:outline-aurora text-small pt-1.5 pb-2 transition-colors duration-200 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 motion-reduce:transition-none ${
-              selected ? "text-fg-1 font-semibold" : "text-fg-2"
-            } ${waiting === mode ? "chart-tab-waiting" : ""}`}
+            className={`pt-1.5 pb-2 text-small transition-colors duration-200 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora motion-reduce:transition-none ${
+              selected ? 'font-semibold text-fg-1' : 'text-fg-2'
+            } ${waiting === mode ? 'chart-tab-waiting' : ''}`}
           >
             {CHART_MODE_LABELS[mode]}
           </button>
@@ -78,7 +78,7 @@ export function ModeTabs({ current, waiting, onOpen }: ModeTabsProps) {
         style={{
           transform: `translateX(${underline.left}px) scaleX(${underline.span})`,
         }}
-        className="bg-sunrise absolute -bottom-px left-0 h-0.5 w-px origin-left transition-transform duration-200 ease-[var(--ease-spring)] motion-reduce:transition-none"
+        className="absolute -bottom-px left-0 h-0.5 w-px origin-left bg-sunrise transition-transform duration-200 ease-[var(--ease-spring)] motion-reduce:transition-none"
       />
     </div>
   );

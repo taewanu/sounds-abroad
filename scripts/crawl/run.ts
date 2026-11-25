@@ -7,33 +7,32 @@ import {
   type SongsTailFile,
   type Track,
   emptyCountry,
-} from "../../src/lib/chart-schema";
+} from '../../src/lib/chart-schema';
 import {
   DEFAULT_LANG,
   commentaryForTrack,
   type CommentaryStore,
-} from "../../src/lib/commentary-store";
-import type { CountryEntry } from "../../src/lib/countries";
-import { spotifySearchUrl } from "../../src/lib/spotify-search-url";
-import { trackKey } from "../../src/lib/track-identity";
-
-import { ApplePlaylistsError, type ApplePlaylist } from "./apple-playlists";
-import { AppleRssError, type AppleRssTrack } from "./apple-rss";
+} from '../../src/lib/commentary-store';
+import type { CountryEntry } from '../../src/lib/countries';
+import { spotifySearchUrl } from '../../src/lib/spotify-search-url';
+import { trackKey } from '../../src/lib/track-identity';
+import { ApplePlaylistsError, type ApplePlaylist } from './apple-playlists';
+import { AppleRssError, type AppleRssTrack } from './apple-rss';
 import {
   bakePlaylistSpread,
   crawlCountryPlaylists,
   isContractBroken,
   type CountryPlaylistsResult,
-} from "./crawl-playlists";
-import { batchIds, ItunesLookupError, type LookupTally } from "./itunes-lookup";
-import type { BatchLookup } from "./lookup-retry";
-import type { PlaylistTrack } from "./playlist-page";
+} from './crawl-playlists';
+import { batchIds, ItunesLookupError, type LookupTally } from './itunes-lookup';
+import type { BatchLookup } from './lookup-retry';
+import type { PlaylistTrack } from './playlist-page';
 import {
   countPlaylistSpread,
   selectLocalPlaylists,
-} from "./playlist-selection";
-import { SpotifyResolveError, type SpotifyResolver } from "./spotify-resolve";
-import type { Throttle } from "./throttle";
+} from './playlist-selection';
+import { SpotifyResolveError, type SpotifyResolver } from './spotify-resolve';
+import type { Throttle } from './throttle';
 
 // Optional Spotify resolution: present only when crawl credentials are wired.
 // Both must travel together (a resolver is useless without its own throttle), so
@@ -116,7 +115,7 @@ export class PlaylistContractError extends Error {
     super(
       `playlist page contract looks broken: ${pageFailures}/${pagesAttempted} pages failed to parse across the run`,
     );
-    this.name = "PlaylistContractError";
+    this.name = 'PlaylistContractError';
   }
 }
 
@@ -277,7 +276,7 @@ export async function crawlCountry(
  * a carried-forward country brought with it. Never writes the store; pure data.
  */
 export function bakeCommentary(
-  countries: ChartFile["countries"],
+  countries: ChartFile['countries'],
   store: CommentaryStore,
   lang: string,
 ): void {
@@ -310,9 +309,9 @@ export function bakeCommentary(
  * belongs to the rows the payload carries.
  */
 async function publishSongsTails(
-  countriesMap: ChartFile["countries"],
+  countriesMap: ChartFile['countries'],
   carriedCodes: readonly string[],
-  upload: CrawlAllDeps["uploadSongsTail"],
+  upload: CrawlAllDeps['uploadSongsTail'],
   now: () => Date,
 ): Promise<void> {
   const carried = new Set(carriedCodes);
@@ -337,7 +336,7 @@ async function publishSongsTails(
  * crawl, so a track's spread always reflects this run's charts, including
  * any carried-forward country.
  */
-export function bakeSpread(countries: ChartFile["countries"]): void {
+export function bakeSpread(countries: ChartFile['countries']): void {
   const countryCountByKey = new Map<string, number>();
   for (const country of Object.values(countries)) {
     const keysInCountry = new Set(country.tracks.map(trackKey));
@@ -453,7 +452,7 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
 
   const previous = deps.fetchPrevious ? await deps.fetchPrevious() : null;
 
-  const countriesMap: ChartFile["countries"] = {};
+  const countriesMap: ChartFile['countries'] = {};
   const carriedCodes: string[] = [];
   const lookups: LookupTally = { requested: 0, resolved: 0 };
   // Phase 1 of the playlist axis: every storefront's feed, because spread needs
@@ -578,7 +577,7 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
 interface PlaylistAxisRun {
   axis: PlaylistAxisWiring;
   countries: readonly CountryEntry[];
-  countriesMap: ChartFile["countries"];
+  countriesMap: ChartFile['countries'];
   feeds: ReadonlyMap<string, ApplePlaylist[]>;
   previous: ChartFile | null;
   lookupTracks: BatchLookup;

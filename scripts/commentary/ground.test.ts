@@ -1,141 +1,140 @@
-import { expect, test, vi } from "vitest";
+import { expect, test, vi } from 'vitest';
 
-import type { Commentary } from "../../src/lib/chart-schema";
-import type { GroundingClient } from "../../src/lib/grounding";
-import { RefusedTargetError } from "../lib/outbound-fetch";
-
+import type { Commentary } from '../../src/lib/chart-schema';
+import type { GroundingClient } from '../../src/lib/grounding';
+import { RefusedTargetError } from '../lib/outbound-fetch';
 import {
   combineSourceTexts,
   groundEntry,
   SOURCE_TEXT_CEILING,
   type GroundEntryDeps,
-} from "./ground";
+} from './ground';
 
 // The real fetch and the claude -p subprocess stay out of these tests (the
 // injectable shell exists so they can); the pure verdict logic and the
 // fail-closed orchestration are exercised with injected dependencies.
 
-function entry(claim: Commentary["claim"], sources: string[]): Commentary {
+function entry(claim: Commentary['claim'], sources: string[]): Commentary {
   return {
-    lead: "A lead claim.",
-    tag: "new",
+    lead: 'A lead claim.',
+    tag: 'new',
     claim,
     sources,
-    generatedAt: "2026-06-18T00:00:00.000Z",
+    generatedAt: '2026-06-18T00:00:00.000Z',
   };
 }
 
 const groundedJudge: GroundingClient = async () => ({
-  status: "grounded",
-  reason: "The source states the claim.",
+  status: 'grounded',
+  reason: 'The source states the claim.',
 });
 
-test("combineSourceTexts joins every loaded source for the judge", () => {
-  const result = combineSourceTexts(["first body", "second body"]);
+test('combineSourceTexts joins every loaded source for the judge', () => {
+  const result = combineSourceTexts(['first body', 'second body']);
 
-  expect(result).toEqual({ ok: true, sourceText: "first body\n\nsecond body" });
+  expect(result).toEqual({ ok: true, sourceText: 'first body\n\nsecond body' });
 });
 
-test("combineSourceTexts judges the sources that loaded on a partial failure", () => {
-  const result = combineSourceTexts(["live body", null]);
+test('combineSourceTexts judges the sources that loaded on a partial failure', () => {
+  const result = combineSourceTexts(['live body', null]);
 
-  expect(result).toEqual({ ok: true, sourceText: "live body" });
+  expect(result).toEqual({ ok: true, sourceText: 'live body' });
 });
 
-test("combineSourceTexts truncates each source at the ceiling before it reaches the judge", () => {
-  const oversized = "a".repeat(SOURCE_TEXT_CEILING) + "OVERFLOW";
+test('combineSourceTexts truncates each source at the ceiling before it reaches the judge', () => {
+  const oversized = 'a'.repeat(SOURCE_TEXT_CEILING) + 'OVERFLOW';
 
-  const result = combineSourceTexts([oversized, "short body"]);
+  const result = combineSourceTexts([oversized, 'short body']);
 
   expect(result.ok).toBe(true);
   if (result.ok) {
-    expect(result.sourceText).not.toContain("OVERFLOW");
-    expect(result.sourceText).toContain("a".repeat(SOURCE_TEXT_CEILING));
-    expect(result.sourceText).toContain("short body");
+    expect(result.sourceText).not.toContain('OVERFLOW');
+    expect(result.sourceText).toContain('a'.repeat(SOURCE_TEXT_CEILING));
+    expect(result.sourceText).toContain('short body');
   }
 });
 
-test("combineSourceTexts drops the card when every source is unreachable", () => {
+test('combineSourceTexts drops the card when every source is unreachable', () => {
   const result = combineSourceTexts([null, null]);
 
   expect(result.ok).toBe(false);
   if (!result.ok) expect(result.verdict.grounded).toBe(false);
 });
 
-test("groundEntry grounds a why-charting entry the same way as what-it-is", async () => {
+test('groundEntry grounds a why-charting entry the same way as what-it-is', async () => {
   const deps: GroundEntryDeps = {
-    fetchSourceText: async () => "source body",
+    fetchSourceText: async () => 'source body',
     judge: groundedJudge,
   };
 
   const verdict = await groundEntry(
-    entry("why-charting", ["https://example.com/1", "https://example.com/2"]),
+    entry('why-charting', ['https://example.com/1', 'https://example.com/2']),
     deps,
   );
 
   expect(verdict.grounded).toBe(true);
 });
 
-test("groundEntry drops the card when every source is unreachable", async () => {
+test('groundEntry drops the card when every source is unreachable', async () => {
   const deps: GroundEntryDeps = {
     fetchSourceText: async () => null,
     judge: groundedJudge,
   };
 
   const verdict = await groundEntry(
-    entry("what-it-is", ["https://example.com/1"]),
+    entry('what-it-is', ['https://example.com/1']),
     deps,
   );
 
   expect(verdict.grounded).toBe(false);
 });
 
-test("groundEntry fails closed when a source fetch throws", async () => {
+test('groundEntry fails closed when a source fetch throws', async () => {
   const deps: GroundEntryDeps = {
     fetchSourceText: async () => {
-      throw new Error("network down");
+      throw new Error('network down');
     },
     judge: groundedJudge,
   };
 
   const verdict = await groundEntry(
-    entry("what-it-is", ["https://example.com/1"]),
+    entry('what-it-is', ['https://example.com/1']),
     deps,
   );
 
   expect(verdict.grounded).toBe(false);
 });
 
-test("groundEntry fails closed when the judge throws", async () => {
+test('groundEntry fails closed when the judge throws', async () => {
   const deps: GroundEntryDeps = {
-    fetchSourceText: async () => "source body",
+    fetchSourceText: async () => 'source body',
     judge: async () => {
-      throw new Error("judge down");
+      throw new Error('judge down');
     },
   };
 
   const verdict = await groundEntry(
-    entry("what-it-is", ["https://example.com/1"]),
+    entry('what-it-is', ['https://example.com/1']),
     deps,
   );
 
   expect(verdict.grounded).toBe(false);
 });
 
-test("groundEntry fetches no source when any cited target is refused", async () => {
+test('groundEntry fetches no source when any cited target is refused', async () => {
   const fetched: string[] = [];
   const deps: GroundEntryDeps = {
     fetchSourceText: async (url) => {
       fetched.push(url);
-      return "a body";
+      return 'a body';
     },
     judge: groundedJudge,
   };
 
   const verdict = await groundEntry(
-    entry("what-it-is", [
-      "https://www.billboard.com/article",
-      "https://10.0.0.5/internal",
+    entry('what-it-is', [
+      'https://www.billboard.com/article',
+      'https://10.0.0.5/internal',
     ]),
     deps,
   );
@@ -144,25 +143,25 @@ test("groundEntry fetches no source when any cited target is refused", async () 
   expect(fetched).toEqual([]);
 });
 
-test("groundEntry drops the card when a cited host is refused at connect time", async () => {
+test('groundEntry drops the card when a cited host is refused at connect time', async () => {
   const judge = vi.fn(groundedJudge);
   const deps: GroundEntryDeps = {
     fetchSourceText: async (url) => {
-      if (url.includes("rebinding")) {
+      if (url.includes('rebinding')) {
         throw new RefusedTargetError(
-          "address",
-          "rebinding.test resolves to forbidden address 10.0.0.5",
+          'address',
+          'rebinding.test resolves to forbidden address 10.0.0.5',
         );
       }
-      return "a body";
+      return 'a body';
     },
     judge,
   };
 
   const verdict = await groundEntry(
-    entry("what-it-is", [
-      "https://www.billboard.com/article",
-      "https://rebinding.test/page",
+    entry('what-it-is', [
+      'https://www.billboard.com/article',
+      'https://rebinding.test/page',
     ]),
     deps,
   );

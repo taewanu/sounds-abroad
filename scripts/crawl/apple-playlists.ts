@@ -1,10 +1,10 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 import {
   AppleArtworkUrlSchema,
   AppleStorefrontUrlSchema,
   PlaylistIdSchema,
-} from "../../src/lib/url-schema";
+} from '../../src/lib/url-schema';
 
 export interface ApplePlaylist {
   id: string;
@@ -19,7 +19,7 @@ export class ApplePlaylistsError extends Error {
     message: string,
   ) {
     super(message);
-    this.name = "ApplePlaylistsError";
+    this.name = 'ApplePlaylistsError';
   }
 }
 
@@ -64,7 +64,7 @@ function playlistsUrl(cc: string): string {
  * template code is carried through untouched.
  */
 export function resizeArtwork(url100: string, size = ARTWORK_SIZE): string {
-  const cut = url100.lastIndexOf("/");
+  const cut = url100.lastIndexOf('/');
   if (cut === -1) return url100;
 
   const prefix = url100.slice(0, cut + 1);
@@ -85,7 +85,7 @@ export async function fetchPlaylists(
   } catch (err) {
     throw new ApplePlaylistsError(
       cc,
-      `Apple playlists fetch failed: ${err instanceof Error ? err.message : "network error"}`,
+      `Apple playlists fetch failed: ${err instanceof Error ? err.message : 'network error'}`,
     );
   }
 
@@ -102,7 +102,7 @@ export async function fetchPlaylists(
   } catch (err) {
     throw new ApplePlaylistsError(
       cc,
-      `Apple playlists invalid JSON: ${err instanceof Error ? err.message : "parse error"}`,
+      `Apple playlists invalid JSON: ${err instanceof Error ? err.message : 'parse error'}`,
     );
   }
 

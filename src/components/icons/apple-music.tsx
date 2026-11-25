@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { type SVGProps, useId } from "react";
+import { type SVGProps, useId } from 'react';
 
 // Official Apple Music icon (color variant), Apple Music Identity Guidelines, used as-is.
 // Apple ships fixed-color artwork, so this is a deliberate exception to the design system's

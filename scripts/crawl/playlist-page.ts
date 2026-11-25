@@ -1,15 +1,15 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 import {
   APPLE_STOREFRONT_HOST,
   AppleArtworkUrlSchema,
   AppleStorefrontUrlSchema,
-} from "../../src/lib/url-schema";
+} from '../../src/lib/url-schema';
 import {
   assertAllowedTarget,
   guardedFetch,
   RefusedTargetError,
-} from "../lib/outbound-fetch";
+} from '../lib/outbound-fetch';
 
 export interface PlaylistTrack {
   rank: number;
@@ -21,7 +21,12 @@ export interface PlaylistTrack {
 }
 
 export type PlaylistPageErrorKind =
-  "network" | "http" | "missing-block" | "json" | "shape" | "refused";
+  | 'network'
+  | 'http'
+  | 'missing-block'
+  | 'json'
+  | 'shape'
+  | 'refused';
 
 export class PlaylistPageError extends Error {
   constructor(
@@ -30,7 +35,7 @@ export class PlaylistPageError extends Error {
     message: string,
   ) {
     super(message);
-    this.name = "PlaylistPageError";
+    this.name = 'PlaylistPageError';
   }
 }
 
@@ -49,7 +54,7 @@ const SERVER_DATA_BLOCK =
   /<script type="application\/json" id="serialized-server-data">([\s\S]*?)<\/script>/;
 
 /** The section holding the playlist's tracks, among header/footer/spacer kinds. */
-const TRACK_SECTION_KIND = "trackLockup";
+const TRACK_SECTION_KIND = 'trackLockup';
 
 const TrackLockupSchema = z.object({
   title: z.string().min(1),
@@ -85,9 +90,9 @@ const PageSchema = z.object({
 /** Fills Apple's `{w}x{h}bb.{f}` artwork template. */
 function renderArtwork(template: string, size = ARTWORK_SIZE): string {
   return template
-    .replace("{w}", String(size))
-    .replace("{h}", String(size))
-    .replace("{f}", "jpg");
+    .replace('{w}', String(size))
+    .replace('{h}', String(size))
+    .replace('{f}', 'jpg');
 }
 
 /**
@@ -105,8 +110,8 @@ export function parsePlaylistPage(
   if (!block) {
     throw new PlaylistPageError(
       playlistId,
-      "missing-block",
-      "playlist page carries no serialized-server-data block",
+      'missing-block',
+      'playlist page carries no serialized-server-data block',
     );
   }
 
@@ -116,8 +121,8 @@ export function parsePlaylistPage(
   } catch (err) {
     throw new PlaylistPageError(
       playlistId,
-      "json",
-      `serialized-server-data invalid JSON: ${err instanceof Error ? err.message : "parse error"}`,
+      'json',
+      `serialized-server-data invalid JSON: ${err instanceof Error ? err.message : 'parse error'}`,
     );
   }
 
@@ -125,7 +130,7 @@ export function parsePlaylistPage(
   if (!page.success) {
     throw new PlaylistPageError(
       playlistId,
-      "shape",
+      'shape',
       `serialized-server-data shape mismatch: ${page.error.message}`,
     );
   }
@@ -136,7 +141,7 @@ export function parsePlaylistPage(
   if (!section) {
     throw new PlaylistPageError(
       playlistId,
-      "shape",
+      'shape',
       `playlist page has no ${TRACK_SECTION_KIND} section`,
     );
   }
@@ -159,7 +164,7 @@ export function parsePlaylistPage(
   if (tracks.length === 0) {
     throw new PlaylistPageError(
       playlistId,
-      "shape",
+      'shape',
       `playlist page yielded no usable tracks from ${section.items?.length ?? 0} items`,
     );
   }
@@ -185,19 +190,19 @@ export async function fetchPlaylistPage(
     res = await doFetch(appleUrl);
   } catch (err) {
     if (err instanceof RefusedTargetError) {
-      throw new PlaylistPageError(playlistId, "refused", err.message);
+      throw new PlaylistPageError(playlistId, 'refused', err.message);
     }
     throw new PlaylistPageError(
       playlistId,
-      "network",
-      `playlist page fetch failed: ${err instanceof Error ? err.message : "network error"}`,
+      'network',
+      `playlist page fetch failed: ${err instanceof Error ? err.message : 'network error'}`,
     );
   }
 
   if (!res.ok) {
     throw new PlaylistPageError(
       playlistId,
-      "http",
+      'http',
       `playlist page returned ${res.status} ${res.statusText}`,
     );
   }

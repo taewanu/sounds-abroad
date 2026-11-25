@@ -1,6 +1,6 @@
-import { Vector3 } from "three";
+import { Vector3 } from 'three';
 
-import { latLonToVec3 } from "./lat-lon-to-vec3";
+import { latLonToVec3 } from './lat-lon-to-vec3';
 
 // Float tolerance for treating dot product as exactly ±1 (degenerate cases).
 const EPSILON = 1e-6;

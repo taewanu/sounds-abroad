@@ -1,7 +1,7 @@
-import type { CommentaryStore } from "../../src/lib/commentary-store";
-import { copyObject, getJson, putJson } from "../lib/object-store";
+import type { CommentaryStore } from '../../src/lib/commentary-store';
+import { copyObject, getJson, putJson } from '../lib/object-store';
 
-export const COMMENTARY_PATHNAME = "commentary/v1/commentary.json";
+export const COMMENTARY_PATHNAME = 'commentary/v1/commentary.json';
 
 /**
  * Reads the live store raw, the object every publish overwrites. Entries the
@@ -14,7 +14,7 @@ export async function readLiveCommentary(
 ): Promise<CommentaryStore> {
   const json = await read(COMMENTARY_PATHNAME);
   if (json === null) return {};
-  if (typeof json !== "object" || Array.isArray(json)) {
+  if (typeof json !== 'object' || Array.isArray(json)) {
     throw new Error(
       `Commentary store at ${COMMENTARY_PATHNAME} is not a JSON object.`,
     );
@@ -34,7 +34,7 @@ export async function uploadCommentary(
  * live store, so callers pass only when the snapshot is taken.
  */
 export async function backupCommentary(timestamp: string): Promise<string> {
-  const safe = timestamp.replace(/[:.]/g, "-");
+  const safe = timestamp.replace(/[:.]/g, '-');
   return copyObject(
     COMMENTARY_PATHNAME,
     `commentary/v1/backups/commentary-${safe}.json`,

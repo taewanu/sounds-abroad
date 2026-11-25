@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect, useEffectEvent } from "react";
+import { useEffect, useEffectEvent } from 'react';
 
 // Stacking order of the overlays Escape can close, lowest first. A rank, not
 // activation order, decides who is on top: a layer can activate after one that
@@ -31,7 +31,7 @@ function topLayer(): Layer | undefined {
 }
 
 function onKeyDown(e: KeyboardEvent) {
-  if (e.key === "Escape") topLayer()?.onEscape(e);
+  if (e.key === 'Escape') topLayer()?.onEscape(e);
 }
 
 /** While `active`, Escape reaches `onEscape` only if no higher layer is open. */
@@ -45,10 +45,10 @@ export function useEscapeLayer(
     if (!active) return;
     const layer: Layer = { rank, onEscape: (e) => handleEscape(e) };
     layers.push(layer);
-    if (layers.length === 1) window.addEventListener("keydown", onKeyDown);
+    if (layers.length === 1) window.addEventListener('keydown', onKeyDown);
     return () => {
       layers.splice(layers.indexOf(layer), 1);
-      if (layers.length === 0) window.removeEventListener("keydown", onKeyDown);
+      if (layers.length === 0) window.removeEventListener('keydown', onKeyDown);
     };
   }, [active, rank]);
 }

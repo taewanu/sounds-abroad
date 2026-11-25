@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { type CSSProperties, useEffect, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from 'react';
 
-import { VolumeIcon } from "@/components/icons/volume";
-import { VolumeMuteIcon } from "@/components/icons/volume-mute";
-import { ESCAPE_LAYER, useEscapeLayer } from "@/components/use-escape-layer";
-import { useAudioStore } from "@/providers/audio-store-provider";
+import { VolumeIcon } from '@/components/icons/volume';
+import { VolumeMuteIcon } from '@/components/icons/volume-mute';
+import { ESCAPE_LAYER, useEscapeLayer } from '@/components/use-escape-layer';
+import { useAudioStore } from '@/providers/audio-store-provider';
 
 const MUTE_TRIGGER_CLASS =
-  "focus-visible:outline-aurora text-fg-2 hover:bg-orbit hover:text-fg-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-[color,background-color,scale] duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]";
+  'focus-visible:outline-aurora text-fg-2 hover:bg-orbit hover:text-fg-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-[color,background-color,scale] duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]';
 
 /** The mute toggle alone, for where the level belongs to the hardware buttons. */
 export function MuteButton() {
@@ -20,7 +20,7 @@ export function MuteButton() {
     <button
       type="button"
       onClick={() => setMuted(!muted)}
-      aria-label={muted ? "Unmute" : "Mute"}
+      aria-label={muted ? 'Unmute' : 'Mute'}
       aria-pressed={muted}
       className={MUTE_TRIGGER_CLASS}
     >
@@ -53,9 +53,9 @@ export function VolumeControl() {
       event.preventDefault();
       setOpen(false);
     }
-    document.addEventListener("click", handleClickOutside, true);
+    document.addEventListener('click', handleClickOutside, true);
     return () => {
-      document.removeEventListener("click", handleClickOutside, true);
+      document.removeEventListener('click', handleClickOutside, true);
     };
   }, [open]);
 
@@ -67,11 +67,11 @@ export function VolumeControl() {
     function handleFocusIn(event: FocusEvent) {
       const target = event.target as Element;
       if (wrapperRef.current?.contains(target)) return;
-      if (!target.matches(":focus-visible")) return;
+      if (!target.matches(':focus-visible')) return;
       setOpen(false);
     }
-    document.addEventListener("focusin", handleFocusIn);
-    return () => document.removeEventListener("focusin", handleFocusIn);
+    document.addEventListener('focusin', handleFocusIn);
+    return () => document.removeEventListener('focusin', handleFocusIn);
   }, [open]);
 
   useEscapeLayer(open, ESCAPE_LAYER.popover, () => {
@@ -97,10 +97,10 @@ export function VolumeControl() {
         aria-label="Volume"
         aria-expanded={open}
         aria-controls="mini-player-volume"
-        className={`focus-visible:outline-aurora flex h-10 w-10 items-center justify-center rounded-full transition-[color,background-color,scale] duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] ${
+        className={`flex h-10 w-10 items-center justify-center rounded-full transition-[color,background-color,scale] duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora active:scale-[0.97] ${
           open
-            ? "bg-orbit text-fg-1"
-            : "text-fg-2 hover:bg-orbit hover:text-fg-1"
+            ? 'bg-orbit text-fg-1'
+            : 'text-fg-2 hover:bg-orbit hover:text-fg-1'
         }`}
       >
         <Icon className="h-[18px] w-[18px]" />
@@ -111,14 +111,14 @@ export function VolumeControl() {
           // The popover sits inside the mini-player's swipe surface, so a slider
           // drag would otherwise read as a swipe and skip the track.
           onPointerDown={(event) => event.stopPropagation()}
-          className="border-fg-1/10 bg-atmos absolute right-0 bottom-[calc(100%+8px)] z-10 flex w-44 items-center gap-2.5 rounded-xl border px-3 py-2.5 shadow-md"
+          className="absolute right-0 bottom-[calc(100%+8px)] z-10 flex w-44 items-center gap-2.5 rounded-xl border border-fg-1/10 bg-atmos px-3 py-2.5 shadow-md"
         >
           <button
             type="button"
             onClick={() => setMuted(!muted)}
-            aria-label={muted ? "Unmute" : "Mute"}
+            aria-label={muted ? 'Unmute' : 'Mute'}
             aria-pressed={muted}
-            className="text-fg-2 hover:text-fg-1 focus-visible:outline-aurora flex h-8 w-8 shrink-0 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-fg-2 hover:text-fg-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora active:scale-[0.97]"
           >
             <Icon className="h-4 w-4" />
           </button>
@@ -133,7 +133,7 @@ export function VolumeControl() {
             aria-label="Volume"
             aria-valuetext={`${percent}%`}
             className="volume-slider w-full"
-            style={{ "--vol-fill": `${percent}%` } as CSSProperties}
+            style={{ '--vol-fill': `${percent}%` } as CSSProperties}
           />
         </div>
       ) : null}

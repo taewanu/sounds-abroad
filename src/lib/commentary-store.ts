@@ -1,6 +1,6 @@
-import { z } from "zod";
+import { z } from 'zod';
 
-import { CommentarySchema, type Commentary } from "./chart-schema";
+import { CommentarySchema, type Commentary } from './chart-schema';
 
 /**
  * The out-of-band commentary store: a flat map from track key to one
@@ -13,7 +13,7 @@ export type CommentaryStore = z.infer<typeof CommentaryStoreSchema>;
 
 /** Commentary is English-only for now; the key carries the language so other
  * languages slot in later without re-keying the store. */
-export const DEFAULT_LANG = "en";
+export const DEFAULT_LANG = 'en';
 
 /**
  * Folds away differences that don't change which track this is: surrounding and
@@ -21,7 +21,7 @@ export const DEFAULT_LANG = "en";
  * whether its accents arrive composed or decomposed).
  */
 export function normalizeForKey(value: string): string {
-  return value.normalize("NFC").trim().replace(/\s+/g, " ").toLowerCase();
+  return value.normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase();
 }
 
 /**

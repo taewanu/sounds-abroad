@@ -1,7 +1,7 @@
-import { songsChartRows, type ChartMode } from "./chart-mode";
-import { isPlaylistRef, SONGS_CHART, type ChartRef } from "./chart-ref";
-import type { ChartTrack, Country } from "./chart-schema";
-import { sameTrack } from "./track-identity";
+import { songsChartRows, type ChartMode } from './chart-mode';
+import { isPlaylistRef, SONGS_CHART, type ChartRef } from './chart-ref';
+import type { ChartTrack, Country } from './chart-schema';
+import { sameTrack } from './track-identity';
 
 // Redraw bound for a roll whose drawn chart can't continue playback (absent
 // from the chart file, or every track preview-less). Past it the player

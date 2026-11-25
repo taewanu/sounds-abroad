@@ -1,8 +1,8 @@
-import type { NodeOptions } from "@sentry/node";
+import type { NodeOptions } from '@sentry/node';
 
 // Privacy-by-default baseline for every Sentry.init: no IP, cookies, bodies or
 // identifying headers, all of which an unset dataCollection would collect.
-const PII_DENYLIST = { deny: ["forwarded", "-ip", "remote-", "via", "-user"] };
+const PII_DENYLIST = { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] };
 
 export const dataCollection = {
   userInfo: false,
@@ -14,11 +14,11 @@ export const dataCollection = {
   databaseQueryData: false,
   queues: false,
   graphQL: { document: false, variables: false },
-} satisfies NonNullable<NodeOptions["dataCollection"]>;
+} satisfies NonNullable<NodeOptions['dataCollection']>;
 
 // v11 turned both on: a synthetic stack trace regroups message events under new
 // issues, and span streaming sends a trace in several envelopes.
 export const v10Behavior = {
   attachStacktrace: false,
-  traceLifecycle: "static",
+  traceLifecycle: 'static',
 } satisfies NodeOptions;

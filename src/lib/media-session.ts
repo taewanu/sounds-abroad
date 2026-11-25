@@ -1,4 +1,4 @@
-import type { ChartTrack } from "@/lib/chart-schema";
+import type { ChartTrack } from '@/lib/chart-schema';
 
 export interface MediaSessionDeps {
   mediaSession: MediaSession | null;
@@ -16,11 +16,11 @@ export interface MediaSessionSkipHandlers {
 }
 
 function defaultDeps(): MediaSessionDeps {
-  const nav = typeof navigator !== "undefined" ? navigator : undefined;
+  const nav = typeof navigator !== 'undefined' ? navigator : undefined;
   return {
-    mediaSession: nav && "mediaSession" in nav ? nav.mediaSession : null,
+    mediaSession: nav && 'mediaSession' in nav ? nav.mediaSession : null,
     metadataCtor:
-      typeof MediaMetadata !== "undefined" ? MediaMetadata : undefined,
+      typeof MediaMetadata !== 'undefined' ? MediaMetadata : undefined,
   };
 }
 
@@ -67,8 +67,8 @@ export function setActionHandlers(
 ): void {
   const { mediaSession } = deps;
   if (!mediaSession) return;
-  mediaSession.setActionHandler("play", handlers.play);
-  mediaSession.setActionHandler("pause", handlers.pause);
+  mediaSession.setActionHandler('play', handlers.play);
+  mediaSession.setActionHandler('pause', handlers.pause);
 }
 
 /**
@@ -82,12 +82,12 @@ export function setSkipHandlers(
 ): void {
   const { mediaSession } = deps;
   if (!mediaSession) return;
-  mediaSession.setActionHandler("nexttrack", handlers.nexttrack);
-  mediaSession.setActionHandler("previoustrack", handlers.previoustrack);
+  mediaSession.setActionHandler('nexttrack', handlers.nexttrack);
+  mediaSession.setActionHandler('previoustrack', handlers.previoustrack);
 }
 
 export function clearNowPlaying(deps: MediaSessionDeps = defaultDeps()): void {
   if (!deps.mediaSession) return;
   deps.mediaSession.metadata = null;
-  deps.mediaSession.playbackState = "none";
+  deps.mediaSession.playbackState = 'none';
 }

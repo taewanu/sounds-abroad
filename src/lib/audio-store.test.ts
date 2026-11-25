@@ -1,19 +1,19 @@
-import { assert, beforeEach, describe, expect, test, vi } from "vitest";
+import { assert, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { DEFAULT_CHART_MODE } from "@/lib/chart-mode";
-import { SONGS_CHART, type ChartRef } from "@/lib/chart-ref";
-import type { Track } from "@/lib/chart-schema";
+import { DEFAULT_CHART_MODE } from '@/lib/chart-mode';
+import { SONGS_CHART, type ChartRef } from '@/lib/chart-ref';
+import type { Track } from '@/lib/chart-schema';
 
-import type { AudioEngine } from "./audio-engine";
-import { createAudioStore } from "./audio-store";
+import type { AudioEngine } from './audio-engine';
+import { createAudioStore } from './audio-store';
 import {
   clearNowPlaying,
   setActionHandlers,
   setNowPlaying,
   setPlaybackState,
-} from "./media-session";
+} from './media-session';
 
-vi.mock("./media-session", () => ({
+vi.mock('./media-session', () => ({
   setNowPlaying: vi.fn(),
   clearNowPlaying: vi.fn(),
   setPlaybackState: vi.fn(),
@@ -22,14 +22,14 @@ vi.mock("./media-session", () => ({
 
 // A chart ref outside the songs sentinel, standing for any of a country's
 // other charts.
-const PLAYLIST_REF = "pl.other";
+const PLAYLIST_REF = 'pl.other';
 
 // A playback location, defaulting to the chart every country carries.
 function at(countryCode: string, chartRef: ChartRef = SONGS_CHART) {
   return { countryCode, chartRef, mode: DEFAULT_CHART_MODE };
 }
 
-type EventType = "ended" | "error" | "play" | "pause";
+type EventType = 'ended' | 'error' | 'play' | 'pause';
 
 interface MockAudio extends AudioEngine {
   _trigger: (event: EventType) => void;
@@ -38,7 +38,7 @@ interface MockAudio extends AudioEngine {
 
 function makeMockAudio(): MockAudio {
   const listeners: Partial<Record<EventType, Array<() => void>>> = {};
-  let src = "";
+  let src = '';
   const audio: MockAudio = {
     get src() {
       return src;
@@ -67,22 +67,22 @@ function makeMockAudio(): MockAudio {
 function makeTrack(overrides: Partial<Track> = {}): Track {
   return {
     rank: 1,
-    name: "Test Track",
-    artist: "Test Artist",
-    previewUrl: "https://example.com/preview.m4a",
-    artworkUrl: "https://example.com/art.jpg",
-    appleUrl: "https://music.apple.com/x",
-    spotifyUrl: "https://open.spotify.com/search/x",
+    name: 'Test Track',
+    artist: 'Test Artist',
+    previewUrl: 'https://example.com/preview.m4a',
+    artworkUrl: 'https://example.com/art.jpg',
+    appleUrl: 'https://music.apple.com/x',
+    spotifyUrl: 'https://open.spotify.com/search/x',
     ...overrides,
   };
 }
 
-describe("createAudioStore", () => {
+describe('createAudioStore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  test("initial state: no track, not playing, no country", () => {
+  test('initial state: no track, not playing, no country', () => {
     const store = createAudioStore(() => makeMockAudio());
 
     expect(store.getState().currentTrack).toBeNull();
@@ -90,19 +90,19 @@ describe("createAudioStore", () => {
     expect(store.getState().currentCountryCode).toBeNull();
   });
 
-  test("initial volume is full", () => {
+  test('initial volume is full', () => {
     const store = createAudioStore(() => makeMockAudio());
 
     expect(store.getState().volume).toBe(1);
   });
 
-  test("lastStep starts null so a mounting surface never sees a direction", () => {
+  test('lastStep starts null so a mounting surface never sees a direction', () => {
     const store = createAudioStore(() => makeMockAudio());
 
     expect(store.getState().lastStep).toBeNull();
   });
 
-  test("signalStep records the direction and bumps the nonce per call", () => {
+  test('signalStep records the direction and bumps the nonce per call', () => {
     const store = createAudioStore(() => makeMockAudio());
 
     store.getState().signalStep(1);
@@ -114,7 +114,7 @@ describe("createAudioStore", () => {
     expect(second).toEqual({ dir: 1, nonce: 2 });
   });
 
-  test("signalStep keeps the nonce monotonic across a direction flip", () => {
+  test('signalStep keeps the nonce monotonic across a direction flip', () => {
     const store = createAudioStore(() => makeMockAudio());
     store.getState().signalStep(1);
 
@@ -123,7 +123,7 @@ describe("createAudioStore", () => {
     expect(store.getState().lastStep).toEqual({ dir: -1, nonce: 2 });
   });
 
-  test("a plain toggle never records a step direction", () => {
+  test('a plain toggle never records a step direction', () => {
     const store = createAudioStore(() => makeMockAudio());
 
     store.getState().toggle(makeTrack());
@@ -131,7 +131,7 @@ describe("createAudioStore", () => {
     expect(store.getState().lastStep).toBeNull();
   });
 
-  test("setVolume updates the volume state", () => {
+  test('setVolume updates the volume state', () => {
     const store = createAudioStore(() => makeMockAudio());
 
     store.getState().setVolume(0.4);
@@ -139,7 +139,7 @@ describe("createAudioStore", () => {
     expect(store.getState().volume).toBe(0.4);
   });
 
-  test("setVolume drives the audio engine volume", () => {
+  test('setVolume drives the audio engine volume', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
 
@@ -148,7 +148,7 @@ describe("createAudioStore", () => {
     expect(audio.setVolume).toHaveBeenCalledWith(0.4);
   });
 
-  test("setMuted drives the engine and leaves the level alone", () => {
+  test('setMuted drives the engine and leaves the level alone', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     const level = store.getState().volume;
@@ -160,7 +160,7 @@ describe("createAudioStore", () => {
     expect(store.getState().volume).toBe(level);
   });
 
-  test("volumeAdjustable mirrors the engine once playback creates it", () => {
+  test('volumeAdjustable mirrors the engine once playback creates it', () => {
     const audio = { ...makeMockAudio(), volumeAdjustable: false };
     const store = createAudioStore(() => audio);
 
@@ -169,21 +169,21 @@ describe("createAudioStore", () => {
     expect(store.getState().volumeAdjustable).toBe(audio.volumeAdjustable);
   });
 
-  test("volume holds across a track switch", () => {
+  test('volume holds across a track switch', () => {
     const store = createAudioStore(() => makeMockAudio());
     store.getState().setVolume(0.3);
 
     store
       .getState()
-      .toggle(makeTrack({ previewUrl: "https://example.com/next.m4a" }));
+      .toggle(makeTrack({ previewUrl: 'https://example.com/next.m4a' }));
 
     expect(store.getState().volume).toBe(0.3);
   });
 
-  test("toggle plays a new track", () => {
+  test('toggle plays a new track', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
-    const track = makeTrack({ previewUrl: "https://example.com/a.m4a" });
+    const track = makeTrack({ previewUrl: 'https://example.com/a.m4a' });
 
     store.getState().toggle(track);
 
@@ -193,7 +193,7 @@ describe("createAudioStore", () => {
     expect(store.getState().isPlaying).toBe(true);
   });
 
-  test("toggle on same track while playing pauses (currentTrack preserved)", () => {
+  test('toggle on same track while playing pauses (currentTrack preserved)', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     const track = makeTrack();
@@ -206,16 +206,16 @@ describe("createAudioStore", () => {
     expect(store.getState().currentTrack).toBe(track);
   });
 
-  test("toggle on different track while playing switches", () => {
+  test('toggle on different track while playing switches', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     const trackA = makeTrack({
-      appleUrl: "https://music.apple.com/x?i=a",
-      previewUrl: "https://example.com/a.m4a",
+      appleUrl: 'https://music.apple.com/x?i=a',
+      previewUrl: 'https://example.com/a.m4a',
     });
     const trackB = makeTrack({
-      appleUrl: "https://music.apple.com/x?i=b",
-      previewUrl: "https://example.com/b.m4a",
+      appleUrl: 'https://music.apple.com/x?i=b',
+      previewUrl: 'https://example.com/b.m4a',
     });
     store.getState().toggle(trackA);
 
@@ -226,54 +226,54 @@ describe("createAudioStore", () => {
     expect(store.getState().isPlaying).toBe(true);
   });
 
-  test("toggle of the current song from another country adopts the new context", () => {
+  test('toggle of the current song from another country adopts the new context', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     // One song charting in two countries: same id, one shared preview asset.
     const inA = makeTrack({
       rank: 3,
-      appleUrl: "https://music.apple.com/kr/album/x/1?i=42",
-      previewUrl: "https://example.com/shared.m4a",
+      appleUrl: 'https://music.apple.com/kr/album/x/1?i=42',
+      previewUrl: 'https://example.com/shared.m4a',
     });
     const inB = makeTrack({
       rank: 7,
-      appleUrl: "https://music.apple.com/us/album/x/1?i=42",
-      previewUrl: "https://example.com/shared.m4a",
+      appleUrl: 'https://music.apple.com/us/album/x/1?i=42',
+      previewUrl: 'https://example.com/shared.m4a',
     });
-    store.getState().toggle(inA, at("kr"));
+    store.getState().toggle(inA, at('kr'));
 
-    store.getState().toggle(inB, at("us"));
+    store.getState().toggle(inB, at('us'));
 
-    expect(store.getState().currentCountryCode).toBe("us");
+    expect(store.getState().currentCountryCode).toBe('us');
     expect(store.getState().currentTrack).toBe(inB);
     expect(store.getState().isPlaying).toBe(true);
     expect(audio.pause).not.toHaveBeenCalled();
   });
 
-  test("toggle of the current song at the same location pauses, not switches", () => {
+  test('toggle of the current song at the same location pauses, not switches', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
-    const track = makeTrack({ appleUrl: "https://music.apple.com/x?i=42" });
-    store.getState().toggle(track, at("kr"));
+    const track = makeTrack({ appleUrl: 'https://music.apple.com/x?i=42' });
+    store.getState().toggle(track, at('kr'));
 
-    store.getState().toggle(track, at("kr"));
+    store.getState().toggle(track, at('kr'));
 
     expect(audio.pause).toHaveBeenCalledOnce();
     expect(store.getState().isPlaying).toBe(false);
-    expect(store.getState().currentCountryCode).toBe("kr");
+    expect(store.getState().currentCountryCode).toBe('kr');
   });
 
-  test("toggle on new track stores the location it was played from", () => {
+  test('toggle on new track stores the location it was played from', () => {
     const store = createAudioStore(() => makeMockAudio());
     const track = makeTrack();
 
-    store.getState().toggle(track, at("br", PLAYLIST_REF));
+    store.getState().toggle(track, at('br', PLAYLIST_REF));
 
-    expect(store.getState().currentCountryCode).toBe("br");
+    expect(store.getState().currentCountryCode).toBe('br');
     expect(store.getState().currentChartRef).toBe(PLAYLIST_REF);
   });
 
-  test("toggle on new track with no location leaves the location unset", () => {
+  test('toggle on new track with no location leaves the location unset', () => {
     const store = createAudioStore(() => makeMockAudio());
     const track = makeTrack();
 
@@ -283,37 +283,37 @@ describe("createAudioStore", () => {
     expect(store.getState().currentChartRef).toBeNull();
   });
 
-  test("the same song reached from another chart of the country switches, not resumes", () => {
+  test('the same song reached from another chart of the country switches, not resumes', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
-    const track = makeTrack({ appleUrl: "https://music.apple.com/x?i=42" });
-    store.getState().toggle(track, at("br"));
+    const track = makeTrack({ appleUrl: 'https://music.apple.com/x?i=42' });
+    store.getState().toggle(track, at('br'));
 
-    store.getState().toggle(track, at("br", PLAYLIST_REF));
+    store.getState().toggle(track, at('br', PLAYLIST_REF));
 
     expect(audio.pause).not.toHaveBeenCalled();
     expect(store.getState().isPlaying).toBe(true);
     expect(store.getState().currentChartRef).toBe(PLAYLIST_REF);
   });
 
-  test("resume (toggle same track after pause) preserves the location", () => {
+  test('resume (toggle same track after pause) preserves the location', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     const track = makeTrack();
-    store.getState().toggle(track, at("br", PLAYLIST_REF));
+    store.getState().toggle(track, at('br', PLAYLIST_REF));
     store.getState().toggle(track); // pause
-    assert(store.getState().isPlaying === false, "arrange: paused");
+    assert(store.getState().isPlaying === false, 'arrange: paused');
 
     store.getState().toggle(track); // resume with no location
 
-    expect(store.getState().currentCountryCode).toBe("br");
+    expect(store.getState().currentCountryCode).toBe('br');
     expect(store.getState().currentChartRef).toBe(PLAYLIST_REF);
     expect(store.getState().isPlaying).toBe(true);
   });
 
-  test("stop clears the location", () => {
+  test('stop clears the location', () => {
     const store = createAudioStore(() => makeMockAudio());
-    store.getState().toggle(makeTrack(), at("br"));
+    store.getState().toggle(makeTrack(), at('br'));
 
     store.getState().stop();
 
@@ -321,7 +321,7 @@ describe("createAudioStore", () => {
     expect(store.getState().currentChartRef).toBeNull();
   });
 
-  test("stop clears currentTrack and isPlaying", () => {
+  test('stop clears currentTrack and isPlaying', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     store.getState().toggle(makeTrack());
@@ -333,21 +333,21 @@ describe("createAudioStore", () => {
     expect(store.getState().isPlaying).toBe(false);
   });
 
-  test("pause stops playback but preserves currentTrack and location", () => {
+  test('pause stops playback but preserves currentTrack and location', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     const track = makeTrack();
-    store.getState().toggle(track, at("br"));
+    store.getState().toggle(track, at('br'));
 
     store.getState().pause();
 
     expect(audio.pause).toHaveBeenCalledOnce();
     expect(store.getState().isPlaying).toBe(false);
     expect(store.getState().currentTrack).toBe(track);
-    expect(store.getState().currentCountryCode).toBe("br");
+    expect(store.getState().currentCountryCode).toBe('br');
   });
 
-  test("pause does not increment endedSignal so auto-advance stays put", () => {
+  test('pause does not increment endedSignal so auto-advance stays put', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     store.getState().toggle(makeTrack());
@@ -357,52 +357,52 @@ describe("createAudioStore", () => {
     expect(store.getState().endedSignal).toBe(0);
   });
 
-  test("ended event: isPlaying false, currentTrack preserved", () => {
+  test('ended event: isPlaying false, currentTrack preserved', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     const track = makeTrack();
     store.getState().toggle(track);
 
-    audio._trigger("ended");
+    audio._trigger('ended');
 
     expect(store.getState().isPlaying).toBe(false);
     expect(store.getState().currentTrack).toBe(track);
   });
 
-  test("ended event increments endedSignal so subscribers can auto-advance", () => {
+  test('ended event increments endedSignal so subscribers can auto-advance', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     store.getState().toggle(makeTrack());
 
-    audio._trigger("ended");
+    audio._trigger('ended');
 
     expect(store.getState().endedSignal).toBe(1);
   });
 
-  test("endedSignal accumulates across consecutive ended events", () => {
+  test('endedSignal accumulates across consecutive ended events', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     const trackA = makeTrack();
     const trackB = makeTrack({
-      appleUrl: "https://music.apple.com/x?i=b",
-      previewUrl: "https://example.com/b.m4a",
+      appleUrl: 'https://music.apple.com/x?i=b',
+      previewUrl: 'https://example.com/b.m4a',
     });
     store.getState().toggle(trackA);
-    audio._trigger("ended");
+    audio._trigger('ended');
     store.getState().toggle(trackB);
 
-    audio._trigger("ended");
+    audio._trigger('ended');
 
     expect(store.getState().endedSignal).toBe(2);
   });
 
-  test("error event: isPlaying false, currentTrack preserved", () => {
+  test('error event: isPlaying false, currentTrack preserved', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     const track = makeTrack();
     store.getState().toggle(track);
 
-    audio._trigger("error");
+    audio._trigger('error');
 
     expect(store.getState().isPlaying).toBe(false);
     expect(store.getState().currentTrack).toBe(track);
@@ -411,32 +411,32 @@ describe("createAudioStore", () => {
   test("error event records lastError with the errored track's previewUrl", () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
-    const track = makeTrack({ previewUrl: "https://example.com/broken.m4a" });
+    const track = makeTrack({ previewUrl: 'https://example.com/broken.m4a' });
     store.getState().toggle(track);
 
-    audio._trigger("error");
+    audio._trigger('error');
 
     expect(store.getState().lastError).toEqual({
       previewUrl: track.previewUrl,
     });
   });
 
-  test("toggle clears lastError when switching tracks", () => {
+  test('toggle clears lastError when switching tracks', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     const errored = makeTrack({
-      appleUrl: "https://music.apple.com/x?i=broken",
-      previewUrl: "https://example.com/broken.m4a",
+      appleUrl: 'https://music.apple.com/x?i=broken',
+      previewUrl: 'https://example.com/broken.m4a',
     });
     const next = makeTrack({
-      appleUrl: "https://music.apple.com/x?i=working",
-      previewUrl: "https://example.com/working.m4a",
+      appleUrl: 'https://music.apple.com/x?i=working',
+      previewUrl: 'https://example.com/working.m4a',
     });
     store.getState().toggle(errored);
-    audio._trigger("error");
+    audio._trigger('error');
     assert(
       store.getState().lastError !== null,
-      "arrange: error event should set lastError",
+      'arrange: error event should set lastError',
     );
 
     store.getState().toggle(next);
@@ -444,15 +444,15 @@ describe("createAudioStore", () => {
     expect(store.getState().lastError).toBeNull();
   });
 
-  test("stop clears lastError", () => {
+  test('stop clears lastError', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     const track = makeTrack();
     store.getState().toggle(track);
-    audio._trigger("error");
+    audio._trigger('error');
     assert(
       store.getState().lastError !== null,
-      "arrange: error event should set lastError",
+      'arrange: error event should set lastError',
     );
 
     store.getState().stop();
@@ -460,12 +460,12 @@ describe("createAudioStore", () => {
     expect(store.getState().lastError).toBeNull();
   });
 
-  test("play rejection clears isPlaying and records lastError", async () => {
+  test('play rejection clears isPlaying and records lastError', async () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
-    const track = makeTrack({ previewUrl: "https://example.com/blocked.m4a" });
+    const track = makeTrack({ previewUrl: 'https://example.com/blocked.m4a' });
     vi.mocked(audio.play).mockRejectedValueOnce(
-      new DOMException("autoplay blocked", "NotAllowedError"),
+      new DOMException('autoplay blocked', 'NotAllowedError'),
     );
 
     store.getState().toggle(track);
@@ -477,12 +477,12 @@ describe("createAudioStore", () => {
     });
   });
 
-  test("play rejection with AbortError leaves state untouched (benign interrupt)", async () => {
+  test('play rejection with AbortError leaves state untouched (benign interrupt)', async () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     const track = makeTrack();
     vi.mocked(audio.play).mockRejectedValueOnce(
-      new DOMException("interrupted", "AbortError"),
+      new DOMException('interrupted', 'AbortError'),
     );
 
     store.getState().toggle(track);
@@ -496,15 +496,15 @@ describe("createAudioStore", () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     const trackA = makeTrack({
-      appleUrl: "https://music.apple.com/x?i=a",
-      previewUrl: "https://example.com/a.m4a",
+      appleUrl: 'https://music.apple.com/x?i=a',
+      previewUrl: 'https://example.com/a.m4a',
     });
     const trackB = makeTrack({
-      appleUrl: "https://music.apple.com/x?i=b",
-      previewUrl: "https://example.com/b.m4a",
+      appleUrl: 'https://music.apple.com/x?i=b',
+      previewUrl: 'https://example.com/b.m4a',
     });
     vi.mocked(audio.play).mockRejectedValueOnce(
-      new DOMException("autoplay blocked", "NotAllowedError"),
+      new DOMException('autoplay blocked', 'NotAllowedError'),
     );
 
     store.getState().toggle(trackA);
@@ -520,18 +520,18 @@ describe("createAudioStore", () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     const trackA = makeTrack({
-      appleUrl: "https://music.apple.com/x?i=a",
-      previewUrl: "https://example.com/a.m4a",
+      appleUrl: 'https://music.apple.com/x?i=a',
+      previewUrl: 'https://example.com/a.m4a',
     });
     const trackB = makeTrack({
-      appleUrl: "https://music.apple.com/x?i=b",
-      previewUrl: "https://example.com/b.m4a",
+      appleUrl: 'https://music.apple.com/x?i=b',
+      previewUrl: 'https://example.com/b.m4a',
     });
     // Only the first attempt rejects; re-selecting trackA succeeds. The stale
     // rejection shares trackA's previewUrl, so a value-keyed guard would let it
     // through and mark the live re-attempt as errored.
     vi.mocked(audio.play).mockRejectedValueOnce(
-      new DOMException("autoplay blocked", "NotAllowedError"),
+      new DOMException('autoplay blocked', 'NotAllowedError'),
     );
 
     store.getState().toggle(trackA); // attempt 1 (rejects)
@@ -544,49 +544,49 @@ describe("createAudioStore", () => {
     expect(store.getState().lastError).toBeNull();
   });
 
-  test("browser pause event syncs store (Layer 1)", () => {
+  test('browser pause event syncs store (Layer 1)', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     const track = makeTrack();
     store.getState().toggle(track);
 
-    audio._trigger("pause");
+    audio._trigger('pause');
 
     expect(store.getState().isPlaying).toBe(false);
     expect(store.getState().currentTrack).toBe(track);
   });
 
-  test("browser play event syncs store (Layer 1)", () => {
+  test('browser play event syncs store (Layer 1)', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     const track = makeTrack();
     store.getState().toggle(track);
-    audio._trigger("pause");
+    audio._trigger('pause');
 
-    audio._trigger("play");
+    audio._trigger('play');
 
     expect(store.getState().isPlaying).toBe(true);
   });
 
-  test("audio element is created lazily on first action", () => {
+  test('audio element is created lazily on first action', () => {
     const factory = vi.fn(() => makeMockAudio());
     createAudioStore(factory);
 
     expect(factory).not.toHaveBeenCalled();
   });
 
-  test("audio element is reused across actions", () => {
+  test('audio element is reused across actions', () => {
     const factory = vi.fn(() => makeMockAudio());
     const store = createAudioStore(factory);
 
-    store.getState().toggle(makeTrack({ previewUrl: "a" }));
-    store.getState().toggle(makeTrack({ previewUrl: "b" }));
+    store.getState().toggle(makeTrack({ previewUrl: 'a' }));
+    store.getState().toggle(makeTrack({ previewUrl: 'b' }));
     store.getState().stop();
 
     expect(factory).toHaveBeenCalledOnce();
   });
 
-  test("resume in place replays without rewriting src so the preview continues", () => {
+  test('resume in place replays without rewriting src so the preview continues', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     const track = makeTrack();
@@ -600,7 +600,7 @@ describe("createAudioStore", () => {
     expect(store.getState().isPlaying).toBe(true);
   });
 
-  test("toggle on a new track publishes now-playing metadata", () => {
+  test('toggle on a new track publishes now-playing metadata', () => {
     const store = createAudioStore(() => makeMockAudio());
     const track = makeTrack();
 
@@ -609,7 +609,7 @@ describe("createAudioStore", () => {
     expect(setNowPlaying).toHaveBeenCalledWith(track);
   });
 
-  test("resume in place does not republish metadata", () => {
+  test('resume in place does not republish metadata', () => {
     const store = createAudioStore(() => makeMockAudio());
     const track = makeTrack();
     store.getState().toggle(track);
@@ -620,7 +620,7 @@ describe("createAudioStore", () => {
     expect(setNowPlaying).toHaveBeenCalledOnce();
   });
 
-  test("stop clears now-playing metadata", () => {
+  test('stop clears now-playing metadata', () => {
     const store = createAudioStore(() => makeMockAudio());
     store.getState().toggle(makeTrack());
 
@@ -629,37 +629,37 @@ describe("createAudioStore", () => {
     expect(clearNowPlaying).toHaveBeenCalledOnce();
   });
 
-  test("play event reports playing to the OS", () => {
+  test('play event reports playing to the OS', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     store.getState().toggle(makeTrack());
 
-    audio._trigger("play");
+    audio._trigger('play');
 
-    expect(setPlaybackState).toHaveBeenCalledWith("playing");
+    expect(setPlaybackState).toHaveBeenCalledWith('playing');
   });
 
-  test("pause event reports paused to the OS", () => {
+  test('pause event reports paused to the OS', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     store.getState().toggle(makeTrack());
 
-    audio._trigger("pause");
+    audio._trigger('pause');
 
-    expect(setPlaybackState).toHaveBeenCalledWith("paused");
+    expect(setPlaybackState).toHaveBeenCalledWith('paused');
   });
 
-  test("ended event reports none to the OS", () => {
+  test('ended event reports none to the OS', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     store.getState().toggle(makeTrack());
 
-    audio._trigger("ended");
+    audio._trigger('ended');
 
-    expect(setPlaybackState).toHaveBeenCalledWith("none");
+    expect(setPlaybackState).toHaveBeenCalledWith('none');
   });
 
-  test("registers OS transport handlers when the audio element is created", () => {
+  test('registers OS transport handlers when the audio element is created', () => {
     const store = createAudioStore(() => makeMockAudio());
 
     store.getState().toggle(makeTrack());
@@ -667,7 +667,7 @@ describe("createAudioStore", () => {
     expect(setActionHandlers).toHaveBeenCalledOnce();
   });
 
-  test("OS play handler resumes the current track in place", () => {
+  test('OS play handler resumes the current track in place', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     const track = makeTrack();
@@ -681,7 +681,7 @@ describe("createAudioStore", () => {
     expect(audio._srcWrites).toBe(1);
   });
 
-  test("OS pause handler pauses but keeps the current track", () => {
+  test('OS pause handler pauses but keeps the current track', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     const track = makeTrack();

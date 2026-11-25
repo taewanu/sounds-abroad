@@ -1,4 +1,4 @@
-import { withRetry } from "./retry";
+import { withRetry } from './retry';
 
 const defaultSleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -9,7 +9,7 @@ export class RevalidateError extends Error {
     message: string,
   ) {
     super(message);
-    this.name = "RevalidateError";
+    this.name = 'RevalidateError';
   }
 }
 
@@ -25,8 +25,8 @@ export async function triggerRevalidate(
 ): Promise<void> {
   const url = process.env.SITE_URL;
   const secret = process.env.REVALIDATE_SECRET;
-  if (!url) throw new Error("SITE_URL missing");
-  if (!secret) throw new Error("REVALIDATE_SECRET missing");
+  if (!url) throw new Error('SITE_URL missing');
+  if (!secret) throw new Error('REVALIDATE_SECRET missing');
 
   // Fires immediately: R2 is read-after-write consistent and nothing caches
   // between the upload and this call, so there is no propagation to wait out.
@@ -41,7 +41,7 @@ export async function triggerRevalidate(
   await withRetry(
     async () => {
       const res = await fetch(`${url}/api/revalidate`, {
-        method: "POST",
+        method: 'POST',
         headers: { Authorization: `Bearer ${secret}` },
         // Bound each attempt so a hung endpoint doesn't push the cron past its
         // schedule window. TimeoutError surfaces unchanged via Sentry.

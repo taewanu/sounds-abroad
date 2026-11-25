@@ -1,27 +1,26 @@
-import { expect, test } from "vitest";
+import { expect, test } from 'vitest';
 
-import type { ChartFile } from "../../src/lib/chart-schema";
+import type { ChartFile } from '../../src/lib/chart-schema';
+import { fetchPublishedCharts } from './published-charts';
 
-import { fetchPublishedCharts } from "./published-charts";
-
-const URL = "https://blob/charts/v1/charts.json";
+const URL = 'https://blob/charts/v1/charts.json';
 
 function validChartFile(): ChartFile {
   return {
-    lastUpdated: "2026-05-14T12:00:00.000Z",
+    lastUpdated: '2026-05-14T12:00:00.000Z',
     countries: {
       kr: {
-        name: "South Korea",
+        name: 'South Korea',
         valid: true,
         tracks: [
           {
             rank: 1,
-            name: "song",
-            artist: "artist",
-            previewUrl: "https://audio-ssl.itunes.apple.com/1.m4a",
-            artworkUrl: "https://is1-ssl.mzstatic.com/1/600x600bb.jpg",
-            appleUrl: "https://music.apple.com/kr/1",
-            spotifyUrl: "https://open.spotify.com/search/song",
+            name: 'song',
+            artist: 'artist',
+            previewUrl: 'https://audio-ssl.itunes.apple.com/1.m4a',
+            artworkUrl: 'https://is1-ssl.mzstatic.com/1/600x600bb.jpg',
+            appleUrl: 'https://music.apple.com/kr/1',
+            spotifyUrl: 'https://open.spotify.com/search/song',
           },
         ],
       },
@@ -40,7 +39,7 @@ function fakeFetch(response: {
     })) as typeof fetch;
 }
 
-test("returns the parsed payload on a valid response", async () => {
+test('returns the parsed payload on a valid response', async () => {
   const chartFile = validChartFile();
 
   const result = await fetchPublishedCharts(
@@ -51,36 +50,36 @@ test("returns the parsed payload on a valid response", async () => {
   expect(result).toEqual(chartFile);
 });
 
-test("returns null on a non-OK response", async () => {
+test('returns null on a non-OK response', async () => {
   const result = await fetchPublishedCharts(
     URL,
-    fakeFetch({ ok: false, status: 404, body: "Not Found" }),
+    fakeFetch({ ok: false, status: 404, body: 'Not Found' }),
   );
 
   expect(result).toBeNull();
 });
 
-test("returns null on invalid JSON", async () => {
+test('returns null on invalid JSON', async () => {
   const result = await fetchPublishedCharts(
     URL,
-    fakeFetch({ body: "<html>nope</html>" }),
+    fakeFetch({ body: '<html>nope</html>' }),
   );
 
   expect(result).toBeNull();
 });
 
-test("returns null on schema mismatch", async () => {
+test('returns null on schema mismatch', async () => {
   const result = await fetchPublishedCharts(
     URL,
-    fakeFetch({ body: JSON.stringify({ lastUpdated: "nope", countries: 5 }) }),
+    fakeFetch({ body: JSON.stringify({ lastUpdated: 'nope', countries: 5 }) }),
   );
 
   expect(result).toBeNull();
 });
 
-test("returns null when fetch rejects", async () => {
+test('returns null when fetch rejects', async () => {
   const failingFetch: typeof fetch = (async () => {
-    throw new TypeError("network down");
+    throw new TypeError('network down');
   }) as typeof fetch;
 
   const result = await fetchPublishedCharts(URL, failingFetch);

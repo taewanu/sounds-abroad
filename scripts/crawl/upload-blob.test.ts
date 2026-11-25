@@ -1,20 +1,19 @@
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from 'vitest';
 
-import type { ChartFile } from "../../src/lib/chart-schema";
-import { putJson } from "../lib/object-store";
-
+import type { ChartFile } from '../../src/lib/chart-schema';
+import { putJson } from '../lib/object-store';
 import {
   DATA_CACHE_ENTRY_OVERHEAD,
   DATA_CACHE_WARN_SIZE,
   dataCacheEntrySize,
   uploadCharts,
-} from "./upload-blob";
+} from './upload-blob';
 
-vi.mock("../lib/object-store", async () => {
-  const actual = await vi.importActual<typeof import("../lib/object-store")>(
-    "../lib/object-store",
+vi.mock('../lib/object-store', async () => {
+  const actual = await vi.importActual<typeof import('../lib/object-store')>(
+    '../lib/object-store',
   );
-  return { ...actual, putJson: vi.fn(async () => "https://store.test/charts") };
+  return { ...actual, putJson: vi.fn(async () => 'https://store.test/charts') };
 });
 
 const putJsonMock = vi.mocked(putJson);
@@ -30,22 +29,22 @@ const LARGEST_QUIET_BODY_BYTES =
   Math.floor((DATA_CACHE_WARN_SIZE - DATA_CACHE_ENTRY_OVERHEAD) / 4) * 3;
 
 function chartFileOfBytes(bytes: number): ChartFile {
-  const empty = JSON.stringify({ lastUpdated: "", countries: {} });
-  return { lastUpdated: "x".repeat(bytes - empty.length), countries: {} };
+  const empty = JSON.stringify({ lastUpdated: '', countries: {} });
+  return { lastUpdated: 'x'.repeat(bytes - empty.length), countries: {} };
 }
 
-test("sizes a body by its base64 length plus the entry overhead", () => {
+test('sizes a body by its base64 length plus the entry overhead', () => {
   // Multi-byte characters, so a count of characters and a count of bytes differ.
-  const body = "é".repeat(1000);
+  const body = 'é'.repeat(1000);
 
   const size = dataCacheEntrySize(body);
 
   expect(size).toBe(
-    Buffer.from(body).toString("base64").length + DATA_CACHE_ENTRY_OVERHEAD,
+    Buffer.from(body).toString('base64').length + DATA_CACHE_ENTRY_OVERHEAD,
   );
 });
 
-test("a chart file whose entry sits at the warning size publishes quietly", async () => {
+test('a chart file whose entry sits at the warning size publishes quietly', async () => {
   const onNearCacheCap = vi.fn();
 
   await uploadCharts(

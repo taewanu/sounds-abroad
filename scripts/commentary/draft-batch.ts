@@ -1,34 +1,33 @@
-import type { Commentary } from "../../src/lib/chart-schema";
-import type { CommentaryStore } from "../../src/lib/commentary-store";
-import { fetchPublishedCharts } from "../crawl/published-charts";
-import { assertObjectStoreEnv } from "../lib/object-store";
-
-import { createClaudeDrafter, draftEntry } from "./draft";
-import { recordAttempts } from "./drops";
-import { salvageCommentaryStore } from "./fetch-commentary";
-import { readDrops } from "./fetch-drops";
-import { createClaudeJudge, fetchSourceText, groundEntry } from "./ground";
-import { loadPreviousCharts } from "./previous-charts";
-import { publishStore } from "./publish-store";
-import { routeStore } from "./route";
+import type { Commentary } from '../../src/lib/chart-schema';
+import type { CommentaryStore } from '../../src/lib/commentary-store';
+import { fetchPublishedCharts } from '../crawl/published-charts';
+import { assertObjectStoreEnv } from '../lib/object-store';
+import { createClaudeDrafter, draftEntry } from './draft';
+import { recordAttempts } from './drops';
+import { salvageCommentaryStore } from './fetch-commentary';
+import { readDrops } from './fetch-drops';
+import { createClaudeJudge, fetchSourceText, groundEntry } from './ground';
+import { loadPreviousCharts } from './previous-charts';
+import { publishStore } from './publish-store';
+import { routeStore } from './route';
 import {
   backupCommentary,
   readLiveCommentary,
   uploadCommentary,
-} from "./upload-commentary";
-import { uploadDrops } from "./upload-drops";
-import { computeWorklist, type WorklistItem } from "./worklist";
+} from './upload-commentary';
+import { uploadDrops } from './upload-drops';
+import { computeWorklist, type WorklistItem } from './worklist';
 
 // Auto-drafts blurbs for the worklist, then routes each through the publish gate
 // and merges the survivors into the live store (#121). The drafter and the gate
 // both spend the subscription, so the batch is bounded by --limit and runs on
 // the laptop. See docs/commentary-playbook.md.
 
-assertObjectStoreEnv("Run via: pnpm commentary:draft.");
+assertObjectStoreEnv('Run via: pnpm commentary:draft.');
 
 const chartsUrl = process.env.CHARTS_BLOB_URL;
 if (!chartsUrl) {
-  throw new Error("CHARTS_BLOB_URL missing. Set it to the charts.json URL.");
+  throw new Error('CHARTS_BLOB_URL missing. Set it to the charts.json URL.');
 }
 
 function flagValue(name: string): string | undefined {
@@ -38,13 +37,13 @@ function flagValue(name: string): string | undefined {
 
 // Bound the batch: each item costs a drafter call and, if it drafts, a grounding
 // call. Default small so a run is observable and cheap; raise it deliberately.
-const limit = Number(flagValue("--limit") ?? 5);
+const limit = Number(flagValue('--limit') ?? 5);
 if (!Number.isInteger(limit) || limit < 1) {
   throw new Error(`--limit must be a positive integer, got ${limit}.`);
 }
 // Optional case-insensitive filter on artist/title/key, to target specific
 // tracks (e.g. a well-documented song for a first live run).
-const grep = flagValue("--grep")?.toLowerCase();
+const grep = flagValue('--grep')?.toLowerCase();
 
 const current = await fetchPublishedCharts(chartsUrl);
 if (!current) {
@@ -69,7 +68,7 @@ const priorDrops = await readDrops();
 const { store: validExisting, droppedKeys } = salvageCommentaryStore(existing);
 if (droppedKeys.length > 0) {
   console.warn(
-    `[draft] ${droppedKeys.length} invalid entr${droppedKeys.length === 1 ? "y" : "ies"} re-queued for drafting: ${droppedKeys.join(", ")}`,
+    `[draft] ${droppedKeys.length} invalid entr${droppedKeys.length === 1 ? 'y' : 'ies'} re-queued for drafting: ${droppedKeys.join(', ')}`,
   );
 }
 
@@ -92,7 +91,7 @@ const matches = (item: WorklistItem): boolean =>
 const selected = worklist.filter(matches).slice(0, limit);
 
 if (selected.length === 0) {
-  console.log("Nothing to draft (worklist empty or no --grep match).");
+  console.log('Nothing to draft (worklist empty or no --grep match).');
   process.exit(0);
 }
 
@@ -121,13 +120,13 @@ for (const item of selected) {
   console.log(`    [${draft.claim}] tag: ${draft.tag}`);
   console.log(`    lead: ${draft.lead}`);
   if (draft.detail) console.log(`    detail: ${draft.detail}`);
-  console.log(`    sources: ${draft.sources.join(", ")}`);
+  console.log(`    sources: ${draft.sources.join(', ')}`);
 }
 
 const draftedCount = Object.keys(candidates).length;
 if (draftedCount === 0) {
   console.error(
-    "No blurbs drafted. Nothing to route; the live store is unchanged.",
+    'No blurbs drafted. Nothing to route; the live store is unchanged.',
   );
   process.exit(1);
 }
@@ -141,7 +140,7 @@ const ground = (entry: Commentary) =>
 
 const { published, dropped } = await routeStore(candidates, { ground });
 for (const { key, reasons } of dropped) {
-  console.warn(`Dropped "${key}": ${reasons.join("; ")}`);
+  console.warn(`Dropped "${key}": ${reasons.join('; ')}`);
 }
 
 // Update the drop ledger before any early exit: this batch's drops must persist

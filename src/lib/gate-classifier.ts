@@ -1,7 +1,7 @@
-import type { Claim, Commentary } from "./chart-schema";
-import { lintCommentary } from "./no-lyric-lint";
-import { findSourceViolations } from "./source-authority";
-import { lintTierConsistency } from "./tier-consistency-lint";
+import type { Claim, Commentary } from './chart-schema';
+import { lintCommentary } from './no-lyric-lint';
+import { findSourceViolations } from './source-authority';
+import { lintTierConsistency } from './tier-consistency-lint';
 
 /**
  * The capstone of the commentary gate: it turns a blurb's claim tier and the
@@ -24,7 +24,7 @@ export interface GateChecks {
   grounding: boolean;
 }
 
-export type GateDecision = "publish" | "drop";
+export type GateDecision = 'publish' | 'drop';
 
 /**
  * The deterministic check outcomes, run from a blurb's own fields. A check
@@ -34,7 +34,7 @@ export type GateDecision = "publish" | "drop";
  */
 export function deterministicChecks(
   entry: Commentary,
-): Omit<GateChecks, "grounding"> {
+): Omit<GateChecks, 'grounding'> {
   return {
     noLyric: lintCommentary(entry).length === 0,
     sourceAuthority: findSourceViolations(entry).length === 0,
@@ -52,5 +52,5 @@ export function classifyGate(_tier: Claim, checks: GateChecks): GateDecision {
     checks.sourceAuthority &&
     checks.tierConsistency &&
     checks.grounding;
-  return allPass ? "publish" : "drop";
+  return allPass ? 'publish' : 'drop';
 }

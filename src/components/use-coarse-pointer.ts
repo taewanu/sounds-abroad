@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore } from 'react';
 
-const QUERY = "(pointer: coarse)";
+const QUERY = '(pointer: coarse)';
 
 function subscribe(onChange: () => void) {
   const query = window.matchMedia(QUERY);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
+  query.addEventListener('change', onChange);
+  return () => query.removeEventListener('change', onChange);
 }
 
 function getSnapshot() {

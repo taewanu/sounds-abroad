@@ -1,29 +1,28 @@
-import { expect, test, vi } from "vitest";
+import { expect, test, vi } from 'vitest';
 
-import type { Commentary } from "../../src/lib/chart-schema";
-
-import { publishStore, type PublishStoreDeps } from "./publish-store";
+import type { Commentary } from '../../src/lib/chart-schema';
+import { publishStore, type PublishStoreDeps } from './publish-store';
 
 function card(lead: string): Commentary {
   return {
     lead,
-    tag: "new entry",
-    claim: "what-it-is",
-    sources: ["https://example.com/a", "https://example.org/b"],
-    generatedAt: "2026-01-01T00:00:00.000Z",
+    tag: 'new entry',
+    claim: 'what-it-is',
+    sources: ['https://example.com/a', 'https://example.org/b'],
+    generatedAt: '2026-01-01T00:00:00.000Z',
   };
 }
 
 function writers(): PublishStoreDeps {
   return {
-    backupLiveStore: vi.fn(async () => "backup-url"),
-    uploadStore: vi.fn(async () => "store-url"),
+    backupLiveStore: vi.fn(async () => 'backup-url'),
+    uploadStore: vi.fn(async () => 'store-url'),
   };
 }
 
-test("a publish keeps the live cards and adds the survivors", async () => {
-  const live = { existing: card("live") };
-  const survivors = { added: card("new") };
+test('a publish keeps the live cards and adds the survivors', async () => {
+  const live = { existing: card('live') };
+  const survivors = { added: card('new') };
   const deps = writers();
 
   const result = await publishStore(survivors, live, { replace: false }, deps);
@@ -34,8 +33,8 @@ test("a publish keeps the live cards and adds the survivors", async () => {
 });
 
 test("a survivor with a live card's key replaces only that card", async () => {
-  const live = { kept: card("kept"), corrected: card("wrong") };
-  const correction = card("right");
+  const live = { kept: card('kept'), corrected: card('wrong') };
+  const correction = card('right');
   const deps = writers();
 
   await publishStore({ corrected: correction }, live, { replace: false }, deps);
@@ -46,13 +45,13 @@ test("a survivor with a live card's key replaces only that card", async () => {
   });
 });
 
-test("replace makes the survivors the whole store", async () => {
-  const survivors = { only: card("only") };
+test('replace makes the survivors the whole store', async () => {
+  const survivors = { only: card('only') };
   const deps = writers();
 
   const result = await publishStore(
     survivors,
-    { removed: card("removed") },
+    { removed: card('removed') },
     { replace: true },
     deps,
   );
@@ -62,13 +61,13 @@ test("replace makes the survivors the whole store", async () => {
 });
 
 test.each([false, true])(
-  "the live store is backed up before it is overwritten (replace: %s)",
+  'the live store is backed up before it is overwritten (replace: %s)',
   async (replace) => {
     const deps = writers();
 
     const result = await publishStore(
-      { added: card("new") },
-      { existing: card("live") },
+      { added: card('new') },
+      { existing: card('live') },
       { replace },
       deps,
     );
@@ -80,11 +79,11 @@ test.each([false, true])(
   },
 );
 
-test("an empty live store has nothing to back up", async () => {
+test('an empty live store has nothing to back up', async () => {
   const deps = writers();
 
   const result = await publishStore(
-    { added: card("new") },
+    { added: card('new') },
     {},
     { replace: false },
     deps,
@@ -94,18 +93,18 @@ test("an empty live store has nothing to back up", async () => {
   expect(result.backupUrl).toBeNull();
 });
 
-test("a failed backup leaves the live store untouched", async () => {
+test('a failed backup leaves the live store untouched', async () => {
   const deps = writers();
-  vi.mocked(deps.backupLiveStore).mockRejectedValue(new Error("backup failed"));
+  vi.mocked(deps.backupLiveStore).mockRejectedValue(new Error('backup failed'));
 
   await expect(
     publishStore(
-      { added: card("new") },
-      { existing: card("live") },
+      { added: card('new') },
+      { existing: card('live') },
       { replace: false },
       deps,
     ),
-  ).rejects.toThrow("backup failed");
+  ).rejects.toThrow('backup failed');
 
   expect(deps.uploadStore).not.toHaveBeenCalled();
 });

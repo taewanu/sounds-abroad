@@ -1,22 +1,22 @@
-import type { ChartTrack } from "./chart-schema";
-import { sameTrack } from "./track-identity";
+import type { ChartTrack } from './chart-schema';
+import { sameTrack } from './track-identity';
 
 /**
  * Which question the songs chart answers. Neither mode is the real chart with
  * the other its filter; each is named for what it shows.
  */
-export type ChartMode = "most_played" | "only_here";
+export type ChartMode = 'most_played' | 'only_here';
 
 /** The mode a chart opens on. */
-export const DEFAULT_CHART_MODE: ChartMode = "most_played";
+export const DEFAULT_CHART_MODE: ChartMode = 'most_played';
 
 /** The modes in the order they are offered. */
-export const CHART_MODES: readonly ChartMode[] = ["most_played", "only_here"];
+export const CHART_MODES: readonly ChartMode[] = ['most_played', 'only_here'];
 
 /** What each mode is called wherever it is offered. */
 export const CHART_MODE_LABELS: Record<ChartMode, string> = {
-  most_played: "Most played",
-  only_here: "Only here",
+  most_played: 'Most played',
+  only_here: 'Only here',
 };
 
 /**
@@ -48,7 +48,7 @@ export function songsChartRows(
   tail: readonly ChartTrack[] | null,
 ): ChartTrack[] {
   const whole = tail === null ? [...eager] : [...eager, ...tail];
-  return mode === "only_here" ? onlyHere(whole) : whole;
+  return mode === 'only_here' ? onlyHere(whole) : whole;
 }
 
 /**

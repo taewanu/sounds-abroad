@@ -1,4 +1,4 @@
-export type AudioEventType = "ended" | "error" | "play" | "pause";
+export type AudioEventType = 'ended' | 'error' | 'play' | 'pause';
 
 /**
  * The audio output the store drives. A seam: the store stays pure and
@@ -25,10 +25,10 @@ export type AudioEngineFactory = () => AudioEngine;
  */
 function isVolumeLocked(element: HTMLMediaElement): boolean {
   try {
-    return element.matches(":volume-locked");
+    return element.matches(':volume-locked');
   } catch (error) {
     // A browser that cannot parse the selector has no volume lock to report.
-    if (error instanceof DOMException && error.name === "SyntaxError") {
+    if (error instanceof DOMException && error.name === 'SyntaxError') {
       return false;
     }
     throw error;

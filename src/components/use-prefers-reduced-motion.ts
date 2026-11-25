@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore } from 'react';
 
-const QUERY = "(prefers-reduced-motion: reduce)";
+const QUERY = '(prefers-reduced-motion: reduce)';
 
 function subscribe(onChange: () => void) {
   const query = window.matchMedia(QUERY);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
+  query.addEventListener('change', onChange);
+  return () => query.removeEventListener('change', onChange);
 }
 
 // Reads the setting at call time, so code that writes motion imperatively can

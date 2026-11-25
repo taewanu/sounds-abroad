@@ -1,8 +1,8 @@
-import { expect, test } from "vitest";
+import { expect, test } from 'vitest';
 
-import type { CountryRings } from "@/lib/country-outlines";
+import type { CountryRings } from '@/lib/country-outlines';
 
-import { fillCountryRings, type RingPathContext } from "./country-fill-path";
+import { fillCountryRings, type RingPathContext } from './country-fill-path';
 
 // One pixel per degree, so a point at [lon, lat] lands on (lon + 180, 90 - lat).
 const WIDTH = 360;
@@ -40,7 +40,7 @@ function recordSubpaths(rings: CountryRings): Point[][] {
   return subpaths;
 }
 
-test("fillCountryRings draws no segment wider than half the canvas", () => {
+test('fillCountryRings draws no segment wider than half the canvas', () => {
   const subpaths = recordSubpaths([startingWestOfAntimeridian]);
 
   const widths = subpaths.flatMap((points) =>
@@ -50,7 +50,7 @@ test("fillCountryRings draws no segment wider than half the canvas", () => {
   expect(Math.max(...widths)).toBeLessThanOrEqual(WIDTH / 2);
 });
 
-test("fillCountryRings draws a ring that crosses the antimeridian inside both canvas edges, whichever side it starts on", () => {
+test('fillCountryRings draws a ring that crosses the antimeridian inside both canvas edges, whichever side it starts on', () => {
   for (const ring of [startingWestOfAntimeridian, startingEastOfAntimeridian]) {
     const subpaths = recordSubpaths([ring]);
 

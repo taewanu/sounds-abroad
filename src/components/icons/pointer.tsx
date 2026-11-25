@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import type { SVGProps } from 'react';
 
 // Vendored from Lucide (`pointer`, MIT) — a hand with an extended index finger,
 // the universal "tap / drag here" gesture cue. The index fingertip sits near the

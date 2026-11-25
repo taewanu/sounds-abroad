@@ -1,4 +1,4 @@
-import { vi } from "vitest";
+import { vi } from 'vitest';
 
 /**
  * A fetch whose body sends one chunk every `gapMs` and, like a real body,
@@ -13,8 +13,8 @@ export function streamingFetch(
   return vi.fn((_route: string, init: RequestInit) => {
     const body = new ReadableStream<Uint8Array>({
       start(controller) {
-        init.signal?.addEventListener("abort", () =>
-          controller.error(new DOMException("aborted", "AbortError")),
+        init.signal?.addEventListener('abort', () =>
+          controller.error(new DOMException('aborted', 'AbortError')),
         );
         chunks.forEach((text, i) =>
           setTimeout(

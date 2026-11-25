@@ -1,7 +1,7 @@
-import { lookup } from "node:dns";
-import { isIP } from "node:net";
+import { lookup } from 'node:dns';
+import { isIP } from 'node:net';
 
-import { Agent, fetch as undiciFetch } from "undici";
+import { Agent, fetch as undiciFetch } from 'undici';
 
 /**
  * The shared guard for every outbound fetch that follows a target chosen
@@ -11,7 +11,7 @@ import { Agent, fetch as undiciFetch } from "undici";
  * so the answer that passes the check is the answer that gets dialed.
  */
 
-export type RefusedTargetReason = "scheme" | "host" | "address" | "redirect";
+export type RefusedTargetReason = 'scheme' | 'host' | 'address' | 'redirect';
 
 export class RefusedTargetError extends Error {
   constructor(
@@ -19,7 +19,7 @@ export class RefusedTargetError extends Error {
     message: string,
   ) {
     super(message);
-    this.name = "RefusedTargetError";
+    this.name = 'RefusedTargetError';
   }
 }
 
@@ -41,29 +41,29 @@ export function assertAllowedTarget(
   try {
     parsed = new URL(url);
   } catch {
-    throw new RefusedTargetError("scheme", `not a URL: ${url}`);
+    throw new RefusedTargetError('scheme', `not a URL: ${url}`);
   }
 
-  if (parsed.protocol !== "https:") {
+  if (parsed.protocol !== 'https:') {
     throw new RefusedTargetError(
-      "scheme",
+      'scheme',
       `refused non-https scheme ${parsed.protocol} in ${url}`,
     );
   }
 
   if (options.expectedHost && !options.expectedHost.test(parsed.hostname)) {
     throw new RefusedTargetError(
-      "host",
+      'host',
       `refused unexpected host ${parsed.hostname}`,
     );
   }
 
   // A literal IP in the URL never goes through DNS, so the connect-time check
   // is not what catches it; refuse it here. Brackets wrap a literal IPv6 host.
-  const bareHost = parsed.hostname.replace(/^\[|\]$/g, "");
+  const bareHost = parsed.hostname.replace(/^\[|\]$/g, '');
   if (isIP(bareHost) !== 0 && isForbiddenAddress(bareHost)) {
     throw new RefusedTargetError(
-      "address",
+      'address',
       `refused forbidden literal address ${bareHost}`,
     );
   }
@@ -84,7 +84,7 @@ function unmapIpv4(address: string): string {
 
   const high = Number.parseInt(hex[1], 16);
   const low = Number.parseInt(hex[2], 16);
-  return [high >> 8, high & 0xff, low >> 8, low & 0xff].join(".");
+  return [high >> 8, high & 0xff, low >> 8, low & 0xff].join('.');
 }
 
 /**
@@ -95,24 +95,24 @@ export function isForbiddenAddress(address: string): boolean {
   const ip = unmapIpv4(address.trim().toLowerCase());
 
   if (isIP(ip) === 4) {
-    const [first, second] = ip.split(".").map(Number);
+    const [first, second] = ip.split('.').map(Number);
     if (first === 0 || first === 10 || first === 127) return true;
     if (first === 169 && second === 254) return true;
     if (first === 172 && second >= 16 && second <= 31) return true;
     return first === 192 && second === 168;
   }
 
-  if (ip === "::" || ip === "::1") return true;
+  if (ip === '::' || ip === '::1') return true;
   // fe80::/10 spans fe80-febf; fc00::/7 spans fc00-fdff.
   if (/^fe[89ab]/.test(ip)) return true;
-  if (ip.startsWith("fc") || ip.startsWith("fd")) return true;
+  if (ip.startsWith('fc') || ip.startsWith('fd')) return true;
 
   // Two prefixes that wrap an IPv4 address rather than being one: ::/96, the
   // deprecated IPv4-compatible form, and 64:ff9b::/96, the NAT64 translation
   // prefix. Whether either reaches the wrapped address depends on the network
   // rather than on this code, and neither has any business in a citation or a
   // storefront link, so both are refused without inspecting what they wrap.
-  return ip.startsWith("::") || ip.startsWith("64:ff9b:");
+  return ip.startsWith('::') || ip.startsWith('64:ff9b:');
 }
 
 /**
@@ -135,7 +135,7 @@ const guardingAgent = new Agent({
         if (forbidden) {
           callback(
             new RefusedTargetError(
-              "address",
+              'address',
               `${hostname} resolves to forbidden address ${forbidden.address}`,
             ),
             [],
@@ -179,7 +179,7 @@ export async function guardedFetch(
 
   let res: Response;
   try {
-    res = await doFetch(url, { redirect: "manual" });
+    res = await doFetch(url, { redirect: 'manual' });
   } catch (err) {
     // A connect-time refusal surfaces as undici's generic "fetch failed" with
     // the real error in its cause; unwrap it so callers classify it as a
@@ -190,7 +190,7 @@ export async function guardedFetch(
   }
   if (res.status >= 300 && res.status < 400) {
     throw new RefusedTargetError(
-      "redirect",
+      'redirect',
       `refused redirect (${res.status}) from ${url}`,
     );
   }

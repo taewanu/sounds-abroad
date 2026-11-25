@@ -1,8 +1,8 @@
-import { useMemo } from "react";
-import { AdditiveBlending } from "three";
+import { useMemo } from 'react';
+import { AdditiveBlending } from 'three';
 
-import { COUNTRIES } from "@/lib/countries";
-import { latLonToVec3 } from "@/lib/lat-lon-to-vec3";
+import { COUNTRIES } from '@/lib/countries';
+import { latLonToVec3 } from '@/lib/lat-lon-to-vec3';
 
 const PIN_ELEVATION = 1.015;
 const PIN_RADIUS = 0.012;
@@ -11,9 +11,9 @@ const PIN_SCALE_HOVER = 1.5;
 const GLOW_RADIUS = 0.04;
 const HOVER_HALO_RADIUS = PIN_RADIUS * 1.4;
 const HIT_RADIUS = 0.07;
-const PIN_COLOR = "#B8B5AE";
-const PIN_COLOR_SELECTED = "#FF6B47";
-const PIN_COLOR_HOVER = "#FF8866";
+const PIN_COLOR = '#B8B5AE';
+const PIN_COLOR_SELECTED = '#FF6B47';
+const PIN_COLOR_HOVER = '#FF8866';
 
 interface CountryPinsProps {
   selectedCode: string | null;
@@ -58,13 +58,13 @@ export function CountryPins({
                 onSelect(country.code);
               }}
               onPointerEnter={(e) => {
-                if (e.pointerType === "touch") return;
+                if (e.pointerType === 'touch') return;
                 if (isSelected) return;
                 e.stopPropagation();
                 onHoverChange(country.code);
               }}
               onPointerLeave={(e) => {
-                if (e.pointerType === "touch") return;
+                if (e.pointerType === 'touch') return;
                 if (hoveredCode !== country.code) return;
                 onHoverChange(null);
               }}

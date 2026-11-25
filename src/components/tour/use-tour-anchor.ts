@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 // The screen box of the beat's target, plus its corner radius so the spotlight
 // glow matches whatever it frames (a 32px sheet, a 14px track row).
@@ -46,10 +46,10 @@ export function useTourAnchor(
 
     const observer = new ResizeObserver(measure);
     observer.observe(el);
-    window.addEventListener("resize", measure);
+    window.addEventListener('resize', measure);
     // Capture phase so a scroll inside any ancestor (the sheet body) is caught,
     // not only scrolls on window; passive since we never preventDefault.
-    window.addEventListener("scroll", measure, {
+    window.addEventListener('scroll', measure, {
       capture: true,
       passive: true,
     });
@@ -57,18 +57,18 @@ export function useTourAnchor(
     // both need their own trigger: a finger drag writes the transform on every
     // pointermove, and a release settles it via a transform transition. Track
     // both so the spotlight follows the sheet live and lands with it.
-    window.addEventListener("pointermove", measure, {
+    window.addEventListener('pointermove', measure, {
       capture: true,
       passive: true,
     });
-    window.addEventListener("transitionend", measure, true);
+    window.addEventListener('transitionend', measure, true);
 
     return () => {
       observer.disconnect();
-      window.removeEventListener("resize", measure);
-      window.removeEventListener("scroll", measure, { capture: true });
-      window.removeEventListener("pointermove", measure, { capture: true });
-      window.removeEventListener("transitionend", measure, true);
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('scroll', measure, { capture: true });
+      window.removeEventListener('pointermove', measure, { capture: true });
+      window.removeEventListener('transitionend', measure, true);
     };
   }, [selector, watch]);
 

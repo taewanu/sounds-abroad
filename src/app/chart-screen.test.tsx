@@ -1,37 +1,37 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { readRecord } from "@/components/globe/edge-hint-record";
-import { writeRecord as writeTourRecord } from "@/components/tour/tour-record-store";
+import { readRecord } from '@/components/globe/edge-hint-record';
+import { writeRecord as writeTourRecord } from '@/components/tour/tour-record-store';
 import {
   CHARTS,
   CODE_BR,
   CODE_US,
   COUNTRY_BR,
   COUNTRY_US,
-} from "@/lib/__fixtures__";
-import type { AudioEngine } from "@/lib/audio-engine";
-import { SONGS_CHART } from "@/lib/chart-ref";
+} from '@/lib/__fixtures__';
+import type { AudioEngine } from '@/lib/audio-engine';
+import { SONGS_CHART } from '@/lib/chart-ref';
 import {
   emptyCountry,
   type ChartFile,
   type Country,
   type Track,
-} from "@/lib/chart-schema";
-import { chartPath } from "@/lib/chart-url";
-import { COUNTRIES } from "@/lib/countries";
-import { MAX_ROLL_ATTEMPTS } from "@/lib/end-of-chart-roll";
-import { globeChartStore } from "@/lib/globe-chart-store";
-import { selectGem } from "@/lib/select-gem";
+} from '@/lib/chart-schema';
+import { chartPath } from '@/lib/chart-url';
+import { COUNTRIES } from '@/lib/countries';
+import { MAX_ROLL_ATTEMPTS } from '@/lib/end-of-chart-roll';
+import { globeChartStore } from '@/lib/globe-chart-store';
+import { selectGem } from '@/lib/select-gem';
 
 const mockSearchParams = vi.hoisted(() => ({
   value: new URLSearchParams(),
 }));
 const mockPathname = vi.hoisted(() => ({
-  value: "/",
+  value: '/',
 }));
 
-vi.mock("next/navigation", () => ({
+vi.mock('next/navigation', () => ({
   usePathname: () => mockPathname.value,
   useSearchParams: () => mockSearchParams.value,
 }));
@@ -39,13 +39,13 @@ vi.mock("next/navigation", () => ({
 // Every test starts from a bare home arrival; a test that wants a country in
 // the URL sets the path (canonical) or a ?cc= query (legacy) itself.
 beforeEach(() => {
-  mockPathname.value = "/";
+  mockPathname.value = '/';
   mockSearchParams.value = new URLSearchParams();
   // Playback reaching the end of the eager rows reads deeper; by default every
   // chart ends where the payload does. A test that reads anything stubs its own.
   vi.stubGlobal(
-    "fetch",
-    vi.fn(async () => new Response("", { status: 404 })),
+    'fetch',
+    vi.fn(async () => new Response('', { status: 404 })),
   );
 });
 
@@ -55,9 +55,9 @@ afterEach(() => {
 
 // The landing country is rolled client-side after mount; pin the roll so each
 // test controls where the screen lands when no ?cc= is present.
-const landingPick = vi.hoisted(() => ({ value: "" }));
+const landingPick = vi.hoisted(() => ({ value: '' }));
 
-vi.mock("@/lib/landing-code", () => ({
+vi.mock('@/lib/landing-code', () => ({
   pickLandingCountry: () => landingPick.value,
 }));
 
@@ -70,7 +70,7 @@ const audioEngine = vi.hoisted(() => {
       listeners = {};
     },
     create(): AudioEngine {
-      let src = "";
+      let src = '';
       return {
         get src() {
           return src;
@@ -95,11 +95,11 @@ const audioEngine = vi.hoisted(() => {
   };
 });
 
-vi.mock("@/lib/audio-engine", () => ({
+vi.mock('@/lib/audio-engine', () => ({
   createBrowserAudioEngine: () => audioEngine.create(),
 }));
 
-import { ChartScreen } from "./chart-screen";
+import { ChartScreen } from './chart-screen';
 
 // Plumbing only: pin the landing roll, then render without a ?cc= dependency.
 function renderChartScreen(charts: ChartFile, landing: string) {
@@ -109,70 +109,70 @@ function renderChartScreen(charts: ChartFile, landing: string) {
 
 // A chart whose middle track has no preview, so the correct next track from #1
 // is #3. Any "next" that walks a bare index would land on the unplayable #2.
-const ADJ_CODE = "zz";
+const ADJ_CODE = 'zz';
 // A second country whose head and tail share one preview asset (distinct songs,
 // distinct Apple ids). Adjacency must locate the current track by identity: a
 // previewUrl-keyed walk would find the head's index for the tail and step from
 // the wrong row.
-const SHARED_CODE = "zx";
-const SHARED_PREVIEW = "https://example.com/shared.m4a";
+const SHARED_CODE = 'zx';
+const SHARED_PREVIEW = 'https://example.com/shared.m4a';
 const ADJACENCY_CHARTS: ChartFile = {
-  lastUpdated: "2026-04-25T03:00:00Z",
+  lastUpdated: '2026-04-25T03:00:00Z',
   countries: {
     [ADJ_CODE]: {
-      name: "Chart under test",
+      name: 'Chart under test',
       valid: true,
       tracks: [
         {
           rank: 1,
-          name: "Playable head",
-          artist: "Head artist",
-          previewUrl: "https://audio-ssl.itunes.apple.com/head.m4a",
-          artworkUrl: "https://is1-ssl.mzstatic.com/head.jpg",
-          appleUrl: "https://music.apple.com/x/head",
-          spotifyUrl: "https://open.spotify.com/x/head",
+          name: 'Playable head',
+          artist: 'Head artist',
+          previewUrl: 'https://audio-ssl.itunes.apple.com/head.m4a',
+          artworkUrl: 'https://is1-ssl.mzstatic.com/head.jpg',
+          appleUrl: 'https://music.apple.com/x/head',
+          spotifyUrl: 'https://open.spotify.com/x/head',
         },
         {
           rank: 2,
-          name: "Unplayable gap",
-          artist: "Gap artist",
+          name: 'Unplayable gap',
+          artist: 'Gap artist',
           previewUrl: null,
-          artworkUrl: "https://is1-ssl.mzstatic.com/gap.jpg",
-          appleUrl: "https://music.apple.com/x/gap",
-          spotifyUrl: "https://open.spotify.com/x/gap",
+          artworkUrl: 'https://is1-ssl.mzstatic.com/gap.jpg',
+          appleUrl: 'https://music.apple.com/x/gap',
+          spotifyUrl: 'https://open.spotify.com/x/gap',
         },
         {
           rank: 3,
-          name: "Playable tail",
-          artist: "Tail artist",
-          previewUrl: "https://audio-ssl.itunes.apple.com/tail.m4a",
-          artworkUrl: "https://is1-ssl.mzstatic.com/tail.jpg",
-          appleUrl: "https://music.apple.com/x/tail",
-          spotifyUrl: "https://open.spotify.com/x/tail",
+          name: 'Playable tail',
+          artist: 'Tail artist',
+          previewUrl: 'https://audio-ssl.itunes.apple.com/tail.m4a',
+          artworkUrl: 'https://is1-ssl.mzstatic.com/tail.jpg',
+          appleUrl: 'https://music.apple.com/x/tail',
+          spotifyUrl: 'https://open.spotify.com/x/tail',
         },
       ],
     },
     [SHARED_CODE]: {
-      name: "Shared-preview chart",
+      name: 'Shared-preview chart',
       valid: true,
       tracks: [
         {
           rank: 1,
-          name: "Shared head",
-          artist: "Shared head artist",
+          name: 'Shared head',
+          artist: 'Shared head artist',
           previewUrl: SHARED_PREVIEW,
-          artworkUrl: "https://is1-ssl.mzstatic.com/sh-head.jpg",
-          appleUrl: "https://music.apple.com/x/album?i=201",
-          spotifyUrl: "https://open.spotify.com/x/sh-head",
+          artworkUrl: 'https://is1-ssl.mzstatic.com/sh-head.jpg',
+          appleUrl: 'https://music.apple.com/x/album?i=201',
+          spotifyUrl: 'https://open.spotify.com/x/sh-head',
         },
         {
           rank: 2,
-          name: "Shared tail",
-          artist: "Shared tail artist",
+          name: 'Shared tail',
+          artist: 'Shared tail artist',
           previewUrl: SHARED_PREVIEW,
-          artworkUrl: "https://is1-ssl.mzstatic.com/sh-tail.jpg",
-          appleUrl: "https://music.apple.com/x/album?i=202",
-          spotifyUrl: "https://open.spotify.com/x/sh-tail",
+          artworkUrl: 'https://is1-ssl.mzstatic.com/sh-tail.jpg',
+          appleUrl: 'https://music.apple.com/x/album?i=202',
+          spotifyUrl: 'https://open.spotify.com/x/sh-tail',
         },
       ],
     },
@@ -200,43 +200,43 @@ function rollTrack(
     name,
     artist: `${name} artist`,
     previewUrl,
-    artworkUrl: "https://is1-ssl.mzstatic.com/roll.jpg",
-    appleUrl: "https://music.apple.com/x/roll",
-    spotifyUrl: "https://open.spotify.com/x/roll",
+    artworkUrl: 'https://is1-ssl.mzstatic.com/roll.jpg',
+    appleUrl: 'https://music.apple.com/x/roll',
+    spotifyUrl: 'https://open.spotify.com/x/roll',
   };
 }
 
 function rollCountry(tracks: Track[]): Country {
-  return { name: "Roll fixture chart", valid: true, tracks };
+  return { name: 'Roll fixture chart', valid: true, tracks };
 }
 
 // A leading preview-less track, so a roll must land on the first *playable*
 // track, not row one.
-const LANDING_START = "Landing start";
+const LANDING_START = 'Landing start';
 const ROLL_CHARTS: ChartFile = {
   ...ADJACENCY_CHARTS,
   countries: {
     ...ADJACENCY_CHARTS.countries,
     [DRAW_1]: rollCountry([
-      rollTrack(1, "Landing gap", null),
-      rollTrack(2, LANDING_START, "https://example.com/landing-2.m4a"),
-      rollTrack(3, "Landing follow-up", "https://example.com/landing-3.m4a"),
+      rollTrack(1, 'Landing gap', null),
+      rollTrack(2, LANDING_START, 'https://example.com/landing-2.m4a'),
+      rollTrack(3, 'Landing follow-up', 'https://example.com/landing-3.m4a'),
     ]),
   },
 };
 
 // The first draw has no playable track, so the roll must redraw past it.
-const REDRAW_START = "Redraw start";
+const REDRAW_START = 'Redraw start';
 const REDRAW_CHARTS: ChartFile = {
   ...ADJACENCY_CHARTS,
   countries: {
     ...ADJACENCY_CHARTS.countries,
     [DRAW_1]: rollCountry([
-      rollTrack(1, "Silent one", null),
-      rollTrack(2, "Silent two", null),
+      rollTrack(1, 'Silent one', null),
+      rollTrack(2, 'Silent two', null),
     ]),
     [DRAW_2]: rollCountry([
-      rollTrack(1, REDRAW_START, "https://example.com/redraw-1.m4a"),
+      rollTrack(1, REDRAW_START, 'https://example.com/redraw-1.m4a'),
     ]),
   },
 };
@@ -245,7 +245,7 @@ function playingRank(container: HTMLElement): string | null {
   return (
     container
       .querySelector('li[data-state="playing"]')
-      ?.getAttribute("data-rank") ?? null
+      ?.getAttribute('data-rank') ?? null
   );
 }
 
@@ -255,8 +255,8 @@ function advanceFromHead(advance: () => void): string | null {
   audioEngine.reset();
   const { container, unmount } = renderChartScreen(ADJACENCY_CHARTS, ADJ_CODE);
   fireEvent.click(
-    screen.getByRole("button", {
-      name: "Play preview of Playable head by Head artist",
+    screen.getByRole('button', {
+      name: 'Play preview of Playable head by Head artist',
     }),
   );
   advance();
@@ -265,13 +265,13 @@ function advanceFromHead(advance: () => void): string | null {
   return rank;
 }
 
-describe("ChartScreen", () => {
+describe('ChartScreen', () => {
   let replaceState: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     mockSearchParams.value = new URLSearchParams();
     replaceState = vi
-      .spyOn(window.history, "replaceState")
+      .spyOn(window.history, 'replaceState')
       .mockImplementation(() => {});
   });
 
@@ -279,17 +279,17 @@ describe("ChartScreen", () => {
     replaceState.mockRestore();
   });
 
-  test("Space with nothing loaded plays the first playable row of the chart on screen", () => {
+  test('Space with nothing loaded plays the first playable row of the chart on screen', () => {
     audioEngine.reset();
     const { container } = renderChartScreen(REDRAW_CHARTS, DRAW_2);
 
-    const handled = !fireEvent.keyDown(document.body, { code: "Space" });
+    const handled = !fireEvent.keyDown(document.body, { code: 'Space' });
 
     expect(handled).toBe(true);
-    expect(playingRank(container)).toBe("1");
+    expect(playingRank(container)).toBe('1');
   });
 
-  test("Space with nothing loaded skips rows without a preview", () => {
+  test('Space with nothing loaded skips rows without a preview', () => {
     audioEngine.reset();
     const charts: ChartFile = {
       ...ADJACENCY_CHARTS,
@@ -302,22 +302,22 @@ describe("ChartScreen", () => {
     };
     const { container } = renderChartScreen(charts, ADJ_CODE);
 
-    fireEvent.keyDown(document.body, { code: "Space" });
+    fireEvent.keyDown(document.body, { code: 'Space' });
 
-    expect(playingRank(container)).toBe("3");
+    expect(playingRank(container)).toBe('3');
   });
 
-  test("Space on a chart with no playable row leaves the key to the page", () => {
+  test('Space on a chart with no playable row leaves the key to the page', () => {
     audioEngine.reset();
     const { container } = renderChartScreen(REDRAW_CHARTS, DRAW_1);
 
-    const handled = !fireEvent.keyDown(document.body, { code: "Space" });
+    const handled = !fireEvent.keyDown(document.body, { code: 'Space' });
 
     expect(handled).toBe(false);
     expect(playingRank(container)).toBeNull();
   });
 
-  test("renders the chart for a country path arrival without touching the URL", () => {
+  test('renders the chart for a country path arrival without touching the URL', () => {
     mockPathname.value = `/c/${CODE_US}`;
 
     renderChartScreen(CHARTS, CODE_BR);
@@ -328,7 +328,7 @@ describe("ChartScreen", () => {
     expect(replaceState).not.toHaveBeenCalled();
   });
 
-  test("relabels a legacy ?cc= arrival to its path form", () => {
+  test('relabels a legacy ?cc= arrival to its path form', () => {
     mockSearchParams.value = new URLSearchParams(`cc=${CODE_US}`);
 
     renderChartScreen(CHARTS, CODE_BR);
@@ -336,10 +336,10 @@ describe("ChartScreen", () => {
     expect(
       screen.getAllByText(COUNTRY_US.tracks[0].name).length,
     ).toBeGreaterThan(0);
-    expect(replaceState).toHaveBeenCalledWith(null, "", `/c/${CODE_US}`);
+    expect(replaceState).toHaveBeenCalledWith(null, '', `/c/${CODE_US}`);
   });
 
-  test("an explicit ?cc= outranks the path segment", () => {
+  test('an explicit ?cc= outranks the path segment', () => {
     mockPathname.value = `/c/${CODE_BR}`;
     mockSearchParams.value = new URLSearchParams(`cc=${CODE_US}`);
 
@@ -348,43 +348,43 @@ describe("ChartScreen", () => {
     expect(
       screen.getAllByText(COUNTRY_US.tracks[0].name).length,
     ).toBeGreaterThan(0);
-    expect(replaceState).toHaveBeenCalledWith(null, "", `/c/${CODE_US}`);
+    expect(replaceState).toHaveBeenCalledWith(null, '', `/c/${CODE_US}`);
   });
 
-  test("rolls a landing country and writes it to the URL when the URL names no country", () => {
+  test('rolls a landing country and writes it to the URL when the URL names no country', () => {
     renderChartScreen(CHARTS, CODE_US);
 
     expect(
       screen.getAllByText(COUNTRY_US.tracks[0].name).length,
     ).toBeGreaterThan(0);
-    expect(replaceState).toHaveBeenCalledWith(null, "", `/c/${CODE_US}`);
+    expect(replaceState).toHaveBeenCalledWith(null, '', `/c/${CODE_US}`);
   });
 
-  test("rolls a landing country for an invalid ?cc=", () => {
-    mockSearchParams.value = new URLSearchParams("cc=xx");
-
-    renderChartScreen(CHARTS, CODE_US);
-
-    expect(
-      screen.getAllByText(COUNTRY_US.tracks[0].name).length,
-    ).toBeGreaterThan(0);
-    expect(replaceState).toHaveBeenCalledWith(null, "", `/c/${CODE_US}`);
-  });
-
-  test("rolls a landing country for an invalid path code", () => {
-    mockPathname.value = "/c/xx";
+  test('rolls a landing country for an invalid ?cc=', () => {
+    mockSearchParams.value = new URLSearchParams('cc=xx');
 
     renderChartScreen(CHARTS, CODE_US);
 
     expect(
       screen.getAllByText(COUNTRY_US.tracks[0].name).length,
     ).toBeGreaterThan(0);
-    expect(replaceState).toHaveBeenCalledWith(null, "", `/c/${CODE_US}`);
+    expect(replaceState).toHaveBeenCalledWith(null, '', `/c/${CODE_US}`);
   });
 
-  test("stays on a country whose chart is an empty entry", () => {
+  test('rolls a landing country for an invalid path code', () => {
+    mockPathname.value = '/c/xx';
+
+    renderChartScreen(CHARTS, CODE_US);
+
+    expect(
+      screen.getAllByText(COUNTRY_US.tracks[0].name).length,
+    ).toBeGreaterThan(0);
+    expect(replaceState).toHaveBeenCalledWith(null, '', `/c/${CODE_US}`);
+  });
+
+  test('stays on a country whose chart is an empty entry', () => {
     const uncharted = COUNTRIES.find((c) => !(c.code in CHARTS.countries));
-    if (!uncharted) throw new Error("the fixture charts every listed country");
+    if (!uncharted) throw new Error('the fixture charts every listed country');
     mockPathname.value = `/c/${uncharted.code}`;
 
     renderChartScreen(
@@ -402,7 +402,7 @@ describe("ChartScreen", () => {
     expect(replaceState).not.toHaveBeenCalled();
   });
 
-  test("canonicalizes an uppercase ?cc= in the URL", () => {
+  test('canonicalizes an uppercase ?cc= in the URL', () => {
     mockSearchParams.value = new URLSearchParams(`cc=${CODE_US.toUpperCase()}`);
 
     renderChartScreen(CHARTS, CODE_BR);
@@ -410,11 +410,11 @@ describe("ChartScreen", () => {
     expect(
       screen.getAllByText(COUNTRY_US.tracks[0].name).length,
     ).toBeGreaterThan(0);
-    expect(replaceState).toHaveBeenCalledWith(null, "", `/c/${CODE_US}`);
+    expect(replaceState).toHaveBeenCalledWith(null, '', `/c/${CODE_US}`);
   });
 });
 
-describe("ChartScreen globe coupling", () => {
+describe('ChartScreen globe coupling', () => {
   beforeEach(() => {
     mockPathname.value = `/c/${CODE_US}`;
     audioEngine.reset();
@@ -424,14 +424,14 @@ describe("ChartScreen globe coupling", () => {
       selectedCountry: null,
       shuffleLanded: null,
     });
-    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+    vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  test("publishes the resolved URL country to the globe", () => {
+  test('publishes the resolved URL country to the globe', () => {
     mockPathname.value = `/c/${CODE_US}`;
 
     renderChartScreen(CHARTS, CODE_BR);
@@ -439,13 +439,13 @@ describe("ChartScreen globe coupling", () => {
     expect(globeChartStore.getState().selectedCountry).toBe(CODE_US);
   });
 
-  test("publishes the countries whose entries have tracks to the globe", () => {
+  test('publishes the countries whose entries have tracks to the globe', () => {
     renderChartScreen(
       {
         ...CHARTS,
         countries: {
           ...CHARTS.countries,
-          zz: emptyCountry("Entry without tracks"),
+          zz: emptyCountry('Entry without tracks'),
         },
       },
       CODE_US,
@@ -456,53 +456,53 @@ describe("ChartScreen globe coupling", () => {
     );
   });
 
-  test("publishes the rolled landing country to the globe when the URL names none", () => {
-    mockPathname.value = "/";
+  test('publishes the rolled landing country to the globe when the URL names none', () => {
+    mockPathname.value = '/';
 
     renderChartScreen(CHARTS, CODE_BR);
 
     expect(globeChartStore.getState().selectedCountry).toBe(CODE_BR);
   });
 
-  test("publishes read mode to the globe at full and clears it back at peek", () => {
+  test('publishes read mode to the globe at full and clears it back at peek', () => {
     renderChartScreen(CHARTS, CODE_BR);
 
     expect(globeChartStore.getState().readMode).toBe(false);
 
-    fireEvent.click(screen.getByRole("button", { name: "Expand chart" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Expand chart' }));
     expect(globeChartStore.getState().readMode).toBe(true);
 
-    fireEvent.click(screen.getByRole("button", { name: "Collapse chart" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse chart' }));
     expect(globeChartStore.getState().readMode).toBe(false);
   });
 
-  test("a settle raises a dismissed sheet back to peek", () => {
+  test('a settle raises a dismissed sheet back to peek', () => {
     renderChartScreen(CHARTS, CODE_BR);
-    const sheet = screen.getByTestId("chart-sheet");
+    const sheet = screen.getByTestId('chart-sheet');
 
-    fireEvent.keyDown(document, { key: "Escape" });
-    expect(sheet.dataset.snap).toBe("closed");
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(sheet.dataset.snap).toBe('closed');
 
     act(() => {
       globeChartStore.getState().signalSettle();
     });
-    expect(sheet.dataset.snap).toBe("peek");
+    expect(sheet.dataset.snap).toBe('peek');
   });
 
-  test("a settle leaves an open sheet where it is", () => {
+  test('a settle leaves an open sheet where it is', () => {
     renderChartScreen(CHARTS, CODE_BR);
-    const sheet = screen.getByTestId("chart-sheet");
+    const sheet = screen.getByTestId('chart-sheet');
 
-    expect(sheet.dataset.snap).toBe("peek");
+    expect(sheet.dataset.snap).toBe('peek');
     act(() => {
       globeChartStore.getState().signalSettle();
     });
-    expect(sheet.dataset.snap).toBe("peek");
+    expect(sheet.dataset.snap).toBe('peek');
   });
 
-  test("releases read mode when the chart unmounts", () => {
+  test('releases read mode when the chart unmounts', () => {
     const { unmount } = renderChartScreen(CHARTS, CODE_BR);
-    fireEvent.click(screen.getByRole("button", { name: "Expand chart" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Expand chart' }));
     expect(globeChartStore.getState().readMode).toBe(true);
 
     unmount();
@@ -523,7 +523,7 @@ describe("ChartScreen globe coupling", () => {
     expect(readRecord().used).toBe(true);
   });
 
-  test("a settle never starts audio on its own", () => {
+  test('a settle never starts audio on its own', () => {
     renderChartScreen(CHARTS, CODE_BR);
 
     act(() => {
@@ -532,17 +532,17 @@ describe("ChartScreen globe coupling", () => {
 
     // The mini player only mounts once a track plays; its absence after a settle
     // shows the landing selected a country without starting audio.
-    expect(screen.queryByRole("button", { name: "Reopen chart" })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Reopen chart' })).toBeNull();
   });
 
-  test("a country selection that is not a shuffle draw stays silent", () => {
+  test('a country selection that is not a shuffle draw stays silent', () => {
     renderChartScreen(CHARTS, CODE_US);
 
     act(() => {
       globeChartStore.getState().setSelectedCountry(CODE_BR);
     });
 
-    expect(screen.queryByRole("button", { name: "Reopen chart" })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Reopen chart' })).toBeNull();
   });
 
   test("a shuffle landing plays the drawn country's Local Gem", () => {
@@ -555,11 +555,11 @@ describe("ChartScreen globe coupling", () => {
 
     // The gem of the country drawn, not of the one on screen: the shuffle plays
     // where it lands, ahead of the URL that the settle writes afterwards.
-    expect(screen.getByRole("button", { name: "Reopen chart" })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Reopen chart' })).toBeTruthy();
     expect(screen.getAllByText(gem.name).length).toBeGreaterThan(0);
   });
 
-  test("drawing back to the country still sounding leaves it playing", () => {
+  test('drawing back to the country still sounding leaves it playing', () => {
     const { container } = renderChartScreen(CHARTS, CODE_US);
 
     act(() => {
@@ -575,11 +575,11 @@ describe("ChartScreen globe coupling", () => {
     // The draw excludes the country on screen, not the one being heard, so it
     // can land back on a track still sounding. A draw asks for music, never for
     // silence, so that leaves it alone rather than toggling it off.
-    expect(container.querySelector("[data-paused]")).toBeNull();
+    expect(container.querySelector('[data-paused]')).toBeNull();
   });
 });
 
-describe("ChartScreen commentary badge", () => {
+describe('ChartScreen commentary badge', () => {
   const commentaryTrack = COUNTRY_US.tracks.find((t) => t.commentary)!;
   const plainTrack = COUNTRY_US.tracks.find(
     (t) => !t.commentary && t.previewUrl,
@@ -588,45 +588,45 @@ describe("ChartScreen commentary badge", () => {
   beforeEach(() => {
     mockPathname.value = `/c/${CODE_US}`;
     audioEngine.reset();
-    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+    vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  test("no badge renders while the playing track has no commentary", () => {
+  test('no badge renders while the playing track has no commentary', () => {
     renderChartScreen(CHARTS, CODE_US);
 
     fireEvent.click(
-      screen.getByRole("button", {
+      screen.getByRole('button', {
         name: `Play preview of ${plainTrack.name} by ${plainTrack.artist}`,
       }),
     );
 
     expect(
-      screen.queryByRole("button", { name: /why this track is trending/i }),
+      screen.queryByRole('button', { name: /why this track is trending/i }),
     ).toBeNull();
   });
 
   test("the badge reopens the sheet and expands the now-playing row's commentary card", () => {
     renderChartScreen(CHARTS, CODE_US);
-    const sheet = screen.getByTestId("chart-sheet");
+    const sheet = screen.getByTestId('chart-sheet');
     fireEvent.click(
-      screen.getByRole("button", {
+      screen.getByRole('button', {
         name: `Play preview of ${commentaryTrack.name} by ${commentaryTrack.artist}`,
       }),
     );
-    fireEvent.keyDown(window, { key: "Escape" });
-    expect(sheet.dataset.snap).toBe("closed");
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(sheet.dataset.snap).toBe('closed');
 
     fireEvent.click(
-      screen.getByRole("button", { name: /why this track is trending/i }),
+      screen.getByRole('button', { name: /why this track is trending/i }),
     );
 
-    expect(sheet.dataset.snap).toBe("peek");
+    expect(sheet.dataset.snap).toBe('peek');
     expect(
-      screen.getByRole("button", {
+      screen.getByRole('button', {
         expanded: true,
         name: (name) => name.includes(commentaryTrack.commentary!.lead),
       }),
@@ -634,12 +634,12 @@ describe("ChartScreen commentary badge", () => {
   });
 });
 
-describe("ChartScreen edge-skip cues", () => {
+describe('ChartScreen edge-skip cues', () => {
   const playable = COUNTRY_US.tracks.find((t) => t.previewUrl)!;
 
   function playFromTheChart() {
     fireEvent.click(
-      screen.getByRole("button", {
+      screen.getByRole('button', {
         name: `Play preview of ${playable.name} by ${playable.artist}`,
       }),
     );
@@ -651,29 +651,29 @@ describe("ChartScreen edge-skip cues", () => {
     audioEngine.reset();
     // The cues are touch-only; without a coarse pointer they'd stay hidden for
     // that reason instead of the one under test.
-    vi.spyOn(window, "matchMedia").mockImplementation(
+    vi.spyOn(window, 'matchMedia').mockImplementation(
       (query: string) =>
         ({
-          matches: query.includes("coarse"),
+          matches: query.includes('coarse'),
           media: query,
           addEventListener: vi.fn(),
           removeEventListener: vi.fn(),
         }) as unknown as MediaQueryList,
     );
-    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+    vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  test("playing a track while the tour still has gestures to teach surfaces no cue", () => {
+  test('playing a track while the tour still has gestures to teach surfaces no cue', () => {
     renderChartScreen(CHARTS, CODE_US);
 
     playFromTheChart();
 
-    expect(screen.queryByTestId("edge-tap-badge")).toBeNull();
-    expect(screen.queryByTestId("edge-chevrons")).toBeNull();
+    expect(screen.queryByTestId('edge-tap-badge')).toBeNull();
+    expect(screen.queryByTestId('edge-chevrons')).toBeNull();
   });
 
   test("a track played mid-tour spends none of the hint's capped shows", () => {
@@ -684,79 +684,79 @@ describe("ChartScreen edge-skip cues", () => {
     expect(readRecord().shows).toBe(0);
   });
 
-  test("the cues surface once the tour has concluded", () => {
+  test('the cues surface once the tour has concluded', () => {
     writeTourRecord({ learned: [], shows: 0, dismissed: true });
 
     renderChartScreen(CHARTS, CODE_US);
     playFromTheChart();
 
-    expect(screen.getByTestId("edge-tap-badge")).toBeTruthy();
-    expect(screen.getByTestId("edge-chevrons")).toBeTruthy();
+    expect(screen.getByTestId('edge-tap-badge')).toBeTruthy();
+    expect(screen.getByTestId('edge-chevrons')).toBeTruthy();
   });
 });
 
-describe("ChartScreen directional cue", () => {
+describe('ChartScreen directional cue', () => {
   function cueDir(container: HTMLElement): string | null {
     return (
       container
-        .querySelector("[data-track-change]")
-        ?.getAttribute("data-track-change") ?? null
+        .querySelector('[data-track-change]')
+        ?.getAttribute('data-track-change') ?? null
     );
   }
 
   beforeEach(() => {
     mockPathname.value = `/c/${ADJ_CODE}`;
     audioEngine.reset();
-    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+    vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  test("starting playback carries no directional cue", () => {
+  test('starting playback carries no directional cue', () => {
     const { container } = renderChartScreen(ADJACENCY_CHARTS, ADJ_CODE);
 
     fireEvent.click(
-      screen.getByRole("button", {
-        name: "Play preview of Playable head by Head artist",
+      screen.getByRole('button', {
+        name: 'Play preview of Playable head by Head artist',
       }),
     );
 
     expect(cueDir(container)).toBeNull();
   });
 
-  test("the next button publishes the forward direction", () => {
+  test('the next button publishes the forward direction', () => {
     const { container } = renderChartScreen(ADJACENCY_CHARTS, ADJ_CODE);
     fireEvent.click(
-      screen.getByRole("button", {
-        name: "Play preview of Playable head by Head artist",
+      screen.getByRole('button', {
+        name: 'Play preview of Playable head by Head artist',
       }),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Next track" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next track' }));
 
-    expect(cueDir(container)).toBe("next");
+    expect(cueDir(container)).toBe('next');
   });
 
-  test("the prev button publishes the backward direction", () => {
+  test('the prev button publishes the backward direction', () => {
     const { container } = renderChartScreen(ADJACENCY_CHARTS, ADJ_CODE);
     fireEvent.click(
-      screen.getByRole("button", {
-        name: "Play preview of Playable tail by Tail artist",
+      screen.getByRole('button', {
+        name: 'Play preview of Playable tail by Tail artist',
       }),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Previous track" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Previous track' }));
 
-    expect(cueDir(container)).toBe("prev");
+    expect(cueDir(container)).toBe('prev');
   });
 
-  test("auto-advance publishes the forward direction through the same step", () => {
+  test('auto-advance publishes the forward direction through the same step', () => {
     const { container } = renderChartScreen(ADJACENCY_CHARTS, ADJ_CODE);
     fireEvent.click(
-      screen.getByRole("button", {
-        name: "Play preview of Playable head by Head artist",
+      screen.getByRole('button', {
+        name: 'Play preview of Playable head by Head artist',
       }),
     );
 
@@ -764,14 +764,14 @@ describe("ChartScreen directional cue", () => {
       audioEngine.end();
     });
 
-    expect(cueDir(container)).toBe("next");
+    expect(cueDir(container)).toBe('next');
   });
 
-  test("a globe skip-intent publishes its direction through the same step", () => {
+  test('a globe skip-intent publishes its direction through the same step', () => {
     const { container } = renderChartScreen(ADJACENCY_CHARTS, ADJ_CODE);
     fireEvent.click(
-      screen.getByRole("button", {
-        name: "Play preview of Playable head by Head artist",
+      screen.getByRole('button', {
+        name: 'Play preview of Playable head by Head artist',
       }),
     );
 
@@ -779,20 +779,20 @@ describe("ChartScreen directional cue", () => {
       globeChartStore.getState().signalSkip(1);
     });
 
-    expect(cueDir(container)).toBe("next");
+    expect(cueDir(container)).toBe('next');
   });
 
-  test("a direct row tap changes the track without a directional cue", () => {
+  test('a direct row tap changes the track without a directional cue', () => {
     const { container } = renderChartScreen(ADJACENCY_CHARTS, ADJ_CODE);
     fireEvent.click(
-      screen.getByRole("button", {
-        name: "Play preview of Playable head by Head artist",
+      screen.getByRole('button', {
+        name: 'Play preview of Playable head by Head artist',
       }),
     );
 
     fireEvent.click(
-      screen.getByRole("button", {
-        name: "Play preview of Playable tail by Tail artist",
+      screen.getByRole('button', {
+        name: 'Play preview of Playable tail by Tail artist',
       }),
     );
 
@@ -800,59 +800,59 @@ describe("ChartScreen directional cue", () => {
   });
 });
 
-describe("ChartScreen auto-advance", () => {
+describe('ChartScreen auto-advance', () => {
   beforeEach(() => {
     mockPathname.value = `/c/${ADJ_CODE}`;
     audioEngine.reset();
-    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+    vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  test("a track ending advances to the next playable track, skipping one with no preview", () => {
+  test('a track ending advances to the next playable track, skipping one with no preview', () => {
     const { container } = renderChartScreen(ADJACENCY_CHARTS, ADJ_CODE);
     fireEvent.click(
-      screen.getByRole("button", {
-        name: "Play preview of Playable head by Head artist",
+      screen.getByRole('button', {
+        name: 'Play preview of Playable head by Head artist',
       }),
     );
-    expect(playingRank(container)).toBe("1");
+    expect(playingRank(container)).toBe('1');
 
     act(() => {
       audioEngine.end();
     });
 
-    expect(playingRank(container)).toBe("3");
+    expect(playingRank(container)).toBe('3');
   });
 
-  test("auto-advance lands on the track that pressing Next lands on", () => {
+  test('auto-advance lands on the track that pressing Next lands on', () => {
     const viaEnded = advanceFromHead(() => {
       act(() => {
         audioEngine.end();
       });
     });
     const viaNext = advanceFromHead(() => {
-      fireEvent.click(screen.getByRole("button", { name: "Next track" }));
+      fireEvent.click(screen.getByRole('button', { name: 'Next track' }));
     });
 
-    expect(viaEnded).toBe("3");
+    expect(viaEnded).toBe('3');
     expect(viaEnded).toBe(viaNext);
   });
 
-  test("auto-advance keys on identity when two rows share one preview asset", () => {
+  test('auto-advance keys on identity when two rows share one preview asset', () => {
     mockPathname.value = `/c/${SHARED_CODE}`;
     const { container } = renderChartScreen(ADJACENCY_CHARTS, SHARED_CODE);
     // Play the tail, whose preview asset also belongs to the head. A
     // previewUrl-keyed walk would resolve the current track to the head and
     // wrongly re-advance; identity resolves it to the tail, which has no next.
     fireEvent.click(
-      screen.getByRole("button", {
-        name: "Play preview of Shared tail by Shared tail artist",
+      screen.getByRole('button', {
+        name: 'Play preview of Shared tail by Shared tail artist',
       }),
     );
-    expect(playingRank(container)).toBe("2");
+    expect(playingRank(container)).toBe('2');
 
     act(() => {
       audioEngine.end();
@@ -861,14 +861,14 @@ describe("ChartScreen auto-advance", () => {
     expect(playingRank(container)).toBeNull();
   });
 
-  test("ending the last playable track falls silent instead of wrapping to the head", () => {
+  test('ending the last playable track falls silent instead of wrapping to the head', () => {
     const { container } = renderChartScreen(ADJACENCY_CHARTS, ADJ_CODE);
     fireEvent.click(
-      screen.getByRole("button", {
-        name: "Play preview of Playable tail by Tail artist",
+      screen.getByRole('button', {
+        name: 'Play preview of Playable tail by Tail artist',
       }),
     );
-    expect(playingRank(container)).toBe("3");
+    expect(playingRank(container)).toBe('3');
 
     act(() => {
       audioEngine.end();
@@ -880,7 +880,7 @@ describe("ChartScreen auto-advance", () => {
   });
 });
 
-describe("ChartScreen end-of-chart roll", () => {
+describe('ChartScreen end-of-chart roll', () => {
   let replaceState: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
@@ -894,9 +894,9 @@ describe("ChartScreen end-of-chart roll", () => {
       visited: new Set(),
     });
     replaceState = vi
-      .spyOn(window.history, "replaceState")
+      .spyOn(window.history, 'replaceState')
       .mockImplementation(() => {});
-    vi.spyOn(Math, "random").mockReturnValue(0);
+    vi.spyOn(Math, 'random').mockReturnValue(0);
   });
 
   afterEach(() => {
@@ -916,11 +916,11 @@ describe("ChartScreen end-of-chart roll", () => {
   // Render the chart and start its last playable track, the seat every roll
   // begins from.
   async function playLastPlayable(charts: ChartFile) {
-    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     const rendered = renderChartScreen(charts, ADJ_CODE);
     fireEvent.click(
-      screen.getByRole("button", {
-        name: "Play preview of Playable tail by Tail artist",
+      screen.getByRole('button', {
+        name: 'Play preview of Playable tail by Tail artist',
       }),
     );
     await act(() => vi.runAllTimersAsync());
@@ -928,26 +928,26 @@ describe("ChartScreen end-of-chart roll", () => {
   }
 
   function flashIcon(container: HTMLElement): Element | null {
-    return container.querySelector(".skip-flash svg");
+    return container.querySelector('.skip-flash svg');
   }
 
-  test("ending the last playable track rolls into a drawn country and plays its first playable", async () => {
+  test('ending the last playable track rolls into a drawn country and plays its first playable', async () => {
     const { container } = await playLastPlayable(ROLL_CHARTS);
 
     await advance(() => audioEngine.end());
 
     expect(screen.getByText(LANDING_START)).toBeTruthy();
     expect(globeChartStore.getState().selectedCountry).toBe(DRAW_1);
-    expect(replaceState).toHaveBeenCalledWith(null, "", `/c/${DRAW_1}`);
+    expect(replaceState).toHaveBeenCalledWith(null, '', `/c/${DRAW_1}`);
     const icon = flashIcon(container);
     expect(icon).not.toBeNull();
-    expect(icon!.getAttribute("class") ?? "").not.toContain("-scale-x-100");
+    expect(icon!.getAttribute('class') ?? '').not.toContain('-scale-x-100');
   });
 
-  test("pressing next at the last playable rolls the same way the ended signal does", async () => {
+  test('pressing next at the last playable rolls the same way the ended signal does', async () => {
     await playLastPlayable(ROLL_CHARTS);
-    const next = screen.getByRole("button", {
-      name: "Next track",
+    const next = screen.getByRole('button', {
+      name: 'Next track',
     }) as HTMLButtonElement;
 
     expect(next.disabled).toBe(false);
@@ -957,12 +957,12 @@ describe("ChartScreen end-of-chart roll", () => {
     expect(globeChartStore.getState().selectedCountry).toBe(DRAW_1);
   });
 
-  test("a roll leaves a dismissed sheet closed, unlike a plain settle", async () => {
+  test('a roll leaves a dismissed sheet closed, unlike a plain settle', async () => {
     await playLastPlayable(ROLL_CHARTS);
-    const sheet = screen.getByTestId("chart-sheet");
+    const sheet = screen.getByTestId('chart-sheet');
 
-    fireEvent.keyDown(document, { key: "Escape" });
-    expect(sheet.dataset.snap).toBe("closed");
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(sheet.dataset.snap).toBe('closed');
 
     await advance(() => audioEngine.end());
     act(() => {
@@ -970,40 +970,40 @@ describe("ChartScreen end-of-chart roll", () => {
     });
 
     expect(screen.getByText(LANDING_START)).toBeTruthy();
-    expect(sheet.dataset.snap).toBe("closed");
+    expect(sheet.dataset.snap).toBe('closed');
   });
 
   test("the roll's resurface guard is one-shot: a later settle raises again", async () => {
     await playLastPlayable(ROLL_CHARTS);
-    const sheet = screen.getByTestId("chart-sheet");
-    fireEvent.keyDown(document, { key: "Escape" });
+    const sheet = screen.getByTestId('chart-sheet');
+    fireEvent.keyDown(document, { key: 'Escape' });
 
     await advance(() => audioEngine.end());
     act(() => {
       globeChartStore.getState().signalSettle();
     });
-    expect(sheet.dataset.snap).toBe("closed");
+    expect(sheet.dataset.snap).toBe('closed');
 
     act(() => {
       globeChartStore.getState().signalSettle();
     });
-    expect(sheet.dataset.snap).toBe("peek");
+    expect(sheet.dataset.snap).toBe('peek');
   });
 
-  test("an edge-tap skip intent at the last playable rolls with a single forward cue", async () => {
+  test('an edge-tap skip intent at the last playable rolls with a single forward cue', async () => {
     const { container } = await playLastPlayable(ROLL_CHARTS);
 
     await advance(() => globeChartStore.getState().signalSkip(1));
 
     expect(screen.getByText(LANDING_START)).toBeTruthy();
-    expect(container.querySelectorAll(".skip-flash")).toHaveLength(1);
+    expect(container.querySelectorAll('.skip-flash')).toHaveLength(1);
   });
 
-  test("an edge-tap skip intent mid-chart still advances and flashes", () => {
+  test('an edge-tap skip intent mid-chart still advances and flashes', () => {
     const { container } = renderChartScreen(ROLL_CHARTS, ADJ_CODE);
     fireEvent.click(
-      screen.getByRole("button", {
-        name: "Play preview of Playable head by Head artist",
+      screen.getByRole('button', {
+        name: 'Play preview of Playable head by Head artist',
       }),
     );
 
@@ -1011,11 +1011,11 @@ describe("ChartScreen end-of-chart roll", () => {
       globeChartStore.getState().signalSkip(1);
     });
 
-    expect(playingRank(container)).toBe("3");
-    expect(container.querySelectorAll(".skip-flash")).toHaveLength(1);
+    expect(playingRank(container)).toBe('3');
+    expect(container.querySelectorAll('.skip-flash')).toHaveLength(1);
   });
 
-  test("a drawn chart with no playable track is redrawn until one can play", async () => {
+  test('a drawn chart with no playable track is redrawn until one can play', async () => {
     await playLastPlayable(REDRAW_CHARTS);
 
     await advance(() => audioEngine.end());
@@ -1024,7 +1024,7 @@ describe("ChartScreen end-of-chart roll", () => {
     expect(globeChartStore.getState().selectedCountry).toBe(DRAW_2);
   });
 
-  test("a roll draws past entries without tracks instead of spending its redraws on them", async () => {
+  test('a roll draws past entries without tracks instead of spending its redraws on them', async () => {
     const withoutTracks = COUNTRIES.slice(0, MAX_ROLL_ATTEMPTS);
     const target = COUNTRIES[MAX_ROLL_ATTEMPTS].code;
     await playLastPlayable({
@@ -1035,7 +1035,7 @@ describe("ChartScreen end-of-chart roll", () => {
           withoutTracks.map((c) => [c.code, emptyCountry(c.name)]),
         ),
         [target]: rollCountry([
-          rollTrack(1, LANDING_START, "https://example.com/landing.m4a"),
+          rollTrack(1, LANDING_START, 'https://example.com/landing.m4a'),
         ]),
       },
     });
@@ -1046,7 +1046,7 @@ describe("ChartScreen end-of-chart roll", () => {
     expect(globeChartStore.getState().selectedCountry).toBe(target);
   });
 
-  test("when every redraw fails the chart dead-stops as before", async () => {
+  test('when every redraw fails the chart dead-stops as before', async () => {
     const { container } = await playLastPlayable(ADJACENCY_CHARTS);
 
     await advance(() => audioEngine.end());
@@ -1054,27 +1054,27 @@ describe("ChartScreen end-of-chart roll", () => {
     expect(playingRank(container)).toBeNull();
     expect(globeChartStore.getState().selectedCountry).toBe(ADJ_CODE);
     expect(replaceState).not.toHaveBeenCalled();
-    expect(container.querySelector(".skip-flash")).toBeNull();
+    expect(container.querySelector('.skip-flash')).toBeNull();
   });
 
   test("prev at the rolled-in first playable returns to the origin's last playable with a reverse cue", async () => {
     const { container } = await playLastPlayable(ROLL_CHARTS);
     await advance(() => audioEngine.end());
 
-    fireEvent.click(screen.getByRole("button", { name: "Previous track" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Previous track' }));
 
-    expect(playingRank(container)).toBe("3");
+    expect(playingRank(container)).toBe('3');
     expect(globeChartStore.getState().selectedCountry).toBe(ADJ_CODE);
-    expect(replaceState).toHaveBeenCalledWith(null, "", `/c/${ADJ_CODE}`);
-    expect(flashIcon(container)!.getAttribute("class") ?? "").toContain(
-      "-scale-x-100",
+    expect(replaceState).toHaveBeenCalledWith(null, '', `/c/${ADJ_CODE}`);
+    expect(flashIcon(container)!.getAttribute('class') ?? '').toContain(
+      '-scale-x-100',
     );
   });
 
-  test("rolling forward again after a back-roll performs a fresh draw", async () => {
+  test('rolling forward again after a back-roll performs a fresh draw', async () => {
     await playLastPlayable(ROLL_CHARTS);
     await advance(() => audioEngine.end());
-    fireEvent.click(screen.getByRole("button", { name: "Previous track" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Previous track' }));
 
     await advance(() => audioEngine.end());
 
@@ -1082,7 +1082,7 @@ describe("ChartScreen end-of-chart roll", () => {
     expect(globeChartStore.getState().selectedCountry).toBe(DRAW_1);
   });
 
-  test("a manual country selection discards the back-roll return path", async () => {
+  test('a manual country selection discards the back-roll return path', async () => {
     await playLastPlayable(ROLL_CHARTS);
     await advance(() => audioEngine.end());
 
@@ -1090,8 +1090,8 @@ describe("ChartScreen end-of-chart roll", () => {
       globeChartStore.getState().setSelectedCountry(DRAW_3);
     });
 
-    const prev = screen.getByRole("button", {
-      name: "Previous track",
+    const prev = screen.getByRole('button', {
+      name: 'Previous track',
     }) as HTMLButtonElement;
     expect(prev.disabled).toBe(true);
   });
@@ -1100,8 +1100,8 @@ describe("ChartScreen end-of-chart roll", () => {
 // One country carrying one playlist chart, for the blocks below that exercise
 // the rail, the URL, and the wait. The id is shared so a stubbed read matches
 // whichever block is running.
-const PL_ID = `pl.${"1".repeat(32)}`;
-const RAIL_CODE = "br";
+const PL_ID = `pl.${'1'.repeat(32)}`;
+const RAIL_CODE = 'br';
 
 function chartsWithPlaylist(): ChartFile {
   const base = CHARTS.countries[RAIL_CODE];
@@ -1114,9 +1114,9 @@ function chartsWithPlaylist(): ChartFile {
         playlists: [
           {
             id: PL_ID,
-            name: "A playlist chart",
+            name: 'A playlist chart',
             appleUrl: `https://music.apple.com/br/playlist/${PL_ID}`,
-            artworkUrl: "https://is1-ssl.mzstatic.com/p.jpg",
+            artworkUrl: 'https://is1-ssl.mzstatic.com/p.jpg',
             genres: [],
             trackCount: 1,
           },
@@ -1129,18 +1129,18 @@ function chartsWithPlaylist(): ChartFile {
 
 const PLAYLIST_TRACK = {
   rank: 1,
-  name: "Only on the playlist",
-  artist: "Playlist artist",
+  name: 'Only on the playlist',
+  artist: 'Playlist artist',
   previewUrl: null,
-  artworkUrl: "https://is1-ssl.mzstatic.com/t.jpg",
-  appleUrl: "https://music.apple.com/br/song/x?i=99",
+  artworkUrl: 'https://is1-ssl.mzstatic.com/t.jpg',
+  appleUrl: 'https://music.apple.com/br/song/x?i=99',
 };
 
 /** The published shape a stubbed read returns for that playlist. */
 function playlistPayload(): string {
   return JSON.stringify({
     id: PL_ID,
-    lastUpdated: "2026-07-21T00:00:00.000Z",
+    lastUpdated: '2026-07-21T00:00:00.000Z',
     tracks: [PLAYLIST_TRACK],
   });
 }
@@ -1148,16 +1148,16 @@ function playlistPayload(): string {
 function playlistResponse(): Response {
   return new Response(playlistPayload(), {
     status: 200,
-    headers: { "content-type": "application/json" },
+    headers: { 'content-type': 'application/json' },
   });
 }
 
-describe("ChartScreen chart rail", () => {
+describe('ChartScreen chart rail', () => {
   beforeEach(() => {
     mockPathname.value = `/c/${RAIL_CODE}`;
-    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+    vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
     vi.stubGlobal(
-      "fetch",
+      'fetch',
       vi.fn(async () => playlistResponse()),
     );
   });
@@ -1167,59 +1167,59 @@ describe("ChartScreen chart rail", () => {
     vi.restoreAllMocks();
   });
 
-  test("lists every chart the country carries without fetching any of them", () => {
+  test('lists every chart the country carries without fetching any of them', () => {
     renderChartScreen(chartsWithPlaylist(), RAIL_CODE);
 
-    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual([
-      "Top Songs",
-      "A playlist chart",
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual([
+      'Top Songs',
+      'A playlist chart',
     ]);
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  test("opening a playlist chart replaces the list with its tracks", async () => {
+  test('opening a playlist chart replaces the list with its tracks', async () => {
     const charts = chartsWithPlaylist();
     renderChartScreen(charts, RAIL_CODE);
     const songsTrack = charts.countries[RAIL_CODE].tracks[0].name;
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("tab", { name: "A playlist chart" }));
+      fireEvent.click(screen.getByRole('tab', { name: 'A playlist chart' }));
     });
 
     expect(screen.getAllByText(PLAYLIST_TRACK.name).length).toBeGreaterThan(0);
     expect(screen.queryByText(songsTrack)).toBeNull();
   });
 
-  test("returning to the songs chart costs no second read", async () => {
+  test('returning to the songs chart costs no second read', async () => {
     const charts = chartsWithPlaylist();
     renderChartScreen(charts, RAIL_CODE);
     const songsTrack = charts.countries[RAIL_CODE].tracks[0].name;
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("tab", { name: "A playlist chart" }));
+      fireEvent.click(screen.getByRole('tab', { name: 'A playlist chart' }));
     });
     await act(async () => {
-      fireEvent.click(screen.getByRole("tab", { name: "Top Songs" }));
+      fireEvent.click(screen.getByRole('tab', { name: 'Top Songs' }));
     });
 
     expect(screen.getAllByText(songsTrack).length).toBeGreaterThan(0);
     expect(vi.mocked(fetch).mock.calls.length).toBe(1);
   });
 
-  test("a country carrying no playlists renders no rail", () => {
+  test('a country carrying no playlists renders no rail', () => {
     renderChartScreen(CHARTS, RAIL_CODE);
 
-    expect(screen.queryByRole("tablist")).toBeNull();
+    expect(screen.queryByRole('tablist')).toBeNull();
   });
 });
 
-describe("ChartScreen playlist playback", () => {
-  const PL_CODE = "zz";
-  const PL_FIRST = `pl.${"a".repeat(32)}`;
-  const PL_SECOND = `pl.${"b".repeat(32)}`;
-  const PL_FIRST_LABEL = "First playlist";
-  const PL_SECOND_LABEL = "Second playlist";
-  const SONGS_ONLY = "Songs only";
+describe('ChartScreen playlist playback', () => {
+  const PL_CODE = 'zz';
+  const PL_FIRST = `pl.${'a'.repeat(32)}`;
+  const PL_SECOND = `pl.${'b'.repeat(32)}`;
+  const PL_FIRST_LABEL = 'First playlist';
+  const PL_SECOND_LABEL = 'Second playlist';
+  const SONGS_ONLY = 'Songs only';
 
   function playlistTrack(rank: number, name: string) {
     return {
@@ -1227,16 +1227,16 @@ describe("ChartScreen playlist playback", () => {
       name,
       artist: `${name} artist`,
       previewUrl: `https://audio-ssl.itunes.apple.com/${rank}-${name}.m4a`,
-      artworkUrl: "https://is1-ssl.mzstatic.com/pl.jpg",
+      artworkUrl: 'https://is1-ssl.mzstatic.com/pl.jpg',
       appleUrl: `https://music.apple.com/x/song?i=90${rank}${name.length}`,
     };
   }
 
   // Two tracks in the first chart so a step has somewhere to go inside it, one
   // in the second so its own end arrives immediately.
-  const FIRST_HEAD = playlistTrack(1, "First head");
-  const FIRST_TAIL = playlistTrack(2, "First tail");
-  const SECOND_ONLY = playlistTrack(1, "Second only");
+  const FIRST_HEAD = playlistTrack(1, 'First head');
+  const FIRST_TAIL = playlistTrack(2, 'First tail');
+  const SECOND_ONLY = playlistTrack(1, 'Second only');
   const TRACKS_BY_CHART: Record<string, ReturnType<typeof playlistTrack>[]> = {
     [PL_FIRST]: [FIRST_HEAD, FIRST_TAIL],
     [PL_SECOND]: [SECOND_ONLY],
@@ -1247,7 +1247,7 @@ describe("ChartScreen playlist playback", () => {
       id,
       name,
       appleUrl: `https://music.apple.com/x/playlist/${id}`,
-      artworkUrl: "https://is1-ssl.mzstatic.com/pl-art.jpg",
+      artworkUrl: 'https://is1-ssl.mzstatic.com/pl-art.jpg',
       genres: [],
       trackCount: TRACKS_BY_CHART[id].length,
     };
@@ -1256,12 +1256,12 @@ describe("ChartScreen playlist playback", () => {
   // A country carrying two playlist charts, plus a drawable country so the
   // cross-country roll past them has somewhere to land.
   const PLAYLIST_CHARTS: ChartFile = {
-    lastUpdated: "2026-07-21T00:00:00Z",
+    lastUpdated: '2026-07-21T00:00:00Z',
     countries: {
       [PL_CODE]: {
-        name: "Country under test",
+        name: 'Country under test',
         valid: true,
-        tracks: [rollTrack(1, SONGS_ONLY, "https://example.com/songs.m4a")],
+        tracks: [rollTrack(1, SONGS_ONLY, 'https://example.com/songs.m4a')],
         playlists: [
           playlistEntry(PL_FIRST, PL_FIRST_LABEL),
           playlistEntry(PL_SECOND, PL_SECOND_LABEL),
@@ -1269,7 +1269,7 @@ describe("ChartScreen playlist playback", () => {
         playlistsValid: true,
       },
       [DRAW_1]: rollCountry([
-        rollTrack(1, LANDING_START, "https://example.com/landing.m4a"),
+        rollTrack(1, LANDING_START, 'https://example.com/landing.m4a'),
       ]),
     },
   };
@@ -1284,19 +1284,19 @@ describe("ChartScreen playlist playback", () => {
       skipIntent: { dir: 1, nonce: 0 },
       visited: new Set(),
     });
-    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
-    vi.spyOn(Math, "random").mockReturnValue(0);
+    vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
+    vi.spyOn(Math, 'random').mockReturnValue(0);
     vi.stubGlobal(
-      "fetch",
+      'fetch',
       vi.fn(async (url: string) => {
-        const id = decodeURIComponent(url.split("/").pop() ?? "");
+        const id = decodeURIComponent(url.split('/').pop() ?? '');
         return new Response(
           JSON.stringify({
             id,
-            lastUpdated: "2026-07-21T00:00:00.000Z",
+            lastUpdated: '2026-07-21T00:00:00.000Z',
             tracks: TRACKS_BY_CHART[id],
           }),
-          { status: 200, headers: { "content-type": "application/json" } },
+          { status: 200, headers: { 'content-type': 'application/json' } },
         );
       }),
     );
@@ -1309,13 +1309,13 @@ describe("ChartScreen playlist playback", () => {
 
   async function openChart(label: string) {
     await act(async () => {
-      fireEvent.click(screen.getByRole("tab", { name: label }));
+      fireEvent.click(screen.getByRole('tab', { name: label }));
     });
   }
 
   function playPreview(name: string, artist: string) {
     fireEvent.click(
-      screen.getByRole("button", {
+      screen.getByRole('button', {
         name: `Play preview of ${name} by ${artist}`,
       }),
     );
@@ -1329,97 +1329,97 @@ describe("ChartScreen playlist playback", () => {
   function miniPlayerTrackName(): string {
     const label =
       screen
-        .getByRole("button", { name: MINI_TRANSPORT })
-        .getAttribute("aria-label") ?? "";
-    return label.replace(/^(Play|Pause) preview of /, "");
+        .getByRole('button', { name: MINI_TRANSPORT })
+        .getAttribute('aria-label') ?? '';
+    return label.replace(/^(Play|Pause) preview of /, '');
   }
 
-  test("a track of a playlist chart plays through the preview pipeline", async () => {
+  test('a track of a playlist chart plays through the preview pipeline', async () => {
     const { container } = renderChartScreen(PLAYLIST_CHARTS, PL_CODE);
     await openChart(PL_FIRST_LABEL);
 
     playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
 
-    expect(playingRank(container)).toBe("1");
+    expect(playingRank(container)).toBe('1');
   });
 
-  test("next moves within the playing chart", async () => {
+  test('next moves within the playing chart', async () => {
     const { container } = renderChartScreen(PLAYLIST_CHARTS, PL_CODE);
     await openChart(PL_FIRST_LABEL);
     playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
 
-    fireEvent.click(screen.getByRole("button", { name: "Next track" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next track' }));
 
-    expect(playingRank(container)).toBe("2");
+    expect(playingRank(container)).toBe('2');
     expect(miniPlayerTrackName()).toBe(FIRST_TAIL.name);
   });
 
-  test("tapping the mini-player returns to the playing chart, not the browsed one", async () => {
+  test('tapping the mini-player returns to the playing chart, not the browsed one', async () => {
     const pushState = vi
-      .spyOn(window.history, "pushState")
+      .spyOn(window.history, 'pushState')
       .mockImplementation(() => {});
     renderChartScreen(PLAYLIST_CHARTS, PL_CODE);
     await openChart(PL_FIRST_LABEL);
     playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
 
-    await openChart("Top Songs");
-    fireEvent.click(screen.getByRole("button", { name: "Reopen chart" }));
+    await openChart('Top Songs');
+    fireEvent.click(screen.getByRole('button', { name: 'Reopen chart' }));
 
     // The playing chart is a playlist within the same country, so the return is
     // the chart, not merely the country: the path names the country, the query
     // the chart.
     expect(pushState).toHaveBeenLastCalledWith(
       null,
-      "",
+      '',
       chartPath(PL_CODE, PL_FIRST),
     );
   });
 
-  test("tapping the mini-player puts the playing chart back on screen", async () => {
-    vi.spyOn(window.history, "pushState").mockImplementation(() => {});
+  test('tapping the mini-player puts the playing chart back on screen', async () => {
+    vi.spyOn(window.history, 'pushState').mockImplementation(() => {});
     renderChartScreen(PLAYLIST_CHARTS, PL_CODE);
     await openChart(PL_FIRST_LABEL);
     playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
 
-    await openChart("Top Songs");
+    await openChart('Top Songs');
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Reopen chart" }));
+      fireEvent.click(screen.getByRole('button', { name: 'Reopen chart' }));
     });
 
     // The selected tab, not the URL: the URL write was the half that already
     // worked while the chart on screen stayed behind.
     expect(
       screen
-        .getByRole("tab", { name: PL_FIRST_LABEL })
-        .getAttribute("aria-selected"),
-    ).toBe("true");
+        .getByRole('tab', { name: PL_FIRST_LABEL })
+        .getAttribute('aria-selected'),
+    ).toBe('true');
   });
 
-  test("tapping the mini-player while on the playing chart writes no history", async () => {
+  test('tapping the mini-player while on the playing chart writes no history', async () => {
     const pushState = vi
-      .spyOn(window.history, "pushState")
+      .spyOn(window.history, 'pushState')
       .mockImplementation(() => {});
     renderChartScreen(PLAYLIST_CHARTS, PL_CODE);
     await openChart(PL_FIRST_LABEL);
     playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
 
-    fireEvent.click(screen.getByRole("button", { name: "Reopen chart" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reopen chart' }));
 
     // Already looking at the playing chart, so the tap only reopens the sheet.
     expect(pushState).not.toHaveBeenCalled();
   });
 
-  test("browsing another chart leaves playback in the one it started from", async () => {
+  test('browsing another chart leaves playback in the one it started from', async () => {
     const { container } = renderChartScreen(PLAYLIST_CHARTS, PL_CODE);
     await openChart(PL_FIRST_LABEL);
     playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
 
-    await openChart("Top Songs");
+    await openChart('Top Songs');
 
     expect(playingRank(container)).toBeNull();
     expect(miniPlayerTrackName()).toBe(FIRST_HEAD.name);
 
-    fireEvent.click(screen.getByRole("button", { name: "Next track" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next track' }));
 
     expect(miniPlayerTrackName()).toBe(FIRST_TAIL.name);
     expect(playingRank(container)).toBeNull();
@@ -1438,12 +1438,12 @@ describe("ChartScreen playlist playback", () => {
     expect(globeChartStore.getState().selectedCountry).not.toBe(DRAW_1);
     expect(
       screen
-        .getByRole("tab", { name: PL_SECOND_LABEL })
-        .getAttribute("aria-selected"),
-    ).toBe("true");
+        .getByRole('tab', { name: PL_SECOND_LABEL })
+        .getAttribute('aria-selected'),
+    ).toBe('true');
   });
 
-  test("a country whose playlist charts are exhausted rolls into another country", async () => {
+  test('a country whose playlist charts are exhausted rolls into another country', async () => {
     renderChartScreen(PLAYLIST_CHARTS, PL_CODE);
     await openChart(PL_SECOND_LABEL);
     playPreview(SECOND_ONLY.name, SECOND_ONLY.artist);
@@ -1473,15 +1473,15 @@ describe("ChartScreen playlist playback", () => {
   // the browser: the writes land in the mocked hooks, and repaint re-reads them.
   function followHistoryWrites() {
     const apply = (url: string) => {
-      const [path, query = ""] = url.split("?");
+      const [path, query = ''] = url.split('?');
       mockPathname.value = path;
       mockSearchParams.value = new URLSearchParams(query);
     };
-    vi.spyOn(window.history, "pushState").mockImplementation(
+    vi.spyOn(window.history, 'pushState').mockImplementation(
       (_data, _title, url) => apply(String(url)),
     );
     return vi
-      .spyOn(window.history, "replaceState")
+      .spyOn(window.history, 'replaceState')
       .mockImplementation((_data, _title, url) => apply(String(url)));
   }
 
@@ -1509,7 +1509,7 @@ describe("ChartScreen playlist playback", () => {
       },
       tapMiniPlayer: async () => {
         await act(async () => {
-          fireEvent.click(screen.getByRole("button", { name: "Reopen chart" }));
+          fireEvent.click(screen.getByRole('button', { name: 'Reopen chart' }));
         });
         await repaint();
       },
@@ -1519,13 +1519,13 @@ describe("ChartScreen playlist playback", () => {
   function selectedTab(): string | null {
     return (
       screen
-        .queryAllByRole("tab")
-        .find((tab) => tab.getAttribute("aria-selected") === "true")
+        .queryAllByRole('tab')
+        .find((tab) => tab.getAttribute('aria-selected') === 'true')
         ?.textContent ?? null
     );
   }
 
-  test("tapping the mini-player returns to a playlist playing in another country", async () => {
+  test('tapping the mini-player returns to a playlist playing in another country', async () => {
     followHistoryWrites();
     const { browseTo, tapMiniPlayer } = browsing();
     await openChart(PL_FIRST_LABEL);
@@ -1538,13 +1538,13 @@ describe("ChartScreen playlist playback", () => {
     // A row of the restored chart too, since a selected tab over an empty list
     // is the shape a chart that arrived without its tracks would take.
     expect(
-      screen.getByRole("button", {
+      screen.getByRole('button', {
         name: `Play preview of ${FIRST_TAIL.name} by ${FIRST_TAIL.artist}`,
       }),
     ).toBeTruthy();
   });
 
-  test("tapping the mini-player returns to a songs chart playing in another country", async () => {
+  test('tapping the mini-player returns to a songs chart playing in another country', async () => {
     followHistoryWrites();
     const { browseTo, tapMiniPlayer } = browsing();
     playPreview(SONGS_ONLY, `${SONGS_ONLY} artist`);
@@ -1552,11 +1552,11 @@ describe("ChartScreen playlist playback", () => {
     await browseTo(DRAW_1);
     await tapMiniPlayer();
 
-    expect(selectedTab()).toBe("Top Songs");
+    expect(selectedTab()).toBe('Top Songs');
     expect(miniPlayerTrackName()).toBe(SONGS_ONLY);
   });
 
-  test("the restored chart reaches the URL without a write correcting it", async () => {
+  test('the restored chart reaches the URL without a write correcting it', async () => {
     const replaceState = followHistoryWrites();
     const { browseTo, tapMiniPlayer } = browsing();
     await openChart(PL_FIRST_LABEL);
@@ -1573,12 +1573,12 @@ describe("ChartScreen playlist playback", () => {
     // for in the address bar on the way.
     expect(replaceState).not.toHaveBeenCalledWith(
       null,
-      "",
+      '',
       chartPath(PL_CODE, SONGS_CHART),
     );
   });
 
-  test("a country reached without a restore opens on its songs chart", async () => {
+  test('a country reached without a restore opens on its songs chart', async () => {
     followHistoryWrites();
     const { browseTo } = browsing();
     await openChart(PL_FIRST_LABEL);
@@ -1589,10 +1589,10 @@ describe("ChartScreen playlist playback", () => {
     // Returning to a country whose playlist was open leaves it on the songs
     // chart, which is where any country opens (ADR-0017). Pinned here so the
     // restore above cannot quietly become how every country change behaves.
-    expect(selectedTab()).toBe("Top Songs");
+    expect(selectedTab()).toBe('Top Songs');
   });
 
-  test("a spent restore does not reopen its chart on a later arrival", async () => {
+  test('a spent restore does not reopen its chart on a later arrival', async () => {
     followHistoryWrites();
     const { browseTo, tapMiniPlayer } = browsing();
     await openChart(PL_FIRST_LABEL);
@@ -1606,19 +1606,19 @@ describe("ChartScreen playlist playback", () => {
     // The record a tap leaves is spent by the arrival it was made for. Were it
     // to survive, every later arrival at that country would open the chart
     // instead of its songs chart, which is ADR-0017 reversed by the back door.
-    expect(selectedTab()).toBe("Top Songs");
+    expect(selectedTab()).toBe('Top Songs');
   });
 });
 
-describe("ChartScreen chart in the URL", () => {
+describe('ChartScreen chart in the URL', () => {
   let replaceState: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     replaceState = vi
-      .spyOn(window.history, "replaceState")
+      .spyOn(window.history, 'replaceState')
       .mockImplementation(() => {});
     vi.stubGlobal(
-      "fetch",
+      'fetch',
       vi.fn(async () => playlistResponse()),
     );
   });
@@ -1628,22 +1628,22 @@ describe("ChartScreen chart in the URL", () => {
     replaceState.mockRestore();
   });
 
-  test("names the chart in the URL once one is opened", async () => {
+  test('names the chart in the URL once one is opened', async () => {
     mockPathname.value = `/c/${RAIL_CODE}`;
     renderChartScreen(chartsWithPlaylist(), RAIL_CODE);
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("tab", { name: "A playlist chart" }));
+      fireEvent.click(screen.getByRole('tab', { name: 'A playlist chart' }));
     });
 
     expect(replaceState).toHaveBeenLastCalledWith(
       null,
-      "",
+      '',
       `/c/${RAIL_CODE}?chart=${PL_ID}`,
     );
   });
 
-  test("a link naming a chart opens it", async () => {
+  test('a link naming a chart opens it', async () => {
     mockPathname.value = `/c/${RAIL_CODE}`;
     mockSearchParams.value = new URLSearchParams(`chart=${PL_ID}`);
     renderChartScreen(chartsWithPlaylist(), RAIL_CODE);
@@ -1653,9 +1653,9 @@ describe("ChartScreen chart in the URL", () => {
     expect(screen.getAllByText(PLAYLIST_TRACK.name).length).toBeGreaterThan(0);
   });
 
-  test("a chart the country does not carry falls back to its songs chart", async () => {
+  test('a chart the country does not carry falls back to its songs chart', async () => {
     mockPathname.value = `/c/${RAIL_CODE}`;
-    mockSearchParams.value = new URLSearchParams("chart=pl.elsewhere");
+    mockSearchParams.value = new URLSearchParams('chart=pl.elsewhere');
     const charts = chartsWithPlaylist();
     renderChartScreen(charts, RAIL_CODE);
 
@@ -1665,10 +1665,10 @@ describe("ChartScreen chart in the URL", () => {
       screen.getAllByText(charts.countries[RAIL_CODE].tracks[0].name).length,
     ).toBeGreaterThan(0);
     expect(fetch).not.toHaveBeenCalled();
-    expect(replaceState).toHaveBeenLastCalledWith(null, "", `/c/${RAIL_CODE}`);
+    expect(replaceState).toHaveBeenLastCalledWith(null, '', `/c/${RAIL_CODE}`);
   });
 
-  test("a URL already naming the open chart is left alone", async () => {
+  test('a URL already naming the open chart is left alone', async () => {
     mockPathname.value = `/c/${RAIL_CODE}`;
     mockSearchParams.value = new URLSearchParams(`chart=${PL_ID}`);
     renderChartScreen(chartsWithPlaylist(), RAIL_CODE);
@@ -1679,10 +1679,10 @@ describe("ChartScreen chart in the URL", () => {
   });
 });
 
-describe("ChartScreen while a chart is read", () => {
+describe('ChartScreen while a chart is read', () => {
   beforeEach(() => {
     mockPathname.value = `/c/${RAIL_CODE}`;
-    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+    vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -1690,10 +1690,10 @@ describe("ChartScreen while a chart is read", () => {
     vi.restoreAllMocks();
   });
 
-  test("the outgoing chart stays on screen and is marked as waiting", async () => {
+  test('the outgoing chart stays on screen and is marked as waiting', async () => {
     let release: (() => void) | undefined;
     vi.stubGlobal(
-      "fetch",
+      'fetch',
       vi.fn(
         () =>
           new Promise<Response>((resolve) => {
@@ -1705,47 +1705,47 @@ describe("ChartScreen while a chart is read", () => {
     const { container } = renderChartScreen(charts, RAIL_CODE);
     const songsTrack = charts.countries[RAIL_CODE].tracks[0].name;
 
-    fireEvent.click(screen.getByRole("tab", { name: "A playlist chart" }));
+    fireEvent.click(screen.getByRole('tab', { name: 'A playlist chart' }));
 
-    expect(container.querySelector("[data-chart-waiting]")).not.toBeNull();
+    expect(container.querySelector('[data-chart-waiting]')).not.toBeNull();
     expect(screen.getAllByText(songsTrack).length).toBeGreaterThan(0);
 
     await act(async () => {
       release?.();
     });
 
-    expect(container.querySelector("[data-chart-waiting]")).toBeNull();
+    expect(container.querySelector('[data-chart-waiting]')).toBeNull();
   });
 
-  test("a chart that fails to load leaves the list and stops offering itself", async () => {
+  test('a chart that fails to load leaves the list and stops offering itself', async () => {
     vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => new Response("", { status: 404 })),
+      'fetch',
+      vi.fn(async () => new Response('', { status: 404 })),
     );
     const charts = chartsWithPlaylist();
     const { container } = renderChartScreen(charts, RAIL_CODE);
     const songsTrack = charts.countries[RAIL_CODE].tracks[0].name;
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("tab", { name: "A playlist chart" }));
+      fireEvent.click(screen.getByRole('tab', { name: 'A playlist chart' }));
     });
 
     expect(screen.getAllByText(songsTrack).length).toBeGreaterThan(0);
     expect(
       (
-        screen.getByRole("tab", {
-          name: "A playlist chart",
+        screen.getByRole('tab', {
+          name: 'A playlist chart',
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true);
-    expect(container.querySelector("[data-chart-waiting]")).toBeNull();
+    expect(container.querySelector('[data-chart-waiting]')).toBeNull();
   });
 });
 
-describe("ChartScreen rail and panel", () => {
+describe('ChartScreen rail and panel', () => {
   beforeEach(() => {
     mockPathname.value = `/c/${RAIL_CODE}`;
-    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+    vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -1755,40 +1755,40 @@ describe("ChartScreen rail and panel", () => {
   test("the track list is the panel the open chart's tab controls", () => {
     renderChartScreen(chartsWithPlaylist(), RAIL_CODE);
 
-    const panel = screen.getByRole("tabpanel");
-    const open = screen.getByRole("tab", { selected: true });
-    expect(panel.getAttribute("aria-labelledby")).toBe(open.id);
-    expect(open.getAttribute("aria-controls")).toBe(panel.id);
+    const panel = screen.getByRole('tabpanel');
+    const open = screen.getByRole('tab', { selected: true });
+    expect(panel.getAttribute('aria-labelledby')).toBe(open.id);
+    expect(open.getAttribute('aria-controls')).toBe(panel.id);
     expect(panel.tabIndex).toBe(0);
   });
 
-  test("a country with no rail exposes no panel", () => {
+  test('a country with no rail exposes no panel', () => {
     renderChartScreen(CHARTS, RAIL_CODE);
 
-    expect(screen.queryByRole("tabpanel")).toBeNull();
+    expect(screen.queryByRole('tabpanel')).toBeNull();
   });
 });
 
-describe("ChartScreen deeper rows", () => {
+describe('ChartScreen deeper rows', () => {
   const DEEP_TRACK = {
     rank: 26,
-    name: "Only past the eager rows",
-    artist: "A deeper artist",
+    name: 'Only past the eager rows',
+    artist: 'A deeper artist',
     previewUrl: null,
-    artworkUrl: "https://is1-ssl.mzstatic.com/deep.jpg",
-    appleUrl: "https://music.apple.com/br/song/26?i=26",
-    spotifyUrl: "https://open.spotify.com/search/deep",
+    artworkUrl: 'https://is1-ssl.mzstatic.com/deep.jpg',
+    appleUrl: 'https://music.apple.com/br/song/26?i=26',
+    spotifyUrl: 'https://open.spotify.com/search/deep',
   };
 
   /** Captures the tail sentinel's observer so a test can decide when the list is read that far. */
   function stubObserver(): { reach: () => void } {
     let fire: (() => void) | null = null;
     vi.stubGlobal(
-      "IntersectionObserver",
+      'IntersectionObserver',
       class {
         constructor(private readonly cb: IntersectionObserverCallback) {}
         observe(el: Element) {
-          if (el.getAttribute("data-testid") !== "chart-tail-sentinel") return;
+          if (el.getAttribute('data-testid') !== 'chart-tail-sentinel') return;
           fire = () =>
             this.cb(
               [
@@ -1812,7 +1812,7 @@ describe("ChartScreen deeper rows", () => {
 
   beforeEach(() => {
     mockPathname.value = `/c/${RAIL_CODE}`;
-    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+    vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -1820,9 +1820,9 @@ describe("ChartScreen deeper rows", () => {
     vi.restoreAllMocks();
   });
 
-  test("landing on a country reads nothing deeper", () => {
+  test('landing on a country reads nothing deeper', () => {
     const spy = vi.fn();
-    vi.stubGlobal("fetch", spy);
+    vi.stubGlobal('fetch', spy);
     stubObserver();
 
     renderChartScreen(CHARTS, RAIL_CODE);
@@ -1830,18 +1830,18 @@ describe("ChartScreen deeper rows", () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
-  test("reading to the end of the chart brings in the rest", async () => {
+  test('reading to the end of the chart brings in the rest', async () => {
     vi.stubGlobal(
-      "fetch",
+      'fetch',
       vi.fn(
         async () =>
           new Response(
             JSON.stringify({
               code: RAIL_CODE,
-              lastUpdated: "2026-07-22T00:00:00.000Z",
+              lastUpdated: '2026-07-22T00:00:00.000Z',
               tracks: [DEEP_TRACK],
             }),
-            { status: 200, headers: { "content-type": "application/json" } },
+            { status: 200, headers: { 'content-type': 'application/json' } },
           ),
       ),
     );
@@ -1857,12 +1857,12 @@ describe("ChartScreen deeper rows", () => {
     expect(screen.getAllByText(DEEP_TRACK.name).length).toBeGreaterThan(0);
   });
 
-  test("a deeper chart that will not load leaves the rows already read", async () => {
+  test('a deeper chart that will not load leaves the rows already read', async () => {
     vi.stubGlobal(
-      "fetch",
+      'fetch',
       // The store failing, not a chart that simply ends: 404 is the latter, and
       // leaves the list as a chart read to its end rather than a broken one.
-      vi.fn(async () => new Response("", { status: 502 })),
+      vi.fn(async () => new Response('', { status: 502 })),
     );
     const { reach } = stubObserver();
     const charts = CHARTS;
@@ -1878,8 +1878,8 @@ describe("ChartScreen deeper rows", () => {
   });
 });
 
-describe("ChartScreen stepping past the eager rows", () => {
-  const DEEP_CODE = "dp";
+describe('ChartScreen stepping past the eager rows', () => {
+  const DEEP_CODE = 'dp';
 
   function deepTrack(rank: number, spread: number): Track {
     return {
@@ -1887,7 +1887,7 @@ describe("ChartScreen stepping past the eager rows", () => {
       name: `Deep ${rank}`,
       artist: `Deep artist ${rank}`,
       previewUrl: `https://audio-ssl.itunes.apple.com/deep-${rank}.m4a`,
-      artworkUrl: "https://is1-ssl.mzstatic.com/deep.jpg",
+      artworkUrl: 'https://is1-ssl.mzstatic.com/deep.jpg',
       appleUrl: `https://music.apple.com/x/deep-${rank}`,
       spotifyUrl: `https://open.spotify.com/x/deep-${rank}`,
       spread,
@@ -1897,25 +1897,25 @@ describe("ChartScreen stepping past the eager rows", () => {
   // A country whose chart runs past what travelled: ranks 1 and 2 eagerly, 3 and
   // 4 only once read. Spread is set so Only here keeps 2 and 4, which are on
   // either side of the boundary.
-  const AWAY_CODE = "aw";
-  const SEATED_CODE = "sd";
+  const AWAY_CODE = 'aw';
+  const SEATED_CODE = 'sd';
   const DEEP_CHARTS: ChartFile = {
-    lastUpdated: "2026-07-22T00:00:00Z",
+    lastUpdated: '2026-07-22T00:00:00Z',
     countries: {
       [DEEP_CODE]: {
-        name: "Deep country",
+        name: 'Deep country',
         valid: true,
         tracks: [deepTrack(1, 7), deepTrack(2, 1)],
       },
       // Somewhere else to stand while the first country's chart plays on.
       [AWAY_CODE]: {
-        name: "Away country",
+        name: 'Away country',
         valid: true,
         tracks: [deepTrack(1, 3)],
       },
       // Lists an only-here row eagerly, so only-here has no reason to read it.
       [SEATED_CODE]: {
-        name: "Seated country",
+        name: 'Seated country',
         valid: true,
         tracks: [deepTrack(1, 1)],
       },
@@ -1926,11 +1926,11 @@ describe("ChartScreen stepping past the eager rows", () => {
   function stubObserver(): { reach: () => void } {
     let fire: (() => void) | null = null;
     vi.stubGlobal(
-      "IntersectionObserver",
+      'IntersectionObserver',
       class {
         constructor(private readonly cb: IntersectionObserverCallback) {}
         observe(el: Element) {
-          if (el.getAttribute("data-testid") !== "chart-tail-sentinel") return;
+          if (el.getAttribute('data-testid') !== 'chart-tail-sentinel') return;
           fire = () =>
             this.cb(
               [
@@ -1956,18 +1956,18 @@ describe("ChartScreen stepping past the eager rows", () => {
   // chart ends where the payload does.
   function stubTailFetch() {
     vi.stubGlobal(
-      "fetch",
+      'fetch',
       vi.fn(async (input: string | URL | Request) =>
         String(input).endsWith(`/${DEEP_CODE}`)
           ? new Response(
               JSON.stringify({
                 code: DEEP_CODE,
-                lastUpdated: "2026-07-22T00:00:00.000Z",
+                lastUpdated: '2026-07-22T00:00:00.000Z',
                 tracks: TAIL_ROWS,
               }),
-              { status: 200, headers: { "content-type": "application/json" } },
+              { status: 200, headers: { 'content-type': 'application/json' } },
             )
-          : new Response("", { status: 404 }),
+          : new Response('', { status: 404 }),
       ),
     );
   }
@@ -1976,7 +1976,7 @@ describe("ChartScreen stepping past the eager rows", () => {
   function holdTailFetch(): () => Promise<void> {
     let release: (() => void) | undefined;
     vi.stubGlobal(
-      "fetch",
+      'fetch',
       vi.fn(
         () =>
           new Promise<Response>((resolve) => {
@@ -1985,12 +1985,12 @@ describe("ChartScreen stepping past the eager rows", () => {
                 new Response(
                   JSON.stringify({
                     code: DEEP_CODE,
-                    lastUpdated: "2026-07-22T00:00:00.000Z",
+                    lastUpdated: '2026-07-22T00:00:00.000Z',
                     tracks: TAIL_ROWS,
                   }),
                   {
                     status: 200,
-                    headers: { "content-type": "application/json" },
+                    headers: { 'content-type': 'application/json' },
                   },
                 ),
               );
@@ -2008,31 +2008,31 @@ describe("ChartScreen stepping past the eager rows", () => {
     return vi
       .mocked(fetch)
       .mock.calls.map(([input]) => String(input))
-      .filter((url) => url.startsWith("/api/songs/"))
-      .map((url) => url.slice("/api/songs/".length));
+      .filter((url) => url.startsWith('/api/songs/'))
+      .map((url) => url.slice('/api/songs/'.length));
   }
 
   function play(name: string, artist: string) {
     fireEvent.click(
-      screen.getByRole("button", {
+      screen.getByRole('button', {
         name: `Play preview of ${name} by ${artist}`,
       }),
     );
   }
 
   function next() {
-    fireEvent.click(screen.getByRole("button", { name: "Next track" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next track' }));
   }
 
   function prev() {
-    fireEvent.click(screen.getByRole("button", { name: "Previous track" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Previous track' }));
   }
 
   beforeEach(() => {
     mockPathname.value = `/c/${DEEP_CODE}`;
     audioEngine.reset();
     stubTailFetch();
-    vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+    vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -2040,7 +2040,7 @@ describe("ChartScreen stepping past the eager rows", () => {
     vi.restoreAllMocks();
   });
 
-  test("a most-played visit reads no deeper rows", async () => {
+  test('a most-played visit reads no deeper rows', async () => {
     stubObserver();
     renderChartScreen(DEEP_CHARTS, DEEP_CODE);
 
@@ -2049,11 +2049,11 @@ describe("ChartScreen stepping past the eager rows", () => {
     expect(tailsRead()).toEqual([]);
   });
 
-  test("turning on only-here reads the countries whose seat lies past the eager rows", async () => {
+  test('turning on only-here reads the countries whose seat lies past the eager rows', async () => {
     stubObserver();
     renderChartScreen(DEEP_CHARTS, DEEP_CODE);
 
-    fireEvent.click(screen.getByRole("button", { name: "Only here" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Only here' }));
     await act(async () => {});
 
     // The away country lists no only-here row eagerly, so only its deeper rows
@@ -2063,42 +2063,42 @@ describe("ChartScreen stepping past the eager rows", () => {
     expect(tailsRead()).not.toContain(SEATED_CODE);
   });
 
-  test("starting playback reads no deeper rows", async () => {
+  test('starting playback reads no deeper rows', async () => {
     stubObserver();
     renderChartScreen(DEEP_CHARTS, DEEP_CODE);
 
-    play("Deep 1", "Deep artist 1");
+    play('Deep 1', 'Deep artist 1');
     await act(async () => {});
 
     expect(tailsRead()).toEqual([]);
   });
 
-  test("next off the eager rows reads the deeper ones and steps into them", async () => {
+  test('next off the eager rows reads the deeper ones and steps into them', async () => {
     stubObserver();
     const { container } = renderChartScreen(DEEP_CHARTS, DEEP_CODE);
-    play("Deep 2", "Deep artist 2");
+    play('Deep 2', 'Deep artist 2');
 
     next();
     await act(async () => {});
 
     expect(tailsRead()).toEqual([DEEP_CODE]);
     expect(
-      screen.getByRole("button", {
+      screen.getByRole('button', {
         name: `Pause preview of ${TAIL_ROWS[0].name}`,
       }),
     ).toBeTruthy();
-    expect(container.querySelector(".skip-flash")).not.toBeNull();
+    expect(container.querySelector('.skip-flash')).not.toBeNull();
   });
 
-  test("a pause while the deeper rows load cancels the step", async () => {
+  test('a pause while the deeper rows load cancels the step', async () => {
     stubObserver();
     const release = holdTailFetch();
     const { container } = renderChartScreen(DEEP_CHARTS, DEEP_CODE);
-    play("Deep 2", "Deep artist 2");
+    play('Deep 2', 'Deep artist 2');
 
     next();
     fireEvent.click(
-      screen.getByRole("button", { name: "Pause preview of Deep 2" }),
+      screen.getByRole('button', { name: 'Pause preview of Deep 2' }),
     );
     await release();
 
@@ -2106,47 +2106,47 @@ describe("ChartScreen stepping past the eager rows", () => {
     expect(
       container
         .querySelector('li[data-state="paused"]')
-        ?.getAttribute("data-rank"),
-    ).toBe("2");
+        ?.getAttribute('data-rank'),
+    ).toBe('2');
   });
 
-  test("a next pressed while paused still steps into the deeper rows", async () => {
+  test('a next pressed while paused still steps into the deeper rows', async () => {
     stubObserver();
     const release = holdTailFetch();
     renderChartScreen(DEEP_CHARTS, DEEP_CODE);
-    play("Deep 2", "Deep artist 2");
+    play('Deep 2', 'Deep artist 2');
     fireEvent.click(
-      screen.getByRole("button", { name: "Pause preview of Deep 2" }),
+      screen.getByRole('button', { name: 'Pause preview of Deep 2' }),
     );
 
     next();
     await release();
 
     expect(
-      screen.getByRole("button", {
+      screen.getByRole('button', {
         name: `Pause preview of ${TAIL_ROWS[0].name}`,
       }),
     ).toBeTruthy();
   });
 
-  test("a track picked while the deeper rows load is not stepped away from", async () => {
+  test('a track picked while the deeper rows load is not stepped away from', async () => {
     stubObserver();
     const release = holdTailFetch();
     const { container } = renderChartScreen(DEEP_CHARTS, DEEP_CODE);
-    play("Deep 2", "Deep artist 2");
+    play('Deep 2', 'Deep artist 2');
 
     next();
-    play("Deep 1", "Deep artist 1");
+    play('Deep 1', 'Deep artist 1');
     await release();
 
-    expect(playingRank(container)).toBe("1");
+    expect(playingRank(container)).toBe('1');
   });
 
-  test("next pressed before the deeper rows land still steps into them", async () => {
+  test('next pressed before the deeper rows land still steps into them', async () => {
     stubObserver();
     const { container } = renderChartScreen(DEEP_CHARTS, DEEP_CODE);
-    fireEvent.click(screen.getByRole("button", { name: "Only here" }));
-    play("Deep 2", "Deep artist 2");
+    fireEvent.click(screen.getByRole('button', { name: 'Only here' }));
+    play('Deep 2', 'Deep artist 2');
 
     next();
     await act(async () => {});
@@ -2156,28 +2156,28 @@ describe("ChartScreen stepping past the eager rows", () => {
     expect(playingRank(container)).toBe(String(TAIL_ROWS[1].rank));
   });
 
-  test("next continues into the rows read past the payload", async () => {
+  test('next continues into the rows read past the payload', async () => {
     const { reach } = stubObserver();
     const { container } = renderChartScreen(DEEP_CHARTS, DEEP_CODE);
     await act(async () => {
       reach();
     });
-    play("Deep 2", "Deep artist 2");
-    expect(playingRank(container)).toBe("2");
+    play('Deep 2', 'Deep artist 2');
+    expect(playingRank(container)).toBe('2');
 
     next();
 
-    expect(playingRank(container)).toBe("3");
+    expect(playingRank(container)).toBe('3');
   });
 
-  test("next walks the mode on screen, not the rows it hides", async () => {
+  test('next walks the mode on screen, not the rows it hides', async () => {
     const { reach } = stubObserver();
     const { container } = renderChartScreen(DEEP_CHARTS, DEEP_CODE);
     await act(async () => {
       reach();
     });
-    fireEvent.click(screen.getByRole("button", { name: "Only here" }));
-    play("Deep 2", "Deep artist 2");
+    fireEvent.click(screen.getByRole('button', { name: 'Only here' }));
+    play('Deep 2', 'Deep artist 2');
 
     next();
 
@@ -2191,9 +2191,9 @@ describe("ChartScreen stepping past the eager rows", () => {
     await act(async () => {
       reach();
     });
-    play("Deep 3", "Deep artist 3");
+    play('Deep 3', 'Deep artist 3');
 
-    fireEvent.click(screen.getByRole("button", { name: "Only here" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Only here' }));
     next();
 
     // Rank 3 is filtered away, but it is still where the listener is, so the
@@ -2202,46 +2202,46 @@ describe("ChartScreen stepping past the eager rows", () => {
     expect(playingRank(container)).toBe(String(TAIL_ROWS[1].rank));
   });
 
-  test("the mode still governs a chart playing on in a country left behind", async () => {
+  test('the mode still governs a chart playing on in a country left behind', async () => {
     const { reach } = stubObserver();
     const { rerender } = renderChartScreen(DEEP_CHARTS, DEEP_CODE);
     await act(async () => {
       reach();
     });
-    fireEvent.click(screen.getByRole("button", { name: "Only here" }));
-    play("Deep 2", "Deep artist 2");
+    fireEvent.click(screen.getByRole('button', { name: 'Only here' }));
+    play('Deep 2', 'Deep artist 2');
 
     // Stand somewhere else; the chart playing is the one left behind.
     mockPathname.value = `/c/${AWAY_CODE}`;
     rerender(<ChartScreen charts={DEEP_CHARTS} />);
-    expect(screen.getByText("Away country")).not.toBeNull();
+    expect(screen.getByText('Away country')).not.toBeNull();
 
     next();
 
     // The playing row is no longer on screen, so the mini-player is what names
     // it. Rank 3 is hidden by the mode the listener still has on, so the step
     // lands on 4 exactly as it would have without moving.
-    expect(screen.queryByText("Deep 4")).not.toBeNull();
-    expect(screen.queryByText("Deep 3")).toBeNull();
+    expect(screen.queryByText('Deep 4')).not.toBeNull();
+    expect(screen.queryByText('Deep 3')).toBeNull();
   });
 
-  test("returning by the mini-player restores the mode the track is heard in", async () => {
-    vi.spyOn(window.history, "pushState").mockImplementation(() => {});
+  test('returning by the mini-player restores the mode the track is heard in', async () => {
+    vi.spyOn(window.history, 'pushState').mockImplementation(() => {});
     const { reach } = stubObserver();
     const { rerender } = renderChartScreen(DEEP_CHARTS, DEEP_CODE);
     await act(async () => {
       reach();
     });
-    fireEvent.click(screen.getByRole("button", { name: "Only here" }));
-    play("Deep 2", "Deep artist 2");
+    fireEvent.click(screen.getByRole('button', { name: 'Only here' }));
+    play('Deep 2', 'Deep artist 2');
 
     // Browse elsewhere and re-aim the mode there, so the mode on screen and the
     // mode playback carries have parted. The URL write is mocked, so the return
     // navigation is simulated by hand.
     mockPathname.value = `/c/${AWAY_CODE}`;
     rerender(<ChartScreen charts={DEEP_CHARTS} />);
-    fireEvent.click(screen.getByRole("button", { name: "Most played" }));
-    fireEvent.click(screen.getByRole("button", { name: "Reopen chart" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Most played' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reopen chart' }));
     mockPathname.value = `/c/${DEEP_CODE}`;
     rerender(<ChartScreen charts={DEEP_CHARTS} />);
 
@@ -2249,66 +2249,66 @@ describe("ChartScreen stepping past the eager rows", () => {
     // played the listener had re-aimed the screen to while away.
     expect(
       screen
-        .getByRole("button", { name: "Only here" })
-        .getAttribute("aria-pressed"),
-    ).toBe("true");
+        .getByRole('button', { name: 'Only here' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
   });
 
-  test("changing the mode elsewhere leaves the playing chart in its own", async () => {
+  test('changing the mode elsewhere leaves the playing chart in its own', async () => {
     const { reach } = stubObserver();
     const { rerender } = renderChartScreen(DEEP_CHARTS, DEEP_CODE);
     await act(async () => {
       reach();
     });
-    fireEvent.click(screen.getByRole("button", { name: "Only here" }));
-    play("Deep 2", "Deep artist 2");
+    fireEvent.click(screen.getByRole('button', { name: 'Only here' }));
+    play('Deep 2', 'Deep artist 2');
 
     mockPathname.value = `/c/${AWAY_CODE}`;
     rerender(<ChartScreen charts={DEEP_CHARTS} />);
     // Re-aim what is on screen; what is playing was started in the other mode.
-    fireEvent.click(screen.getByRole("button", { name: "Most played" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Most played' }));
     next();
 
-    expect(screen.queryByText("Deep 4")).not.toBeNull();
-    expect(screen.queryByText("Deep 3")).toBeNull();
+    expect(screen.queryByText('Deep 4')).not.toBeNull();
+    expect(screen.queryByText('Deep 3')).toBeNull();
   });
 
-  test("switching mode on the playing chart re-aims what next walks", async () => {
+  test('switching mode on the playing chart re-aims what next walks', async () => {
     const { reach } = stubObserver();
     const { container } = renderChartScreen(DEEP_CHARTS, DEEP_CODE);
     await act(async () => {
       reach();
     });
-    fireEvent.click(screen.getByRole("button", { name: "Only here" }));
-    play("Deep 2", "Deep artist 2");
+    fireEvent.click(screen.getByRole('button', { name: 'Only here' }));
+    play('Deep 2', 'Deep artist 2');
 
     // Back to the whole chart, still looking at the chart that is playing.
-    fireEvent.click(screen.getByRole("button", { name: "Most played" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Most played' }));
     next();
 
     // Rank 3 is listed again, so it is what next reaches.
-    expect(playingRank(container)).toBe("3");
+    expect(playingRank(container)).toBe('3');
   });
 
-  test("stepping back and forth stays on the mode in front of the listener", async () => {
+  test('stepping back and forth stays on the mode in front of the listener', async () => {
     const { reach } = stubObserver();
     const { container } = renderChartScreen(DEEP_CHARTS, DEEP_CODE);
     await act(async () => {
       reach();
     });
-    play("Deep 1", "Deep artist 1");
-    fireEvent.click(screen.getByRole("button", { name: "Only here" }));
+    play('Deep 1', 'Deep artist 1');
+    fireEvent.click(screen.getByRole('button', { name: 'Only here' }));
 
     next();
-    expect(playingRank(container)).toBe("2");
+    expect(playingRank(container)).toBe('2');
     next();
     expect(playingRank(container)).toBe(String(TAIL_ROWS[1].rank));
     prev();
-    expect(playingRank(container)).toBe("2");
+    expect(playingRank(container)).toBe('2');
 
-    fireEvent.click(screen.getByRole("button", { name: "Most played" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Most played' }));
     next();
 
-    expect(playingRank(container)).toBe("3");
+    expect(playingRank(container)).toBe('3');
   });
 });

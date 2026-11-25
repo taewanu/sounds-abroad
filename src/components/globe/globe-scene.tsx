@@ -1,27 +1,26 @@
-"use client";
+'use client';
 
-import { Suspense, use, useCallback, useEffect, useRef, useState } from "react";
-import { Canvas, useThree } from "@react-three/fiber";
-import { PerspectiveCamera } from "three";
+import { Canvas, useThree } from '@react-three/fiber';
+import { Suspense, use, useCallback, useEffect, useRef, useState } from 'react';
+import { PerspectiveCamera } from 'three';
 
-import { SONGS_CHART } from "@/lib/chart-ref";
-import { chartPath } from "@/lib/chart-url";
-import { COUNTRIES } from "@/lib/countries";
-import { addVisited, pickShuffleCountry } from "@/lib/fairness-draw";
-import { globeChartStore, useGlobeChart } from "@/lib/globe-chart-store";
-import { getCountryOutlinesPromise } from "@/lib/topo-loader";
-import { tourBridge } from "@/lib/tour-bridge";
+import { SONGS_CHART } from '@/lib/chart-ref';
+import { chartPath } from '@/lib/chart-url';
+import { COUNTRIES } from '@/lib/countries';
+import { addVisited, pickShuffleCountry } from '@/lib/fairness-draw';
+import { globeChartStore, useGlobeChart } from '@/lib/globe-chart-store';
+import { getCountryOutlinesPromise } from '@/lib/topo-loader';
+import { tourBridge } from '@/lib/tour-bridge';
 
-import { usePrefersReducedMotion } from "../use-prefers-reduced-motion";
-
-import { cameraForViewport } from "./camera-fit";
-import { CountryFill } from "./country-fill";
-import { CountryOutlinesLayer } from "./country-outlines";
-import { CountryPins } from "./country-pins";
-import { triggerLandingHaptic } from "./landing-haptic";
-import type { SettleOrigin } from "./spin-gesture";
-import { SpinSnapControls } from "./spin-snap-controls";
-import { StarBackdrop } from "./star-backdrop";
+import { usePrefersReducedMotion } from '../use-prefers-reduced-motion';
+import { cameraForViewport } from './camera-fit';
+import { CountryFill } from './country-fill';
+import { CountryOutlinesLayer } from './country-outlines';
+import { CountryPins } from './country-pins';
+import { triggerLandingHaptic } from './landing-haptic';
+import type { SettleOrigin } from './spin-gesture';
+import { SpinSnapControls } from './spin-snap-controls';
+import { StarBackdrop } from './star-backdrop';
 
 const ISO_BY_CODE = new Map(COUNTRIES.map((c) => [c.code, c.isoNum]));
 
@@ -31,7 +30,7 @@ const SPIN_FRICTION = 2.5;
 const SPIN_BOUNCE = 0.45;
 const SPIN_HORIZONTAL_LOCK = false;
 const SPIN_FAIR = true;
-const FALLBACK_CODE = "us";
+const FALLBACK_CODE = 'us';
 
 // Pins no longer handle selection; the canvas-level tap does. A stable no-op
 // keeps CountryPins' required onSelect from getting a new ref each render.
@@ -107,10 +106,10 @@ function SceneContent() {
         globeChartStore.getState();
       setSelectedCountry(code);
       const url = chartPath(code, SONGS_CHART, chartMode);
-      if (origin === "gesture") {
-        window.history.pushState(null, "", url);
+      if (origin === 'gesture') {
+        window.history.pushState(null, '', url);
       } else {
-        window.history.replaceState(null, "", url);
+        window.history.replaceState(null, '', url);
       }
       setVisited(addVisited(visited, code));
     },
@@ -215,13 +214,13 @@ export function GlobeScene() {
       // touch-callout resets stop a long press from raising iOS Safari's text
       // selection / callout over the canvas mid-gesture.
       style={{
-        touchAction: "none",
-        userSelect: "none",
-        WebkitUserSelect: "none",
-        WebkitTouchCallout: "none",
+        touchAction: 'none',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
       }}
       className={`transition-opacity duration-700 ease-out ${
-        ready ? "opacity-100" : "opacity-0"
+        ready ? 'opacity-100' : 'opacity-0'
       }`}
     >
       <AspectCameraFit />

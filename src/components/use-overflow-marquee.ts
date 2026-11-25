@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   type CSSProperties,
@@ -6,9 +6,9 @@ import {
   useEffect,
   useRef,
   useState,
-} from "react";
+} from 'react';
 
-import { usePrefersReducedMotion } from "./use-prefers-reduced-motion";
+import { usePrefersReducedMotion } from './use-prefers-reduced-motion';
 
 // Scroll pacing: duration scales with the overflow distance so the title moves
 // at a roughly constant speed no matter how far it has to travel.
@@ -57,8 +57,8 @@ export function useOverflowMarquee<T extends HTMLElement = HTMLSpanElement>({
   const active = enabled && distance > 0 && !reducedMotion;
   const style: CSSProperties | undefined = active
     ? ({
-        "--marquee-distance": `${distance}px`,
-        "--marquee-duration": `${Math.max(MIN_DURATION_MS, Math.round(distance * MS_PER_PX))}ms`,
+        '--marquee-distance': `${distance}px`,
+        '--marquee-duration': `${Math.max(MIN_DURATION_MS, Math.round(distance * MS_PER_PX))}ms`,
       } as CSSProperties)
     : undefined;
 

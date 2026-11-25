@@ -1,20 +1,20 @@
-import * as Sentry from "@sentry/nextjs";
+import * as Sentry from '@sentry/nextjs';
 
 import {
   CHART_LIFETIME,
   MISCONFIGURED_MESSAGE,
   NEVER_STORE,
   json,
-} from "@/lib/api-response";
-import { MUSIC_CHARTS_TAG } from "@/lib/cache-tags";
+} from '@/lib/api-response';
+import { MUSIC_CHARTS_TAG } from '@/lib/cache-tags';
 import {
   ChartPartFetchError,
   ChartPartValidationError,
   fetchPlaylistFile,
-} from "@/lib/chart-parts";
-import { PlaylistIdSchema } from "@/lib/url-schema";
+} from '@/lib/chart-parts';
+import { PlaylistIdSchema } from '@/lib/url-schema';
 
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 
 /**
  * Serves one playlist's track list to the browser.
@@ -31,13 +31,13 @@ export async function readPlaylist(
 ): Promise<Response> {
   const { id } = await params;
   if (!PlaylistIdSchema.safeParse(id).success) {
-    return json({ error: "not a playlist id" }, 400, CHART_LIFETIME);
+    return json({ error: 'not a playlist id' }, 400, CHART_LIFETIME);
   }
 
   const chartsUrl = process.env.CHARTS_BLOB_URL;
   if (!chartsUrl) {
-    Sentry.captureMessage(MISCONFIGURED_MESSAGE, "error");
-    return json({ error: "not configured" }, 500, NEVER_STORE);
+    Sentry.captureMessage(MISCONFIGURED_MESSAGE, 'error');
+    return json({ error: 'not configured' }, 500, NEVER_STORE);
   }
 
   try {
@@ -50,19 +50,19 @@ export async function readPlaylist(
     // carried forward on this axis still advertises the charts it had. Anything
     // else is the store failing, which is worth knowing about.
     if (err instanceof ChartPartFetchError && err.status === 404) {
-      return json({ error: "no such playlist" }, 404, CHART_LIFETIME);
+      return json({ error: 'no such playlist' }, 404, CHART_LIFETIME);
     }
     if (
       err instanceof ChartPartFetchError ||
       err instanceof ChartPartValidationError
     ) {
       Sentry.addBreadcrumb({
-        category: "playlist",
-        level: "warning",
-        message: "playlist.upstream_failed",
+        category: 'playlist',
+        level: 'warning',
+        message: 'playlist.upstream_failed',
         data: { playlistId: id, tag: MUSIC_CHARTS_TAG },
       });
-      return json({ error: "upstream failed" }, 502, NEVER_STORE);
+      return json({ error: 'upstream failed' }, 502, NEVER_STORE);
     }
     throw err;
   }

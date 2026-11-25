@@ -1,9 +1,9 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 import {
   AppleArtworkUrlSchema,
   AppleStorefrontUrlSchema,
-} from "../../src/lib/url-schema";
+} from '../../src/lib/url-schema';
 
 export interface AppleRssTrack {
   rank: number;
@@ -20,7 +20,7 @@ export class AppleRssError extends Error {
     message: string,
   ) {
     super(message);
-    this.name = "AppleRssError";
+    this.name = 'AppleRssError';
   }
 }
 
@@ -68,7 +68,7 @@ export async function fetchAppleRss(
   } catch (err) {
     throw new AppleRssError(
       cc,
-      `Apple RSS fetch failed: ${err instanceof Error ? err.message : "network error"}`,
+      `Apple RSS fetch failed: ${err instanceof Error ? err.message : 'network error'}`,
     );
   }
 
@@ -85,7 +85,7 @@ export async function fetchAppleRss(
   } catch (err) {
     throw new AppleRssError(
       cc,
-      `Apple RSS invalid JSON: ${err instanceof Error ? err.message : "parse error"}`,
+      `Apple RSS invalid JSON: ${err instanceof Error ? err.message : 'parse error'}`,
     );
   }
 
@@ -103,6 +103,6 @@ export async function fetchAppleRss(
     name: raw.name,
     artist: raw.artistName,
     appleUrl: raw.url,
-    artworkUrl: raw.artworkUrl100.replace("/100x100bb.jpg", "/600x600bb.jpg"),
+    artworkUrl: raw.artworkUrl100.replace('/100x100bb.jpg', '/600x600bb.jpg'),
   }));
 }

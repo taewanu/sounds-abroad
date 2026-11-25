@@ -1,10 +1,10 @@
-import type { CountryOutlines } from "@/lib/country-outlines";
+import type { CountryOutlines } from '@/lib/country-outlines';
 
-const TIER1_COLOR = "#3a4a5a";
+const TIER1_COLOR = '#3a4a5a';
 const TIER1_OPACITY = 0.8;
-const TIER2_COLOR = "#88aacc";
+const TIER2_COLOR = '#88aacc';
 const TIER2_OPACITY = 0.85;
-const HOVER_OUTLINE_COLOR = "#FF8866";
+const HOVER_OUTLINE_COLOR = '#FF8866';
 const LINE_R_HOVER = 1.002;
 
 interface CountryOutlinesLayerProps {

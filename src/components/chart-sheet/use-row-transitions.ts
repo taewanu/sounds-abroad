@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from 'react';
 
-import type { ChartTrack } from "@/lib/chart-schema";
+import type { ChartTrack } from '@/lib/chart-schema';
 
 /** How a row is moving through a mode switch, for the collapse/expand motion. */
-export type RowTransition = "stable" | "entering" | "leaving";
+export type RowTransition = 'stable' | 'entering' | 'leaving';
 
 export interface DisplayRow {
   track: ChartTrack;
@@ -21,7 +21,7 @@ export interface DisplayRow {
 export const ROW_COLLAPSE_MS = 300;
 
 function stable(rows: readonly ChartTrack[]): DisplayRow[] {
-  return rows.map((track) => ({ track, transition: "stable" }));
+  return rows.map((track) => ({ track, transition: 'stable' }));
 }
 
 function byRank(a: DisplayRow, b: DisplayRow): number {
@@ -68,11 +68,11 @@ export function useRowTransitions(
       const wasByRank = new Set(prevRows.current.map((t) => t.rank));
       const nowByRank = new Set(rows.map((t) => t.rank));
       const leaving = prevRows.current.flatMap((track): DisplayRow[] =>
-        nowByRank.has(track.rank) ? [] : [{ track, transition: "leaving" }],
+        nowByRank.has(track.rank) ? [] : [{ track, transition: 'leaving' }],
       );
       const arriving = rows.map((track): DisplayRow => ({
         track,
-        transition: wasByRank.has(track.rank) ? "stable" : "entering",
+        transition: wasByRank.has(track.rank) ? 'stable' : 'entering',
       }));
       setDisplay([...arriving, ...leaving].sort(byRank));
       clearDrop();

@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { AdditiveBlending } from "three";
+import { useMemo } from 'react';
+import { AdditiveBlending } from 'three';
 
 const STAR_COUNT = 1800;
 const STAR_SIZE = 0.04;

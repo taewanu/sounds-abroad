@@ -1,23 +1,23 @@
-"use client";
+'use client';
 
-import { type CSSProperties, useState } from "react";
+import { type CSSProperties, useState } from 'react';
 
-import { AppleMusicIcon } from "@/components/icons/apple-music";
-import { PauseIcon } from "@/components/icons/pause";
-import { PlayIcon } from "@/components/icons/play";
-import { SpotifyIcon } from "@/components/icons/spotify";
-import { TrackArtwork } from "@/components/track-artwork";
-import { useOverflowMarquee } from "@/components/use-overflow-marquee";
-import { track as trackEvent } from "@/lib/analytics";
-import type { ChartMode } from "@/lib/chart-mode";
-import type { ChartRef } from "@/lib/chart-ref";
-import type { ChartTrack } from "@/lib/chart-schema";
-import { spotifySearchUrl } from "@/lib/spotify-search-url";
-import { sameTrack } from "@/lib/track-identity";
-import { useAudioStore } from "@/providers/audio-store-provider";
+import { AppleMusicIcon } from '@/components/icons/apple-music';
+import { PauseIcon } from '@/components/icons/pause';
+import { PlayIcon } from '@/components/icons/play';
+import { SpotifyIcon } from '@/components/icons/spotify';
+import { TrackArtwork } from '@/components/track-artwork';
+import { useOverflowMarquee } from '@/components/use-overflow-marquee';
+import { track as trackEvent } from '@/lib/analytics';
+import type { ChartMode } from '@/lib/chart-mode';
+import type { ChartRef } from '@/lib/chart-ref';
+import type { ChartTrack } from '@/lib/chart-schema';
+import { spotifySearchUrl } from '@/lib/spotify-search-url';
+import { sameTrack } from '@/lib/track-identity';
+import { useAudioStore } from '@/providers/audio-store-provider';
 
-import { TrackCommentary } from "./track-commentary";
-import type { RowTransition } from "./use-row-transitions";
+import { TrackCommentary } from './track-commentary';
+import type { RowTransition } from './use-row-transitions';
 
 // How many rows the entrance stagger runs across before every later row lands
 // together. Past this the delay would outlast the motion it is spacing.
@@ -67,7 +67,7 @@ export function TrackRow({
   onOpenCommentary,
   onCloseCommentary,
   onPlay,
-  transition = "stable",
+  transition = 'stable',
 }: TrackRowProps) {
   const isCurrent = useAudioStore(
     (s) =>
@@ -89,7 +89,7 @@ export function TrackRow({
   const pause = useAudioStore((s) => s.pause);
 
   const hasPreview = track.previewUrl !== null;
-  const state = isCurrent ? (isPlaying ? "playing" : "paused") : undefined;
+  const state = isCurrent ? (isPlaying ? 'playing' : 'paused') : undefined;
 
   // The current track always scrolls; a hovered row scrolls on pointer devices.
   const [hovered, setHovered] = useState(false);
@@ -110,9 +110,9 @@ export function TrackRow({
     track.spotifyUrl ?? spotifySearchUrl(track.name, track.artist);
   // The URL is the only thing that knows: both forms are plain strings, and
   // the playlist axis bakes the search form rather than leaving it absent.
-  const spotifyDestination = spotifyHref.includes("/track/")
-    ? "track"
-    : "search";
+  const spotifyDestination = spotifyHref.includes('/track/')
+    ? 'track'
+    : 'search';
 
   // content-visibility:auto skips layout/paint for rows scrolled out of view
   // (most of the list); the focused card must fully render, so it opts out.
@@ -123,18 +123,18 @@ export function TrackRow({
   // the card fades its surface in and the siblings dim/undim both when opening
   // and when closing, off the same class change.
   const baseClass =
-    "flex flex-col rounded-[14px] px-3 py-2.5 transition-[background-color,box-shadow,opacity] duration-[240ms] ease-[var(--ease-out)] data-[disabled]:opacity-40 motion-reduce:transition-none";
+    'flex flex-col rounded-[14px] px-3 py-2.5 transition-[background-color,box-shadow,opacity] duration-[240ms] ease-[var(--ease-out)] data-[disabled]:opacity-40 motion-reduce:transition-none';
   const stateClass = focused
-    ? "bg-atmos ring-aurora/25 relative z-10 shadow-sheet ring-1"
+    ? 'bg-atmos ring-aurora/25 relative z-10 shadow-sheet ring-1'
     : dimmed
-      ? "pointer-events-none opacity-40"
-      : "hover:bg-atmos data-[state]:bg-sunrise/[0.08] data-[state]:hover:bg-sunrise/[0.15] [contain-intrinsic-size:auto_68px] [content-visibility:auto] data-[disabled]:hover:bg-transparent";
+      ? 'pointer-events-none opacity-40'
+      : 'hover:bg-atmos data-[state]:bg-sunrise/[0.08] data-[state]:hover:bg-sunrise/[0.15] [contain-intrinsic-size:auto_68px] [content-visibility:auto] data-[disabled]:hover:bg-transparent';
 
   return (
     <li
       data-rank={track.rank}
       data-state={state}
-      data-row-transition={transition === "stable" ? undefined : transition}
+      data-row-transition={transition === 'stable' ? undefined : transition}
       data-disabled={!hasPreview || undefined}
       data-commentary-card={focused || undefined}
       // A dimmed sibling is inert as well as pointer-dead, so keyboard and
@@ -149,9 +149,9 @@ export function TrackRow({
       // coprime multipliers keep neighbouring ranks from landing in step.
       style={
         {
-          "--row-wait-dur": `${2400 + ((track.rank * 37) % 23) * 100}ms`,
-          "--row-wait-delay": `-${((track.rank * 53) % 20) * 100}ms`,
-          "--enter-index": Math.min(enterIndex, ENTER_STAGGER_ROWS),
+          '--row-wait-dur': `${2400 + ((track.rank * 37) % 23) * 100}ms`,
+          '--row-wait-delay': `-${((track.rank * 53) % 20) * 100}ms`,
+          '--enter-index': Math.min(enterIndex, ENTER_STAGGER_ROWS),
         } as CSSProperties
       }
       className={`${baseClass} ${stateClass}`}
@@ -161,18 +161,18 @@ export function TrackRow({
           type="button"
           disabled={!hasPreview}
           onClick={() => {
-            toggle(track, { countryCode, chartRef, mode }, "track_row");
+            toggle(track, { countryCode, chartRef, mode }, 'track_row');
             onPlay?.();
           }}
-          aria-label={`${isPlaying ? "Pause" : "Play"} preview of ${track.name} by ${track.artist}`}
-          className="focus-visible:outline-aurora flex min-w-0 flex-1 items-center gap-[14px] text-left transition-transform duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none"
+          aria-label={`${isPlaying ? 'Pause' : 'Play'} preview of ${track.name} by ${track.artist}`}
+          className="flex min-w-0 flex-1 items-center gap-[14px] text-left transition-transform duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora active:scale-[0.97] disabled:pointer-events-none"
         >
-          <span className="text-fg-3 text-body flex w-7 shrink-0 items-center justify-center font-mono tabular-nums">
+          <span className="flex w-7 shrink-0 items-center justify-center font-mono text-body text-fg-3 tabular-nums">
             {isCurrent ? (
               isPlaying ? (
-                <PauseIcon className="text-sunrise h-4 w-4" />
+                <PauseIcon className="h-4 w-4 text-sunrise" />
               ) : (
-                <PlayIcon className="text-sunrise h-4 w-4" />
+                <PlayIcon className="h-4 w-4 text-sunrise" />
               )
             ) : (
               track.rank
@@ -181,8 +181,8 @@ export function TrackRow({
           <TrackArtwork url={track.artworkUrl} />
           <div className="min-w-0 flex-1">
             <p
-              className={`text-body flex min-w-0 items-center gap-2 font-medium ${
-                isCurrent ? "text-sunrise" : "text-fg-1"
+              className={`flex min-w-0 items-center gap-2 text-body font-medium ${
+                isCurrent ? 'text-sunrise' : 'text-fg-1'
               }`}
             >
               <span className="block min-w-0 overflow-hidden">
@@ -207,11 +207,11 @@ export function TrackRow({
                 </span>
               )}
             </p>
-            <p className="text-fg-2 text-small truncate">
+            <p className="truncate text-small text-fg-2">
               {hasPreview ? track.artist : `No preview · ${track.artist}`}
             </p>
             {hasError && (
-              <p className="text-error text-micro mt-1">
+              <p className="mt-1 text-micro text-error">
                 Preview unavailable, try another track
               </p>
             )}
@@ -224,15 +224,15 @@ export function TrackRow({
             rel="noopener noreferrer"
             onClick={() => {
               pause();
-              trackEvent("deeplink_out", {
+              trackEvent('deeplink_out', {
                 country: countryCode,
-                platform: "apple",
-                destination: "track",
+                platform: 'apple',
+                destination: 'track',
                 rank: track.rank,
               });
             }}
             aria-label={`Open ${track.name} in Apple Music`}
-            className="hover:bg-orbit focus-visible:outline-aurora flex h-8 w-8 items-center justify-center rounded-full transition-[color,background-color,scale] duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]"
+            className="flex h-8 w-8 items-center justify-center rounded-full transition-[color,background-color,scale] duration-150 ease-[var(--ease-spring)] hover:bg-orbit focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora active:scale-[0.97]"
           >
             <AppleMusicIcon className="h-3.5 w-3.5" />
           </a>
@@ -242,15 +242,15 @@ export function TrackRow({
             rel="noopener noreferrer"
             onClick={() => {
               pause();
-              trackEvent("deeplink_out", {
+              trackEvent('deeplink_out', {
                 country: countryCode,
-                platform: "spotify",
+                platform: 'spotify',
                 destination: spotifyDestination,
                 rank: track.rank,
               });
             }}
             aria-label={`Open ${track.name} on Spotify`}
-            className="hover:bg-orbit focus-visible:outline-aurora flex h-8 w-8 items-center justify-center rounded-full transition-[color,background-color,scale] duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]"
+            className="flex h-8 w-8 items-center justify-center rounded-full transition-[color,background-color,scale] duration-150 ease-[var(--ease-spring)] hover:bg-orbit focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora active:scale-[0.97]"
           >
             <SpotifyIcon className="h-3.5 w-3.5" />
           </a>

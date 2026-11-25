@@ -1,5 +1,5 @@
-import type { Country, Track } from "./chart-schema";
-import { selectGem } from "./select-gem";
+import type { Country, Track } from './chart-schema';
+import { selectGem } from './select-gem';
 
 /**
  * The track a shuffle landing starts in the country it drew: that country's

@@ -2,12 +2,12 @@
 // The added config here will be used whenever a users loads a page in their browser.
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
-import * as Sentry from "@sentry/nextjs";
-import posthog from "posthog-js";
-import { z } from "zod";
+import * as Sentry from '@sentry/nextjs';
+import posthog from 'posthog-js';
+import { z } from 'zod';
 
-import { POSTHOG_HOST } from "./lib/analytics-host";
-import { dataCollection, v10Behavior } from "./lib/sentry-options";
+import { POSTHOG_HOST } from './lib/analytics-host';
+import { dataCollection, v10Behavior } from './lib/sentry-options';
 
 // The content-security policy allows no eval, so zod's JIT probe would log a
 // violation on every visit; jitless skips the probe. Client only: the crawl
@@ -18,7 +18,7 @@ Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
   // First-class deployment metadata (Sentry UI gets dedicated filters / release grouping).
-  environment: process.env.NEXT_PUBLIC_VERCEL_ENV ?? "development",
+  environment: process.env.NEXT_PUBLIC_VERCEL_ENV ?? 'development',
   release: process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?.slice(0, 7),
 
   // Add optional integrations for additional features
@@ -41,30 +41,30 @@ Sentry.init({
 
   // Deployment Protection admits the /monitoring tunnel only with its cookie,
   // which the SDK omits by default.
-  transportOptions: { fetchOptions: { credentials: "same-origin" } },
+  transportOptions: { fetchOptions: { credentials: 'same-origin' } },
 });
 
 // Manual opt-in: rich non-PII context for learning and debugging.
-if (typeof window !== "undefined") {
-  Sentry.setContext("app_locale", {
+if (typeof window !== 'undefined') {
+  Sentry.setContext('app_locale', {
     language: navigator.language,
-    languages: navigator.languages?.slice(0, 3).join(","),
+    languages: navigator.languages?.slice(0, 3).join(','),
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   });
 
-  Sentry.setContext("viewport", {
+  Sentry.setContext('viewport', {
     width: window.innerWidth,
     height: window.innerHeight,
     devicePixelRatio: window.devicePixelRatio,
   });
 
-  Sentry.setContext("browser_features", {
-    colorScheme: window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light",
-    reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)")
+  Sentry.setContext('browser_features', {
+    colorScheme: window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light',
+    reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)')
       .matches,
-    touch: "ontouchstart" in window,
+    touch: 'ontouchstart' in window,
     online: navigator.onLine,
   });
 
@@ -77,7 +77,7 @@ if (typeof window !== "undefined") {
   const conn = (navigator as Navigator & { connection?: NetworkInformation })
     .connection;
   if (conn) {
-    Sentry.setContext("network", {
+    Sentry.setContext('network', {
       effectiveType: conn.effectiveType,
       downlink: conn.downlink,
       saveData: conn.saveData,
@@ -98,7 +98,7 @@ if (posthogKey) {
   posthog.init(posthogKey, {
     api_host: POSTHOG_HOST,
     autocapture: false,
-    capture_pageview: "history_change",
+    capture_pageview: 'history_change',
     disable_session_recording: true,
     // Nothing lazy-loaded or fetched from the assets CDN (web vitals, surveys,
     // dead clicks, remote config, feature flags): none is in use, and the
@@ -107,11 +107,11 @@ if (posthogKey) {
     // the assets host in the policy, together.
     disable_external_dependency_loading: true,
     advanced_disable_flags: true,
-    person_profiles: "identified_only",
+    person_profiles: 'identified_only',
   });
   // Tag every event with the deploy env so dev/preview traffic is filterable.
   posthog.register({
-    app_env: process.env.NEXT_PUBLIC_VERCEL_ENV ?? "development",
+    app_env: process.env.NEXT_PUBLIC_VERCEL_ENV ?? 'development',
   });
 }
 

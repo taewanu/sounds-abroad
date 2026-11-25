@@ -1,17 +1,17 @@
-"use client";
+'use client';
 
-import { GemIcon } from "@/components/icons/gem";
-import { PauseIcon } from "@/components/icons/pause";
-import { PlayIcon } from "@/components/icons/play";
-import { TrackArtwork } from "@/components/track-artwork";
-import { DEFAULT_CHART_MODE } from "@/lib/chart-mode";
-import { SONGS_CHART } from "@/lib/chart-ref";
-import type { Track } from "@/lib/chart-schema";
-import { GEM_TIER_STRENGTH, type GemTier } from "@/lib/select-gem";
-import { sameTrack } from "@/lib/track-identity";
-import { useAudioStore } from "@/providers/audio-store-provider";
+import { GemIcon } from '@/components/icons/gem';
+import { PauseIcon } from '@/components/icons/pause';
+import { PlayIcon } from '@/components/icons/play';
+import { TrackArtwork } from '@/components/track-artwork';
+import { DEFAULT_CHART_MODE } from '@/lib/chart-mode';
+import { SONGS_CHART } from '@/lib/chart-ref';
+import type { Track } from '@/lib/chart-schema';
+import { GEM_TIER_STRENGTH, type GemTier } from '@/lib/select-gem';
+import { sameTrack } from '@/lib/track-identity';
+import { useAudioStore } from '@/providers/audio-store-provider';
 
-import { TrackCommentary } from "./track-commentary";
+import { TrackCommentary } from './track-commentary';
 
 export interface GemCardProps {
   track: Track;
@@ -29,7 +29,7 @@ function TierDots({ tier }: { tier: GemTier }) {
         <span
           key={dot}
           data-lit={dot <= lit || undefined}
-          className={`h-1 w-1 rounded-full ${dot <= lit ? "bg-fg-1" : "bg-fg-1/15"}`}
+          className={`h-1 w-1 rounded-full ${dot <= lit ? 'bg-fg-1' : 'bg-fg-1/15'}`}
         />
       ))}
     </span>
@@ -66,7 +66,7 @@ export function GemCard({ track, tier, countryCode }: GemCardProps) {
   return (
     <section
       aria-label="Local Gem"
-      className="border-fg-1/10 bg-atmos mb-3 flex flex-col rounded-lg border px-3 py-2.5"
+      className="mb-3 flex flex-col rounded-lg border border-fg-1/10 bg-atmos px-3 py-2.5"
     >
       <button
         type="button"
@@ -75,34 +75,34 @@ export function GemCard({ track, tier, countryCode }: GemCardProps) {
           toggle(
             track,
             { countryCode, chartRef: SONGS_CHART, mode: DEFAULT_CHART_MODE },
-            "gem_card",
+            'gem_card',
           )
         }
-        aria-label={`${isPlaying ? "Pause" : "Play"} the Local Gem, ${track.name} by ${track.artist}`}
-        className="focus-visible:outline-aurora flex min-w-0 items-center gap-[14px] text-left transition-transform duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none"
+        aria-label={`${isPlaying ? 'Pause' : 'Play'} the Local Gem, ${track.name} by ${track.artist}`}
+        className="flex min-w-0 items-center gap-[14px] text-left transition-transform duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora active:scale-[0.97] disabled:pointer-events-none"
       >
-        <span className="text-fg-3 text-body flex w-7 shrink-0 items-center justify-center">
+        <span className="flex w-7 shrink-0 items-center justify-center text-body text-fg-3">
           {isPlaying ? (
-            <PauseIcon className="text-sunrise h-4 w-4" />
+            <PauseIcon className="h-4 w-4 text-sunrise" />
           ) : (
             <PlayIcon
-              className={`h-4 w-4 ${isCurrent ? "text-sunrise" : "text-fg-3"}`}
+              className={`h-4 w-4 ${isCurrent ? 'text-sunrise' : 'text-fg-3'}`}
             />
           )}
         </span>
         <TrackArtwork url={track.artworkUrl} />
         <div className="min-w-0 flex-1">
-          <p className="text-gold text-micro mb-0.5 flex items-center gap-1.5 font-medium tracking-wide uppercase">
+          <p className="mb-0.5 flex items-center gap-1.5 text-micro font-medium tracking-wide text-gold uppercase">
             <GemIcon className="h-3.5 w-3.5 shrink-0" />
             Local Gem
           </p>
-          <p className="text-fg-2 text-small mb-0.5 flex min-w-0 items-center gap-1.5">
+          <p className="mb-0.5 flex min-w-0 items-center gap-1.5 text-small text-fg-2">
             <TierDots tier={tier} />
             <span className="min-w-0 truncate">{tier}</span>
           </p>
           <p
-            className={`text-body truncate font-medium ${
-              isCurrent ? "text-sunrise" : "text-fg-1"
+            className={`truncate text-body font-medium ${
+              isCurrent ? 'text-sunrise' : 'text-fg-1'
             }`}
           >
             {track.name}
@@ -118,11 +118,11 @@ export function GemCard({ track, tier, countryCode }: GemCardProps) {
               </span>
             )}
           </p>
-          <p className="text-fg-2 text-small truncate">
+          <p className="truncate text-small text-fg-2">
             {hasPreview ? track.artist : `No preview · ${track.artist}`}
           </p>
           {hasError && (
-            <p className="text-error text-micro mt-1">
+            <p className="mt-1 text-micro text-error">
               Preview unavailable, try another track
             </p>
           )}

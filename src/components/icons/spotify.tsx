@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import type { SVGProps } from 'react';
 
 // Official Spotify icon (Spotify Design "icon" asset). Spotify green for icon-only use, per
 // both Spotify's guidelines and the design system (brand color when shown without a label).

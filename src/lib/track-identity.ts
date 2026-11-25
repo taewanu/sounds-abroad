@@ -1,4 +1,4 @@
-import { normalizeForKey } from "./commentary-store";
+import { normalizeForKey } from './commentary-store';
 
 /** The track fields that establish identity, so callers can pass a partial. */
 type TrackIdentity = { appleUrl: string; artist: string; name: string };
@@ -29,7 +29,7 @@ export function sameTrack(
 
 function appleSongId(appleUrl: string): string | null {
   try {
-    return new URL(appleUrl).searchParams.get("i");
+    return new URL(appleUrl).searchParams.get('i');
   } catch {
     return null;
   }

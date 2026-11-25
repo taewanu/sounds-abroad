@@ -1,15 +1,14 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 
-import type { Commentary } from "../../src/lib/chart-schema";
+import type { Commentary } from '../../src/lib/chart-schema';
 import {
   draftBlurb,
   type DraftClient,
   type DraftInput,
   type RawDraft,
-} from "../../src/lib/drafting";
-
-import type { WorklistItem, WorklistReason } from "./worklist";
+} from '../../src/lib/drafting';
+import type { WorklistItem, WorklistReason } from './worklist';
 
 /**
  * The drafting shell: the subprocess half of auto-drafting, whose pure prompt
@@ -30,15 +29,15 @@ const execFileAsync = promisify(execFile);
  * the schema's one-source floor.
  */
 const RAW_DRAFT_SCHEMA = JSON.stringify({
-  type: "object",
+  type: 'object',
   properties: {
-    lead: { type: "string" },
-    detail: { type: "string" },
-    tag: { type: "string" },
-    claim: { type: "string", enum: ["what-it-is", "why-charting"] },
-    sources: { type: "array", items: { type: "string" }, minItems: 2 },
+    lead: { type: 'string' },
+    detail: { type: 'string' },
+    tag: { type: 'string' },
+    claim: { type: 'string', enum: ['what-it-is', 'why-charting'] },
+    sources: { type: 'array', items: { type: 'string' }, minItems: 2 },
   },
-  required: ["lead", "tag", "claim", "sources"],
+  required: ['lead', 'tag', 'claim', 'sources'],
   additionalProperties: false,
 });
 
@@ -62,15 +61,15 @@ export function describeSubprocessFailure(
     stderr?: unknown;
   };
   const stderr =
-    typeof e.stderr === "string" ? e.stderr.trim().split("\n").at(-1) : "";
-  const tail = stderr ? `: ${stderr}` : "";
+    typeof e.stderr === 'string' ? e.stderr.trim().split('\n').at(-1) : '';
+  const tail = stderr ? `: ${stderr}` : '';
   // Killed says a signal ended it, not which one sent it. The budget's own kill
   // is SIGTERM, and so is an operator or a supervisor stopping the batch, so a
   // signal that is not SIGTERM cannot have been the budget and is named as
   // itself rather than blamed on a timeout that did not happen.
   if (e.killed) {
-    const signal = typeof e.signal === "string" ? e.signal : null;
-    return signal && signal !== "SIGTERM"
+    const signal = typeof e.signal === 'string' ? e.signal : null;
+    return signal && signal !== 'SIGTERM'
       ? `drafter killed by ${signal}${tail}`
       : `drafter timed out after ${timeoutMs / 1000}s${tail}`;
   }
@@ -78,7 +77,7 @@ export function describeSubprocessFailure(
   // cause elsewhere may fall through to it. A numeric code is the exit-status
   // shape, whose message is the prompt; a string code is a startup or stream
   // failure, whose message is short and names itself.
-  if (typeof e.code === "number") {
+  if (typeof e.code === 'number') {
     return `drafter exited ${e.code}${tail}`;
   }
   return `drafter failed${tail || `: ${String(error)}`}`;
@@ -105,20 +104,20 @@ export function createClaudeDrafter(timeoutMs = 180_000): DraftClient {
     let stdout: string;
     try {
       ({ stdout } = await execFileAsync(
-        "claude",
+        'claude',
         [
-          "-p",
+          '-p',
           prompt,
-          "--output-format",
-          "json",
-          "--json-schema",
+          '--output-format',
+          'json',
+          '--json-schema',
           RAW_DRAFT_SCHEMA,
-          "--tools",
-          "WebSearch,WebFetch",
-          "--allowedTools",
-          "WebSearch,WebFetch",
-          "--setting-sources",
-          "",
+          '--tools',
+          'WebSearch,WebFetch',
+          '--allowedTools',
+          'WebSearch,WebFetch',
+          '--setting-sources',
+          '',
         ],
         { timeout: timeoutMs, maxBuffer: 8 * 1024 * 1024 },
       ));
@@ -130,7 +129,7 @@ export function createClaudeDrafter(timeoutMs = 180_000): DraftClient {
       structured_output?: unknown;
     };
     if (envelope.is_error || !envelope.structured_output) {
-      throw new Error("Drafter returned no structured output.");
+      throw new Error('Drafter returned no structured output.');
     }
     return envelope.structured_output as RawDraft;
   };
@@ -143,10 +142,10 @@ export function createClaudeDrafter(timeoutMs = 180_000): DraftClient {
  * not echo the enum.
  */
 const SIGNIFICANCE: Record<WorklistReason, (bestRank: number) => string> = {
-  "new-entry": (r) => `a new chart entry, peaking at #${r}`,
-  "rank-jump": (r) => `a sharp climb up the chart, now peaking at #${r}`,
-  "top-debut": (r) => `a strong move into the upper chart, peaking at #${r}`,
-  "local-gem": (r) =>
+  'new-entry': (r) => `a new chart entry, peaking at #${r}`,
+  'rank-jump': (r) => `a sharp climb up the chart, now peaking at #${r}`,
+  'top-debut': (r) => `a strong move into the upper chart, peaking at #${r}`,
+  'local-gem': (r) =>
     `a track distinctly local to where it charts, holding at #${r} there while barely charting anywhere else`,
 };
 

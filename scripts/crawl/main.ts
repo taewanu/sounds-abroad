@@ -1,25 +1,24 @@
-import { COUNTRIES } from "../../src/lib/countries";
-import { assertObjectStoreEnv } from "../lib/object-store";
-
-import { fetchPlaylists } from "./apple-playlists";
-import { fetchAppleRss } from "./apple-rss";
-import { createItunesFetchers } from "./itunes-fetchers";
-import { lookupTracks } from "./itunes-lookup";
-import { fetchPlaylistPage } from "./playlist-page";
-import { fetchPublishedCharts } from "./published-charts";
-import { crawlAll, crawlCountry, type SpotifyResolution } from "./run";
-import { createSpotifyResolver } from "./spotify-resolve";
+import { COUNTRIES } from '../../src/lib/countries';
+import { assertObjectStoreEnv } from '../lib/object-store';
+import { fetchPlaylists } from './apple-playlists';
+import { fetchAppleRss } from './apple-rss';
+import { createItunesFetchers } from './itunes-fetchers';
+import { lookupTracks } from './itunes-lookup';
+import { fetchPlaylistPage } from './playlist-page';
+import { fetchPublishedCharts } from './published-charts';
+import { crawlAll, crawlCountry, type SpotifyResolution } from './run';
+import { createSpotifyResolver } from './spotify-resolve';
 import {
   createPlaylistPageThrottle,
   createSpotifyThrottle,
   createThrottle,
-} from "./throttle";
+} from './throttle';
 import {
   uploadCharts,
   uploadPlaylistFile,
   uploadPreviousCharts,
   uploadSongsTail,
-} from "./upload-blob";
+} from './upload-blob';
 
 // Spotify resolution for local debug: enabled only when both credentials are in
 // .env.local; otherwise links fall back to the search URL, same as production.
@@ -46,7 +45,7 @@ async function runSingleCountry(cc: string): Promise<void> {
   const entry = COUNTRIES.find((c) => c.code === cc);
   if (!entry) {
     throw new Error(
-      `Unknown country code "${cc}". Known: ${COUNTRIES.map((c) => c.code).join(", ")}`,
+      `Unknown country code "${cc}". Known: ${COUNTRIES.map((c) => c.code).join(', ')}`,
     );
   }
 
@@ -67,13 +66,13 @@ async function runSingleCountry(cc: string): Promise<void> {
   console.log(
     `[crawl ${cc}] ${country.tracks.length} tracks (valid=${country.valid})`,
   );
-  console.log("[crawl] (dry run: no upload, no revalidate)");
+  console.log('[crawl] (dry run: no upload, no revalidate)');
   console.log(JSON.stringify({ [cc]: country }, null, 2));
 }
 
 async function runAllCountries(): Promise<void> {
   assertObjectStoreEnv(
-    "Run with: pnpm crawl (loads .env.local via tsx --env-file).",
+    'Run with: pnpm crawl (loads .env.local via tsx --env-file).',
   );
   // This run publishes to the live pathname, so it must keep the same
   // read/snapshot pair as cron: without them a local run overwrites the
@@ -81,7 +80,7 @@ async function runAllCountries(): Promise<void> {
   const previousUrl = process.env.CHARTS_BLOB_URL;
   if (!previousUrl) {
     console.warn(
-      "[crawl] CHARTS_BLOB_URL not set: carry-forward and prev snapshot skipped this run.",
+      '[crawl] CHARTS_BLOB_URL not set: carry-forward and prev snapshot skipped this run.',
     );
   }
   const itunes = createItunesFetchers({
@@ -118,7 +117,7 @@ async function runAllCountries(): Promise<void> {
     },
     // Local debug entry never hits production revalidate; cron.ts injects the real one.
     triggerRevalidate: async () => {
-      console.log("[crawl] revalidate skipped (local debug)");
+      console.log('[crawl] revalidate skipped (local debug)');
     },
   });
 }

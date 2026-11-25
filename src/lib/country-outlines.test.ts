@@ -1,16 +1,16 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
-import { expect, test } from "vitest";
+import { expect, test } from 'vitest';
 
-import { COUNTRIES } from "./countries";
-import { buildCountryOutlines, unwrapLongitudes } from "./country-outlines";
+import { COUNTRIES } from './countries';
+import { buildCountryOutlines, unwrapLongitudes } from './country-outlines';
 
 const realTopology = JSON.parse(
-  readFileSync(join(process.cwd(), "public/data/countries-50m.json"), "utf-8"),
+  readFileSync(join(process.cwd(), 'public/data/countries-50m.json'), 'utf-8'),
 );
 
-test("buildCountryOutlines splits chart-set countries from others by isoNum", () => {
+test('buildCountryOutlines splits chart-set countries from others by isoNum', () => {
   const outlines = buildCountryOutlines(realTopology);
 
   expect(outlines.byIso.has(410)).toBe(true);
@@ -19,7 +19,7 @@ test("buildCountryOutlines splits chart-set countries from others by isoNum", ()
   expect(outlines.tier2Positions.length).toBeGreaterThan(0);
 });
 
-test("buildCountryOutlines emits line-segment pairs (each segment = 6 floats)", () => {
+test('buildCountryOutlines emits line-segment pairs (each segment = 6 floats)', () => {
   const outlines = buildCountryOutlines(realTopology);
   const kr = outlines.byIso.get(410);
 
@@ -30,7 +30,7 @@ test("buildCountryOutlines emits line-segment pairs (each segment = 6 floats)", 
   expect(outlines.tier2Positions.length % 6).toBe(0);
 });
 
-test("buildCountryOutlines includes a non-empty geometry for every chart-set country", () => {
+test('buildCountryOutlines includes a non-empty geometry for every chart-set country', () => {
   const outlines = buildCountryOutlines(realTopology);
 
   for (const country of COUNTRIES) {
@@ -46,7 +46,7 @@ test("buildCountryOutlines includes a non-empty geometry for every chart-set cou
   }
 });
 
-test("buildCountryOutlines exposes lat/lon rings for every chart-set country", () => {
+test('buildCountryOutlines exposes lat/lon rings for every chart-set country', () => {
   const outlines = buildCountryOutlines(realTopology);
 
   for (const country of COUNTRIES) {
@@ -62,7 +62,7 @@ test("buildCountryOutlines exposes lat/lon rings for every chart-set country", (
   }
 });
 
-test("buildCountryOutlines merges features sharing an ISO num (AU 036: Australia + Ashmore)", () => {
+test('buildCountryOutlines merges features sharing an ISO num (AU 036: Australia + Ashmore)', () => {
   const outlines = buildCountryOutlines(realTopology);
   const auRings = outlines.byIsoRings.get(36);
 
@@ -85,7 +85,7 @@ test("buildCountryOutlines merges features sharing an ISO num (AU 036: Australia
   expect(includesMainland).toBe(true);
 });
 
-test("unwrapLongitudes leaves no step wider than 180° in any chart-set ring", () => {
+test('unwrapLongitudes leaves no step wider than 180° in any chart-set ring', () => {
   const outlines = buildCountryOutlines(realTopology);
 
   for (const [isoNum, rings] of outlines.byIsoRings) {
@@ -100,7 +100,7 @@ test("unwrapLongitudes leaves no step wider than 180° in any chart-set ring", (
   }
 });
 
-test("unwrapLongitudes keeps each point on its original meridian", () => {
+test('unwrapLongitudes keeps each point on its original meridian', () => {
   const ring: [number, number][] = [
     [170, 60],
     [179.5, 62],
@@ -118,7 +118,7 @@ test("unwrapLongitudes keeps each point on its original meridian", () => {
   });
 });
 
-test("buildCountryOutlines rings entries are [lon, lat] pairs within valid ranges", () => {
+test('buildCountryOutlines rings entries are [lon, lat] pairs within valid ranges', () => {
   const outlines = buildCountryOutlines(realTopology);
   const kr = outlines.byIsoRings.get(410);
 

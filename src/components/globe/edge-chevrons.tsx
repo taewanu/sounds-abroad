@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore } from 'react';
 
-import { SNAP_Y_PCT, type SnapState } from "@/components/chart-sheet/sheet";
-import { ChevronsRightIcon } from "@/components/icons/chevrons-right";
-import { useCoarsePointer } from "@/components/use-coarse-pointer";
+import { SNAP_Y_PCT, type SnapState } from '@/components/chart-sheet/sheet';
+import { ChevronsRightIcon } from '@/components/icons/chevrons-right';
+import { useCoarsePointer } from '@/components/use-coarse-pointer';
 
-import { readRecord, subscribeRecord } from "./edge-hint-record";
+import { readRecord, subscribeRecord } from './edge-hint-record';
 
 // SSR can't read the record; defaulting to "used" keeps the cue hidden until
 // the client confirms the gesture is still unlearned, so it can only appear,
@@ -40,7 +40,7 @@ export function EdgeChevrons({
       style={{
         // Bottom tracks the sheet so the pair centers on the visible globe,
         // the same placement math as the skip flash.
-        bottom: sheetSnap === "full" ? "0%" : `${100 - SNAP_Y_PCT[sheetSnap]}%`,
+        bottom: sheetSnap === 'full' ? '0%' : `${100 - SNAP_Y_PCT[sheetSnap]}%`,
       }}
       className="pointer-events-none fixed top-0 right-0 left-0 z-10 flex items-center justify-between px-3"
     >

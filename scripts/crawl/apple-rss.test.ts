@@ -1,18 +1,18 @@
-import { readFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-import { assert, expect, test } from "vitest";
+import { assert, expect, test } from 'vitest';
 
-import { AppleRssError, fetchAppleRss } from "./apple-rss";
+import { AppleRssError, fetchAppleRss } from './apple-rss';
 
 const FIXTURE_PATH = resolve(
   dirname(fileURLToPath(import.meta.url)),
-  "__fixtures__/rss-kr.json",
+  '__fixtures__/rss-kr.json',
 );
 
 async function loadFixture(): Promise<string> {
-  return readFile(FIXTURE_PATH, "utf8");
+  return readFile(FIXTURE_PATH, 'utf8');
 }
 
 function fakeFetch(response: {
@@ -26,10 +26,10 @@ function fakeFetch(response: {
     })) as typeof fetch;
 }
 
-test("ranks every result the storefront returns", async () => {
+test('ranks every result the storefront returns', async () => {
   const body = await loadFixture();
   const raw = JSON.parse(body).feed.results[0];
-  const tracks = await fetchAppleRss("kr", {
+  const tracks = await fetchAppleRss('kr', {
     fetch: fakeFetch({ ok: true, body }),
   });
 
@@ -40,61 +40,61 @@ test("ranks every result the storefront returns", async () => {
     name: raw.name,
     artist: raw.artistName,
     appleUrl: raw.url,
-    artworkUrl: raw.artworkUrl100.replace("/100x100bb.jpg", "/600x600bb.jpg"),
+    artworkUrl: raw.artworkUrl100.replace('/100x100bb.jpg', '/600x600bb.jpg'),
   });
 });
 
-test("rewrites 100x100 artwork URL to 600x600", async () => {
+test('rewrites 100x100 artwork URL to 600x600', async () => {
   const body = await loadFixture();
-  const tracks = await fetchAppleRss("kr", {
+  const tracks = await fetchAppleRss('kr', {
     fetch: fakeFetch({ ok: true, body }),
   });
 
   for (const t of tracks) {
-    expect(t.artworkUrl).not.toContain("/100x100bb.jpg");
-    expect(t.artworkUrl).toContain("/600x600bb.jpg");
+    expect(t.artworkUrl).not.toContain('/100x100bb.jpg');
+    expect(t.artworkUrl).toContain('/600x600bb.jpg');
   }
 });
 
-test("hits the canonical rss.marketingtools.apple.com endpoint", async () => {
+test('hits the canonical rss.marketingtools.apple.com endpoint', async () => {
   const body = await loadFixture();
   const seen: string[] = [];
   const spyFetch: typeof fetch = (async (input: RequestInfo | URL) => {
-    seen.push(typeof input === "string" ? input : input.toString());
+    seen.push(typeof input === 'string' ? input : input.toString());
     return new Response(body, { status: 200 });
   }) as typeof fetch;
 
-  await fetchAppleRss("kr", { fetch: spyFetch });
+  await fetchAppleRss('kr', { fetch: spyFetch });
 
   expect(seen).toHaveLength(1);
   expect(seen[0]).toBe(
-    "https://rss.marketingtools.apple.com/api/v2/kr/music/most-played/100/songs.json",
+    'https://rss.marketingtools.apple.com/api/v2/kr/music/most-played/100/songs.json',
   );
 });
 
-test("throws AppleRssError on non-OK status", async () => {
+test('throws AppleRssError on non-OK status', async () => {
   await expect(
-    fetchAppleRss("kr", {
+    fetchAppleRss('kr', {
       fetch: fakeFetch({
         ok: false,
         status: 503,
-        body: "Service Unavailable",
+        body: 'Service Unavailable',
       }),
     }),
   ).rejects.toBeInstanceOf(AppleRssError);
 });
 
-test("throws AppleRssError on invalid JSON", async () => {
+test('throws AppleRssError on invalid JSON', async () => {
   await expect(
-    fetchAppleRss("kr", {
-      fetch: fakeFetch({ ok: true, body: "<html>nope</html>" }),
+    fetchAppleRss('kr', {
+      fetch: fakeFetch({ ok: true, body: '<html>nope</html>' }),
     }),
   ).rejects.toBeInstanceOf(AppleRssError);
 });
 
-test("throws AppleRssError on shape mismatch", async () => {
+test('throws AppleRssError on shape mismatch', async () => {
   await expect(
-    fetchAppleRss("kr", {
+    fetchAppleRss('kr', {
       fetch: fakeFetch({
         ok: true,
         body: JSON.stringify({ feed: { results: [] } }),
@@ -103,14 +103,14 @@ test("throws AppleRssError on shape mismatch", async () => {
   ).rejects.toBeInstanceOf(AppleRssError);
 });
 
-test("accepts a storefront that ranks fewer songs than the depth asked for", async () => {
+test('accepts a storefront that ranks fewer songs than the depth asked for', async () => {
   const body = await loadFixture();
   const fixture = JSON.parse(body);
   assert.equal(fixture.feed.results.length, 25);
 
   fixture.feed.results.pop();
 
-  const tracks = await fetchAppleRss("kr", {
+  const tracks = await fetchAppleRss('kr', {
     fetch: fakeFetch({ ok: true, body: JSON.stringify(fixture) }),
   });
 
@@ -118,44 +118,44 @@ test("accepts a storefront that ranks fewer songs than the depth asked for", asy
   expect(tracks.at(-1)?.rank).toBe(24);
 });
 
-test("rejects a feed longer than the depth asked for", async () => {
+test('rejects a feed longer than the depth asked for', async () => {
   const body = await loadFixture();
   const fixture = JSON.parse(body);
   const one = fixture.feed.results[0];
   fixture.feed.results = Array.from({ length: 101 }, () => ({ ...one }));
 
   await expect(
-    fetchAppleRss("kr", {
+    fetchAppleRss('kr', {
       fetch: fakeFetch({ ok: true, body: JSON.stringify(fixture) }),
     }),
   ).rejects.toBeInstanceOf(AppleRssError);
 });
 
-test("throws AppleRssError when fetch itself rejects", async () => {
+test('throws AppleRssError when fetch itself rejects', async () => {
   const failingFetch: typeof fetch = (async () => {
-    throw new TypeError("network down");
+    throw new TypeError('network down');
   }) as typeof fetch;
 
   await expect(
-    fetchAppleRss("kr", { fetch: failingFetch }),
+    fetchAppleRss('kr', { fetch: failingFetch }),
   ).rejects.toBeInstanceOf(AppleRssError);
 });
 
 // The URL rules are wired into this schema, so a feed carrying a value they
 // refuse must fail the storefront rather than reach the store.
 test.each([
-  { field: "url", value: "javascript:alert(1)" },
-  { field: "url", value: "https://evil.test/kr/song/1" },
-  { field: "artworkUrl100", value: "data:image/svg+xml,<svg/onload=alert(1)>" },
-  { field: "artworkUrl100", value: "https://evil.test/100x100bb.jpg" },
+  { field: 'url', value: 'javascript:alert(1)' },
+  { field: 'url', value: 'https://evil.test/kr/song/1' },
+  { field: 'artworkUrl100', value: 'data:image/svg+xml,<svg/onload=alert(1)>' },
+  { field: 'artworkUrl100', value: 'https://evil.test/100x100bb.jpg' },
 ])(
-  "a feed whose $field is $value fails the storefront",
+  'a feed whose $field is $value fails the storefront',
   async ({ field, value }) => {
     const feed = JSON.parse(await loadFixture());
     feed.feed.results[0][field] = value;
 
     await expect(
-      fetchAppleRss("kr", {
+      fetchAppleRss('kr', {
         fetch: fakeFetch({ ok: true, body: JSON.stringify(feed) }),
       }),
     ).rejects.toThrow(AppleRssError);

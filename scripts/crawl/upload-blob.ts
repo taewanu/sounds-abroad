@@ -2,13 +2,13 @@ import type {
   ChartFile,
   PlaylistFile,
   SongsTailFile,
-} from "../../src/lib/chart-schema";
-import { putJson } from "../lib/object-store";
+} from '../../src/lib/chart-schema';
+import { putJson } from '../lib/object-store';
 
-const BLOB_PATHNAME = "charts/v1/charts.json";
-const PREV_BLOB_PATHNAME = "charts/v1/charts-prev.json";
-const PLAYLIST_BLOB_PREFIX = "charts/v1/playlists";
-const SONGS_TAIL_PREFIX = "charts/v1/songs";
+const BLOB_PATHNAME = 'charts/v1/charts.json';
+const PREV_BLOB_PATHNAME = 'charts/v1/charts-prev.json';
+const PLAYLIST_BLOB_PREFIX = 'charts/v1/playlists';
+const SONGS_TAIL_PREFIX = 'charts/v1/songs';
 
 /**
  * Next.js 16.4.3 refuses to cache a fetch whose entry, measured as

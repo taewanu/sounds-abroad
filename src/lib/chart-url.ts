@@ -1,9 +1,9 @@
-import { CHART_MODES, DEFAULT_CHART_MODE, type ChartMode } from "./chart-mode";
-import { SONGS_CHART, isPlaylistRef, type ChartRef } from "./chart-ref";
-import type { Country } from "./chart-schema";
+import { CHART_MODES, DEFAULT_CHART_MODE, type ChartMode } from './chart-mode';
+import { SONGS_CHART, isPlaylistRef, type ChartRef } from './chart-ref';
+import type { Country } from './chart-schema';
 
-export const CHART_PARAM = "chart";
-export const MODE_PARAM = "mode";
+export const CHART_PARAM = 'chart';
+export const MODE_PARAM = 'mode';
 
 /** The static per-country page for a country code. */
 export function countryPath(countryCode: string): string {

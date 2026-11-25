@@ -1,8 +1,8 @@
-import { feature } from "topojson-client";
-import type { GeometryCollection, Topology } from "topojson-specification";
+import { feature } from 'topojson-client';
+import type { GeometryCollection, Topology } from 'topojson-specification';
 
-import { COUNTRIES } from "./countries";
-import { latLonToVec3 } from "./lat-lon-to-vec3";
+import { COUNTRIES } from './countries';
+import { latLonToVec3 } from './lat-lon-to-vec3';
 
 export type CountryRings = [number, number][][];
 
@@ -78,12 +78,12 @@ export function unwrapLongitudes(ring: [number, number][]): [number, number][] {
   return out;
 }
 
-type PolygonGeom = { type: "Polygon"; coordinates: number[][][] };
-type MultiPolygonGeom = { type: "MultiPolygon"; coordinates: number[][][][] };
+type PolygonGeom = { type: 'Polygon'; coordinates: number[][][] };
+type MultiPolygonGeom = { type: 'MultiPolygon'; coordinates: number[][][][] };
 
 function parseFeatureId(idRaw: unknown): number {
-  if (typeof idRaw === "string") return parseInt(idRaw, 10);
-  if (typeof idRaw === "number") return idRaw;
+  if (typeof idRaw === 'string') return parseInt(idRaw, 10);
+  if (typeof idRaw === 'number') return idRaw;
   return NaN;
 }
 
@@ -103,11 +103,11 @@ function polygonToLatLonRings(
   geom: PolygonGeom | MultiPolygonGeom | { type: string },
 ): CountryRings {
   const out: CountryRings = [];
-  if (geom.type === "Polygon") {
+  if (geom.type === 'Polygon') {
     for (const ring of (geom as PolygonGeom).coordinates) {
       out.push(ring as [number, number][]);
     }
-  } else if (geom.type === "MultiPolygon") {
+  } else if (geom.type === 'MultiPolygon') {
     for (const polygon of (geom as MultiPolygonGeom).coordinates) {
       for (const ring of polygon) {
         out.push(ring as [number, number][]);

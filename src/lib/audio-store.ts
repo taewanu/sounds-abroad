@@ -1,22 +1,22 @@
-import * as Sentry from "@sentry/nextjs";
-import { createStore } from "zustand/vanilla";
+import * as Sentry from '@sentry/nextjs';
+import { createStore } from 'zustand/vanilla';
 
-import { type AnalyticsEvent, track as trackEvent } from "@/lib/analytics";
+import { type AnalyticsEvent, track as trackEvent } from '@/lib/analytics';
 import {
   type AudioEngine,
   type AudioEngineFactory,
   createBrowserAudioEngine,
-} from "@/lib/audio-engine";
-import type { ChartMode } from "@/lib/chart-mode";
-import type { ChartRef } from "@/lib/chart-ref";
-import type { ChartTrack } from "@/lib/chart-schema";
+} from '@/lib/audio-engine';
+import type { ChartMode } from '@/lib/chart-mode';
+import type { ChartRef } from '@/lib/chart-ref';
+import type { ChartTrack } from '@/lib/chart-schema';
 import {
   clearNowPlaying,
   setActionHandlers,
   setNowPlaying,
   setPlaybackState,
-} from "@/lib/media-session";
-import { sameTrack } from "@/lib/track-identity";
+} from '@/lib/media-session';
+import { sameTrack } from '@/lib/track-identity';
 
 export interface AudioError {
   previewUrl: string | null;
@@ -59,7 +59,7 @@ export interface AudioState {
   toggle: (
     track: ChartTrack,
     location?: PlaybackLocation,
-    source?: AnalyticsEvent["track_played"]["source"],
+    source?: AnalyticsEvent['track_played']['source'],
   ) => void;
   /**
    * Re-aims the playing chart's mode while the listener is looking at that chart,
@@ -94,40 +94,40 @@ export function createAudioStore(
       // Covers background-tab auto-pause, AirPods disconnect, media keys.
       // Each transition also mirrors to the OS so the now-playing UI tracks
       // live state (drives the Dynamic Island waveform), browser-driven or not.
-      engine.addEventListener("play", () => {
+      engine.addEventListener('play', () => {
         set({ isPlaying: true });
-        setPlaybackState("playing");
+        setPlaybackState('playing');
       });
-      engine.addEventListener("pause", () => {
+      engine.addEventListener('pause', () => {
         set({ isPlaying: false });
-        setPlaybackState("paused");
+        setPlaybackState('paused');
       });
-      engine.addEventListener("ended", () => {
+      engine.addEventListener('ended', () => {
         const finished = get().currentTrack;
         set((state) => ({
           isPlaying: false,
           endedSignal: state.endedSignal + 1,
         }));
-        setPlaybackState("none");
+        setPlaybackState('none');
         if (finished) {
-          trackEvent("preview_completed", {
-            country: get().currentCountryCode ?? "unknown",
+          trackEvent('preview_completed', {
+            country: get().currentCountryCode ?? 'unknown',
             rank: finished.rank,
           });
         }
       });
-      engine.addEventListener("error", () => {
+      engine.addEventListener('error', () => {
         const previewUrl = get().currentTrack?.previewUrl ?? null;
         set({ isPlaying: false, lastError: { previewUrl } });
         Sentry.addBreadcrumb({
-          category: "audio",
-          level: "warning",
-          message: "preview audio error",
+          category: 'audio',
+          level: 'warning',
+          message: 'preview audio error',
           data: { previewUrl },
         });
-        trackEvent("preview_playback_failed", {
-          country: get().currentCountryCode ?? "unknown",
-          reason: previewUrl ? "load_error" : "empty_preview_url",
+        trackEvent('preview_playback_failed', {
+          country: get().currentCountryCode ?? 'unknown',
+          reason: previewUrl ? 'load_error' : 'empty_preview_url',
         });
       });
       // OS transport buttons (lock screen / Dynamic Island) drive the same
@@ -150,21 +150,21 @@ export function createAudioStore(
     // isPlaying, record lastError, breadcrumb, and tell the OS it's paused.
     function handlePlayRejection(track: ChartTrack, token: number) {
       return (error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError")
+        if (error instanceof DOMException && error.name === 'AbortError')
           return;
         if (token !== playToken) return;
         const previewUrl = track.previewUrl ?? null;
         set({ isPlaying: false, lastError: { previewUrl } });
-        setPlaybackState("paused");
+        setPlaybackState('paused');
         Sentry.addBreadcrumb({
-          category: "audio",
-          level: "warning",
-          message: "preview audio play rejected",
+          category: 'audio',
+          level: 'warning',
+          message: 'preview audio play rejected',
           data: { previewUrl },
         });
-        trackEvent("preview_playback_failed", {
-          country: get().currentCountryCode ?? "unknown",
-          reason: previewUrl ? "play_rejected" : "empty_preview_url",
+        trackEvent('preview_playback_failed', {
+          country: get().currentCountryCode ?? 'unknown',
+          reason: previewUrl ? 'play_rejected' : 'empty_preview_url',
           errorName: error instanceof DOMException ? error.name : undefined,
         });
       };
@@ -201,8 +201,8 @@ export function createAudioStore(
         if (isCurrent && state.isPlaying) {
           a.pause();
           set({ isPlaying: false });
-          trackEvent("preview_paused", {
-            country: state.currentCountryCode ?? "unknown",
+          trackEvent('preview_paused', {
+            country: state.currentCountryCode ?? 'unknown',
             rank: track.rank,
           });
           return;
@@ -214,7 +214,7 @@ export function createAudioStore(
           set({ currentTrack: track, isPlaying: true, lastError: null });
           return;
         }
-        a.src = track.previewUrl ?? "";
+        a.src = track.previewUrl ?? '';
         void a.play().catch(handlePlayRejection(track, ++playToken));
         setNowPlaying(track);
         set({
@@ -226,8 +226,8 @@ export function createAudioStore(
           lastError: null,
         });
         if (source) {
-          trackEvent("track_played", {
-            country: location?.countryCode ?? "unknown",
+          trackEvent('track_played', {
+            country: location?.countryCode ?? 'unknown',
             source,
           });
         }
