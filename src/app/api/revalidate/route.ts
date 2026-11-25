@@ -25,7 +25,7 @@ function extractBearer(req: Request): string {
   return h.startsWith('Bearer ') ? h.slice(7) : '';
 }
 
-export function revalidateCharts(req: Request): Response {
+export async function revalidateCharts(req: Request): Promise<Response> {
   const expected = process.env.REVALIDATE_SECRET;
   if (!expected) {
     Sentry.captureMessage(MISCONFIGURED_MESSAGE, 'error');

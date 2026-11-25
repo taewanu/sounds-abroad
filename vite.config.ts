@@ -57,27 +57,6 @@ export default defineConfig({
       'eslint/prefer-const': 'error',
       'eslint/prefer-rest-params': 'error',
       'eslint/prefer-spread': 'error',
-      // eslint-plugin-jsx-a11y 6.10.2 `recommended` options, since Oxlint's defaults also count hover handlers as interactions.
-      'jsx-a11y/no-noninteractive-element-interactions': [
-        'error',
-        {
-          handlers: [
-            'onClick',
-            'onError',
-            'onLoad',
-            'onMouseDown',
-            'onMouseUp',
-            'onKeyPress',
-            'onKeyDown',
-            'onKeyUp',
-          ],
-          alert: ['onKeyUp', 'onKeyDown', 'onKeyPress'],
-          body: ['onError', 'onLoad'],
-          dialog: ['onKeyUp', 'onKeyDown', 'onKeyPress'],
-          iframe: ['onError', 'onLoad'],
-          img: ['onError', 'onLoad'],
-        },
-      ],
       // No preset enables this, and it trades `role="status"` live regions for `<output>`, which HTML reserves for the result of a calculation or user action.
       'jsx-a11y/prefer-tag-over-role': 'off',
       // Vitest documents `vi.fn(() => 0)` without type parameters, and @vitest/eslint-plugin `recommended` leaves this out.
@@ -88,27 +67,6 @@ export default defineConfig({
       'import/namespace': 'off',
     },
     overrides: [
-      {
-        // typescript-eslint `eslint-recommended` turns these off for TypeScript files, whose compiler reports them.
-        files: ['**/*.{ts,tsx,mts,cts}'],
-        rules: {
-          'eslint/constructor-super': 'off',
-          'eslint/getter-return': 'off',
-          'eslint/no-class-assign': 'off',
-          'eslint/no-const-assign': 'off',
-          'eslint/no-dupe-class-members': 'off',
-          'eslint/no-dupe-keys': 'off',
-          'eslint/no-func-assign': 'off',
-          'eslint/no-import-assign': 'off',
-          'eslint/no-new-native-nonconstructor': 'off',
-          'eslint/no-obj-calls': 'off',
-          'eslint/no-setter-return': 'off',
-          'eslint/no-this-before-super': 'off',
-          'eslint/no-unreachable': 'off',
-          'eslint/no-unsafe-negation': 'off',
-          'eslint/no-with': 'off',
-        },
-      },
       {
         files: ['src/**/*.{ts,tsx}'],
         rules: {
@@ -132,8 +90,8 @@ export default defineConfig({
         rules: { 'eslint/no-control-regex': 'off' },
       },
       {
-        // Next documents its config callbacks, such as headers(), in async form.
-        files: ['next.config.ts'],
+        // Next documents route handlers and config callbacks, such as headers(), in async form.
+        files: ['next.config.ts', 'src/app/**/route.ts'],
         rules: { 'typescript/require-await': 'off' },
       },
       {
@@ -150,6 +108,10 @@ export default defineConfig({
           'vitest/prefer-called-exactly-once-with': 'error',
           // React documents `await act(async () => ...)` even with nothing to await, and async test doubles are the natural stand-in for promise-returning dependencies.
           'typescript/require-await': 'off',
+          // typescript-eslint sends test files to eslint-plugin-jest's variant, which Oxlint lacks, because `expect(mock.method)` reads a mock without calling it.
+          'typescript/unbound-method': 'off',
+          // Vitest types asymmetric matchers such as `expect.any()` as `any`, so a matcher inside an expected object has no typed form.
+          'typescript/no-unsafe-assignment': 'off',
         },
       },
     ],

@@ -41,8 +41,12 @@ function setScrollTop(el: Element, value: number) {
   Object.defineProperty(el, 'scrollTop', { value, configurable: true });
 }
 
+const originalScrollIntoView = Element.prototype.scrollIntoView;
+const originalGetBoundingClientRect = Element.prototype.getBoundingClientRect;
+
 afterEach(() => {
-  vi.restoreAllMocks();
+  Element.prototype.scrollIntoView = originalScrollIntoView;
+  Element.prototype.getBoundingClientRect = originalGetBoundingClientRect;
 });
 
 // jsdom has no layout, so reveal-only's visibility check reads all-zero rects.
@@ -63,11 +67,11 @@ function rect(top: number, bottom: number): DOMRect {
 }
 
 function stubRects(viewport: DOMRect, row: DOMRect) {
-  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+  Element.prototype.getBoundingClientRect = function () {
     if (this.tagName === 'OL') return viewport;
     if (this.hasAttribute('data-rank')) return row;
     return rect(0, 0);
-  });
+  };
 }
 
 // A chart state pinned to the songs axis: these tests predate the chart rail and
@@ -582,9 +586,8 @@ describe('ChartSheet', () => {
   });
 
   test('scrolls currentTrack into view when sheet transitions from closed', async () => {
-    const scrollIntoViewMock = vi
-      .spyOn(Element.prototype, 'scrollIntoView')
-      .mockImplementation(() => {});
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
     const rank = COUNTRY_KR.tracks[2].rank;
     const { rerender } = render(
       <AudioStoreProvider>
@@ -623,9 +626,8 @@ describe('ChartSheet', () => {
   test('reveals the playing row when a mode switch re-ranks it off screen', () => {
     vi.useFakeTimers();
     try {
-      const scrollIntoViewMock = vi
-        .spyOn(Element.prototype, 'scrollIntoView')
-        .mockImplementation(() => {});
+      const scrollIntoViewMock = vi.fn();
+      Element.prototype.scrollIntoView = scrollIntoViewMock;
       const { rerender } = render(playingAtPeek('only_here'));
       scrollIntoViewMock.mockClear();
       // The row is pushed below the viewport, as the re-rank does; jsdom has no
@@ -648,9 +650,8 @@ describe('ChartSheet', () => {
   test('leaves an already-visible playing row where it is on a mode switch', () => {
     vi.useFakeTimers();
     try {
-      const scrollIntoViewMock = vi
-        .spyOn(Element.prototype, 'scrollIntoView')
-        .mockImplementation(() => {});
+      const scrollIntoViewMock = vi.fn();
+      Element.prototype.scrollIntoView = scrollIntoViewMock;
       const { rerender } = render(playingAtPeek('only_here'));
       scrollIntoViewMock.mockClear();
       // The row sits inside the viewport, so the switch has no reason to move it.
@@ -668,9 +669,8 @@ describe('ChartSheet', () => {
   });
 
   test('nudges a clipped row into view when it is tapped at peek', async () => {
-    const scrollIntoViewMock = vi
-      .spyOn(Element.prototype, 'scrollIntoView')
-      .mockImplementation(() => {});
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
     renderAtPeek(SPREAD_COUNTRY, 3);
     scrollIntoViewMock.mockClear();
     // The tapped row sits below the viewport, clipped.
@@ -686,9 +686,8 @@ describe('ChartSheet', () => {
   });
 
   test('leaves a fully-visible tapped row where it is', async () => {
-    const scrollIntoViewMock = vi
-      .spyOn(Element.prototype, 'scrollIntoView')
-      .mockImplementation(() => {});
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
     renderAtPeek(SPREAD_COUNTRY, 3);
     scrollIntoViewMock.mockClear();
     stubRects(rect(0, 300), rect(40, 80));
@@ -702,9 +701,8 @@ describe('ChartSheet', () => {
   test('a gem play does not scroll the list to its ranked-row duplicate', async () => {
     const selection = selectGem(COUNTRY_KR.tracks);
     if (!selection) throw new Error('fixture has tracks; expected a gem');
-    const scrollIntoViewMock = vi
-      .spyOn(Element.prototype, 'scrollIntoView')
-      .mockImplementation(() => {});
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
     renderAtPeek(COUNTRY_KR, selection.gem.rank);
     scrollIntoViewMock.mockClear();
     // The gem's ranked duplicate is below the fold, so a reveal would yank to it.
@@ -719,9 +717,8 @@ describe('ChartSheet', () => {
   });
 
   test('does not scroll when transitioning between peek and full', async () => {
-    const scrollIntoViewMock = vi
-      .spyOn(Element.prototype, 'scrollIntoView')
-      .mockImplementation(() => {});
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
     const rank = COUNTRY_KR.tracks[0].rank;
 
     const { rerender } = render(
@@ -762,9 +759,8 @@ describe('ChartSheet', () => {
   });
 
   test('scrolls currentTrack into view when sheet transitions from hidden', async () => {
-    const scrollIntoViewMock = vi
-      .spyOn(Element.prototype, 'scrollIntoView')
-      .mockImplementation(() => {});
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
     const rank = COUNTRY_KR.tracks[2].rank;
     const { rerender } = render(
       <AudioStoreProvider>
@@ -801,9 +797,8 @@ describe('ChartSheet', () => {
   });
 
   test('scrolls currentTrack into view when scrollSignal increments while open', async () => {
-    const scrollIntoViewMock = vi
-      .spyOn(Element.prototype, 'scrollIntoView')
-      .mockImplementation(() => {});
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
     const rank = COUNTRY_KR.tracks[0].rank;
 
     const { rerender } = render(
@@ -844,9 +839,8 @@ describe('ChartSheet', () => {
   });
 
   test('does not scroll on a direct tap: a rank change with no step', async () => {
-    const scrollIntoViewMock = vi
-      .spyOn(Element.prototype, 'scrollIntoView')
-      .mockImplementation(() => {});
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
     // Off-screen row: a skip would pull it in, but a direct tap must not.
     stubRects(rect(0, 100), rect(200, 240));
     const first = COUNTRY_KR.tracks[0].rank;
@@ -891,9 +885,8 @@ describe('ChartSheet', () => {
   });
 
   test('does not scroll when currentTrackRank is null', async () => {
-    const scrollIntoViewMock = vi
-      .spyOn(Element.prototype, 'scrollIntoView')
-      .mockImplementation(() => {});
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
 
     const { rerender } = render(
       <AudioStoreProvider>
@@ -931,9 +924,8 @@ describe('ChartSheet', () => {
   });
 
   test('scrolls the now-playing row into view on a skip while open when the row is off-screen', async () => {
-    const scrollIntoViewMock = vi
-      .spyOn(Element.prototype, 'scrollIntoView')
-      .mockImplementation(() => {});
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
     // Row sits below the peek viewport, so reveal-only must pull it in.
     stubRects(rect(0, 100), rect(200, 240));
     const first = COUNTRY_KR.tracks[0].rank;
@@ -978,9 +970,8 @@ describe('ChartSheet', () => {
   });
 
   test('does not scroll when the playing country differs from the displayed country', async () => {
-    const scrollIntoViewMock = vi
-      .spyOn(Element.prototype, 'scrollIntoView')
-      .mockImplementation(() => {});
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
     // Row would be off-screen, but the now-playing track belongs to another
     // country, so its rank must not scroll the browsed country's list.
     stubRects(rect(0, 100), rect(200, 240));
@@ -1027,9 +1018,8 @@ describe('ChartSheet', () => {
   });
 
   test('a reopen asked from another country scrolls on the first ask, once the displayed country catches up', async () => {
-    const scrollIntoViewMock = vi
-      .spyOn(Element.prototype, 'scrollIntoView')
-      .mockImplementation(() => {});
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
     // A rank the browsed country also has, so a scroll during the mismatch would
     // land on its unrelated row.
     const rank = COUNTRY_KR.tracks[2].rank;
@@ -1095,9 +1085,8 @@ describe('ChartSheet', () => {
   });
 
   test('a step that lands in another country reveals its row once the displayed country catches up', async () => {
-    const scrollIntoViewMock = vi
-      .spyOn(Element.prototype, 'scrollIntoView')
-      .mockImplementation(() => {});
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
     // A roll lands deep in the new chart while its list remounts at the top, so
     // the row needs revealing rather than already sitting in view.
     stubRects(rect(0, 100), rect(200, 240));
@@ -1166,9 +1155,8 @@ describe('ChartSheet', () => {
   });
 
   test('drops a held reopen ask once nothing is playing, rather than firing it at the next track', async () => {
-    const scrollIntoViewMock = vi
-      .spyOn(Element.prototype, 'scrollIntoView')
-      .mockImplementation(() => {});
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
     // The row the user goes on to tap is off-screen, so only a stale reopen
     // surviving the silence could pull the list to it: a direct tap carries no
     // step, and so must never scroll on its own.
@@ -1253,9 +1241,8 @@ describe('ChartSheet', () => {
   });
 
   test('does not scroll when the track changes while open but the row is already fully visible', async () => {
-    const scrollIntoViewMock = vi
-      .spyOn(Element.prototype, 'scrollIntoView')
-      .mockImplementation(() => {});
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
     // Row sits inside the peek viewport, so reveal-only leaves the list put.
     stubRects(rect(0, 100), rect(10, 50));
     const first = COUNTRY_KR.tracks[0].rank;

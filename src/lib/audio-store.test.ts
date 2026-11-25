@@ -1,4 +1,4 @@
-import { assert, beforeEach, describe, expect, test, vi, type Mock } from 'vitest';
+import { assert, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { DEFAULT_CHART_MODE } from '@/lib/chart-mode';
 import { SONGS_CHART, type ChartRef } from '@/lib/chart-ref';
@@ -32,10 +32,6 @@ function at(countryCode: string, chartRef: ChartRef = SONGS_CHART) {
 type EventType = 'ended' | 'error' | 'play' | 'pause';
 
 interface MockAudio extends AudioEngine {
-  play: Mock<AudioEngine['play']>;
-  pause: Mock<AudioEngine['pause']>;
-  setVolume: Mock<AudioEngine['setVolume']>;
-  setMuted: Mock<AudioEngine['setMuted']>;
   _trigger: (event: EventType) => void;
   _srcWrites: number;
 }
@@ -52,11 +48,11 @@ function makeMockAudio(): MockAudio {
       src = value;
     },
     _srcWrites: 0,
-    play: vi.fn<AudioEngine['play']>().mockResolvedValue(undefined),
-    pause: vi.fn<AudioEngine['pause']>(),
+    play: vi.fn().mockResolvedValue(undefined),
+    pause: vi.fn(),
     volumeAdjustable: true,
-    setVolume: vi.fn<AudioEngine['setVolume']>(),
-    setMuted: vi.fn<AudioEngine['setMuted']>(),
+    setVolume: vi.fn(),
+    setMuted: vi.fn(),
     addEventListener: vi.fn((type: EventType, listener: () => void) => {
       (listeners[type] ??= []).push(listener);
     }),

@@ -142,11 +142,13 @@ describe('VolumeControl', () => {
     const onClick = vi.fn();
     outside.addEventListener('click', onClick);
     document.body.appendChild(outside);
-    const spy = vi
-      .spyOn(outside, 'matches')
-      .mockImplementation((selector) =>
-        selector === ':focus-visible' ? false : Element.prototype.matches.call(outside, selector),
-      );
+    const matches = Element.prototype.matches;
+    const spy = vi.spyOn(Element.prototype, 'matches').mockImplementation(function (
+      this: Element,
+      selector: string,
+    ) {
+      return selector === ':focus-visible' ? false : matches.call(this, selector);
+    });
 
     act(() => outside.focus());
     const openAfterFocus = screen.queryByRole('slider') !== null;

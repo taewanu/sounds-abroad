@@ -126,6 +126,7 @@ export function TrackRow({
       : 'hover:bg-atmos data-[state]:bg-sunrise/[0.08] data-[state]:hover:bg-sunrise/[0.15] [contain-intrinsic-size:auto_68px] [content-visibility:auto] data-[disabled]:hover:bg-transparent';
 
   return (
+    // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Hover only starts the decorative title marquee.
     <li
       data-rank={track.rank}
       data-state={state}

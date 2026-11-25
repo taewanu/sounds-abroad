@@ -49,7 +49,7 @@ test('issues the bearer POST without waiting on a timer', async () => {
     expect.objectContaining({
       method: 'POST',
       headers: { Authorization: `Bearer ${SECRET}` },
-      signal: expect.any(AbortSignal) as AbortSignal,
+      signal: expect.any(AbortSignal),
     }),
   );
 });

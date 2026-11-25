@@ -86,7 +86,7 @@ test('returns the parsed track list when the body matches the schema', async () 
   expect(spy).toHaveBeenCalledWith(chartPartUrl(CHARTS_URL, 'playlists', PLAYLIST_ID), {
     cache: 'force-cache',
     next: { tags: [MUSIC_CHARTS_TAG] },
-    signal: expect.any(AbortSignal) as AbortSignal,
+    signal: expect.any(AbortSignal),
     // Empty with no key configured, which is how this suite runs. What the
     // header carries when one is set has its own test below.
     headers: {},
