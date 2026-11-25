@@ -18,7 +18,7 @@ Work in the worktree that holds the branch. Confirm the tree is clean (`git stat
 ## 2. Run the CI checks locally
 
 ```bash
-mise exec -- pnpm verify
+pnpm verify
 ```
 
 A fresh worktree has no `.env.local`, so `build` fails on missing configuration until it is copied from the main checkout.

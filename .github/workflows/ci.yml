@@ -24,26 +24,33 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Setup Node and pnpm via mise
-        uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5.2.8
+      # pnpm reads its version from packageManager and installs the Node that
+      # devEngines.runtime pins, so the runner's own Node never runs the build.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          standalone: true
 
       - name: Install dependencies
-        run: mise exec -- pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Show toolchain
+        run: pnpm --version && pnpm exec node --version
 
       - name: Lint
-        run: mise exec -- pnpm lint
+        run: pnpm lint
 
       - name: Format check
-        run: mise exec -- pnpm format:check
+        run: pnpm format:check
 
       - name: Typecheck
-        run: mise exec -- pnpm typecheck
+        run: pnpm typecheck
 
       - name: Test
-        run: mise exec -- pnpm test:ci
+        run: pnpm test:ci
 
       - name: Build
         env:
           CHARTS_BLOB_URL: ${{ secrets.CHARTS_BLOB_URL }}
           CHARTS_READ_KEY: ${{ secrets.CHARTS_READ_KEY }}
-        run: mise exec -- pnpm build
+        run: pnpm build
