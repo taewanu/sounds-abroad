@@ -1,18 +1,11 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
-import {
-  ChartPartFetchError,
-  ChartPartValidationError,
-  fetchSongsTail,
-} from '@/lib/chart-parts';
+import { ChartPartFetchError, ChartPartValidationError, fetchSongsTail } from '@/lib/chart-parts';
 
 import { readSongsTail } from './route';
 
 vi.mock('@/lib/chart-parts', async () => {
-  const actual =
-    await vi.importActual<typeof import('@/lib/chart-parts')>(
-      '@/lib/chart-parts',
-    );
+  const actual = await vi.importActual<typeof import('@/lib/chart-parts')>('@/lib/chart-parts');
   return { ...actual, fetchSongsTail: vi.fn() };
 });
 
@@ -65,9 +58,7 @@ test('returns the chart tail for a country that resolves', async () => {
 });
 
 test('caches an absent tail for as long as a present one', async () => {
-  fetchSongsTailMock.mockRejectedValue(
-    new ChartPartFetchError(COUNTRY, 404, 'missing'),
-  );
+  fetchSongsTailMock.mockRejectedValue(new ChartPartFetchError(COUNTRY, 404, 'missing'));
 
   const res = await readSongsTail(makeReq(), params(COUNTRY));
 
@@ -76,9 +67,7 @@ test('caches an absent tail for as long as a present one', async () => {
 });
 
 test('reports an upstream server error as a bad gateway', async () => {
-  fetchSongsTailMock.mockRejectedValue(
-    new ChartPartFetchError(COUNTRY, 500, 'upstream exploded'),
-  );
+  fetchSongsTailMock.mockRejectedValue(new ChartPartFetchError(COUNTRY, 500, 'upstream exploded'));
 
   const res = await readSongsTail(makeReq(), params(COUNTRY));
 
@@ -87,9 +76,7 @@ test('reports an upstream server error as a bad gateway', async () => {
 });
 
 test('reports a payload that fails validation as a bad gateway', async () => {
-  fetchSongsTailMock.mockRejectedValue(
-    new ChartPartValidationError(COUNTRY, [], 'bad shape'),
-  );
+  fetchSongsTailMock.mockRejectedValue(new ChartPartValidationError(COUNTRY, [], 'bad shape'));
 
   const res = await readSongsTail(makeReq(), params(COUNTRY));
 
@@ -118,7 +105,5 @@ test('fails loudly when the charts location is not configured', async () => {
 test('lets an unrecognized failure through rather than reporting it as upstream', async () => {
   fetchSongsTailMock.mockRejectedValue(new Error('something else'));
 
-  await expect(readSongsTail(makeReq(), params(COUNTRY))).rejects.toThrow(
-    'something else',
-  );
+  await expect(readSongsTail(makeReq(), params(COUNTRY))).rejects.toThrow('something else');
 });

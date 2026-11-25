@@ -1,11 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import {
-  chmodSync,
-  mkdirSync,
-  mkdtempSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -110,11 +104,9 @@ test('a review recorded in one worktree counts in another', () => {
   git('worktree', 'add', '-q', linked, '-b', 'other');
   git('config', 'branch.other.prePrReviewed', 'reviewed');
 
-  const { status } = spawnSync(
-    'git',
-    ['-C', linked, 'push', '-q', 'origin', 'other'],
-    { encoding: 'utf8' },
-  );
+  const { status } = spawnSync('git', ['-C', linked, 'push', '-q', 'origin', 'other'], {
+    encoding: 'utf8',
+  });
 
   expect(status).toBe(0);
 });
@@ -151,9 +143,7 @@ test("a source that isn't a branch can't borrow the current branch's review", ()
   recordReview();
   git('tag', 'v1');
 
-  expect(
-    push(`${git('rev-parse', 'HEAD')}:refs/heads/from-commit`).status,
-  ).toBe(1);
+  expect(push(`${git('rev-parse', 'HEAD')}:refs/heads/from-commit`).status).toBe(1);
   expect(push('v1:refs/heads/from-tag').status).toBe(1);
 });
 

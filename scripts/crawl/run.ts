@@ -27,10 +27,7 @@ import {
 import { batchIds, ItunesLookupError, type LookupTally } from './itunes-lookup';
 import type { BatchLookup } from './lookup-retry';
 import type { PlaylistTrack } from './playlist-page';
-import {
-  countPlaylistSpread,
-  selectLocalPlaylists,
-} from './playlist-selection';
+import { countPlaylistSpread, selectLocalPlaylists } from './playlist-selection';
 import { SpotifyResolveError, type SpotifyResolver } from './spotify-resolve';
 import type { Throttle } from './throttle';
 
@@ -94,10 +91,7 @@ export interface CrawlAllDeps {
 
 export interface PlaylistAxisWiring {
   fetchPlaylists: (cc: string) => Promise<ApplePlaylist[]>;
-  fetchPlaylistPage: (
-    playlistId: string,
-    appleUrl: string,
-  ) => Promise<PlaylistTrack[]>;
+  fetchPlaylistPage: (playlistId: string, appleUrl: string) => Promise<PlaylistTrack[]>;
   uploadPlaylistFile: (file: PlaylistFile) => Promise<unknown>;
 }
 
@@ -168,9 +162,7 @@ async function spotifyUrlFor(
     return await spotify.throttle(() => spotify.resolve(name, artist));
   } catch (err) {
     if (!(err instanceof SpotifyResolveError)) throw err;
-    console.warn(
-      `[crawl ${cc}] spotify resolve ${err.kind} for "${name}": ${err.message}`,
-    );
+    console.warn(`[crawl ${cc}] spotify resolve ${err.kind} for "${name}": ${err.message}`);
     return spotifySearchUrl(name, artist);
   }
 }
@@ -196,9 +188,7 @@ async function previewUrlsFor(
       }
     } catch (err) {
       if (!(err instanceof ItunesLookupError)) throw err;
-      console.warn(
-        `[crawl ${cc}] lookup ${err.kind} for ${batch.length} ids: ${err.message}`,
-      );
+      console.warn(`[crawl ${cc}] lookup ${err.kind} for ${batch.length} ids: ${err.message}`);
     }
   }
 
@@ -208,9 +198,7 @@ async function previewUrlsFor(
   };
 }
 
-export async function crawlCountry(
-  deps: CrawlCountryDeps,
-): Promise<CrawlCountryResult> {
+export async function crawlCountry(deps: CrawlCountryDeps): Promise<CrawlCountryResult> {
   const { cc, name, fetchRss, lookupTracks, spotify } = deps;
 
   let rssTracks: AppleRssTrack[];
@@ -235,9 +223,7 @@ export async function crawlCountry(
       cc,
       lookupTracks,
     ),
-    Promise.all(
-      rssTracks.map((rss) => spotifyUrlFor(rss.name, rss.artist, cc, spotify)),
-    ),
+    Promise.all(rssTracks.map((rss) => spotifyUrlFor(rss.name, rss.artist, cc, spotify))),
   ]);
 
   const tracks: Track[] = rssTracks.map((rss, index) => ({
@@ -262,9 +248,7 @@ export async function crawlCountry(
   // is how often a country reaches that state.
   const playable = tracks.some((t) => t.previewUrl !== null);
   if (tracks.length > 0 && !playable) {
-    console.warn(
-      `[crawl ${cc}] all ${tracks.length} lookups failed, zero playable previews`,
-    );
+    console.warn(`[crawl ${cc}] all ${tracks.length} lookups failed, zero playable previews`);
   }
 
   return { cc, country: { name, valid: playable, tracks }, lookups };
@@ -282,12 +266,7 @@ export function bakeCommentary(
 ): void {
   for (const country of Object.values(countries)) {
     for (const track of country.tracks) {
-      track.commentary = commentaryForTrack(
-        store,
-        lang,
-        track.artist,
-        track.name,
-      );
+      track.commentary = commentaryForTrack(store, lang, track.artist, track.name);
     }
   }
 }
@@ -427,28 +406,17 @@ export function resolvePlaylistAxis(
   }
 
   if (carriedIds.length > 0) {
-    console.log(
-      `[crawl ${cc}] carried forward ${carriedIds.length} playlist(s) whose page failed`,
-    );
+    console.log(`[crawl ${cc}] carried forward ${carriedIds.length} playlist(s) whose page failed`);
   }
 
   return { playlists, playlistsValid: true, carriedIds };
 }
 
 export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
-  const {
-    countries,
-    fetchRss,
-    lookupTracks,
-    spotify,
-    uploadCharts,
-    triggerRevalidate,
-  } = deps;
+  const { countries, fetchRss, lookupTracks, spotify, uploadCharts, triggerRevalidate } = deps;
   const now = deps.now ?? (() => new Date());
 
-  console.log(
-    `[crawl] starting all-countries crawl (${countries.length} countries)...`,
-  );
+  console.log(`[crawl] starting all-countries crawl (${countries.length} countries)...`);
 
   const previous = deps.fetchPrevious ? await deps.fetchPrevious() : null;
 
@@ -461,15 +429,10 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
   for (const entry of countries) {
     if (deps.playlistAxis) {
       try {
-        feeds.set(
-          entry.code,
-          await deps.playlistAxis.fetchPlaylists(entry.code),
-        );
+        feeds.set(entry.code, await deps.playlistAxis.fetchPlaylists(entry.code));
       } catch (err) {
         if (!(err instanceof ApplePlaylistsError)) throw err;
-        console.warn(
-          `[crawl ${entry.code}] playlist feed failed: ${err.message}`,
-        );
+        console.warn(`[crawl ${entry.code}] playlist feed failed: ${err.message}`);
       }
     }
 
@@ -499,9 +462,7 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
     }
 
     countriesMap[cc] = country;
-    console.log(
-      `[crawl ${cc}] ${country.tracks.length} tracks (valid=${country.valid})`,
-    );
+    console.log(`[crawl ${cc}] ${country.tracks.length} tracks (valid=${country.valid})`);
   }
 
   // Before the split, so a track appearing deep in two countries is counted.
@@ -520,15 +481,9 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
         now,
       })
     : { carried: [], invalid: [], contractBreak: null };
-  const { carried: carriedPlaylistCodes, invalid: invalidPlaylistCodes } =
-    playlistAxisRun;
+  const { carried: carriedPlaylistCodes, invalid: invalidPlaylistCodes } = playlistAxisRun;
 
-  await publishSongsTails(
-    countriesMap,
-    carriedCodes,
-    deps.uploadSongsTail,
-    now,
-  );
+  await publishSongsTails(countriesMap, carriedCodes, deps.uploadSongsTail, now);
 
   const commentary = deps.fetchCommentary ? await deps.fetchCommentary() : null;
   if (commentary) {
@@ -548,9 +503,7 @@ export async function crawlAll(deps: CrawlAllDeps): Promise<CrawlAllResult> {
 
   const url = await uploadCharts(chartFile);
   console.log(`[crawl] uploaded → ${url}`);
-  console.log(
-    `[crawl] lookups: ${lookups.resolved}/${lookups.requested} ids resolved`,
-  );
+  console.log(`[crawl] lookups: ${lookups.resolved}/${lookups.requested} ids resolved`);
   await triggerRevalidate();
 
   // Strictly after publishing. A broken page contract has to fail the run
@@ -597,9 +550,7 @@ interface PlaylistAxisReport {
   contractBreak: { pagesAttempted: number; pageFailures: number } | null;
 }
 
-async function crawlPlaylistAxis(
-  run: PlaylistAxisRun,
-): Promise<PlaylistAxisReport> {
+async function crawlPlaylistAxis(run: PlaylistAxisRun): Promise<PlaylistAxisReport> {
   const { axis, countries, countriesMap, feeds, previous, now } = run;
 
   const spread = countPlaylistSpread(feeds);

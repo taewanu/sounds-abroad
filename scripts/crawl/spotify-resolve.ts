@@ -2,13 +2,7 @@ import { z } from 'zod';
 
 import { SpotifyUrlSchema } from '../../src/lib/url-schema';
 
-export type SpotifyResolveErrorKind =
-  | 'miss'
-  | 'http'
-  | 'json'
-  | 'shape'
-  | 'network'
-  | 'auth';
+export type SpotifyResolveErrorKind = 'miss' | 'http' | 'json' | 'shape' | 'network' | 'auth';
 
 export class SpotifyResolveError extends Error {
   constructor(
@@ -78,10 +72,7 @@ export async function fetchSpotifyToken(
   }
 
   if (!res.ok) {
-    throw new SpotifyResolveError(
-      'auth',
-      `Spotify token returned ${res.status} ${res.statusText}`,
-    );
+    throw new SpotifyResolveError('auth', `Spotify token returned ${res.status} ${res.statusText}`);
   }
 
   let json: unknown;
@@ -96,10 +87,7 @@ export async function fetchSpotifyToken(
 
   const parsed = TokenSchema.safeParse(json);
   if (!parsed.success) {
-    throw new SpotifyResolveError(
-      'shape',
-      `Spotify token shape mismatch: ${parsed.error.message}`,
-    );
+    throw new SpotifyResolveError('shape', `Spotify token shape mismatch: ${parsed.error.message}`);
   }
 
   return {
@@ -216,9 +204,7 @@ export interface CreateSpotifyResolverOptions extends SpotifyFetchOptions {
  * expiry, so a single long crawl (which outlives the ~1h token) keeps resolving
  * without per-call auth. Returns a function in the `SpotifyResolver` shape.
  */
-export function createSpotifyResolver(
-  options: CreateSpotifyResolverOptions,
-): SpotifyResolver {
+export function createSpotifyResolver(options: CreateSpotifyResolverOptions): SpotifyResolver {
   const now = options.now ?? Date.now;
   const skewMs = options.refreshSkewMs ?? 60_000;
   let token: string | null = null;
@@ -226,11 +212,9 @@ export function createSpotifyResolver(
 
   async function ensureToken(): Promise<string> {
     if (token && now() < expiresAt - skewMs) return token;
-    const fresh = await fetchSpotifyToken(
-      options.clientId,
-      options.clientSecret,
-      { fetch: options.fetch },
-    );
+    const fresh = await fetchSpotifyToken(options.clientId, options.clientSecret, {
+      fetch: options.fetch,
+    });
     token = fresh.accessToken;
     expiresAt = now() + fresh.expiresIn * 1000;
     return token;
@@ -249,11 +233,7 @@ export function createSpotifyResolver(
       // (rotation/revocation) of a token still valid by our clock. Without this,
       // one early 401 would fall every remaining track back to the search URL.
       // Drop the cached token and retry once; a second auth failure propagates.
-      if (
-        !(err instanceof SpotifyResolveError) ||
-        err.kind !== 'auth' ||
-        token === null
-      ) {
+      if (!(err instanceof SpotifyResolveError) || err.kind !== 'auth' || token === null) {
         throw err;
       }
       token = null;

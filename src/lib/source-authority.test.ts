@@ -13,19 +13,13 @@ function entry(sources: string[]) {
 }
 
 test('findSourceViolations passes two reputable sources', () => {
-  const sources = [
-    'https://www.billboard.com/music/a',
-    'https://pitchfork.com/reviews/b',
-  ];
+  const sources = ['https://www.billboard.com/music/a', 'https://pitchfork.com/reviews/b'];
 
   expect(findSourceViolations(entry(sources))).toEqual([]);
 });
 
 test('findSourceViolations flags a denylisted lyrics domain', () => {
-  const sources = [
-    'https://www.billboard.com/music/a',
-    'https://www.azlyrics.com/lyrics/b',
-  ];
+  const sources = ['https://www.billboard.com/music/a', 'https://www.azlyrics.com/lyrics/b'];
 
   const violations = findSourceViolations(entry(sources));
 
@@ -42,10 +36,7 @@ test('findSourceViolations names the offending denylisted source', () => {
 });
 
 test('findSourceViolations flags a fan-wiki subdomain on the registrable domain', () => {
-  const sources = [
-    'https://www.billboard.com/music/a',
-    'https://some-artist.fandom.com/wiki/Song',
-  ];
+  const sources = ['https://www.billboard.com/music/a', 'https://some-artist.fandom.com/wiki/Song'];
 
   const violations = findSourceViolations(entry(sources));
 
@@ -53,10 +44,7 @@ test('findSourceViolations flags a fan-wiki subdomain on the registrable domain'
 });
 
 test('findSourceViolations allows Genius alongside the lyrics-site denials', () => {
-  const sources = [
-    'https://www.billboard.com/music/a',
-    'https://genius.com/some-song',
-  ];
+  const sources = ['https://www.billboard.com/music/a', 'https://genius.com/some-song'];
 
   const violations = findSourceViolations(entry(sources));
 
@@ -64,37 +52,24 @@ test('findSourceViolations allows Genius alongside the lyrics-site denials', () 
 });
 
 test('findSourceViolations flags an entry with no allowlisted source', () => {
-  const sources = [
-    'https://some-music-blog.example/post',
-    'https://another-site.example/story',
-  ];
+  const sources = ['https://some-music-blog.example/post', 'https://another-site.example/story'];
 
   const violations = findSourceViolations(entry(sources));
 
-  expect(violations.some((v) => v.rule === 'no-authoritative-source')).toBe(
-    true,
-  );
+  expect(violations.some((v) => v.rule === 'no-authoritative-source')).toBe(true);
 });
 
 test('findSourceViolations accepts a non-allowlisted source alongside one allowlisted', () => {
-  const sources = [
-    'https://www.billboard.com/music/a',
-    'https://some-music-blog.example/post',
-  ];
+  const sources = ['https://www.billboard.com/music/a', 'https://some-music-blog.example/post'];
 
   expect(findSourceViolations(entry(sources))).toEqual([]);
 });
 
 test('findSourceViolations counts an allowlisted subdomain as authoritative', () => {
-  const sources = [
-    'https://music.theguardian.com/article',
-    'https://some-music-blog.example/post',
-  ];
+  const sources = ['https://music.theguardian.com/article', 'https://some-music-blog.example/post'];
 
   expect(
-    findSourceViolations(entry(sources)).some(
-      (v) => v.rule === 'no-authoritative-source',
-    ),
+    findSourceViolations(entry(sources)).some((v) => v.rule === 'no-authoritative-source'),
   ).toBe(false);
 });
 
@@ -106,12 +81,8 @@ test('findSourceViolations fails a chart-body-only entry with the chart-body rul
 
   const violations = findSourceViolations(entry(sources));
 
-  expect(
-    violations.some((v) => v.rule === 'chart-body-not-authoritative'),
-  ).toBe(true);
-  expect(violations.some((v) => v.rule === 'no-authoritative-source')).toBe(
-    false,
-  );
+  expect(violations.some((v) => v.rule === 'chart-body-not-authoritative')).toBe(true);
+  expect(violations.some((v) => v.rule === 'no-authoritative-source')).toBe(false);
 });
 
 test('findSourceViolations accepts a chart body alongside a journalism source', () => {
@@ -132,10 +103,7 @@ test('findSourceViolations flags a single source as too few', () => {
 });
 
 test('findSourceViolations ignores www and casing when matching a denied domain', () => {
-  const sources = [
-    'https://www.billboard.com/music/a',
-    'https://WWW.AZLyrics.com/lyrics/b',
-  ];
+  const sources = ['https://www.billboard.com/music/a', 'https://WWW.AZLyrics.com/lyrics/b'];
 
   const violations = findSourceViolations(entry(sources));
 

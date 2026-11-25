@@ -1,9 +1,6 @@
 import { z } from 'zod';
 
-import {
-  AppleArtworkUrlSchema,
-  AppleStorefrontUrlSchema,
-} from '../../src/lib/url-schema';
+import { AppleArtworkUrlSchema, AppleStorefrontUrlSchema } from '../../src/lib/url-schema';
 
 export interface AppleRssTrack {
   rank: number;
@@ -73,10 +70,7 @@ export async function fetchAppleRss(
   }
 
   if (!res.ok) {
-    throw new AppleRssError(
-      cc,
-      `Apple RSS returned ${res.status} ${res.statusText}`,
-    );
+    throw new AppleRssError(cc, `Apple RSS returned ${res.status} ${res.statusText}`);
   }
 
   let json: unknown;
@@ -91,10 +85,7 @@ export async function fetchAppleRss(
 
   const parsed = RssResponseSchema.safeParse(json);
   if (!parsed.success) {
-    throw new AppleRssError(
-      cc,
-      `Apple RSS shape mismatch: ${parsed.error.message}`,
-    );
+    throw new AppleRssError(cc, `Apple RSS shape mismatch: ${parsed.error.message}`);
   }
 
   return parsed.data.feed.results.map((raw, idx) => ({

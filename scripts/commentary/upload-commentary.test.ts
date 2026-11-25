@@ -33,8 +33,6 @@ test('a failed read throws rather than reading as empty', async () => {
 test.each([[[]], ['text'], [42]])(
   "a payload that isn't a JSON object (%j) throws rather than merging",
   async (payload) => {
-    await expect(readLiveCommentary(async () => payload)).rejects.toThrow(
-      'is not a JSON object',
-    );
+    await expect(readLiveCommentary(async () => payload)).rejects.toThrow('is not a JSON object');
   },
 );

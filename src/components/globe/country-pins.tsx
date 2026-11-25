@@ -48,10 +48,7 @@ export function CountryPins({
             ? PIN_RADIUS * PIN_SCALE_HOVER
             : PIN_RADIUS;
         return (
-          <group
-            key={country.code}
-            position={[position.x, position.y, position.z]}
-          >
+          <group key={country.code} position={[position.x, position.y, position.z]}>
             <mesh
               onClick={(e) => {
                 e.stopPropagation();
@@ -102,13 +99,7 @@ export function CountryPins({
             <mesh>
               <sphereGeometry args={[dotRadius, 12, 12]} />
               <meshBasicMaterial
-                color={
-                  isSelected
-                    ? PIN_COLOR_SELECTED
-                    : isHovered
-                      ? PIN_COLOR_HOVER
-                      : PIN_COLOR
-                }
+                color={isSelected ? PIN_COLOR_SELECTED : isHovered ? PIN_COLOR_HOVER : PIN_COLOR}
               />
             </mesh>
           </group>

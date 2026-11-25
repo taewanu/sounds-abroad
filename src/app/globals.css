@@ -37,8 +37,7 @@
 
   /* Type families — `next/font` injects --font-poppins / --font-instrument /
      --font-jetbrains on <html>; we alias them into Tailwind's font namespaces. */
-  --font-sans:
-    var(--font-poppins), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-display: var(--font-instrument), 'Times New Roman', serif;
   --font-mono: var(--font-jetbrains), ui-monospace, 'SF Mono', monospace;
 
@@ -66,8 +65,7 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.6), 0 4px 16px rgba(0, 0, 0, 0.4);
-  --shadow-sheet:
-    0 -8px 32px rgba(0, 0, 0, 0.5), 0 -1px 0 rgba(245, 242, 236, 0.06) inset;
+  --shadow-sheet: 0 -8px 32px rgba(0, 0, 0, 0.5), 0 -1px 0 rgba(245, 242, 236, 0.06) inset;
   --shadow-glow-accent: 0 0 24px rgba(255, 107, 71, 0.35);
   --shadow-glow-aurora: 0 0 32px rgba(107, 229, 197, 0.25);
 
@@ -416,8 +414,7 @@
    are multiples of --swipe-travel so the whole gesture scales with the viewport. */
 @keyframes tour-swipe {
   0% {
-    transform: translateX(calc(-1 * var(--swipe-travel))) rotate(0deg)
-      scale(0.55);
+    transform: translateX(calc(-1 * var(--swipe-travel))) rotate(0deg) scale(0.55);
     opacity: 0;
   }
   9% {
@@ -425,18 +422,15 @@
     opacity: 1;
   }
   18% {
-    transform: translateX(calc(-1.2 * var(--swipe-travel))) rotate(11deg)
-      scale(1);
+    transform: translateX(calc(-1.2 * var(--swipe-travel))) rotate(11deg) scale(1);
     opacity: 1;
   }
   24% {
-    transform: translateX(calc(-1.2 * var(--swipe-travel))) rotate(11deg)
-      scale(1);
+    transform: translateX(calc(-1.2 * var(--swipe-travel))) rotate(11deg) scale(1);
     opacity: 1;
   }
   46% {
-    transform: translateX(calc(1.2 * var(--swipe-travel))) rotate(-23deg)
-      scale(1);
+    transform: translateX(calc(1.2 * var(--swipe-travel))) rotate(-23deg) scale(1);
     opacity: 1;
   }
   53% {
@@ -907,20 +901,12 @@
 
 .tour-rail-l {
   left: 0;
-  background: linear-gradient(
-    to right,
-    rgba(107, 229, 197, 0.34),
-    rgba(107, 229, 197, 0) 52%
-  );
+  background: linear-gradient(to right, rgba(107, 229, 197, 0.34), rgba(107, 229, 197, 0) 52%);
 }
 
 .tour-rail-r {
   right: 0;
-  background: linear-gradient(
-    to left,
-    rgba(107, 229, 197, 0.34),
-    rgba(107, 229, 197, 0) 52%
-  );
+  background: linear-gradient(to left, rgba(107, 229, 197, 0.34), rgba(107, 229, 197, 0) 52%);
 }
 
 /* The rails fade in over the dim-in window (the 620ms leading edge of tour-dim's
@@ -1179,8 +1165,8 @@
 }
 
 [data-chart-waiting] > li {
-  animation: chart-row-wait var(--row-wait-dur, 3s) var(--ease-in-out)
-    var(--row-wait-delay, 0s) infinite;
+  animation: chart-row-wait var(--row-wait-dur, 3s) var(--ease-in-out) var(--row-wait-delay, 0s)
+    infinite;
 }
 
 /* The chart being read takes the open chart's fill straight away, so the tap is
@@ -1284,8 +1270,8 @@
    arrival where a switch lands on a chart that is still coming. Doubled for the
    specificity alone; the two rules set the same property. */
 [data-chart-waiting][data-chart-waiting] > li {
-  animation: chart-row-wait var(--row-wait-dur, 3s) var(--ease-in-out)
-    var(--row-wait-delay, 0s) infinite;
+  animation: chart-row-wait var(--row-wait-dur, 3s) var(--ease-in-out) var(--row-wait-delay, 0s)
+    infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

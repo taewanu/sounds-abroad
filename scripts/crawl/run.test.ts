@@ -7,10 +7,7 @@ import {
   type Country,
   type SongsTailFile,
 } from '../../src/lib/chart-schema';
-import {
-  commentaryKey,
-  type CommentaryStore,
-} from '../../src/lib/commentary-store';
+import { commentaryKey, type CommentaryStore } from '../../src/lib/commentary-store';
 import type { CountryEntry } from '../../src/lib/countries';
 import { AppleRssError, type AppleRssTrack } from './apple-rss';
 import { ItunesLookupError, type LookupResult } from './itunes-lookup';
@@ -58,14 +55,10 @@ function previewUrlForId(id: string): string {
 }
 
 function resolvedPreviews(ids: readonly string[]): Map<string, LookupResult> {
-  return new Map(
-    ids.map((id) => [id, { id, previewUrl: previewUrlForId(id), genre: null }]),
-  );
+  return new Map(ids.map((id) => [id, { id, previewUrl: previewUrlForId(id), genre: null }]));
 }
 
-function makeCrawlCountryDeps(
-  overrides: Partial<CrawlCountryDeps> = {},
-): CrawlCountryDeps {
+function makeCrawlCountryDeps(overrides: Partial<CrawlCountryDeps> = {}): CrawlCountryDeps {
   const tracks = sampleRssTracks();
   return {
     cc: 'kr',
@@ -146,9 +139,7 @@ test('crawlCountry falls back to the search URL on SpotifyResolveError', async (
   const { country } = await crawlCountry(deps);
 
   expect(country.tracks[0].spotifyUrl).toBe(
-    `https://open.spotify.com/search/${encodeURIComponent(
-      `${firstRss.name} ${firstRss.artist}`,
-    )}`,
+    `https://open.spotify.com/search/${encodeURIComponent(`${firstRss.name} ${firstRss.artist}`)}`,
   );
 });
 
@@ -286,10 +277,7 @@ function fakeRssFor(cc: string): AppleRssTrack[] {
   ];
 }
 
-function countryPreviews(
-  ids: readonly string[],
-  cc: string,
-): Map<string, LookupResult> {
+function countryPreviews(ids: readonly string[], cc: string): Map<string, LookupResult> {
   return new Map(
     ids.map((id) => [
       id,
@@ -387,12 +375,9 @@ function previousChartFile(countries: ChartFile['countries']): ChartFile {
   return { lastUpdated: '2026-05-14T12:00:00.000Z', countries };
 }
 
-function failRssFor(
-  failingCode: string,
-): (cc: string) => Promise<AppleRssTrack[]> {
+function failRssFor(failingCode: string): (cc: string) => Promise<AppleRssTrack[]> {
   return vi.fn(async (cc: string) => {
-    if (cc === failingCode)
-      throw new AppleRssError(cc, '500 Internal Server Error');
+    if (cc === failingCode) throw new AppleRssError(cc, '500 Internal Server Error');
     return fakeRssFor(cc);
   });
 }
@@ -494,8 +479,7 @@ test('crawlAll carries forward the previous entry when a country fails but prior
 test("crawlAll carries forward the previous entry when a country's lookups all fail", async () => {
   const priorNg = priorCountry(NG.name, 3);
   const failNgLookups = vi.fn<BatchLookup>(async (ids, cc) => {
-    if (cc === NG.code)
-      throw new ItunesLookupError(ids, cc, 'http', '503 Service Unavailable');
+    if (cc === NG.code) throw new ItunesLookupError(ids, cc, 'http', '503 Service Unavailable');
     return countryPreviews(ids, cc);
   });
   const deps = makeCrawlAllDeps({
@@ -513,8 +497,7 @@ test("crawlAll carries forward the previous entry when a country's lookups all f
 
 test('crawlAll publishes a zero-playable country as invalid when no prior data exists', async () => {
   const failNgLookups = vi.fn<BatchLookup>(async (ids, cc) => {
-    if (cc === NG.code)
-      throw new ItunesLookupError(ids, cc, 'http', '503 Service Unavailable');
+    if (cc === NG.code) throw new ItunesLookupError(ids, cc, 'http', '503 Service Unavailable');
     return countryPreviews(ids, cc);
   });
   const deps = makeCrawlAllDeps({
@@ -525,9 +508,7 @@ test('crawlAll publishes a zero-playable country as invalid when no prior data e
   const result = await crawlAll(deps);
 
   expect(result.chartFile.countries.ng.valid).toBe(false);
-  expect(result.chartFile.countries.ng.tracks).toHaveLength(
-    fakeRssFor(NG.code).length,
-  );
+  expect(result.chartFile.countries.ng.tracks).toHaveLength(fakeRssFor(NG.code).length);
   expect(result.carriedCodes).toEqual([]);
 });
 
@@ -584,9 +565,7 @@ test('crawlAll keeps a failed country invalid when fetchPrevious returns null', 
 });
 
 test('crawlAll keeps a failed country invalid when the previous payload lacks it', async () => {
-  const fetchPrevious = vi.fn(async () =>
-    previousChartFile({ kr: priorCountry(KR.name, 2) }),
-  );
+  const fetchPrevious = vi.fn(async () => previousChartFile({ kr: priorCountry(KR.name, 2) }));
   const deps = makeCrawlAllDeps({
     countries: [KR, NG],
     fetchRss: failRssFor(NG.code),
@@ -601,9 +580,7 @@ test('crawlAll keeps a failed country invalid when the previous payload lacks it
 
 test('crawlAll does not carry forward a previous entry that was itself empty', async () => {
   const emptyPriorNg: Country = { name: NG.name, valid: false, tracks: [] };
-  const fetchPrevious = vi.fn(async () =>
-    previousChartFile({ ng: emptyPriorNg }),
-  );
+  const fetchPrevious = vi.fn(async () => previousChartFile({ ng: emptyPriorNg }));
   const deps = makeCrawlAllDeps({
     countries: [KR, NG],
     fetchRss: failRssFor(NG.code),
@@ -808,9 +785,7 @@ test('publishes an empty tail for a country that ranks no deeper than the payloa
 
   const result = await crawlAll(deps);
 
-  expect(result.chartFile.countries[KR.code].tracks).toHaveLength(
-    EAGER_TRACK_COUNT,
-  );
+  expect(result.chartFile.countries[KR.code].tracks).toHaveLength(EAGER_TRACK_COUNT);
   // Written rather than skipped: an earlier run's rows are still in the store,
   // and a reader finding them would take them as this chart's.
   expect(uploadSongsTail).toHaveBeenCalledTimes(1);
@@ -822,9 +797,7 @@ test('writes no tail for a country carried forward from an earlier run', async (
   const deps = makeCrawlAllDeps({
     countries: [KR, NG],
     fetchRss: failRssFor(NG.code),
-    fetchPrevious: vi.fn(async () =>
-      previousChartFile({ ng: priorCountry(NG.name, 3) }),
-    ),
+    fetchPrevious: vi.fn(async () => previousChartFile({ ng: priorCountry(NG.name, 3) })),
     uploadSongsTail,
   });
 
@@ -833,9 +806,7 @@ test('writes no tail for a country carried forward from an earlier run', async (
   // Its chart is the earlier run's, so the tail that run left still belongs to
   // the rows the payload carries; an empty write would drop rows still current.
   expect(result.carriedCodes).toEqual([NG.code]);
-  expect(uploadSongsTail.mock.calls.map((call) => call[0].code)).toEqual([
-    KR.code,
-  ]);
+  expect(uploadSongsTail.mock.calls.map((call) => call[0].code)).toEqual([KR.code]);
 });
 
 test('publishes an empty tail for a chart that no longer ranks past the payload', async () => {

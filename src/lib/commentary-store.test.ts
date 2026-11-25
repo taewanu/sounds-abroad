@@ -21,9 +21,7 @@ test('normalizeForKey folds Unicode composition so accents key the same', () => 
 });
 
 test('commentaryKey joins language, artist, and title', () => {
-  expect(commentaryKey('en', 'The Band', 'Hit Song')).toBe(
-    'en:the band|hit song',
-  );
+  expect(commentaryKey('en', 'The Band', 'Hit Song')).toBe('en:the band|hit song');
 });
 
 test('commentaryKey is stable across cosmetic differences in artist and title', () => {
@@ -33,9 +31,7 @@ test('commentaryKey is stable across cosmetic differences in artist and title', 
 });
 
 test('commentaryKey separates languages', () => {
-  expect(commentaryKey('en', 'Artist', 'Song')).not.toBe(
-    commentaryKey('es', 'Artist', 'Song'),
-  );
+  expect(commentaryKey('en', 'Artist', 'Song')).not.toBe(commentaryKey('es', 'Artist', 'Song'));
 });
 
 test('commentaryForTrack returns the stored blurb on a key match', () => {

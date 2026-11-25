@@ -26,9 +26,10 @@ describe('onlyHere', () => {
     const exclusive = track(2, 1);
     const alsoExclusive = track(7, 1);
 
-    expect(
-      onlyHere([track(1, 12), exclusive, track(3, 2), alsoExclusive]),
-    ).toEqual([exclusive, alsoExclusive]);
+    expect(onlyHere([track(1, 12), exclusive, track(3, 2), alsoExclusive])).toEqual([
+      exclusive,
+      alsoExclusive,
+    ]);
   });
 
   test('drops a track any other chart carries, however few', () => {
@@ -57,18 +58,12 @@ describe('onlyHere', () => {
 describe('songsChartRows', () => {
   test('lists only what travelled until the rest is read', () => {
     expect(
-      songsChartRows('most_played', [track(1, 4), track(2, 1)], null).map(
-        (t) => t.rank,
-      ),
+      songsChartRows('most_played', [track(1, 4), track(2, 1)], null).map((t) => t.rank),
     ).toEqual([1, 2]);
   });
 
   test('continues into the rest once it is in hand', () => {
-    const rows = songsChartRows(
-      'most_played',
-      [track(1, 4)],
-      [track(2, 1), track(3, 8)],
-    );
+    const rows = songsChartRows('most_played', [track(1, 4)], [track(2, 1), track(3, 8)]);
 
     expect(rows.map((t) => t.rank)).toEqual([1, 2, 3]);
   });
@@ -100,25 +95,19 @@ describe('withPlaying', () => {
   test('puts a filtered-out track back at its own rank', () => {
     const playing = track(5, 9);
 
-    expect(
-      withPlaying([track(2, 1), track(9, 1)], playing).map((t) => t.rank),
-    ).toEqual([2, 5, 9]);
+    expect(withPlaying([track(2, 1), track(9, 1)], playing).map((t) => t.rank)).toEqual([2, 5, 9]);
   });
 
   test('puts a track ranked past every row at the end', () => {
     const playing = track(40, 9);
 
-    expect(withPlaying([track(2, 1)], playing).map((t) => t.rank)).toEqual([
-      2, 40,
-    ]);
+    expect(withPlaying([track(2, 1)], playing).map((t) => t.rank)).toEqual([2, 40]);
   });
 
   test('puts a track ranked before every row at the front', () => {
     const playing = track(1, 9);
 
-    expect(withPlaying([track(6, 1)], playing).map((t) => t.rank)).toEqual([
-      1, 6,
-    ]);
+    expect(withPlaying([track(6, 1)], playing).map((t) => t.rank)).toEqual([1, 6]);
   });
 
   test('leaves the chart it was given untouched', () => {

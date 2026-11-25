@@ -71,9 +71,7 @@ export function selectLocalPlaylists(
  * ties broken by name so the order is stable across crawls. Tracks whose genre
  * did not resolve are left out rather than counted as an unknown bucket.
  */
-export function genreHistogram(
-  genres: readonly (string | null)[],
-): PlaylistGenre[] {
+export function genreHistogram(genres: readonly (string | null)[]): PlaylistGenre[] {
   const counts = new Map<string, number>();
 
   for (const genre of genres) {

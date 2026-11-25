@@ -19,8 +19,7 @@ function defaultDeps(): MediaSessionDeps {
   const nav = typeof navigator !== 'undefined' ? navigator : undefined;
   return {
     mediaSession: nav && 'mediaSession' in nav ? nav.mediaSession : null,
-    metadataCtor:
-      typeof MediaMetadata !== 'undefined' ? MediaMetadata : undefined,
+    metadataCtor: typeof MediaMetadata !== 'undefined' ? MediaMetadata : undefined,
   };
 }
 
@@ -29,10 +28,7 @@ function defaultDeps(): MediaSessionDeps {
  * lock screen). Metadata only, no transport action handlers. No-ops where
  * MediaSession is unsupported so it never throws.
  */
-export function setNowPlaying(
-  track: ChartTrack,
-  deps: MediaSessionDeps = defaultDeps(),
-): void {
+export function setNowPlaying(track: ChartTrack, deps: MediaSessionDeps = defaultDeps()): void {
   const { mediaSession, metadataCtor } = deps;
   if (!mediaSession || !metadataCtor) return;
   mediaSession.metadata = new metadataCtor({

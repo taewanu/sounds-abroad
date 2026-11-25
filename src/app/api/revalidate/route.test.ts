@@ -123,8 +123,5 @@ test('returns 500 and captures message when REVALIDATE_SECRET is unset', async (
   expect(body).toEqual({ ok: false });
   expect(revalidateTagMock).not.toHaveBeenCalled();
   expect(addBreadcrumbMock).not.toHaveBeenCalled();
-  expect(captureMessageMock).toHaveBeenCalledWith(
-    MISCONFIGURED_MESSAGE,
-    'error',
-  );
+  expect(captureMessageMock).toHaveBeenCalledWith(MISCONFIGURED_MESSAGE, 'error');
 });

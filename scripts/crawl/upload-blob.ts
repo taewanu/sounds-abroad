@@ -1,8 +1,4 @@
-import type {
-  ChartFile,
-  PlaylistFile,
-  SongsTailFile,
-} from '../../src/lib/chart-schema';
+import type { ChartFile, PlaylistFile, SongsTailFile } from '../../src/lib/chart-schema';
 import { putJson } from '../lib/object-store';
 
 const BLOB_PATHNAME = 'charts/v1/charts.json';
@@ -59,9 +55,7 @@ export async function uploadCharts(
  * the worklist's rank-movement triggers (ADR-0007) diff the live charts
  * against this copy, read back via CHARTS_PREV_BLOB_URL.
  */
-export async function uploadPreviousCharts(
-  chartFile: ChartFile,
-): Promise<string> {
+export async function uploadPreviousCharts(chartFile: ChartFile): Promise<string> {
   return putJson(PREV_BLOB_PATHNAME, JSON.stringify(chartFile));
 }
 
@@ -71,10 +65,7 @@ export async function uploadPreviousCharts(
  * stored and cached once.
  */
 export async function uploadPlaylistFile(file: PlaylistFile): Promise<string> {
-  return putJson(
-    `${PLAYLIST_BLOB_PREFIX}/${file.id}.json`,
-    JSON.stringify(file),
-  );
+  return putJson(`${PLAYLIST_BLOB_PREFIX}/${file.id}.json`, JSON.stringify(file));
 }
 
 /**
@@ -83,8 +74,5 @@ export async function uploadPlaylistFile(file: PlaylistFile): Promise<string> {
  * exactly one storefront and is never shared.
  */
 export async function uploadSongsTail(file: SongsTailFile): Promise<string> {
-  return putJson(
-    `${SONGS_TAIL_PREFIX}/${file.code}.json`,
-    JSON.stringify(file),
-  );
+  return putJson(`${SONGS_TAIL_PREFIX}/${file.code}.json`, JSON.stringify(file));
 }

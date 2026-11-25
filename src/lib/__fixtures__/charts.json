@@ -18,10 +18,7 @@
             "detail": "Short context about the track's rise.",
             "tag": "new entry",
             "claim": "why-charting",
-            "sources": [
-              "https://example.com/source-a",
-              "https://example.com/source-b"
-            ],
+            "sources": ["https://example.com/source-a", "https://example.com/source-b"],
             "generatedAt": "2026-04-25T03:00:00Z"
           }
         },

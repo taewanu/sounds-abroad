@@ -21,13 +21,7 @@ const serverUsed = () => true;
 // permanently on the first edge skip, via the shared edge-hint record.
 // Pointer-transparent and below the sheet, so it reads as part of the globe
 // backdrop, not chrome.
-export function EdgeChevrons({
-  active,
-  sheetSnap,
-}: {
-  active: boolean;
-  sheetSnap: SnapState;
-}) {
+export function EdgeChevrons({ active, sheetSnap }: { active: boolean; sheetSnap: SnapState }) {
   const used = useSyncExternalStore(subscribeRecord, readUsed, serverUsed);
   const coarsePointer = useCoarsePointer();
 

@@ -4,10 +4,7 @@
 // permanently the moment the user performs an edge skip. Pure schedule plus its
 // persistence, shaped like the tour record.
 
-import {
-  createMirroredStorage,
-  type MirroredStorage,
-} from '@/lib/mirrored-storage';
+import { createMirroredStorage, type MirroredStorage } from '@/lib/mirrored-storage';
 
 export interface EdgeHintRecord {
   shows: number;
@@ -64,10 +61,7 @@ export function readRecord(storage: MirroredStorage = store): EdgeHintRecord {
   }
 }
 
-export function writeRecord(
-  record: EdgeHintRecord,
-  storage: MirroredStorage = store,
-): void {
+export function writeRecord(record: EdgeHintRecord, storage: MirroredStorage = store): void {
   try {
     storage.setItem(KEY, JSON.stringify(record));
   } catch {

@@ -48,10 +48,7 @@ function CountryLayers({
   return (
     <>
       <CountryOutlinesLayer data={outlines} hoveredIsoNum={hoveredIsoNum} />
-      <CountryFill
-        selectedIsoNum={selectedIsoNum}
-        byIsoRings={outlines.byIsoRings}
-      />
+      <CountryFill selectedIsoNum={selectedIsoNum} byIsoRings={outlines.byIsoRings} />
     </>
   );
 }
@@ -70,8 +67,7 @@ function SceneContent() {
     hoveredCode !== null && hoveredCode !== selectedCode
       ? (ISO_BY_CODE.get(hoveredCode) ?? null)
       : null;
-  const selectedIsoNum =
-    selectedCode !== null ? (ISO_BY_CODE.get(selectedCode) ?? null) : null;
+  const selectedIsoNum = selectedCode !== null ? (ISO_BY_CODE.get(selectedCode) ?? null) : null;
 
   // The anti-repeat memory lives in the globe-chart store (the chart draws
   // from it too); the globe owns the writes. Seed it once with whatever the
@@ -102,8 +98,7 @@ function SceneContent() {
       globeChartStore.getState().signalSettle(viaTap);
       if (!changed) return;
       triggerLandingHaptic();
-      const { setSelectedCountry, visited, setVisited, chartMode } =
-        globeChartStore.getState();
+      const { setSelectedCountry, visited, setVisited, chartMode } = globeChartStore.getState();
       setSelectedCountry(code);
       const url = chartPath(code, SONGS_CHART, chartMode);
       if (origin === 'gesture') {
@@ -129,9 +124,7 @@ function SceneContent() {
     if (shuffleSignal === prevShuffleRef.current) return;
     prevShuffleRef.current = shuffleSignal;
     const { drawableCodes, shuffleTo } = globeChartStore.getState();
-    shuffleTo(
-      pickShuffleCountry(visited, [selectedCode ?? initialCode], drawableCodes),
-    );
+    shuffleTo(pickShuffleCountry(visited, [selectedCode ?? initialCode], drawableCodes));
   }, [shuffleSignal, visited, selectedCode, initialCode]);
 
   return (
@@ -141,17 +134,10 @@ function SceneContent() {
       <StarBackdrop />
       <mesh>
         <sphereGeometry args={[1, 64, 64]} />
-        <meshStandardMaterial
-          color="#0a1a2a"
-          roughness={0.95}
-          metalness={0.05}
-        />
+        <meshStandardMaterial color="#0a1a2a" roughness={0.95} metalness={0.05} />
       </mesh>
       <Suspense fallback={null}>
-        <CountryLayers
-          hoveredIsoNum={hoveredIsoNum}
-          selectedIsoNum={selectedIsoNum}
-        />
+        <CountryLayers hoveredIsoNum={hoveredIsoNum} selectedIsoNum={selectedIsoNum} />
       </Suspense>
       <CountryPins
         selectedCode={selectedCode}
@@ -219,9 +205,7 @@ export function GlobeScene() {
         WebkitUserSelect: 'none',
         WebkitTouchCallout: 'none',
       }}
-      className={`transition-opacity duration-700 ease-out ${
-        ready ? 'opacity-100' : 'opacity-0'
-      }`}
+      className={`transition-opacity duration-700 ease-out ${ready ? 'opacity-100' : 'opacity-0'}`}
     >
       <AspectCameraFit />
       <SceneContent />

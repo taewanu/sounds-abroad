@@ -37,13 +37,13 @@ describe('TourOverlay', () => {
   });
 
   test("labels each later beat's gesture", () => {
-    expect(
-      renderOverlay({ beat: 'sheet' }).getByTestId('tour-badge').textContent,
-    ).toMatch(/pull up the chart/i);
+    expect(renderOverlay({ beat: 'sheet' }).getByTestId('tour-badge').textContent).toMatch(
+      /pull up the chart/i,
+    );
     cleanup();
-    expect(
-      renderOverlay({ beat: 'audio' }).getByTestId('tour-badge').textContent,
-    ).toMatch(/tap a track/i);
+    expect(renderOverlay({ beat: 'audio' }).getByTestId('tour-badge').textContent).toMatch(
+      /tap a track/i,
+    );
   });
 
   test('renders no text callout card or dialog', () => {
@@ -56,9 +56,7 @@ describe('TourOverlay', () => {
   test('shows the flick hint on the gesture beat and drops it once grabbed', () => {
     expect(renderOverlay().queryByTestId('tour-flick-hint')).toBeTruthy();
     cleanup();
-    expect(
-      renderOverlay({ hideFlickHint: true }).queryByTestId('tour-flick-hint'),
-    ).toBeNull();
+    expect(renderOverlay({ hideFlickHint: true }).queryByTestId('tour-flick-hint')).toBeNull();
   });
 
   test('dismisses the tour from the X control', () => {

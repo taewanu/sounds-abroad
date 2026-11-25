@@ -40,9 +40,7 @@ describe('routeStore', () => {
     const result = await routeStore(store, { ground: doesNotGround });
 
     expect(result.published).toEqual({});
-    expect(result.dropped).toEqual([
-      { key: KEY, reasons: ['grounding: No source states it.'] },
-    ]);
+    expect(result.dropped).toEqual([{ key: KEY, reasons: ['grounding: No source states it.'] }]);
   });
 
   test("a grounding drop always carries a reason, even when the verdict's is empty", async () => {
@@ -52,9 +50,7 @@ describe('routeStore', () => {
       ground: () => Promise.resolve({ grounded: false, reason: '' }),
     });
 
-    expect(result.dropped).toEqual([
-      { key: KEY, reasons: ['grounding: Grounding failed.'] },
-    ]);
+    expect(result.dropped).toEqual([{ key: KEY, reasons: ['grounding: Grounding failed.'] }]);
   });
 
   test('drops on a deterministic failure without spending a grounding call', async () => {
@@ -68,9 +64,7 @@ describe('routeStore', () => {
     const result = await routeStore(store, { ground });
 
     expect(result.published).toEqual({});
-    expect(result.dropped).toEqual([
-      { key: KEY, reasons: ['source-authority'] },
-    ]);
+    expect(result.dropped).toEqual([{ key: KEY, reasons: ['source-authority'] }]);
     expect(ground).not.toHaveBeenCalled();
   });
 
@@ -83,9 +77,7 @@ describe('routeStore', () => {
     const result = await routeStore(store, { ground: grounds });
 
     expect(result.published).toEqual({});
-    expect(result.dropped).toEqual([
-      { key: KEY, reasons: [`no-lyric: quoted-span ${quoted}`] },
-    ]);
+    expect(result.dropped).toEqual([{ key: KEY, reasons: [`no-lyric: quoted-span ${quoted}`] }]);
   });
 
   test('routes each entry independently: a dropped card never blocks a clean one', async () => {
@@ -97,8 +89,6 @@ describe('routeStore', () => {
     const result = await routeStore(store, { ground: grounds });
 
     expect(result.published).toEqual({ [KEY]: store[KEY] });
-    expect(result.dropped).toEqual([
-      { key: OTHER, reasons: ['source-authority'] },
-    ]);
+    expect(result.dropped).toEqual([{ key: OTHER, reasons: ['source-authority'] }]);
   });
 });

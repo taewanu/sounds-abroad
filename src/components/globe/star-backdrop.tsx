@@ -6,11 +6,7 @@ const STAR_SIZE = 0.04;
 const SHELL_MIN = 10;
 const SHELL_MAX = 14;
 
-function generateShellPositions(
-  count: number,
-  shellMin: number,
-  shellMax: number,
-): Float32Array {
+function generateShellPositions(count: number, shellMin: number, shellMax: number): Float32Array {
   const positions = new Float32Array(count * 3);
   for (let i = 0; i < count; i++) {
     const u = Math.random();
@@ -26,19 +22,12 @@ function generateShellPositions(
 }
 
 export function StarBackdrop() {
-  const positions = useMemo(
-    () => generateShellPositions(STAR_COUNT, SHELL_MIN, SHELL_MAX),
-    [],
-  );
+  const positions = useMemo(() => generateShellPositions(STAR_COUNT, SHELL_MIN, SHELL_MAX), []);
 
   return (
     <points>
       <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          args={[positions, 3]}
-          count={STAR_COUNT}
-        />
+        <bufferAttribute attach="attributes-position" args={[positions, 3]} count={STAR_COUNT} />
       </bufferGeometry>
       <pointsMaterial
         size={STAR_SIZE}

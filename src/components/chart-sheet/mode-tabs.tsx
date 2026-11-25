@@ -2,11 +2,7 @@
 
 import { useLayoutEffect, useRef, useState } from 'react';
 
-import {
-  CHART_MODES,
-  CHART_MODE_LABELS,
-  type ChartMode,
-} from '@/lib/chart-mode';
+import { CHART_MODES, CHART_MODE_LABELS, type ChartMode } from '@/lib/chart-mode';
 
 export interface ModeTabsProps {
   /** The mode on screen. */

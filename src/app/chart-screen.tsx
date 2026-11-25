@@ -22,12 +22,7 @@ import { TourHost } from '@/components/tour/tour-host';
 import { useTourGateOpen } from '@/components/tour/use-tour-gate-open';
 import { findAdjacentPlayable } from '@/lib/adjacent-playable';
 import { track as trackEvent } from '@/lib/analytics';
-import {
-  DEFAULT_CHART_MODE,
-  songsChartRows,
-  withPlaying,
-  type ChartMode,
-} from '@/lib/chart-mode';
+import { DEFAULT_CHART_MODE, songsChartRows, withPlaying, type ChartMode } from '@/lib/chart-mode';
 import { isPlaylistRef, SONGS_CHART, type ChartRef } from '@/lib/chart-ref';
 import type { ChartFile, ChartTrack, Country } from '@/lib/chart-schema';
 import {
@@ -51,11 +46,7 @@ import {
   type SeatOf,
 } from '@/lib/end-of-chart-roll';
 import { codesWithTracks, pickShuffleCountry } from '@/lib/fairness-draw';
-import {
-  type GlobeChartState,
-  globeChartStore,
-  useGlobeChart,
-} from '@/lib/globe-chart-store';
+import { type GlobeChartState, globeChartStore, useGlobeChart } from '@/lib/globe-chart-store';
 import { pickLandingCountry } from '@/lib/landing-code';
 import { setSkipHandlers } from '@/lib/media-session';
 import { shuffleSeat } from '@/lib/shuffle-seat';
@@ -66,10 +57,7 @@ import {
   useAudioStoreApi,
 } from '@/providers/audio-store-provider';
 
-function validateUrlCode(
-  raw: string | null,
-  countries: ChartFile['countries'],
-): string | null {
+function validateUrlCode(raw: string | null, countries: ChartFile['countries']): string | null {
   if (raw === null) return null;
   const lower = raw.toLowerCase();
   return Object.hasOwn(countries, lower) ? lower : null;
@@ -101,9 +89,7 @@ export function ChartScreen({ charts }: ChartScreenProps) {
   const urlCode =
     validateUrlCode(rawCc, charts.countries) ??
     validateUrlCode(countryCodeFromPath(pathname), charts.countries);
-  const [clientLandingSnapshot] = useState(() =>
-    createLandingSnapshot(charts.countries),
-  );
+  const [clientLandingSnapshot] = useState(() => createLandingSnapshot(charts.countries));
   const landingCode = useSyncExternalStore(
     emptySubscribe,
     clientLandingSnapshot,
@@ -122,9 +108,7 @@ export function ChartScreen({ charts }: ChartScreenProps) {
   // Publish which countries have tracks for the same reason: the globe draws
   // the shuffle but never sees the chart file.
   useEffect(() => {
-    globeChartStore
-      .getState()
-      .setDrawableCodes(codesWithTracks(charts.countries));
+    globeChartStore.getState().setDrawableCodes(codesWithTracks(charts.countries));
   }, [charts.countries]);
 
   if (countryCode === null) return null;
@@ -229,24 +213,14 @@ function ChartScreenInner({
     urlSays.current = want;
     window.history.replaceState(null, '', want);
   }, [urlChart, chartFailed, chartRef, countryCode, mode]);
-  const {
-    peek: peekChart,
-    read: readChart,
-    open: openChart,
-    peekTail,
-    awaitTail,
-  } = chart;
+  const { peek: peekChart, read: readChart, open: openChart, peekTail, awaitTail } = chart;
 
   // The rows next and prev walk, assembled the same way the sheet lists them so
   // stepping reaches every row a listener can see and no row they cannot.
   // Located by country and chart together, the country being browsed need not be
   // the one playing. `current` is put back where the mode filtered it away.
   const tracksOf = useCallback(
-    (
-      code: string,
-      ref: ChartRef,
-      current: ChartTrack | null = null,
-    ): ChartTrack[] | null => {
+    (code: string, ref: ChartRef, current: ChartTrack | null = null): ChartTrack[] | null => {
       if (isPlaylistRef(ref)) return peekChart(ref);
       const eager = charts.countries[code]?.tracks ?? null;
       if (eager === null) return null;
@@ -254,10 +228,7 @@ function ChartScreenInner({
       // company the moment the listener browses elsewhere, and what they are
       // hearing should not be re-ordered by what they are looking at. Falls back
       // to the mode on screen before anything has played.
-      return withPlaying(
-        songsChartRows(currentMode ?? mode, eager, peekTail(code)),
-        current,
-      );
+      return withPlaying(songsChartRows(currentMode ?? mode, eager, peekTail(code)), current);
     },
     [charts.countries, peekChart, peekTail, currentMode, mode],
   );
@@ -309,8 +280,7 @@ function ChartScreenInner({
   const currentChartRef = useAudioStore((s) => s.currentChartRef);
 
   const setCurrentMode = useAudioStore((s) => s.setCurrentMode);
-  const viewingPlayingChart =
-    currentCountryCode === countryCode && currentChartRef === chart.ref;
+  const viewingPlayingChart = currentCountryCode === countryCode && currentChartRef === chart.ref;
   useEffect(() => {
     if (viewingPlayingChart && currentMode !== mode) setCurrentMode(mode);
   }, [viewingPlayingChart, currentMode, mode, setCurrentMode]);
@@ -432,8 +402,7 @@ function ChartScreenInner({
     // arrival and a write this late reaches nothing. The URL is written only
     // when the shown chart is not already the playing one, so a tap while
     // looking at it adds no history entry.
-    const { currentCountryCode, currentChartRef, currentMode } =
-      audioStore.getState();
+    const { currentCountryCode, currentChartRef, currentMode } = audioStore.getState();
     if (currentCountryCode && currentChartRef) {
       const onPlayingCountry = currentCountryCode === countryCode;
       const onPlayingChart = onPlayingCountry && currentChartRef === chartRef;
@@ -441,11 +410,7 @@ function ChartScreenInner({
         window.history.pushState(
           null,
           '',
-          chartPath(
-            currentCountryCode,
-            currentChartRef,
-            currentMode ?? DEFAULT_CHART_MODE,
-          ),
+          chartPath(currentCountryCode, currentChartRef, currentMode ?? DEFAULT_CHART_MODE),
         );
         // The URL now names a chart the sheet has yet to open, so hold the
         // canonical writer until it does. Without this it would relabel to
@@ -489,11 +454,7 @@ function ChartScreenInner({
   // Roll out of a country into a fresh fairness-drawn one, the behaviour past
   // the last chart a country can offer.
   const rollOutOfCountry = useCallback(
-    (
-      fromCode: string,
-      fromRef: ChartRef,
-      fromTrack: ChartTrack,
-    ): 'rolled' | null => {
+    (fromCode: string, fromRef: ChartRef, fromTrack: ChartTrack): 'rolled' | null => {
       const { toggle, signalStep } = audioStore.getState();
       const { visited, drawableCodes, selectedCountry, setSelectedCountry } =
         globeChartStore.getState();
@@ -529,11 +490,7 @@ function ChartScreenInner({
       // a landing would otherwise go unrecorded there. Routed through the
       // shared path so the chart is dropped rather than silently left behind,
       // while the mode carries, so a roll in only here lands in only here.
-      window.history.replaceState(
-        null,
-        '',
-        chartPath(landing.code, SONGS_CHART, heardIn()),
-      );
+      window.history.replaceState(null, '', chartPath(landing.code, SONGS_CHART, heardIn()));
       signalStep(1);
       flashSkip(1);
       trackEvent('next_executed', {
@@ -556,8 +513,7 @@ function ChartScreenInner({
     async (fromCode: string, fromRef: ChartRef, fromTrack: ChartTrack) => {
       const refs = playlistsAfter(charts.countries[fromCode], fromRef);
       const landing = await planChartContinuation(refs, readChart);
-      const { currentTrack, currentCountryCode, currentChartRef, toggle } =
-        audioStore.getState();
+      const { currentTrack, currentCountryCode, currentChartRef, toggle } = audioStore.getState();
       // The listener may have chosen something else while the read was in
       // flight; committing then would pull them out of it.
       if (
@@ -589,32 +545,15 @@ function ChartScreenInner({
       // was reading the one it continues from: anyone browsing elsewhere chose
       // that, and playback is theirs to hear, not to be moved by.
       const displayed = onScreenRef.current;
-      if (
-        displayed.countryCode === fromCode &&
-        displayed.chartRef === fromRef
-      ) {
+      if (displayed.countryCode === fromCode && displayed.chartRef === fromRef) {
         openChart(landing.ref);
       }
     },
-    [
-      audioStore,
-      heardIn,
-      charts.countries,
-      readChart,
-      openChart,
-      flashSkip,
-      rollOutOfCountry,
-    ],
+    [audioStore, heardIn, charts.countries, readChart, openChart, flashSkip, rollOutOfCountry],
   );
 
   const playAdjacent = useCallback(
-    (
-      adj: ChartTrack,
-      code: string,
-      ref: ChartRef,
-      fromTrack: ChartTrack,
-      dir: 1 | -1,
-    ) => {
+    (adj: ChartTrack, code: string, ref: ChartRef, fromTrack: ChartTrack, dir: 1 | -1) => {
       const { toggle, signalStep } = audioStore.getState();
       toggle(adj, { countryCode: code, chartRef: ref, mode: heardIn() });
       signalStep(dir);
@@ -658,15 +597,7 @@ function ChartScreenInner({
         rollOutOfCountry(fromCode, SONGS_CHART, fromTrack);
       }
     },
-    [
-      audioStore,
-      awaitTail,
-      charts.countries,
-      flashSkip,
-      heardIn,
-      playAdjacent,
-      rollOutOfCountry,
-    ],
+    [audioStore, awaitTail, charts.countries, flashSkip, heardIn, playAdjacent, rollOutOfCountry],
   );
 
   // Step within the chart being played, not the one on screen. Reads live audio
@@ -677,67 +608,32 @@ function ChartScreenInner({
   // origin. Every next/prev surface routes through here, so all of them inherit
   // the roll.
   const step = useCallback(
-    (
-      dir: 1 | -1,
-    ): 'adjacent' | 'rolled' | 'backRolled' | 'continued' | null => {
-      const {
-        currentTrack,
-        currentCountryCode,
-        currentChartRef,
-        toggle,
-        signalStep,
-      } = audioStore.getState();
-      if (
-        currentTrack === null ||
-        currentCountryCode === null ||
-        currentChartRef === null
-      ) {
+    (dir: 1 | -1): 'adjacent' | 'rolled' | 'backRolled' | 'continued' | null => {
+      const { currentTrack, currentCountryCode, currentChartRef, toggle, signalStep } =
+        audioStore.getState();
+      if (currentTrack === null || currentCountryCode === null || currentChartRef === null) {
         return null;
       }
-      const playing = tracksOf(
-        currentCountryCode,
-        currentChartRef,
-        currentTrack,
-      );
+      const playing = tracksOf(currentCountryCode, currentChartRef, currentTrack);
       if (!playing) return null;
       const adj = findAdjacentPlayable(playing, currentTrack, dir);
       // Publish the direction after each real change, so every surface that
       // steps (buttons, swipe, media keys, edge-tap, auto-advance, and a roll)
       // feeds the one directional mini-player cue with no per-surface wiring.
       if (adj) {
-        playAdjacent(
-          adj,
-          currentCountryCode,
-          currentChartRef,
-          currentTrack,
-          dir,
-        );
+        playAdjacent(adj, currentCountryCode, currentChartRef, currentTrack, dir);
         return 'adjacent';
       }
       if (dir === 1) {
-        if (
-          currentChartRef === SONGS_CHART &&
-          peekTail(currentCountryCode) === null
-        ) {
+        if (currentChartRef === SONGS_CHART && peekTail(currentCountryCode) === null) {
           void stepIntoTail(currentCountryCode, currentTrack);
           return 'continued';
         }
-        if (
-          playlistsAfter(charts.countries[currentCountryCode], currentChartRef)
-            .length > 0
-        ) {
-          void continueWithinCountry(
-            currentCountryCode,
-            currentChartRef,
-            currentTrack,
-          );
+        if (playlistsAfter(charts.countries[currentCountryCode], currentChartRef).length > 0) {
+          void continueWithinCountry(currentCountryCode, currentChartRef, currentTrack);
           return 'continued';
         }
-        return rollOutOfCountry(
-          currentCountryCode,
-          currentChartRef,
-          currentTrack,
-        );
+        return rollOutOfCountry(currentCountryCode, currentChartRef, currentTrack);
       }
       const back = backRollTarget(
         rollRecord,
@@ -754,14 +650,9 @@ function ChartScreenInner({
       });
       setRollRecord(null);
       const store = globeChartStore.getState();
-      if (back.countryCode !== store.selectedCountry)
-        suppressResurfaceRef.current = true;
+      if (back.countryCode !== store.selectedCountry) suppressResurfaceRef.current = true;
       store.setSelectedCountry(back.countryCode);
-      window.history.replaceState(
-        null,
-        '',
-        chartPath(back.countryCode, SONGS_CHART, heardIn()),
-      );
+      window.history.replaceState(null, '', chartPath(back.countryCode, SONGS_CHART, heardIn()));
       signalStep(dir);
       flashSkip(-1);
       trackEvent('next_executed', {
@@ -806,11 +697,7 @@ function ChartScreenInner({
   }, [audioStore]);
 
   const canPrev = useMemo(() => {
-    if (
-      currentTrack === null ||
-      currentCountryCode === null ||
-      currentChartRef === null
-    ) {
+    if (currentTrack === null || currentCountryCode === null || currentChartRef === null) {
       return false;
     }
     const playing = tracksOf(currentCountryCode, currentChartRef, currentTrack);
@@ -846,11 +733,7 @@ function ChartScreenInner({
   // a chart end, where the step moves to another chart rather than a neighbour
   // (that target isn't previewed: it's a bigger context change on commit).
   const [prevTrack, nextTrack] = useMemo(() => {
-    if (
-      currentTrack === null ||
-      currentCountryCode === null ||
-      currentChartRef === null
-    ) {
+    if (currentTrack === null || currentCountryCode === null || currentChartRef === null) {
       return [null, null] as const;
     }
     const playing = tracksOf(currentCountryCode, currentChartRef, currentTrack);
@@ -920,30 +803,23 @@ function ChartScreenInner({
   // the back-roll record, which is how a manual country pick clears it. An
   // Effect Event captures the latest step/flashSkip so the store listener
   // subscribes once for the screen's life, never re-subscribing on their churn.
-  const onGlobeSignal = useEffectEvent(
-    (state: GlobeChartState, prev: GlobeChartState) => {
-      if (
-        state.shuffleLanded !== prev.shuffleLanded &&
-        state.shuffleLanded !== null
-      ) {
-        playShuffleLanding(state.shuffleLanded.code);
+  const onGlobeSignal = useEffectEvent((state: GlobeChartState, prev: GlobeChartState) => {
+    if (state.shuffleLanded !== prev.shuffleLanded && state.shuffleLanded !== null) {
+      playShuffleLanding(state.shuffleLanded.code);
+    }
+    if (state.skipIntent.nonce !== prev.skipIntent.nonce) {
+      // The gesture itself proves the edge skip is learned, so the teaching
+      // affordances retire even when step clamps at the end of the chart,
+      // matching the hint's own dismiss-on-gesture rule.
+      markUsed();
+      if (step(state.skipIntent.dir) === 'adjacent') {
+        flashSkip(state.skipIntent.dir);
       }
-      if (state.skipIntent.nonce !== prev.skipIntent.nonce) {
-        // The gesture itself proves the edge skip is learned, so the teaching
-        // affordances retire even when step clamps at the end of the chart,
-        // matching the hint's own dismiss-on-gesture rule.
-        markUsed();
-        if (step(state.skipIntent.dir) === 'adjacent') {
-          flashSkip(state.skipIntent.dir);
-        }
-      }
-      if (state.selectedCountry !== prev.selectedCountry) {
-        setRollRecord((record) =>
-          recordAfterSelection(record, state.selectedCountry),
-        );
-      }
-    },
-  );
+    }
+    if (state.selectedCountry !== prev.selectedCountry) {
+      setRollRecord((record) => recordAfterSelection(record, state.selectedCountry));
+    }
+  });
   useEffect(() => globeChartStore.subscribe(onGlobeSignal), []);
 
   return (

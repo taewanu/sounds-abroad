@@ -90,10 +90,7 @@ export async function fetchPlaylists(
   }
 
   if (!res.ok) {
-    throw new ApplePlaylistsError(
-      cc,
-      `Apple playlists returned ${res.status} ${res.statusText}`,
-    );
+    throw new ApplePlaylistsError(cc, `Apple playlists returned ${res.status} ${res.statusText}`);
   }
 
   let json: unknown;
@@ -108,10 +105,7 @@ export async function fetchPlaylists(
 
   const parsed = PlaylistsResponseSchema.safeParse(json);
   if (!parsed.success) {
-    throw new ApplePlaylistsError(
-      cc,
-      `Apple playlists shape mismatch: ${parsed.error.message}`,
-    );
+    throw new ApplePlaylistsError(cc, `Apple playlists shape mismatch: ${parsed.error.message}`);
   }
 
   return parsed.data.feed.results.map((raw) => ({

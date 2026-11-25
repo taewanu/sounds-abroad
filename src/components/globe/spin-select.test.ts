@@ -24,9 +24,7 @@ function directionOf(code: string): Vector3 {
 // updated so projection math is valid.
 function cameraFacing(direction: Vector3): PerspectiveCamera {
   const camera = new PerspectiveCamera(45, 1, 0.1, 100);
-  camera.position.copy(
-    direction.clone().normalize().multiplyScalar(GLOBE_RADIUS),
-  );
+  camera.position.copy(direction.clone().normalize().multiplyScalar(GLOBE_RADIUS));
   camera.lookAt(0, 0, 0);
   camera.updateMatrixWorld();
   camera.updateProjectionMatrix();
@@ -55,11 +53,9 @@ test('projectFrontCountries keeps the faced country and drops its far-side oppos
   const facedDirection = directionOf(faced.code);
   const opposite = farthestFrom(facedDirection);
 
-  const codes = projectFrontCountries(
-    cameraFacing(facedDirection),
-    800,
-    600,
-  ).map((screen) => screen.country.code);
+  const codes = projectFrontCountries(cameraFacing(facedDirection), 800, 600).map(
+    (screen) => screen.country.code,
+  );
 
   expect(codes).toContain(faced.code);
   expect(codes).not.toContain(opposite);
@@ -67,11 +63,7 @@ test('projectFrontCountries keeps the faced country and drops its far-side oppos
 
 test('pickNearestToPoint returns the candidate closest to the tap point', () => {
   const [near, mid, far] = COUNTRIES;
-  const candidates = [
-    screenAt(near, 100, 100),
-    screenAt(mid, 300, 300),
-    screenAt(far, 500, 100),
-  ];
+  const candidates = [screenAt(near, 100, 100), screenAt(mid, 300, 300), screenAt(far, 500, 100)];
 
   expect(pickNearestToPoint(candidates, 290, 310, 44)).toBe(mid.code);
 });
@@ -103,12 +95,7 @@ test('rankNearest caps the pool at n', () => {
 test('pickSnapCountry returns the literal nearest country when fairness is off', () => {
   const target = COUNTRIES[0];
 
-  const result = pickSnapCountry(
-    target.lat * DEG,
-    target.lon * DEG,
-    new Set(),
-    false,
-  );
+  const result = pickSnapCountry(target.lat * DEG, target.lon * DEG, new Set(), false);
 
   expect(result).toBe(target.code);
 });
@@ -163,8 +150,6 @@ test('every country appears in some nearest pool over the reachable sphere', () 
     }
   }
 
-  const unreachable = COUNTRIES.filter((c) => !reached.has(c.code)).map(
-    (c) => c.code,
-  );
+  const unreachable = COUNTRIES.filter((c) => !reached.has(c.code)).map((c) => c.code);
   expect(unreachable).toEqual([]);
 });

@@ -41,14 +41,9 @@ test('startChartsRead lets a body that keeps arriving outlast the timeout', asyn
   vi.useFakeTimers();
   const timeoutMs = 1_000;
   const chunks = ['a', 'b', 'c', 'd'];
-  vi.stubGlobal(
-    'fetch',
-    streamingFetch(chunks, timeoutMs / 2, { closes: true }),
-  );
+  vi.stubGlobal('fetch', streamingFetch(chunks, timeoutMs / 2, { closes: true }));
 
-  const text = startChartsRead('/route', timeoutMs, KEY).then((res) =>
-    res.text(),
-  );
+  const text = startChartsRead('/route', timeoutMs, KEY).then((res) => res.text());
   await vi.advanceTimersByTimeAsync(timeoutMs * chunks.length);
 
   await expect(text).resolves.toBe(chunks.join(''));
@@ -57,14 +52,9 @@ test('startChartsRead lets a body that keeps arriving outlast the timeout', asyn
 test('startChartsRead aborts a body that goes quiet for the timeout', async () => {
   vi.useFakeTimers();
   const timeoutMs = 1_000;
-  vi.stubGlobal(
-    'fetch',
-    streamingFetch(['a'], timeoutMs / 2, { closes: false }),
-  );
+  vi.stubGlobal('fetch', streamingFetch(['a'], timeoutMs / 2, { closes: false }));
 
-  const text = startChartsRead('/route', timeoutMs, KEY).then((res) =>
-    res.text(),
-  );
+  const text = startChartsRead('/route', timeoutMs, KEY).then((res) => res.text());
   // oxlint-disable-next-line vitest/valid-expect -- awaited below, once the fake timers have fired the abort
   const settled = expect(text).rejects.toThrow('aborted');
   await vi.advanceTimersByTimeAsync(timeoutMs * 2);

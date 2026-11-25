@@ -1,11 +1,6 @@
 import { expect, test } from 'vitest';
 
-import {
-  formatShipCheck,
-  riskTier,
-  shipCheck,
-  type PullRequest,
-} from './check';
+import { formatShipCheck, riskTier, shipCheck, type PullRequest } from './check';
 
 const HEAD = 'abcdef1234567890';
 
@@ -50,12 +45,9 @@ test.each([
   expect(riskTier(pullRequest({ diff: diffTouching(file) }))).toBe('medium');
 });
 
-test.each(['README.md', 'src/lib/example.test.ts'])(
-  'a change only to %s is low',
-  (file) => {
-    expect(riskTier(pullRequest({ diff: diffTouching(file) }))).toBe('low');
-  },
-);
+test.each(['README.md', 'src/lib/example.test.ts'])('a change only to %s is low', (file) => {
+  expect(riskTier(pullRequest({ diff: diffTouching(file) }))).toBe('low');
+});
 
 test.each([
   'src/lib/chart-schema.ts',
@@ -123,11 +115,7 @@ test.each([
   ['a closed PR', { state: 'CLOSED' }, 'not open for merge'],
   ['a draft', { isDraft: true }, 'not open for merge'],
   ['a hold label', { labels: ['hold'] }, 'hold label'],
-  [
-    'a merge GitHub would refuse',
-    { mergeStateStatus: 'BLOCKED' },
-    'GitHub reports BLOCKED',
-  ],
+  ['a merge GitHub would refuse', { mergeStateStatus: 'BLOCKED' }, 'GitHub reports BLOCKED'],
   ['a one-way door', { body: 'Door: one-way' }, 'a human merges this tier'],
 ])('%s parks', (_name, overrides, reason) => {
   const check = shipCheck(pullRequest(overrides));

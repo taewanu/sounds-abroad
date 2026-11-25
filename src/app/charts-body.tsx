@@ -1,10 +1,6 @@
 import { Suspense } from 'react';
 
-import {
-  CHARTS_READ_TIMEOUT_MS,
-  CHARTS_ROUTE,
-  EARLY_CHARTS_READ,
-} from '@/lib/charts-client';
+import { CHARTS_READ_TIMEOUT_MS, CHARTS_ROUTE, EARLY_CHARTS_READ } from '@/lib/charts-client';
 import { startChartsRead } from '@/lib/start-charts-read';
 
 import { ChartScreenLoader } from './chart-screen-loader';

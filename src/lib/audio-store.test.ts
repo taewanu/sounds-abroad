@@ -173,9 +173,7 @@ describe('createAudioStore', () => {
     const store = createAudioStore(() => makeMockAudio());
     store.getState().setVolume(0.3);
 
-    store
-      .getState()
-      .toggle(makeTrack({ previewUrl: 'https://example.com/next.m4a' }));
+    store.getState().toggle(makeTrack({ previewUrl: 'https://example.com/next.m4a' }));
 
     expect(store.getState().volume).toBe(0.3);
   });
@@ -434,10 +432,7 @@ describe('createAudioStore', () => {
     });
     store.getState().toggle(errored);
     audio._trigger('error');
-    assert(
-      store.getState().lastError !== null,
-      'arrange: error event should set lastError',
-    );
+    assert(store.getState().lastError !== null, 'arrange: error event should set lastError');
 
     store.getState().toggle(next);
 
@@ -450,10 +445,7 @@ describe('createAudioStore', () => {
     const track = makeTrack();
     store.getState().toggle(track);
     audio._trigger('error');
-    assert(
-      store.getState().lastError !== null,
-      'arrange: error event should set lastError',
-    );
+    assert(store.getState().lastError !== null, 'arrange: error event should set lastError');
 
     store.getState().stop();
 
@@ -481,9 +473,7 @@ describe('createAudioStore', () => {
     const audio = makeMockAudio();
     const store = createAudioStore(() => audio);
     const track = makeTrack();
-    vi.mocked(audio.play).mockRejectedValueOnce(
-      new DOMException('interrupted', 'AbortError'),
-    );
+    vi.mocked(audio.play).mockRejectedValueOnce(new DOMException('interrupted', 'AbortError'));
 
     store.getState().toggle(track);
     await Promise.resolve();

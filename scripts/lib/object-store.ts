@@ -71,9 +71,7 @@ export function publicUrl(key: string): string {
  */
 export async function getJson(key: string): Promise<unknown> {
   try {
-    const res = await objectStore().send(
-      new GetObjectCommand({ Bucket: BUCKET, Key: key }),
-    );
+    const res = await objectStore().send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
     const body = await res.Body?.transformToString();
     if (body === undefined) throw new Error(`Empty body at ${key}.`);
     return JSON.parse(body);
@@ -98,10 +96,7 @@ export async function putJson(key: string, body: string): Promise<string> {
 }
 
 /** Copies an already-published object to a second key within the bucket. */
-export async function copyObject(
-  fromKey: string,
-  toKey: string,
-): Promise<string> {
+export async function copyObject(fromKey: string, toKey: string): Promise<string> {
   await objectStore().send(
     new CopyObjectCommand({
       Bucket: BUCKET,

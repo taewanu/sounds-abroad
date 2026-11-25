@@ -29,9 +29,7 @@ export function SkipFlash({
   sheetSnap: SnapState;
 }) {
   const prevNonceRef = useRef(skip?.nonce ?? null);
-  const [flash, setFlash] = useState<{ dir: 1 | -1; nonce: number } | null>(
-    null,
-  );
+  const [flash, setFlash] = useState<{ dir: 1 | -1; nonce: number } | null>(null);
 
   // Ref-gated so only a fresh skip (a bumped nonce) plays the cue, never a
   // dep-only re-run or the mount baseline.

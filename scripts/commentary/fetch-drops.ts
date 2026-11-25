@@ -14,9 +14,7 @@ export async function readDrops(
   if (json === null) return {};
   const parsed = DropsStoreSchema.safeParse(json);
   if (!parsed.success) {
-    throw new Error(
-      `Drop ledger at ${DROPS_PATHNAME} failed schema validation.`,
-    );
+    throw new Error(`Drop ledger at ${DROPS_PATHNAME} failed schema validation.`);
   }
   return parsed.data;
 }

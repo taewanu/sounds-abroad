@@ -39,10 +39,7 @@ export type GroundingClient = (prompt: string) => Promise<RawGroundingJudgment>;
  * tri-state answer, so "I cannot tell" is a first-class response the seam can
  * collapse to not-grounded rather than a coin-flip between grounded and not.
  */
-export function buildGroundingPrompt(
-  claimText: string,
-  sourceText: string,
-): string {
+export function buildGroundingPrompt(claimText: string, sourceText: string): string {
   return [
     'You verify whether cited source text states the claims a short music blurb makes.',
     'A claim is grounded ONLY if the source text explicitly states it. Being merely consistent with the source, or not contradicted by it, is NOT enough.',
@@ -71,9 +68,7 @@ export async function gradeGrounding(
   sourceText: string,
   judge: GroundingClient,
 ): Promise<GroundingVerdict> {
-  const claimText = [lead, detail]
-    .filter((t): t is string => Boolean(t && t.trim()))
-    .join('\n\n');
+  const claimText = [lead, detail].filter((t): t is string => Boolean(t && t.trim())).join('\n\n');
   const raw = await judge(buildGroundingPrompt(claimText, sourceText));
   return interpretJudgment(raw);
 }

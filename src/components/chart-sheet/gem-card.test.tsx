@@ -98,12 +98,7 @@ describe('GemCard', () => {
 
   test('clicking the play control toggles the gem track on the audio store', () => {
     const track = makeTrack();
-    const { store } = renderGemCard(
-      track,
-      'entirely their own',
-      undefined,
-      'br',
-    );
+    const { store } = renderGemCard(track, 'entirely their own', undefined, 'br');
 
     fireEvent.click(screen.getByRole('button', { name: /play/i }));
 
@@ -255,9 +250,7 @@ describe('GemCard commentary', () => {
   test('the expanded panel grows to its content rather than a fixed max height', () => {
     renderGemCard(makeTrack({ commentary: COMMENTARY }));
     const toggle = screen.getByRole('button', { expanded: false });
-    const panel = document.getElementById(
-      toggle.getAttribute('aria-controls')!,
-    )!;
+    const panel = document.getElementById(toggle.getAttribute('aria-controls')!)!;
 
     fireEvent.click(toggle);
 

@@ -73,21 +73,16 @@ test.each([false, true])(
     );
 
     expect(result.backupUrl).toBe(await deps.backupLiveStore());
-    expect(
-      vi.mocked(deps.backupLiveStore).mock.invocationCallOrder[0],
-    ).toBeLessThan(vi.mocked(deps.uploadStore).mock.invocationCallOrder[0]);
+    expect(vi.mocked(deps.backupLiveStore).mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(deps.uploadStore).mock.invocationCallOrder[0],
+    );
   },
 );
 
 test('an empty live store has nothing to back up', async () => {
   const deps = writers();
 
-  const result = await publishStore(
-    { added: card('new') },
-    {},
-    { replace: false },
-    deps,
-  );
+  const result = await publishStore({ added: card('new') }, {}, { replace: false }, deps);
 
   expect(deps.backupLiveStore).not.toHaveBeenCalled();
   expect(result.backupUrl).toBeNull();
@@ -98,12 +93,7 @@ test('a failed backup leaves the live store untouched', async () => {
   vi.mocked(deps.backupLiveStore).mockRejectedValue(new Error('backup failed'));
 
   await expect(
-    publishStore(
-      { added: card('new') },
-      { existing: card('live') },
-      { replace: false },
-      deps,
-    ),
+    publishStore({ added: card('new') }, { existing: card('live') }, { replace: false }, deps),
   ).rejects.toThrow('backup failed');
 
   expect(deps.uploadStore).not.toHaveBeenCalled();

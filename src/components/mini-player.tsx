@@ -20,8 +20,7 @@ import { RAIL_REST, useSwipeRail } from './use-swipe-rail';
 // app's play and pause shortcut instead of pressing that control again. A
 // keyboard click (detail 0) keeps its focus.
 function releaseFocusAfterPointerClick(event: MouseEvent<HTMLDivElement>) {
-  if (event.detail === 0 || !(event.target as Element).closest('button'))
-    return;
+  if (event.detail === 0 || !(event.target as Element).closest('button')) return;
   (document.activeElement as HTMLElement | null)?.blur();
 }
 
@@ -46,18 +45,12 @@ const SKIP_BUTTON_CLASS =
 // card carries the marquee, EQ, and a11y text, so the neighbours stay plain and
 // hidden from assistive tech. Null (a chart end) renders an empty slot.
 function PreviewCard({ track }: { track: ChartTrack | null }) {
-  if (track === null)
-    return <div className="w-full shrink-0" aria-hidden="true" />;
+  if (track === null) return <div className="w-full shrink-0" aria-hidden="true" />;
   return (
-    <div
-      aria-hidden="true"
-      className="flex w-full shrink-0 items-center gap-[14px]"
-    >
+    <div aria-hidden="true" className="flex w-full shrink-0 items-center gap-[14px]">
       <TrackArtwork url={track.artworkUrl} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-body font-medium text-sunrise">
-          {track.name}
-        </p>
+        <p className="truncate text-body font-medium text-sunrise">{track.name}</p>
         <p className="truncate text-small text-fg-2">{track.artist}</p>
       </div>
     </div>
@@ -97,21 +90,13 @@ export function MiniPlayer({
     nonce: number;
     dir: 'next' | 'prev' | null;
   }>({ key: contentKey, nonce: lastStep?.nonce ?? 0, dir: null });
-  if (
-    stepCue.key !== contentKey ||
-    (lastStep !== null && lastStep.nonce !== stepCue.nonce)
-  ) {
+  if (stepCue.key !== contentKey || (lastStep !== null && lastStep.nonce !== stepCue.nonce)) {
     const fromStep = lastStep !== null && lastStep.nonce !== stepCue.nonce;
     if (suppressCue) setSuppressCue(false);
     setStepCue({
       key: contentKey,
       nonce: lastStep?.nonce ?? 0,
-      dir:
-        fromStep && !suppressCue
-          ? lastStep.dir === 1
-            ? 'next'
-            : 'prev'
-          : null,
+      dir: fromStep && !suppressCue ? (lastStep.dir === 1 ? 'next' : 'prev') : null,
     });
   }
 
@@ -181,19 +166,13 @@ export function MiniPlayer({
                       {currentTrack.name}
                     </span>
                   </span>
-                  <span
-                    className="eq shrink-0"
-                    data-paused={!isPlaying || undefined}
-                    aria-hidden
-                  >
+                  <span className="eq shrink-0" data-paused={!isPlaying || undefined} aria-hidden>
                     <span />
                     <span />
                     <span />
                   </span>
                 </p>
-                <p className="truncate text-small text-fg-2">
-                  {currentTrack.artist}
-                </p>
+                <p className="truncate text-small text-fg-2">{currentTrack.artist}</p>
               </div>
             </div>
             <PreviewCard track={nextTrack} />
@@ -233,11 +212,7 @@ export function MiniPlayer({
           }
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-fg-1 transition-[color,background-color,scale] duration-150 ease-[var(--ease-spring)] hover:bg-orbit focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora active:scale-[0.97]"
         >
-          {isPlaying ? (
-            <PauseIcon className="h-4 w-4" />
-          ) : (
-            <PlayIcon className="h-4 w-4" />
-          )}
+          {isPlaying ? <PauseIcon className="h-4 w-4" /> : <PlayIcon className="h-4 w-4" />}
         </button>
         <button
           type="button"

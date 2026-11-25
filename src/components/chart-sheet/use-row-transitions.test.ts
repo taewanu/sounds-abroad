@@ -35,9 +35,7 @@ const NARROWED = [track(2)];
 
 describe('useRowTransitions', () => {
   test('opens on the given rows, all still', () => {
-    const { result } = renderHook(() =>
-      useRowTransitions(WHOLE, 'kr:songs', 'most_played'),
-    );
+    const { result } = renderHook(() => useRowTransitions(WHOLE, 'kr:songs', 'most_played'));
 
     expect(tags(result.current)).toEqual([
       [1, 'stable'],

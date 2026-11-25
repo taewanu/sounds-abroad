@@ -47,10 +47,7 @@ const FeedNameSchema = z
   .string()
   .min(1)
   .max(1000)
-  .regex(
-    /^[^\u0000-\u001f\u007f-\u009f\u2028\u2029]*$/u,
-    'control characters are not allowed',
-  );
+  .regex(/^[^\u0000-\u001f\u007f-\u009f\u2028\u2029]*$/u, 'control characters are not allowed');
 
 const TrackSchema = z.object({
   rank: z.number().int().min(1).max(100),

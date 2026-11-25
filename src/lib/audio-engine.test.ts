@@ -71,9 +71,7 @@ test("setMuted writes the element's own muted flag", () => {
 test('playback plays the element without constructing an AudioContext', async () => {
   const AudioContext = vi.fn();
   vi.stubGlobal('AudioContext', AudioContext);
-  const play = vi
-    .spyOn(HTMLMediaElement.prototype, 'play')
-    .mockResolvedValue(undefined);
+  const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
 
   await createBrowserAudioEngine().play();
 

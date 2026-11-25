@@ -48,10 +48,7 @@ export async function fetchCharts(url: string): Promise<ChartFile> {
   }
 
   if (!res.ok) {
-    throw new ChartsFetchError(
-      res.status,
-      `Charts fetch failed: ${res.status} ${res.statusText}`,
-    );
+    throw new ChartsFetchError(res.status, `Charts fetch failed: ${res.status} ${res.statusText}`);
   }
 
   let json: unknown;
@@ -66,10 +63,7 @@ export async function fetchCharts(url: string): Promise<ChartFile> {
 
   const parsed = ChartFileSchema.safeParse(json);
   if (!parsed.success) {
-    throw new ChartsValidationError(
-      parsed.error.issues,
-      'Charts payload failed schema validation',
-    );
+    throw new ChartsValidationError(parsed.error.issues, 'Charts payload failed schema validation');
   }
   return withEveryListedCountry(parsed.data);
 }

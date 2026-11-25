@@ -36,11 +36,7 @@ export interface TourHostProps {
 
 // Gate only. Runs once the globe is live and the record says there is still
 // something to teach, then hands off to the runner, which owns the step machine.
-export function TourHost({
-  snap,
-  currentTrackKey,
-  selectedCode,
-}: TourHostProps) {
+export function TourHost({ snap, currentTrackKey, selectedCode }: TourHostProps) {
   const globeReady = useStore(tourBridge, (s) => s.globeReady);
   // Decided once, from the record as it stood at mount (before this appearance is
   // counted): which un-learned beats to run this launch, or nothing.
@@ -69,13 +65,7 @@ interface TourRunnerProps extends TourHostProps {
   onDone: () => void;
 }
 
-function TourRunner({
-  beats,
-  snap,
-  currentTrackKey,
-  selectedCode,
-  onDone,
-}: TourRunnerProps) {
+function TourRunner({ beats, snap, currentTrackKey, selectedCode, onDone }: TourRunnerProps) {
   const [state, dispatch] = useReducer(tourReducer, beats, initialTourState);
   const beat = currentBeat(state);
   const setTourActive = useStore(tourBridge, (s) => s.setTourActive);
@@ -117,20 +107,14 @@ function TourRunner({
       const target = e.target as HTMLElement | null;
       // Engage on a globe grab, not on the other interactive surfaces in view:
       // a tap on the badge, the X, or the peek sheet isn't the user flicking.
-      if (
-        target?.closest(
-          '[data-testid="tour-badge"], [data-testid="chart-sheet"]',
-        )
-      )
-        return;
+      if (target?.closest('[data-testid="tour-badge"], [data-testid="chart-sheet"]')) return;
       setEngaged(true);
     };
     window.addEventListener('pointerdown', onDown, {
       capture: true,
       passive: true,
     });
-    return () =>
-      window.removeEventListener('pointerdown', onDown, { capture: true });
+    return () => window.removeEventListener('pointerdown', onDown, { capture: true });
   }, [beat]);
 
   // A settle ends the spin: if it changed the country the gesture beat advances
@@ -162,10 +146,7 @@ function TourRunner({
     };
     const onEnd = (e: TransitionEvent) => {
       const target = e.target as HTMLElement | null;
-      if (
-        e.propertyName === 'transform' &&
-        target?.getAttribute('data-testid') === 'chart-sheet'
-      ) {
+      if (e.propertyName === 'transform' && target?.getAttribute('data-testid') === 'chart-sheet') {
         finish();
       }
     };
@@ -221,18 +202,13 @@ function TourRunner({
       audioBaselineRef.current = currentTrackKey;
       return;
     }
-    if (
-      currentTrackKey !== null &&
-      currentTrackKey !== audioBaselineRef.current
-    ) {
+    if (currentTrackKey !== null && currentTrackKey !== audioBaselineRef.current) {
       dispatch({ type: 'TRACK_PREVIEWED' });
     }
   }, [currentTrackKey, beat]);
 
   // Escape dismisses from any beat (latches dismissed).
-  useEscapeLayer(beat !== 'done', ESCAPE_LAYER.tour, () =>
-    dispatch({ type: 'SKIP' }),
-  );
+  useEscapeLayer(beat !== 'done', ESCAPE_LAYER.tour, () => dispatch({ type: 'SKIP' }));
 
   useEffect(() => {
     if (beat === 'done') onDone();

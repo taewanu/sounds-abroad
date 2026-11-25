@@ -1,11 +1,7 @@
 import { expect, test } from 'vitest';
 
 import type { ApplePlaylist } from './apple-playlists';
-import {
-  countPlaylistSpread,
-  genreHistogram,
-  selectLocalPlaylists,
-} from './playlist-selection';
+import { countPlaylistSpread, genreHistogram, selectLocalPlaylists } from './playlist-selection';
 
 function playlist(id: string, name = id): ApplePlaylist {
   return {
@@ -16,21 +12,12 @@ function playlist(id: string, name = id): ApplePlaylist {
   };
 }
 
-function feeds(
-  entries: Record<string, string[]>,
-): Map<string, ApplePlaylist[]> {
-  return new Map(
-    Object.entries(entries).map(([cc, ids]) => [
-      cc,
-      ids.map((id) => playlist(id)),
-    ]),
-  );
+function feeds(entries: Record<string, string[]>): Map<string, ApplePlaylist[]> {
+  return new Map(Object.entries(entries).map(([cc, ids]) => [cc, ids.map((id) => playlist(id))]));
 }
 
 test('counts the storefronts carrying each playlist', () => {
-  const spread = countPlaylistSpread(
-    feeds({ kr: ['a', 'b'], jp: ['a', 'c'], br: ['a'] }),
-  );
+  const spread = countPlaylistSpread(feeds({ kr: ['a', 'b'], jp: ['a', 'c'], br: ['a'] }));
 
   expect(spread.get('a')).toBe(3);
   expect(spread.get('b')).toBe(1);
@@ -75,11 +62,7 @@ test('keeps a playlist sitting exactly on the threshold', () => {
   const storefronts = 8;
   const spread = new Map([['edge', 2]]);
 
-  const selected = selectLocalPlaylists(
-    [playlist('edge')],
-    spread,
-    storefronts,
-  );
+  const selected = selectLocalPlaylists([playlist('edge')], spread, storefronts);
 
   expect(selected.map((p) => p.id)).toEqual(['edge']);
 });
@@ -122,23 +105,13 @@ test('applies the limit after dropping global playlists', () => {
 });
 
 test('never drops everything when the storefront count is tiny', () => {
-  const selected = selectLocalPlaylists(
-    [playlist('a')],
-    new Map([['a', 1]]),
-    1,
-  );
+  const selected = selectLocalPlaylists([playlist('a')], new Map([['a', 1]]), 1);
 
   expect(selected).toHaveLength(1);
 });
 
 test('tallies genres most common first', () => {
-  const histogram = genreHistogram([
-    'Pop',
-    'Pagode',
-    'Pagode',
-    'Pagode',
-    'Pop',
-  ]);
+  const histogram = genreHistogram(['Pop', 'Pagode', 'Pagode', 'Pagode', 'Pop']);
 
   expect(histogram).toEqual([
     { name: 'Pagode', count: 3 },

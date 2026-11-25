@@ -12,14 +12,9 @@ interface CountryOutlinesLayerProps {
   hoveredIsoNum?: number | null;
 }
 
-export function CountryOutlinesLayer({
-  data,
-  hoveredIsoNum,
-}: CountryOutlinesLayerProps) {
+export function CountryOutlinesLayer({ data, hoveredIsoNum }: CountryOutlinesLayerProps) {
   const hoveredPositions =
-    hoveredIsoNum !== null && hoveredIsoNum !== undefined
-      ? data.byIso.get(hoveredIsoNum)
-      : null;
+    hoveredIsoNum !== null && hoveredIsoNum !== undefined ? data.byIso.get(hoveredIsoNum) : null;
 
   return (
     <>
@@ -31,11 +26,7 @@ export function CountryOutlinesLayer({
             count={data.tier1Positions.length / 3}
           />
         </bufferGeometry>
-        <lineBasicMaterial
-          color={TIER1_COLOR}
-          transparent
-          opacity={TIER1_OPACITY}
-        />
+        <lineBasicMaterial color={TIER1_COLOR} transparent opacity={TIER1_OPACITY} />
       </lineSegments>
       <lineSegments>
         <bufferGeometry>
@@ -45,11 +36,7 @@ export function CountryOutlinesLayer({
             count={data.tier2Positions.length / 3}
           />
         </bufferGeometry>
-        <lineBasicMaterial
-          color={TIER2_COLOR}
-          transparent
-          opacity={TIER2_OPACITY}
-        />
+        <lineBasicMaterial color={TIER2_COLOR} transparent opacity={TIER2_OPACITY} />
       </lineSegments>
       {hoveredPositions && (
         <group scale={[LINE_R_HOVER, LINE_R_HOVER, LINE_R_HOVER]}>

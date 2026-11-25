@@ -13,9 +13,7 @@ const us = CHARTS.countries[CODE_US];
 const br = CHARTS.countries[CODE_BR];
 
 if (!kr || !us || !br) {
-  throw new Error(
-    'Test fixtures missing one of kr/us/br — update __fixtures__/charts.json',
-  );
+  throw new Error('Test fixtures missing one of kr/us/br — update __fixtures__/charts.json');
 }
 
 export const COUNTRY_KR = kr;

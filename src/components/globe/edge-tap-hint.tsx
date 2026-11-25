@@ -8,12 +8,7 @@ import { useTourAnchor } from '@/components/tour/use-tour-anchor';
 import { useCoarsePointer } from '@/components/use-coarse-pointer';
 import { globeChartStore } from '@/lib/globe-chart-store';
 
-import {
-  decideShow,
-  readRecord,
-  recordShown,
-  writeRecord,
-} from './edge-hint-record';
+import { decideShow, readRecord, recordShown, writeRecord } from './edge-hint-record';
 
 // If the user never performs the skip, retire the cue rather than let it linger
 // over their listening.
@@ -34,13 +29,7 @@ const ECHO_EDGE_PCT = 100 - HAND_EDGE_PCT;
 // globe-dim / sheet-dim sandwich, two aurora edge rails behind the sheet, one
 // right-edge double-tap hand with a synced left-edge ripple echo, and a
 // "Double-tap either edge to skip" badge.
-export function EdgeTapHint({
-  active,
-  snap,
-}: {
-  active: boolean;
-  snap: SnapState;
-}) {
+export function EdgeTapHint({ active, snap }: { active: boolean; snap: SnapState }) {
   // Decide from the persisted record once at mount, before any track plays, so
   // this visit's own show can't feed back into the decision. Visibility is
   // derived from `active`, not latched in an effect.
@@ -59,10 +48,7 @@ export function EdgeTapHint({
   // Measure the sheet so the sheet-dim covers exactly it, matching its rounded
   // corners. `snap` is the watch signal: the sheet slides between snaps via
   // transform, which moves its box without firing resize or scroll.
-  const sheetAnchor = useTourAnchor(
-    visible ? '[data-testid="chart-sheet"]' : null,
-    snap,
-  );
+  const sheetAnchor = useTourAnchor(visible ? '[data-testid="chart-sheet"]' : null, snap);
 
   // Count the appearance and retire the cue once its lesson lands: dismiss the
   // instant the user performs a real skip (a fresh skipIntent nonce during the
@@ -114,10 +100,7 @@ export function EdgeTapHint({
       {/* Foreground: the sheet's own dim, the double-tap hand, and the badge,
           above the sheet (z-40 > sheet z-20, below the mini-player z-50). Not
           aria-hidden: it holds the status badge, the cue's a11y fallback. */}
-      <div
-        data-testid="edge-tap-foreground"
-        className="pointer-events-none fixed inset-0 z-40"
-      >
+      <div data-testid="edge-tap-foreground" className="pointer-events-none fixed inset-0 z-40">
         {sheet ? (
           <div
             aria-hidden

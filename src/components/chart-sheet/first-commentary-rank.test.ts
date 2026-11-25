@@ -37,12 +37,7 @@ describe('firstCommentaryRank', () => {
   });
 
   test('returns the rank of the first commentary-bearing track, not rank 1', () => {
-    const tracks = [
-      track(1, false),
-      track(2, false),
-      track(3, true),
-      track(4, true),
-    ];
+    const tracks = [track(1, false), track(2, false), track(3, true), track(4, true)];
 
     expect(firstCommentaryRank(tracks)).toBe(3);
   });

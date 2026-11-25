@@ -87,10 +87,7 @@ export function planRoll(
  * order. Empty for the songs chart, whose end rolls straight out of the
  * country, and for a ref the country no longer advertises.
  */
-export function playlistsAfter(
-  country: Country | undefined,
-  ref: ChartRef,
-): ChartRef[] {
+export function playlistsAfter(country: Country | undefined, ref: ChartRef): ChartRef[] {
   if (!country || !isPlaylistRef(ref)) return [];
   const playlists = country.playlists ?? [];
   const at = playlists.findIndex((playlist) => playlist.id === ref);

@@ -56,10 +56,7 @@ export function songsChartRows(
  * it out. Stepping from a track the chart does not contain reads as its end,
  * which would roll the listener out of the country on the next tap.
  */
-export function withPlaying(
-  rows: readonly ChartTrack[],
-  playing: ChartTrack | null,
-): ChartTrack[] {
+export function withPlaying(rows: readonly ChartTrack[], playing: ChartTrack | null): ChartTrack[] {
   if (playing === null) return [...rows];
   if (rows.some((row) => sameTrack(row, playing))) return [...rows];
   const at = rows.findIndex((row) => row.rank > playing.rank);

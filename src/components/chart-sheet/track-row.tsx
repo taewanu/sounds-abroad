@@ -82,9 +82,7 @@ export function TrackRow({
       s.currentCountryCode === countryCode &&
       s.currentChartRef === chartRef,
   );
-  const hasError = useAudioStore(
-    (s) => s.lastError?.previewUrl === track.previewUrl,
-  );
+  const hasError = useAudioStore((s) => s.lastError?.previewUrl === track.previewUrl);
   const toggle = useAudioStore((s) => s.toggle);
   const pause = useAudioStore((s) => s.pause);
 
@@ -106,13 +104,10 @@ export function TrackRow({
 
   // A payload written before the field existed carries no link, so synthesize
   // the search form rather than render a dead anchor.
-  const spotifyHref =
-    track.spotifyUrl ?? spotifySearchUrl(track.name, track.artist);
+  const spotifyHref = track.spotifyUrl ?? spotifySearchUrl(track.name, track.artist);
   // The URL is the only thing that knows: both forms are plain strings, and
   // the playlist axis bakes the search form rather than leaving it absent.
-  const spotifyDestination = spotifyHref.includes('/track/')
-    ? 'track'
-    : 'search';
+  const spotifyDestination = spotifyHref.includes('/track/') ? 'track' : 'search';
 
   // content-visibility:auto skips layout/paint for rows scrolled out of view
   // (most of the list); the focused card must fully render, so it opts out.
@@ -196,11 +191,7 @@ export function TrackRow({
                 </span>
               </span>
               {isCurrent && (
-                <span
-                  className="eq shrink-0"
-                  data-paused={!isPlaying || undefined}
-                  aria-hidden
-                >
+                <span className="eq shrink-0" data-paused={!isPlaying || undefined} aria-hidden>
                   <span />
                   <span />
                   <span />
@@ -211,9 +202,7 @@ export function TrackRow({
               {hasPreview ? track.artist : `No preview · ${track.artist}`}
             </p>
             {hasError && (
-              <p className="mt-1 text-micro text-error">
-                Preview unavailable, try another track
-              </p>
+              <p className="mt-1 text-micro text-error">Preview unavailable, try another track</p>
             )}
           </div>
         </button>

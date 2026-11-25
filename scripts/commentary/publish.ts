@@ -6,11 +6,7 @@ import { createClaudeJudge, fetchSourceText, groundEntry } from './ground';
 import { parseCandidateStore } from './parse-store';
 import { publishStore } from './publish-store';
 import { routeStore } from './route';
-import {
-  backupCommentary,
-  readLiveCommentary,
-  uploadCommentary,
-} from './upload-commentary';
+import { backupCommentary, readLiveCommentary, uploadCommentary } from './upload-commentary';
 
 // Validates a candidate commentary file against the schema, then routes each
 // blurb through the gate: an entry that clears every check is published, any
@@ -22,9 +18,7 @@ const args = process.argv.slice(2);
 const replace = args.includes('--replace');
 const file = args.find((arg) => !arg.startsWith('--'));
 if (!file) {
-  throw new Error(
-    'Usage: pnpm commentary:publish <candidate.json> [--replace]',
-  );
+  throw new Error('Usage: pnpm commentary:publish <candidate.json> [--replace]');
 }
 
 const raw: unknown = JSON.parse(await readFile(file, 'utf8'));
@@ -40,8 +34,7 @@ if (!parsed.ok) {
 const live = await readLiveCommentary();
 
 const judge = createClaudeJudge();
-const ground = (entry: Commentary) =>
-  groundEntry(entry, { fetchSourceText, judge });
+const ground = (entry: Commentary) => groundEntry(entry, { fetchSourceText, judge });
 
 const { published, dropped } = await routeStore(parsed.store, { ground });
 for (const { key, reasons } of dropped) {

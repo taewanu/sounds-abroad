@@ -1,17 +1,8 @@
 import * as Sentry from '@sentry/nextjs';
 
-import {
-  CHART_LIFETIME,
-  MISCONFIGURED_MESSAGE,
-  NEVER_STORE,
-  json,
-} from '@/lib/api-response';
+import { CHART_LIFETIME, MISCONFIGURED_MESSAGE, NEVER_STORE, json } from '@/lib/api-response';
 import { MUSIC_CHARTS_TAG } from '@/lib/cache-tags';
-import {
-  ChartPartFetchError,
-  ChartPartValidationError,
-  fetchSongsTail,
-} from '@/lib/chart-parts';
+import { ChartPartFetchError, ChartPartValidationError, fetchSongsTail } from '@/lib/chart-parts';
 
 export const runtime = 'nodejs';
 
@@ -50,10 +41,7 @@ export async function readSongsTail(
     if (err instanceof ChartPartFetchError && err.status === 404) {
       return json({ error: 'no deeper chart' }, 404, CHART_LIFETIME);
     }
-    if (
-      err instanceof ChartPartFetchError ||
-      err instanceof ChartPartValidationError
-    ) {
+    if (err instanceof ChartPartFetchError || err instanceof ChartPartValidationError) {
       Sentry.addBreadcrumb({
         category: 'songs',
         level: 'warning',

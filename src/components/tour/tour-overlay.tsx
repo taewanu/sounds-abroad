@@ -40,13 +40,7 @@ function badgeLabel(beat: VisibleBeat): string {
 // The nudge badge is announced politely on appear and carries the per-beat
 // breathe rhythm (matched to that beat's hand hint) plus the aurora glow. It is
 // not aria-hidden: its text is the tour's a11y fallback for the wordless look.
-function NudgeBadge({
-  beat,
-  spotlight,
-}: {
-  beat: VisibleBeat;
-  spotlight: DOMRect | null;
-}) {
+function NudgeBadge({ beat, spotlight }: { beat: VisibleBeat; spotlight: DOMRect | null }) {
   // Gesture and sheet badges sit at a fixed screen fraction (globe centre, and
   // above the sheet handle); the tap badge tracks the spotlit row, below it.
   const style: CSSProperties =
@@ -272,9 +266,7 @@ export function TourOverlay({
 
       {beat === 'gesture' && !hideFlickHint ? <FlickHint /> : null}
 
-      {beat === 'sheet' && spotlight ? (
-        <SheetPullHint spotlight={spotlight} />
-      ) : null}
+      {beat === 'sheet' && spotlight ? <SheetPullHint spotlight={spotlight} /> : null}
 
       {beat === 'audio' && spotlight ? <TapHint spotlight={spotlight} /> : null}
 

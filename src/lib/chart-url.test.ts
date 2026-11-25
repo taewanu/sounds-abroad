@@ -41,15 +41,11 @@ test('leaves the default mode unspelled, as it does the songs chart', () => {
 });
 
 test('names a non-default mode on the songs chart', () => {
-  expect(chartPath('br', SONGS_CHART, 'only_here')).toBe(
-    '/c/br?mode=only_here',
-  );
+  expect(chartPath('br', SONGS_CHART, 'only_here')).toBe('/c/br?mode=only_here');
 });
 
 test('names both the chart and a non-default mode together', () => {
-  expect(chartPath('br', 'pl.a', 'only_here')).toBe(
-    '/c/br?chart=pl.a&mode=only_here',
-  );
+  expect(chartPath('br', 'pl.a', 'only_here')).toBe('/c/br?chart=pl.a&mode=only_here');
 });
 
 test('escapes a chart id so it cannot reshape the query', () => {
@@ -88,9 +84,7 @@ test('falls back when the named chart is not one this country carries', () => {
 });
 
 test('falls back for a country carrying no playlists at all', () => {
-  expect(chartFromUrl('pl.a', { name: 'A', valid: true, tracks: [] })).toBe(
-    SONGS_CHART,
-  );
+  expect(chartFromUrl('pl.a', { name: 'A', valid: true, tracks: [] })).toBe(SONGS_CHART);
 });
 
 test('reads back the mode a query names', () => {

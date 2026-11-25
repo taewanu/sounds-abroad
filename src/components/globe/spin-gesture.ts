@@ -36,13 +36,11 @@ const SETTLE_EPS = 0.002;
 
 const COUNTRY_BY_CODE = new Map(COUNTRIES.map((c) => [c.code, c]));
 
-const clamp = (v: number, lo: number, hi: number) =>
-  Math.max(lo, Math.min(hi, v));
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 // Shortest signed angle to rotate `from` onto `to`, so settling never unwinds
 // the long way around the globe.
-const shortestAngle = (delta: number) =>
-  Math.atan2(Math.sin(delta), Math.cos(delta));
+const shortestAngle = (delta: number) => Math.atan2(Math.sin(delta), Math.cos(delta));
 
 export type GestureMode = 'idle' | 'drag' | 'fling' | 'settle';
 
@@ -230,11 +228,7 @@ function runSelect(
   settleTo(s, commands, cfg, code ?? s.settledCode, true);
 }
 
-export function reduce(
-  state: GestureState,
-  event: GestureEvent,
-  cfg: GestureConfig,
-): ReduceResult {
+export function reduce(state: GestureState, event: GestureEvent, cfg: GestureConfig): ReduceResult {
   const s = { ...state };
   const commands: GestureCommand[] = [];
 
@@ -294,13 +288,7 @@ export function reduce(
       s.activePointerId = null;
       commands.push({ kind: 'releasePointer', id: event.id });
 
-      if (
-        isTap(
-          { x: s.downX, y: s.downY },
-          { x: event.x, y: event.y },
-          TAP_MAX_PX,
-        )
-      ) {
+      if (isTap({ x: s.downX, y: s.downY }, { x: event.x, y: event.y }, TAP_MAX_PX)) {
         const action = classifyTap({
           listening: event.listening,
           region: event.region,
@@ -412,12 +400,7 @@ export function reduce(
         s.vAz *= decay;
         s.vEl *= decay;
         if (Math.hypot(s.vAz, s.vEl) < SETTLE_VEL) {
-          settleTo(
-            s,
-            commands,
-            cfg,
-            pickSnapCountry(s.el, s.az, cfg.visited, cfg.fair, event.rng),
-          );
+          settleTo(s, commands, cfg, pickSnapCountry(s.el, s.az, cfg.visited, cfg.fair, event.rng));
         }
       } else if (s.mode === 'settle') {
         // Under-damped spring: the view glides past the target country and
@@ -426,10 +409,8 @@ export function reduce(
         const zeta = clamp(1 - 0.7 * cfg.bounce, 0.2, 1);
         const dAz = shortestAngle(s.settleAz - s.az);
         const dEl = s.settleEl - s.el;
-        s.vAz +=
-          (SNAP_OMEGA * SNAP_OMEGA * dAz - 2 * zeta * SNAP_OMEGA * s.vAz) * dtc;
-        s.vEl +=
-          (SNAP_OMEGA * SNAP_OMEGA * dEl - 2 * zeta * SNAP_OMEGA * s.vEl) * dtc;
+        s.vAz += (SNAP_OMEGA * SNAP_OMEGA * dAz - 2 * zeta * SNAP_OMEGA * s.vAz) * dtc;
+        s.vEl += (SNAP_OMEGA * SNAP_OMEGA * dEl - 2 * zeta * SNAP_OMEGA * s.vEl) * dtc;
         const speed = Math.hypot(s.vAz, s.vEl);
         if (speed > MAX_SETTLE_VEL) {
           const k = MAX_SETTLE_VEL / speed;

@@ -3,21 +3,10 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { readRecord } from '@/components/globe/edge-hint-record';
 import { writeRecord as writeTourRecord } from '@/components/tour/tour-record-store';
-import {
-  CHARTS,
-  CODE_BR,
-  CODE_US,
-  COUNTRY_BR,
-  COUNTRY_US,
-} from '@/lib/__fixtures__';
+import { CHARTS, CODE_BR, CODE_US, COUNTRY_BR, COUNTRY_US } from '@/lib/__fixtures__';
 import type { AudioEngine } from '@/lib/audio-engine';
 import { SONGS_CHART } from '@/lib/chart-ref';
-import {
-  emptyCountry,
-  type ChartFile,
-  type Country,
-  type Track,
-} from '@/lib/chart-schema';
+import { emptyCountry, type ChartFile, type Country, type Track } from '@/lib/chart-schema';
 import { chartPath } from '@/lib/chart-url';
 import { COUNTRIES } from '@/lib/countries';
 import { MAX_ROLL_ATTEMPTS } from '@/lib/end-of-chart-roll';
@@ -190,11 +179,7 @@ const DRAW_3 = COUNTRIES[2].code;
 
 // No `i=` id on appleUrl, so track identity falls back to artist+name; unique
 // names keep every fixture track distinct across countries.
-function rollTrack(
-  rank: number,
-  name: string,
-  previewUrl: string | null,
-): Track {
+function rollTrack(rank: number, name: string, previewUrl: string | null): Track {
   return {
     rank,
     name,
@@ -231,22 +216,13 @@ const REDRAW_CHARTS: ChartFile = {
   ...ADJACENCY_CHARTS,
   countries: {
     ...ADJACENCY_CHARTS.countries,
-    [DRAW_1]: rollCountry([
-      rollTrack(1, 'Silent one', null),
-      rollTrack(2, 'Silent two', null),
-    ]),
-    [DRAW_2]: rollCountry([
-      rollTrack(1, REDRAW_START, 'https://example.com/redraw-1.m4a'),
-    ]),
+    [DRAW_1]: rollCountry([rollTrack(1, 'Silent one', null), rollTrack(2, 'Silent two', null)]),
+    [DRAW_2]: rollCountry([rollTrack(1, REDRAW_START, 'https://example.com/redraw-1.m4a')]),
   },
 };
 
 function playingRank(container: HTMLElement): string | null {
-  return (
-    container
-      .querySelector('li[data-state="playing"]')
-      ?.getAttribute('data-rank') ?? null
-  );
+  return container.querySelector('li[data-state="playing"]')?.getAttribute('data-rank') ?? null;
 }
 
 // Render the chart, start the head track, run one "advance" gesture, and report
@@ -270,9 +246,7 @@ describe('ChartScreen', () => {
 
   beforeEach(() => {
     mockSearchParams.value = new URLSearchParams();
-    replaceState = vi
-      .spyOn(window.history, 'replaceState')
-      .mockImplementation(() => {});
+    replaceState = vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -322,9 +296,7 @@ describe('ChartScreen', () => {
 
     renderChartScreen(CHARTS, CODE_BR);
 
-    expect(
-      screen.getAllByText(COUNTRY_US.tracks[0].name).length,
-    ).toBeGreaterThan(0);
+    expect(screen.getAllByText(COUNTRY_US.tracks[0].name).length).toBeGreaterThan(0);
     expect(replaceState).not.toHaveBeenCalled();
   });
 
@@ -333,9 +305,7 @@ describe('ChartScreen', () => {
 
     renderChartScreen(CHARTS, CODE_BR);
 
-    expect(
-      screen.getAllByText(COUNTRY_US.tracks[0].name).length,
-    ).toBeGreaterThan(0);
+    expect(screen.getAllByText(COUNTRY_US.tracks[0].name).length).toBeGreaterThan(0);
     expect(replaceState).toHaveBeenCalledWith(null, '', `/c/${CODE_US}`);
   });
 
@@ -345,18 +315,14 @@ describe('ChartScreen', () => {
 
     renderChartScreen(CHARTS, CODE_BR);
 
-    expect(
-      screen.getAllByText(COUNTRY_US.tracks[0].name).length,
-    ).toBeGreaterThan(0);
+    expect(screen.getAllByText(COUNTRY_US.tracks[0].name).length).toBeGreaterThan(0);
     expect(replaceState).toHaveBeenCalledWith(null, '', `/c/${CODE_US}`);
   });
 
   test('rolls a landing country and writes it to the URL when the URL names no country', () => {
     renderChartScreen(CHARTS, CODE_US);
 
-    expect(
-      screen.getAllByText(COUNTRY_US.tracks[0].name).length,
-    ).toBeGreaterThan(0);
+    expect(screen.getAllByText(COUNTRY_US.tracks[0].name).length).toBeGreaterThan(0);
     expect(replaceState).toHaveBeenCalledWith(null, '', `/c/${CODE_US}`);
   });
 
@@ -365,9 +331,7 @@ describe('ChartScreen', () => {
 
     renderChartScreen(CHARTS, CODE_US);
 
-    expect(
-      screen.getAllByText(COUNTRY_US.tracks[0].name).length,
-    ).toBeGreaterThan(0);
+    expect(screen.getAllByText(COUNTRY_US.tracks[0].name).length).toBeGreaterThan(0);
     expect(replaceState).toHaveBeenCalledWith(null, '', `/c/${CODE_US}`);
   });
 
@@ -376,9 +340,7 @@ describe('ChartScreen', () => {
 
     renderChartScreen(CHARTS, CODE_US);
 
-    expect(
-      screen.getAllByText(COUNTRY_US.tracks[0].name).length,
-    ).toBeGreaterThan(0);
+    expect(screen.getAllByText(COUNTRY_US.tracks[0].name).length).toBeGreaterThan(0);
     expect(replaceState).toHaveBeenCalledWith(null, '', `/c/${CODE_US}`);
   });
 
@@ -407,9 +369,7 @@ describe('ChartScreen', () => {
 
     renderChartScreen(CHARTS, CODE_BR);
 
-    expect(
-      screen.getAllByText(COUNTRY_US.tracks[0].name).length,
-    ).toBeGreaterThan(0);
+    expect(screen.getAllByText(COUNTRY_US.tracks[0].name).length).toBeGreaterThan(0);
     expect(replaceState).toHaveBeenCalledWith(null, '', `/c/${CODE_US}`);
   });
 });
@@ -451,9 +411,7 @@ describe('ChartScreen globe coupling', () => {
       CODE_US,
     );
 
-    expect(globeChartStore.getState().drawableCodes).toEqual(
-      Object.keys(CHARTS.countries),
-    );
+    expect(globeChartStore.getState().drawableCodes).toEqual(Object.keys(CHARTS.countries));
   });
 
   test('publishes the rolled landing country to the globe when the URL names none', () => {
@@ -581,9 +539,7 @@ describe('ChartScreen globe coupling', () => {
 
 describe('ChartScreen commentary badge', () => {
   const commentaryTrack = COUNTRY_US.tracks.find((t) => t.commentary)!;
-  const plainTrack = COUNTRY_US.tracks.find(
-    (t) => !t.commentary && t.previewUrl,
-  )!;
+  const plainTrack = COUNTRY_US.tracks.find((t) => !t.commentary && t.previewUrl)!;
 
   beforeEach(() => {
     mockPathname.value = `/c/${CODE_US}`;
@@ -604,9 +560,7 @@ describe('ChartScreen commentary badge', () => {
       }),
     );
 
-    expect(
-      screen.queryByRole('button', { name: /why this track is trending/i }),
-    ).toBeNull();
+    expect(screen.queryByRole('button', { name: /why this track is trending/i })).toBeNull();
   });
 
   test("the badge reopens the sheet and expands the now-playing row's commentary card", () => {
@@ -620,9 +574,7 @@ describe('ChartScreen commentary badge', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(sheet.dataset.snap).toBe('closed');
 
-    fireEvent.click(
-      screen.getByRole('button', { name: /why this track is trending/i }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: /why this track is trending/i }));
 
     expect(sheet.dataset.snap).toBe('peek');
     expect(
@@ -698,9 +650,7 @@ describe('ChartScreen edge-skip cues', () => {
 describe('ChartScreen directional cue', () => {
   function cueDir(container: HTMLElement): string | null {
     return (
-      container
-        .querySelector('[data-track-change]')
-        ?.getAttribute('data-track-change') ?? null
+      container.querySelector('[data-track-change]')?.getAttribute('data-track-change') ?? null
     );
   }
 
@@ -893,9 +843,7 @@ describe('ChartScreen end-of-chart roll', () => {
       skipIntent: { dir: 1, nonce: 0 },
       visited: new Set(),
     });
-    replaceState = vi
-      .spyOn(window.history, 'replaceState')
-      .mockImplementation(() => {});
+    replaceState = vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
     vi.spyOn(Math, 'random').mockReturnValue(0);
   });
 
@@ -1031,12 +979,8 @@ describe('ChartScreen end-of-chart roll', () => {
       ...ADJACENCY_CHARTS,
       countries: {
         ...ADJACENCY_CHARTS.countries,
-        ...Object.fromEntries(
-          withoutTracks.map((c) => [c.code, emptyCountry(c.name)]),
-        ),
-        [target]: rollCountry([
-          rollTrack(1, LANDING_START, 'https://example.com/landing.m4a'),
-        ]),
+        ...Object.fromEntries(withoutTracks.map((c) => [c.code, emptyCountry(c.name)])),
+        [target]: rollCountry([rollTrack(1, LANDING_START, 'https://example.com/landing.m4a')]),
       },
     });
 
@@ -1066,9 +1010,7 @@ describe('ChartScreen end-of-chart roll', () => {
     expect(playingRank(container)).toBe('3');
     expect(globeChartStore.getState().selectedCountry).toBe(ADJ_CODE);
     expect(replaceState).toHaveBeenCalledWith(null, '', `/c/${ADJ_CODE}`);
-    expect(flashIcon(container)!.getAttribute('class') ?? '').toContain(
-      '-scale-x-100',
-    );
+    expect(flashIcon(container)!.getAttribute('class') ?? '').toContain('-scale-x-100');
   });
 
   test('rolling forward again after a back-roll performs a fresh draw', async () => {
@@ -1268,9 +1210,7 @@ describe('ChartScreen playlist playback', () => {
         ],
         playlistsValid: true,
       },
-      [DRAW_1]: rollCountry([
-        rollTrack(1, LANDING_START, 'https://example.com/landing.m4a'),
-      ]),
+      [DRAW_1]: rollCountry([rollTrack(1, LANDING_START, 'https://example.com/landing.m4a')]),
     },
   };
 
@@ -1328,9 +1268,7 @@ describe('ChartScreen playlist playback', () => {
 
   function miniPlayerTrackName(): string {
     const label =
-      screen
-        .getByRole('button', { name: MINI_TRANSPORT })
-        .getAttribute('aria-label') ?? '';
+      screen.getByRole('button', { name: MINI_TRANSPORT }).getAttribute('aria-label') ?? '';
     return label.replace(/^(Play|Pause) preview of /, '');
   }
 
@@ -1355,9 +1293,7 @@ describe('ChartScreen playlist playback', () => {
   });
 
   test('tapping the mini-player returns to the playing chart, not the browsed one', async () => {
-    const pushState = vi
-      .spyOn(window.history, 'pushState')
-      .mockImplementation(() => {});
+    const pushState = vi.spyOn(window.history, 'pushState').mockImplementation(() => {});
     renderChartScreen(PLAYLIST_CHARTS, PL_CODE);
     await openChart(PL_FIRST_LABEL);
     playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
@@ -1368,11 +1304,7 @@ describe('ChartScreen playlist playback', () => {
     // The playing chart is a playlist within the same country, so the return is
     // the chart, not merely the country: the path names the country, the query
     // the chart.
-    expect(pushState).toHaveBeenLastCalledWith(
-      null,
-      '',
-      chartPath(PL_CODE, PL_FIRST),
-    );
+    expect(pushState).toHaveBeenLastCalledWith(null, '', chartPath(PL_CODE, PL_FIRST));
   });
 
   test('tapping the mini-player puts the playing chart back on screen', async () => {
@@ -1388,17 +1320,13 @@ describe('ChartScreen playlist playback', () => {
 
     // The selected tab, not the URL: the URL write was the half that already
     // worked while the chart on screen stayed behind.
-    expect(
-      screen
-        .getByRole('tab', { name: PL_FIRST_LABEL })
-        .getAttribute('aria-selected'),
-    ).toBe('true');
+    expect(screen.getByRole('tab', { name: PL_FIRST_LABEL }).getAttribute('aria-selected')).toBe(
+      'true',
+    );
   });
 
   test('tapping the mini-player while on the playing chart writes no history', async () => {
-    const pushState = vi
-      .spyOn(window.history, 'pushState')
-      .mockImplementation(() => {});
+    const pushState = vi.spyOn(window.history, 'pushState').mockImplementation(() => {});
     renderChartScreen(PLAYLIST_CHARTS, PL_CODE);
     await openChart(PL_FIRST_LABEL);
     playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
@@ -1436,11 +1364,9 @@ describe('ChartScreen playlist playback', () => {
 
     expect(miniPlayerTrackName()).toBe(SECOND_ONLY.name);
     expect(globeChartStore.getState().selectedCountry).not.toBe(DRAW_1);
-    expect(
-      screen
-        .getByRole('tab', { name: PL_SECOND_LABEL })
-        .getAttribute('aria-selected'),
-    ).toBe('true');
+    expect(screen.getByRole('tab', { name: PL_SECOND_LABEL }).getAttribute('aria-selected')).toBe(
+      'true',
+    );
   });
 
   test('a country whose playlist charts are exhausted rolls into another country', async () => {
@@ -1477,8 +1403,8 @@ describe('ChartScreen playlist playback', () => {
       mockPathname.value = path;
       mockSearchParams.value = new URLSearchParams(query);
     };
-    vi.spyOn(window.history, 'pushState').mockImplementation(
-      (_data, _title, url) => apply(String(url)),
+    vi.spyOn(window.history, 'pushState').mockImplementation((_data, _title, url) =>
+      apply(String(url)),
     );
     return vi
       .spyOn(window.history, 'replaceState')
@@ -1518,9 +1444,7 @@ describe('ChartScreen playlist playback', () => {
 
   function selectedTab(): string | null {
     return (
-      screen
-        .queryAllByRole('tab')
-        .find((tab) => tab.getAttribute('aria-selected') === 'true')
+      screen.queryAllByRole('tab').find((tab) => tab.getAttribute('aria-selected') === 'true')
         ?.textContent ?? null
     );
   }
@@ -1571,11 +1495,7 @@ describe('ChartScreen playlist playback', () => {
     // render later would still satisfy: the reset the country change runs lands
     // on the songs chart, and relabelling to it would put a path nobody asked
     // for in the address bar on the way.
-    expect(replaceState).not.toHaveBeenCalledWith(
-      null,
-      '',
-      chartPath(PL_CODE, SONGS_CHART),
-    );
+    expect(replaceState).not.toHaveBeenCalledWith(null, '', chartPath(PL_CODE, SONGS_CHART));
   });
 
   test('a country reached without a restore opens on its songs chart', async () => {
@@ -1614,9 +1534,7 @@ describe('ChartScreen chart in the URL', () => {
   let replaceState: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    replaceState = vi
-      .spyOn(window.history, 'replaceState')
-      .mockImplementation(() => {});
+    replaceState = vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => playlistResponse()),
@@ -1636,11 +1554,7 @@ describe('ChartScreen chart in the URL', () => {
       fireEvent.click(screen.getByRole('tab', { name: 'A playlist chart' }));
     });
 
-    expect(replaceState).toHaveBeenLastCalledWith(
-      null,
-      '',
-      `/c/${RAIL_CODE}?chart=${PL_ID}`,
-    );
+    expect(replaceState).toHaveBeenLastCalledWith(null, '', `/c/${RAIL_CODE}?chart=${PL_ID}`);
   });
 
   test('a link naming a chart opens it', async () => {
@@ -1661,9 +1575,9 @@ describe('ChartScreen chart in the URL', () => {
 
     await act(async () => {});
 
-    expect(
-      screen.getAllByText(charts.countries[RAIL_CODE].tracks[0].name).length,
-    ).toBeGreaterThan(0);
+    expect(screen.getAllByText(charts.countries[RAIL_CODE].tracks[0].name).length).toBeGreaterThan(
+      0,
+    );
     expect(fetch).not.toHaveBeenCalled();
     expect(replaceState).toHaveBeenLastCalledWith(null, '', `/c/${RAIL_CODE}`);
   });
@@ -2097,17 +2011,11 @@ describe('ChartScreen stepping past the eager rows', () => {
     play('Deep 2', 'Deep artist 2');
 
     next();
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Pause preview of Deep 2' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Pause preview of Deep 2' }));
     await release();
 
     expect(playingRank(container)).toBeNull();
-    expect(
-      container
-        .querySelector('li[data-state="paused"]')
-        ?.getAttribute('data-rank'),
-    ).toBe('2');
+    expect(container.querySelector('li[data-state="paused"]')?.getAttribute('data-rank')).toBe('2');
   });
 
   test('a next pressed while paused still steps into the deeper rows', async () => {
@@ -2115,9 +2023,7 @@ describe('ChartScreen stepping past the eager rows', () => {
     const release = holdTailFetch();
     renderChartScreen(DEEP_CHARTS, DEEP_CODE);
     play('Deep 2', 'Deep artist 2');
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Pause preview of Deep 2' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Pause preview of Deep 2' }));
 
     next();
     await release();
@@ -2247,11 +2153,9 @@ describe('ChartScreen stepping past the eager rows', () => {
 
     // The track was heard in Only here, so the return lands in it, over the Most
     // played the listener had re-aimed the screen to while away.
-    expect(
-      screen
-        .getByRole('button', { name: 'Only here' })
-        .getAttribute('aria-pressed'),
-    ).toBe('true');
+    expect(screen.getByRole('button', { name: 'Only here' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
   });
 
   test('changing the mode elsewhere leaves the playing chart in its own', async () => {

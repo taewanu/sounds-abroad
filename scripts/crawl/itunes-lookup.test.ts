@@ -4,12 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { expect, test } from 'vitest';
 
-import {
-  batchIds,
-  ItunesLookupError,
-  LOOKUP_BATCH_MAX,
-  lookupTracks,
-} from './itunes-lookup';
+import { batchIds, ItunesLookupError, LOOKUP_BATCH_MAX, lookupTracks } from './itunes-lookup';
 
 const FIXTURE_PATH = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -20,11 +15,7 @@ async function loadFixture(): Promise<string> {
   return readFile(FIXTURE_PATH, 'utf8');
 }
 
-function fakeFetch(response: {
-  ok: boolean;
-  status?: number;
-  body: string;
-}): typeof fetch {
+function fakeFetch(response: { ok: boolean; status?: number; body: string }): typeof fetch {
   return (async () =>
     new Response(response.body, {
       status: response.status ?? (response.ok ? 200 : 500),
@@ -63,12 +54,9 @@ test('sends every requested id in one comma-separated request', async () => {
   const seen: string[] = [];
   const spyFetch: typeof fetch = (async (input: RequestInfo | URL) => {
     seen.push(typeof input === 'string' ? input : input.toString());
-    return new Response(
-      responseBody(ids.map((id) => trackRecord(Number(id)))),
-      {
-        status: 200,
-      },
-    );
+    return new Response(responseBody(ids.map((id) => trackRecord(Number(id)))), {
+      status: 200,
+    });
   }) as typeof fetch;
 
   await lookupTracks(ids, 'kr', { fetch: spyFetch });
@@ -178,9 +166,10 @@ test('throws network when fetch rejects', async () => {
     throw new TypeError('boom');
   }) as typeof fetch;
 
-  await expect(
-    lookupTracks(['1'], 'kr', { fetch: failingFetch }),
-  ).rejects.toMatchObject({ name: 'ItunesLookupError', kind: 'network' });
+  await expect(lookupTracks(['1'], 'kr', { fetch: failingFetch })).rejects.toMatchObject({
+    name: 'ItunesLookupError',
+    kind: 'network',
+  });
 });
 
 test('carries every requested id on the thrown error', async () => {

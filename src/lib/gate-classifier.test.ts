@@ -11,12 +11,7 @@ const ALL_PASS: GateChecks = {
 };
 
 const TIERS: Claim[] = ['what-it-is', 'why-charting'];
-const CHECKS = [
-  'noLyric',
-  'sourceAuthority',
-  'tierConsistency',
-  'grounding',
-] as const;
+const CHECKS = ['noLyric', 'sourceAuthority', 'tierConsistency', 'grounding'] as const;
 
 describe('classifyGate', () => {
   test.each(TIERS)('publishes a %s blurb that clears every check', (tier) => {

@@ -10,9 +10,7 @@ import {
 } from './upload-blob';
 
 vi.mock('../lib/object-store', async () => {
-  const actual = await vi.importActual<typeof import('../lib/object-store')>(
-    '../lib/object-store',
-  );
+  const actual = await vi.importActual<typeof import('../lib/object-store')>('../lib/object-store');
   return { ...actual, putJson: vi.fn(async () => 'https://store.test/charts') };
 });
 
@@ -39,18 +37,13 @@ test('sizes a body by its base64 length plus the entry overhead', () => {
 
   const size = dataCacheEntrySize(body);
 
-  expect(size).toBe(
-    Buffer.from(body).toString('base64').length + DATA_CACHE_ENTRY_OVERHEAD,
-  );
+  expect(size).toBe(Buffer.from(body).toString('base64').length + DATA_CACHE_ENTRY_OVERHEAD);
 });
 
 test('a chart file whose entry sits at the warning size publishes quietly', async () => {
   const onNearCacheCap = vi.fn();
 
-  await uploadCharts(
-    chartFileOfBytes(LARGEST_QUIET_BODY_BYTES),
-    onNearCacheCap,
-  );
+  await uploadCharts(chartFileOfBytes(LARGEST_QUIET_BODY_BYTES), onNearCacheCap);
 
   expect(putJsonMock).toHaveBeenCalledTimes(1);
   expect(onNearCacheCap).not.toHaveBeenCalled();
@@ -59,14 +52,9 @@ test('a chart file whose entry sits at the warning size publishes quietly', asyn
 test("a chart file whose entry passes the warning size reports the published body's entry size", async () => {
   const onNearCacheCap = vi.fn();
 
-  await uploadCharts(
-    chartFileOfBytes(LARGEST_QUIET_BODY_BYTES + 1),
-    onNearCacheCap,
-  );
+  await uploadCharts(chartFileOfBytes(LARGEST_QUIET_BODY_BYTES + 1), onNearCacheCap);
 
   const published = putJsonMock.mock.calls[0][1];
   expect(Buffer.byteLength(published)).toBe(LARGEST_QUIET_BODY_BYTES + 1);
-  expect(onNearCacheCap).toHaveBeenCalledExactlyOnceWith(
-    dataCacheEntrySize(published),
-  );
+  expect(onNearCacheCap).toHaveBeenCalledExactlyOnceWith(dataCacheEntrySize(published));
 });

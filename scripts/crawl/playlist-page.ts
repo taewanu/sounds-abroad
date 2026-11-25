@@ -5,11 +5,7 @@ import {
   AppleArtworkUrlSchema,
   AppleStorefrontUrlSchema,
 } from '../../src/lib/url-schema';
-import {
-  assertAllowedTarget,
-  guardedFetch,
-  RefusedTargetError,
-} from '../lib/outbound-fetch';
+import { assertAllowedTarget, guardedFetch, RefusedTargetError } from '../lib/outbound-fetch';
 
 export interface PlaylistTrack {
   rank: number;
@@ -89,10 +85,7 @@ const PageSchema = z.object({
 
 /** Fills Apple's `{w}x{h}bb.{f}` artwork template. */
 function renderArtwork(template: string, size = ARTWORK_SIZE): string {
-  return template
-    .replace('{w}', String(size))
-    .replace('{h}', String(size))
-    .replace('{f}', 'jpg');
+  return template.replace('{w}', String(size)).replace('{h}', String(size)).replace('{f}', 'jpg');
 }
 
 /**
@@ -102,10 +95,7 @@ function renderArtwork(template: string, size = ARTWORK_SIZE): string {
  * playlist, but a track section that yields nothing usable is a broken contract,
  * not an empty playlist, so it throws.
  */
-export function parsePlaylistPage(
-  html: string,
-  playlistId: string,
-): PlaylistTrack[] {
+export function parsePlaylistPage(html: string, playlistId: string): PlaylistTrack[] {
   const block = SERVER_DATA_BLOCK.exec(html);
   if (!block) {
     throw new PlaylistPageError(
@@ -178,9 +168,7 @@ export async function fetchPlaylistPage(
   options: FetchPlaylistPageOptions = {},
 ): Promise<PlaylistTrack[]> {
   const doFetch =
-    options.fetch ??
-    ((url: string) =>
-      guardedFetch(url, { expectedHost: APPLE_STOREFRONT_HOST }));
+    options.fetch ?? ((url: string) => guardedFetch(url, { expectedHost: APPLE_STOREFRONT_HOST }));
 
   let res: Response;
   try {

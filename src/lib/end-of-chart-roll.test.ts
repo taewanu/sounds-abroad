@@ -79,10 +79,7 @@ describe('firstPlayable', () => {
 describe('landingTrack', () => {
   test("takes the chart's first playable in most played", () => {
     const head = shared(1, 'https://example.com/1.m4a');
-    const country = makeCountry([
-      head,
-      exclusive(2, 'https://example.com/2.m4a'),
-    ]);
+    const country = makeCountry([head, exclusive(2, 'https://example.com/2.m4a')]);
 
     expect(landingTrack(country, 'most_played', null)).toBe(head);
   });
@@ -115,10 +112,7 @@ describe('landingTrack', () => {
 
   test('keeps the seat the payload already answers, deeper rows or not', () => {
     const early = exclusive(2, 'https://example.com/2.m4a');
-    const country = makeCountry([
-      shared(1, 'https://example.com/1.m4a'),
-      early,
-    ]);
+    const country = makeCountry([shared(1, 'https://example.com/1.m4a'), early]);
     const deep = exclusive(30, 'https://example.com/30.m4a');
 
     expect(landingTrack(country, 'only_here', [deep])).toBe(early);
@@ -126,15 +120,9 @@ describe('landingTrack', () => {
 
   test('returns null when the mode lists nothing playable', () => {
     expect(
-      landingTrack(
-        makeCountry([shared(1, 'https://example.com/1.m4a')]),
-        'only_here',
-        [],
-      ),
+      landingTrack(makeCountry([shared(1, 'https://example.com/1.m4a')]), 'only_here', []),
     ).toBeNull();
-    expect(
-      landingTrack(makeCountry([exclusive(1, null)]), 'only_here', []),
-    ).toBeNull();
+    expect(landingTrack(makeCountry([exclusive(1, null)]), 'only_here', [])).toBeNull();
     expect(landingTrack(undefined, 'only_here', null)).toBeNull();
   });
 
@@ -178,11 +166,7 @@ describe('planRoll', () => {
 
     planRoll(ORIGIN_CODE, seatsAt({}), draw);
 
-    expect(excludeSeen).toEqual([
-      [ORIGIN_CODE],
-      [ORIGIN_CODE, 'bb'],
-      [ORIGIN_CODE, 'bb', 'cc'],
-    ]);
+    expect(excludeSeen).toEqual([[ORIGIN_CODE], [ORIGIN_CODE, 'bb'], [ORIGIN_CODE, 'bb', 'cc']]);
   });
 
   test('stops after the attempt bound and falls back to a dead stop', () => {
@@ -233,10 +217,7 @@ describe('playlistsAfter', () => {
 
 describe('planChartContinuation', () => {
   const silent = [makeTrack(1, null)];
-  const playable = [
-    makeTrack(1, null),
-    makeTrack(2, 'https://example.com/2.m4a'),
-  ];
+  const playable = [makeTrack(1, null), makeTrack(2, 'https://example.com/2.m4a')];
 
   test('lands on the first candidate that can play, at its first playable', async () => {
     const read = async (ref: string) => (ref === 'pl.a' ? playable : silent);
@@ -289,9 +270,7 @@ describe('backRollTarget', () => {
   };
 
   test('returns the origin at the seat the roll landed on', () => {
-    expect(
-      backRollTarget(record, rolledSeat, 'bb', SONGS_CHART, seatOf),
-    ).toEqual({
+    expect(backRollTarget(record, rolledSeat, 'bb', SONGS_CHART, seatOf)).toEqual({
       countryCode: ORIGIN_CODE,
       chartRef: SONGS_CHART,
       track: originLast,
@@ -299,37 +278,25 @@ describe('backRollTarget', () => {
   });
 
   test('keeps the clamp past the seat the roll landed on', () => {
-    expect(
-      backRollTarget(record, rolledLater, 'bb', SONGS_CHART, seatOf),
-    ).toBeNull();
+    expect(backRollTarget(record, rolledLater, 'bb', SONGS_CHART, seatOf)).toBeNull();
   });
 
   test('keeps the clamp when playback is not on the rolled-in chart', () => {
-    expect(
-      backRollTarget(record, rolledSeat, 'cc', SONGS_CHART, seatOf),
-    ).toBeNull();
-    expect(
-      backRollTarget(record, originLast, ORIGIN_CODE, SONGS_CHART, seatOf),
-    ).toBeNull();
+    expect(backRollTarget(record, rolledSeat, 'cc', SONGS_CHART, seatOf)).toBeNull();
+    expect(backRollTarget(record, originLast, ORIGIN_CODE, SONGS_CHART, seatOf)).toBeNull();
   });
 
   test('keeps the clamp with no record or nothing playing', () => {
-    expect(
-      backRollTarget(null, rolledSeat, 'bb', SONGS_CHART, seatOf),
-    ).toBeNull();
+    expect(backRollTarget(null, rolledSeat, 'bb', SONGS_CHART, seatOf)).toBeNull();
     expect(backRollTarget(record, null, 'bb', SONGS_CHART, seatOf)).toBeNull();
   });
 
   test("keeps the clamp once playback has moved to another of the country's charts", () => {
-    expect(
-      backRollTarget(record, rolledSeat, 'bb', 'pl.other', seatOf),
-    ).toBeNull();
+    expect(backRollTarget(record, rolledSeat, 'bb', 'pl.other', seatOf)).toBeNull();
   });
 
   test('keeps the clamp when the rolled-in chart offers no seat at all', () => {
-    expect(
-      backRollTarget(record, rolledSeat, 'bb', SONGS_CHART, () => null),
-    ).toBeNull();
+    expect(backRollTarget(record, rolledSeat, 'bb', SONGS_CHART, () => null)).toBeNull();
   });
 
   test('reads the seat from the same mode the roll landed in', () => {
@@ -342,25 +309,13 @@ describe('backRollTarget', () => {
       code === 'bb' ? landingTrack(country, mode, null) : null;
 
     expect(
-      backRollTarget(
-        record,
-        onlyHereSeat,
-        'bb',
-        SONGS_CHART,
-        chartOf('only_here'),
-      ),
+      backRollTarget(record, onlyHereSeat, 'bb', SONGS_CHART, chartOf('only_here')),
     ).not.toBeNull();
     // Most played seats a different track, so prev keeps its clamp there: a
     // return offered from a seat the roll never took would step somewhere the
     // listener was never sent.
     expect(
-      backRollTarget(
-        record,
-        onlyHereSeat,
-        'bb',
-        SONGS_CHART,
-        chartOf('most_played'),
-      ),
+      backRollTarget(record, onlyHereSeat, 'bb', SONGS_CHART, chartOf('most_played')),
     ).toBeNull();
   });
 });

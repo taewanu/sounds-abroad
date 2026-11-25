@@ -176,10 +176,9 @@ test('a new country opens on its own songs chart', async () => {
   const underTest = country('Country under test', [PL_A]);
   const movedTo = country('Country moved to', [PL_J]);
   const { release } = deferredFetch();
-  const { result, rerender } = renderHook(
-    ({ code, data }) => useChartTracks(code, data),
-    { initialProps: { code: 'cc', data: underTest } },
-  );
+  const { result, rerender } = renderHook(({ code, data }) => useChartTracks(code, data), {
+    initialProps: { code: 'cc', data: underTest },
+  });
 
   act(() => result.current.open(PL_A));
   await act(async () => {
@@ -284,10 +283,9 @@ test('a read started in one country cannot land in the next', async () => {
   const underTest = country('Country under test', [PL_A]);
   const movedTo = country('Country moved to', [PL_J]);
   const { release } = deferredFetch();
-  const { result, rerender } = renderHook(
-    ({ code, data }) => useChartTracks(code, data),
-    { initialProps: { code: 'cc', data: underTest } },
-  );
+  const { result, rerender } = renderHook(({ code, data }) => useChartTracks(code, data), {
+    initialProps: { code: 'cc', data: underTest },
+  });
 
   act(() => result.current.open(PL_A));
   rerender({ code: 'other', data: movedTo });
@@ -403,10 +401,9 @@ test('another country shows none of the rows read for the last one', async () =>
         ),
     ),
   );
-  const { result, rerender } = renderHook(
-    ({ code, data }) => useChartTracks(code, data),
-    { initialProps: { code: 'cc', data: underTest } },
-  );
+  const { result, rerender } = renderHook(({ code, data }) => useChartTracks(code, data), {
+    initialProps: { code: 'cc', data: underTest },
+  });
 
   await act(async () => {
     result.current.readTail();
@@ -433,10 +430,9 @@ test('returning to a country shows its deeper rows again, unread', async () => {
       ),
   );
   vi.stubGlobal('fetch', fetchSpy);
-  const { result, rerender } = renderHook(
-    ({ code, data }) => useChartTracks(code, data),
-    { initialProps: { code: 'cc', data: underTest } },
-  );
+  const { result, rerender } = renderHook(({ code, data }) => useChartTracks(code, data), {
+    initialProps: { code: 'cc', data: underTest },
+  });
   await act(async () => {
     result.current.readTail();
   });
@@ -466,10 +462,9 @@ test("a country's deeper rows stay reachable from another country", async () => 
         ),
     ),
   );
-  const { result, rerender } = renderHook(
-    ({ code, data }) => useChartTracks(code, data),
-    { initialProps: { code: 'cc', data: underTest } },
-  );
+  const { result, rerender } = renderHook(({ code, data }) => useChartTracks(code, data), {
+    initialProps: { code: 'cc', data: underTest },
+  });
   await act(async () => {
     result.current.readTail();
   });
@@ -520,9 +515,7 @@ test('reads ahead exactly the countries asked for', async () => {
   const spy = tailsFor();
   vi.stubGlobal('fetch', spy);
 
-  const { result } = renderHook(() =>
-    useChartTracks('cc', underTest, SONGS_CHART, ['bb', 'dd']),
-  );
+  const { result } = renderHook(() => useChartTracks('cc', underTest, SONGS_CHART, ['bb', 'dd']));
 
   await waitFor(() => expect(result.current.peekTail('dd')).not.toBeNull());
   expect(result.current.peekTail('bb')).toHaveLength(1);
@@ -587,9 +580,7 @@ test('a read ahead asked again before it lands still fills its country', async (
 test('asking for a country already read ahead shows it pending while in flight', () => {
   const underTest = country('Country under test', []);
   deferredFetch();
-  const { result } = renderHook(() =>
-    useChartTracks('cc', underTest, SONGS_CHART, ['cc']),
-  );
+  const { result } = renderHook(() => useChartTracks('cc', underTest, SONGS_CHART, ['cc']));
 
   act(() => result.current.readTail());
 
@@ -599,9 +590,7 @@ test('asking for a country already read ahead shows it pending while in flight',
 test("a read ahead clears its country's pending once it lands", async () => {
   const underTest = country('Country under test', []);
   const { release } = deferredFetch();
-  const { result } = renderHook(() =>
-    useChartTracks('cc', underTest, SONGS_CHART, ['cc']),
-  );
+  const { result } = renderHook(() => useChartTracks('cc', underTest, SONGS_CHART, ['cc']));
   act(() => result.current.readTail());
 
   await act(async () => {

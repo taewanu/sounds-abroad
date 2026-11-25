@@ -10,9 +10,7 @@ import { fetchPublishedCharts } from '../crawl/published-charts';
  */
 export async function loadPreviousCharts(
   prevUrl: string | undefined,
-  fetchCharts: (
-    url: string,
-  ) => Promise<ChartFile | null> = fetchPublishedCharts,
+  fetchCharts: (url: string) => Promise<ChartFile | null> = fetchPublishedCharts,
 ): Promise<ChartFile | null> {
   if (!prevUrl) {
     console.warn(

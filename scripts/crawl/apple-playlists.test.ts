@@ -4,11 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { expect, test } from 'vitest';
 
-import {
-  ApplePlaylistsError,
-  fetchPlaylists,
-  resizeArtwork,
-} from './apple-playlists';
+import { ApplePlaylistsError, fetchPlaylists, resizeArtwork } from './apple-playlists';
 
 const FIXTURE_PATH = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -19,11 +15,7 @@ async function loadFixture(): Promise<string> {
   return readFile(FIXTURE_PATH, 'utf8');
 }
 
-function fakeFetch(response: {
-  ok: boolean;
-  status?: number;
-  body: string;
-}): typeof fetch {
+function fakeFetch(response: { ok: boolean; status?: number; body: string }): typeof fetch {
   return (async () =>
     new Response(response.body, {
       status: response.status ?? (response.ok ? 200 : 500),
@@ -89,9 +81,9 @@ test('throws when fetch rejects', async () => {
     throw new TypeError('boom');
   }) as typeof fetch;
 
-  await expect(
-    fetchPlaylists('kr', { fetch: failingFetch }),
-  ).rejects.toBeInstanceOf(ApplePlaylistsError);
+  await expect(fetchPlaylists('kr', { fetch: failingFetch })).rejects.toBeInstanceOf(
+    ApplePlaylistsError,
+  );
 });
 
 test.each([
@@ -99,15 +91,11 @@ test.each([
   ['100x100SC.FPESS04.jpg?l=ko-KR', '600x600SC.FPESS04.jpg?l=ko-KR'],
   ['100x25cc.jpg', '600x600cc.jpg'],
   ['100x100bb.jpg', '600x600bb.jpg'],
-])(
-  'resizeArtwork rewrites %s without touching its template code',
-  (from, to) => {
-    const base =
-      'https://is1-ssl.mzstatic.com/image/thumb/Features/v4/a/b/c.png';
+])('resizeArtwork rewrites %s without touching its template code', (from, to) => {
+  const base = 'https://is1-ssl.mzstatic.com/image/thumb/Features/v4/a/b/c.png';
 
-    expect(resizeArtwork(`${base}/${from}`)).toBe(`${base}/${to}`);
-  },
-);
+  expect(resizeArtwork(`${base}/${from}`)).toBe(`${base}/${to}`);
+});
 
 test('resizeArtwork leaves a URL with no dimension segment alone', () => {
   const url = 'https://is1-ssl.mzstatic.com/image/thumb/cover.jpg';
@@ -118,9 +106,7 @@ test('resizeArtwork leaves a URL with no dimension segment alone', () => {
 test('every fixture artwork URL resizes to the requested dimensions', async () => {
   const raw = JSON.parse(await loadFixture()).feed.results;
 
-  const resized = raw.map((r: { artworkUrl100: string }) =>
-    resizeArtwork(r.artworkUrl100),
-  );
+  const resized = raw.map((r: { artworkUrl100: string }) => resizeArtwork(r.artworkUrl100));
 
   expect(resized.every((url: string) => url.includes('/600x600'))).toBe(true);
 });
@@ -135,16 +121,13 @@ test.each([
   { field: 'url', value: 'https://evil.test/kr/playlist/1' },
   { field: 'artworkUrl100', value: 'javascript:alert(1)' },
   { field: 'artworkUrl100', value: 'https://evil.test/600x600bb.jpg' },
-])(
-  'a feed whose $field is $value fails the storefront',
-  async ({ field, value }) => {
-    const feed = JSON.parse(await loadFixture());
-    feed.feed.results[0][field] = value;
+])('a feed whose $field is $value fails the storefront', async ({ field, value }) => {
+  const feed = JSON.parse(await loadFixture());
+  feed.feed.results[0][field] = value;
 
-    await expect(
-      fetchPlaylists('kr', {
-        fetch: fakeFetch({ ok: true, body: JSON.stringify(feed) }),
-      }),
-    ).rejects.toThrow(ApplePlaylistsError);
-  },
-);
+  await expect(
+    fetchPlaylists('kr', {
+      fetch: fakeFetch({ ok: true, body: JSON.stringify(feed) }),
+    }),
+  ).rejects.toThrow(ApplePlaylistsError);
+});

@@ -10,11 +10,7 @@ import { createClaudeJudge, fetchSourceText, groundEntry } from './ground';
 import { loadPreviousCharts } from './previous-charts';
 import { publishStore } from './publish-store';
 import { routeStore } from './route';
-import {
-  backupCommentary,
-  readLiveCommentary,
-  uploadCommentary,
-} from './upload-commentary';
+import { backupCommentary, readLiveCommentary, uploadCommentary } from './upload-commentary';
 import { uploadDrops } from './upload-drops';
 import { computeWorklist, type WorklistItem } from './worklist';
 
@@ -95,9 +91,7 @@ if (selected.length === 0) {
   process.exit(0);
 }
 
-console.log(
-  `Drafting ${selected.length} of ${worklist.length} worklist item(s):`,
-);
+console.log(`Drafting ${selected.length} of ${worklist.length} worklist item(s):`);
 
 // One timestamp for the batch; every blurb is generated in this pass.
 const generatedAt = new Date().toISOString();
@@ -108,9 +102,7 @@ for (const item of selected) {
   console.log(`  drafting "${item.name}" by ${item.artist}...`);
   const draft = await draftEntry(item, generatedAt, drafter);
   if (!draft) {
-    console.warn(
-      `    could not draft (malformed or research failed); skipping.`,
-    );
+    console.warn(`    could not draft (malformed or research failed); skipping.`);
     continue;
   }
   candidates[item.key] = draft;
@@ -125,9 +117,7 @@ for (const item of selected) {
 
 const draftedCount = Object.keys(candidates).length;
 if (draftedCount === 0) {
-  console.error(
-    'No blurbs drafted. Nothing to route; the live store is unchanged.',
-  );
+  console.error('No blurbs drafted. Nothing to route; the live store is unchanged.');
   process.exit(1);
 }
 
@@ -135,8 +125,7 @@ if (draftedCount === 0) {
 // when it was published, so re-routing it would re-spend grounding calls and
 // could drop a card whose source has since gone stale.
 const judge = createClaudeJudge();
-const ground = (entry: Commentary) =>
-  groundEntry(entry, { fetchSourceText, judge });
+const ground = (entry: Commentary) => groundEntry(entry, { fetchSourceText, judge });
 
 const { published, dropped } = await routeStore(candidates, { ground });
 for (const { key, reasons } of dropped) {
@@ -145,16 +134,9 @@ for (const { key, reasons } of dropped) {
 
 // Update the drop ledger before any early exit: this batch's drops must persist
 // even when nothing published, so the next batch stops re-drafting these keys.
-const nextDrops = recordAttempts(
-  priorDrops,
-  dropped,
-  Object.keys(published),
-  generatedAt,
-);
+const nextDrops = recordAttempts(priorDrops, dropped, Object.keys(published), generatedAt);
 const dropsLedgerUrl = await uploadDrops(nextDrops);
-console.log(
-  `Drop ledger now ${Object.keys(nextDrops).length} key(s) -> ${dropsLedgerUrl}`,
-);
+console.log(`Drop ledger now ${Object.keys(nextDrops).length} key(s) -> ${dropsLedgerUrl}`);
 
 const survivors = Object.keys(published).length;
 if (survivors === 0) {

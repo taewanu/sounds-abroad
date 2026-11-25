@@ -24,8 +24,7 @@ export async function publishStore(
 ): Promise<PublishedStore> {
   const next = replace ? survivors : { ...live, ...survivors };
 
-  const backupUrl =
-    Object.keys(live).length > 0 ? await backupLiveStore() : null;
+  const backupUrl = Object.keys(live).length > 0 ? await backupLiveStore() : null;
   const url = await uploadStore(next);
 
   return { url, backupUrl, total: Object.keys(next).length };

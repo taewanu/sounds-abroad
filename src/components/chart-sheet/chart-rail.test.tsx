@@ -18,10 +18,7 @@ function playlist(id: string, name: string): Playlist {
   };
 }
 
-const PLAYLISTS = [
-  playlist('pl.a', 'First playlist'),
-  playlist('pl.b', 'Second playlist'),
-];
+const PLAYLISTS = [playlist('pl.a', 'First playlist'), playlist('pl.b', 'Second playlist')];
 
 function renderRail(overrides: Partial<Parameters<typeof ChartRail>[0]> = {}) {
   const onOpen = vi.fn();
@@ -42,36 +39,26 @@ test('lists the songs chart first, then the playlists as published', () => {
   renderRail();
 
   const names = screen.getAllByRole('tab').map((tab) => tab.textContent);
-  expect(names).toEqual([
-    SONGS_CHART_LABEL,
-    'First playlist',
-    'Second playlist',
-  ]);
+  expect(names).toEqual([SONGS_CHART_LABEL, 'First playlist', 'Second playlist']);
 });
 
 test('marks the chart on screen as selected', () => {
   renderRail({ current: 'pl.b' });
 
-  expect(
-    screen
-      .getByRole('tab', { name: 'Second playlist' })
-      .getAttribute('aria-selected'),
-  ).toBe('true');
-  expect(
-    screen
-      .getByRole('tab', { name: SONGS_CHART_LABEL })
-      .getAttribute('aria-selected'),
-  ).toBe('false');
+  expect(screen.getByRole('tab', { name: 'Second playlist' }).getAttribute('aria-selected')).toBe(
+    'true',
+  );
+  expect(screen.getByRole('tab', { name: SONGS_CHART_LABEL }).getAttribute('aria-selected')).toBe(
+    'false',
+  );
 });
 
 test('marks a chart asked for as selected before its tracks arrive', () => {
   renderRail({ current: SONGS_CHART, pending: 'pl.a' });
 
-  expect(
-    screen
-      .getByRole('tab', { name: 'First playlist' })
-      .getAttribute('aria-selected'),
-  ).toBe('true');
+  expect(screen.getByRole('tab', { name: 'First playlist' }).getAttribute('aria-selected')).toBe(
+    'true',
+  );
 });
 
 test('asks to open the chart that was tapped', () => {
@@ -168,12 +155,12 @@ test("announces each chart's position in the set", () => {
 test('the chart being read is the one marked as waiting', () => {
   renderRail({ current: SONGS_CHART, pending: 'pl.a' });
 
-  expect(
-    screen.getByRole('tab', { name: 'First playlist' }).className,
-  ).toContain('chart-tab-waiting');
-  expect(
-    screen.getByRole('tab', { name: SONGS_CHART_LABEL }).className,
-  ).not.toContain('chart-tab-waiting');
+  expect(screen.getByRole('tab', { name: 'First playlist' }).className).toContain(
+    'chart-tab-waiting',
+  );
+  expect(screen.getByRole('tab', { name: SONGS_CHART_LABEL }).className).not.toContain(
+    'chart-tab-waiting',
+  );
 });
 
 test("each chart's tab names the list it controls", () => {

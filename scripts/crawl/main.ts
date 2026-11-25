@@ -8,11 +8,7 @@ import { fetchPlaylistPage } from './playlist-page';
 import { fetchPublishedCharts } from './published-charts';
 import { crawlAll, crawlCountry, type SpotifyResolution } from './run';
 import { createSpotifyResolver } from './spotify-resolve';
-import {
-  createPlaylistPageThrottle,
-  createSpotifyThrottle,
-  createThrottle,
-} from './throttle';
+import { createPlaylistPageThrottle, createSpotifyThrottle, createThrottle } from './throttle';
 import {
   uploadCharts,
   uploadPlaylistFile,
@@ -63,17 +59,13 @@ async function runSingleCountry(cc: string): Promise<void> {
     lookupTracks: itunes.lookupTracks,
     spotify: spotifyFromEnv(),
   });
-  console.log(
-    `[crawl ${cc}] ${country.tracks.length} tracks (valid=${country.valid})`,
-  );
+  console.log(`[crawl ${cc}] ${country.tracks.length} tracks (valid=${country.valid})`);
   console.log('[crawl] (dry run: no upload, no revalidate)');
   console.log(JSON.stringify({ [cc]: country }, null, 2));
 }
 
 async function runAllCountries(): Promise<void> {
-  assertObjectStoreEnv(
-    'Run with: pnpm crawl (loads .env.local via tsx --env-file).',
-  );
+  assertObjectStoreEnv('Run with: pnpm crawl (loads .env.local via tsx --env-file).');
   // This run publishes to the live pathname, so it must keep the same
   // read/snapshot pair as cron: without them a local run overwrites the
   // outgoing charts unsnapshotted and skips carry-forward.
@@ -94,8 +86,7 @@ async function runAllCountries(): Promise<void> {
     countries: COUNTRIES,
     playlistAxis: {
       fetchPlaylists: itunes.fetchPlaylists,
-      fetchPlaylistPage: (id, url) =>
-        pageThrottle(() => fetchPlaylistPage(id, url)),
+      fetchPlaylistPage: (id, url) => pageThrottle(() => fetchPlaylistPage(id, url)),
       uploadPlaylistFile,
     },
     fetchRss: itunes.fetchRss,
@@ -103,9 +94,7 @@ async function runAllCountries(): Promise<void> {
     spotify: spotifyFromEnv(),
     uploadCharts,
     uploadSongsTail,
-    fetchPrevious: previousUrl
-      ? () => fetchPublishedCharts(previousUrl)
-      : undefined,
+    fetchPrevious: previousUrl ? () => fetchPublishedCharts(previousUrl) : undefined,
     uploadPrevious: async (chartFile) => {
       try {
         await uploadPreviousCharts(chartFile);

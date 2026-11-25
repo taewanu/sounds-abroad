@@ -22,11 +22,7 @@ const serverSnapshot = (): boolean | null => null;
 // the client without a setState-in-effect and reconciles the SSR/client split,
 // the same shape as usePrefersReducedMotion.
 export function useSeenFlag(flag: SeenFlag): SeenFlagState {
-  const seen = useSyncExternalStore<boolean | null>(
-    noopSubscribe,
-    flag.hasSeen,
-    serverSnapshot,
-  );
+  const seen = useSyncExternalStore<boolean | null>(noopSubscribe, flag.hasSeen, serverSnapshot);
   const markSeen = useCallback(() => flag.markSeen(), [flag]);
   return { seen, markSeen };
 }

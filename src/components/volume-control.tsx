@@ -98,9 +98,7 @@ export function VolumeControl() {
         aria-expanded={open}
         aria-controls="mini-player-volume"
         className={`flex h-10 w-10 items-center justify-center rounded-full transition-[color,background-color,scale] duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora active:scale-[0.97] ${
-          open
-            ? 'bg-orbit text-fg-1'
-            : 'text-fg-2 hover:bg-orbit hover:text-fg-1'
+          open ? 'bg-orbit text-fg-1' : 'text-fg-2 hover:bg-orbit hover:text-fg-1'
         }`}
       >
         <Icon className="h-[18px] w-[18px]" />

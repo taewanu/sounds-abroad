@@ -52,12 +52,7 @@ function renderTrackRow(
   const utils = render(
     <AudioStoreContext.Provider value={store}>
       <ul>
-        <TrackRow
-          track={track}
-          countryCode={countryCode}
-          chartRef={chartRef}
-          mode="most_played"
-        />
+        <TrackRow track={track} countryCode={countryCode} chartRef={chartRef} mode="most_played" />
       </ul>
     </AudioStoreContext.Provider>,
   );
@@ -73,9 +68,7 @@ describe('TrackRow', () => {
     expect(screen.getByText(String(track.rank))).toBeDefined();
     expect(screen.getByText(track.name)).toBeDefined();
     expect(screen.getByText(track.artist)).toBeDefined();
-    expect(container.querySelector('img')?.getAttribute('src')).toBe(
-      track.artworkUrl,
-    );
+    expect(container.querySelector('img')?.getAttribute('src')).toBe(track.artworkUrl);
   });
 
   // Rendered as server markup: a DOM style setter discards an invalid value, so
@@ -90,12 +83,7 @@ describe('TrackRow', () => {
     const html = renderToStaticMarkup(
       <AudioStoreContext.Provider value={store}>
         <ul>
-          <TrackRow
-            track={track}
-            countryCode="kr"
-            chartRef={SONGS_CHART}
-            mode="most_played"
-          />
+          <TrackRow track={track} countryCode="kr" chartRef={SONGS_CHART} mode="most_played" />
         </ul>
       </AudioStoreContext.Provider>,
     );
@@ -175,12 +163,7 @@ describe('TrackRow', () => {
     rerender(
       <AudioStoreContext.Provider value={store}>
         <ul>
-          <TrackRow
-            track={track}
-            countryCode="kr"
-            chartRef={SONGS_CHART}
-            mode="most_played"
-          />
+          <TrackRow track={track} countryCode="kr" chartRef={SONGS_CHART} mode="most_played" />
         </ul>
       </AudioStoreContext.Provider>,
     );
@@ -195,12 +178,7 @@ describe('TrackRow', () => {
     rerender(
       <AudioStoreContext.Provider value={store}>
         <ul>
-          <TrackRow
-            track={track}
-            countryCode="kr"
-            chartRef={SONGS_CHART}
-            mode="most_played"
-          />
+          <TrackRow track={track} countryCode="kr" chartRef={SONGS_CHART} mode="most_played" />
         </ul>
       </AudioStoreContext.Provider>,
     );
@@ -215,12 +193,7 @@ describe('TrackRow', () => {
     rerender(
       <AudioStoreContext.Provider value={store}>
         <ul>
-          <TrackRow
-            track={track}
-            countryCode="kr"
-            chartRef={SONGS_CHART}
-            mode="most_played"
-          />
+          <TrackRow track={track} countryCode="kr" chartRef={SONGS_CHART} mode="most_played" />
         </ul>
       </AudioStoreContext.Provider>,
     );
@@ -378,10 +351,7 @@ describe('TrackRow commentary card', () => {
     detail: 'Brief context on why the track is rising.',
     tag: 'new entry',
     claim: 'why-charting',
-    sources: [
-      'https://www.billboard.com/charts',
-      'https://pitchfork.com/reviews',
-    ],
+    sources: ['https://www.billboard.com/charts', 'https://pitchfork.com/reviews'],
     generatedAt: '2026-04-25T03:00:00Z',
   } satisfies Commentary;
 
@@ -402,9 +372,7 @@ describe('TrackRow commentary card', () => {
     const toggle = screen.getByRole('button', { expanded: false });
     expect(toggle.textContent).toContain(COMMENTARY.lead);
     expect(screen.getByText(COMMENTARY.tag)).toBeDefined();
-    const panel = document.getElementById(
-      toggle.getAttribute('aria-controls')!,
-    );
+    const panel = document.getElementById(toggle.getAttribute('aria-controls')!);
     expect(panel?.hasAttribute('inert')).toBe(true);
   });
 
@@ -416,9 +384,7 @@ describe('TrackRow commentary card', () => {
     fireEvent.click(toggle);
 
     expect(screen.getByRole('button', { expanded: true })).toBeDefined();
-    const panel = document.getElementById(
-      toggle.getAttribute('aria-controls')!,
-    );
+    const panel = document.getElementById(toggle.getAttribute('aria-controls')!);
     expect(panel?.hasAttribute('inert')).toBe(false);
   });
 

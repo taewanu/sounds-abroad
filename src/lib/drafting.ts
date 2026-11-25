@@ -82,10 +82,7 @@ export function buildDraftPrompt(input: DraftInput): string {
  * rather than published. The timestamp is injected, not read here, to keep the
  * seam pure and testable.
  */
-export function interpretDraft(
-  raw: RawDraft,
-  generatedAt: string,
-): Commentary | null {
+export function interpretDraft(raw: RawDraft, generatedAt: string): Commentary | null {
   const parsed = CommentarySchema.safeParse({ ...raw, generatedAt });
   return parsed.success ? parsed.data : null;
 }

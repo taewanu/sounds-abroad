@@ -87,11 +87,7 @@ function parseFeatureId(idRaw: unknown): number {
   return NaN;
 }
 
-function pushRingSegments(
-  ring: [number, number][],
-  r: number,
-  out: number[],
-): void {
+function pushRingSegments(ring: [number, number][], r: number, out: number[]): void {
   for (let i = 0; i < ring.length - 1; i++) {
     const a = latLonToVec3(ring[i][1], ring[i][0], r);
     const b = latLonToVec3(ring[i + 1][1], ring[i + 1][0], r);

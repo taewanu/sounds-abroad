@@ -28,11 +28,7 @@ export function normalizeForKey(value: string): string {
  * Identity of a charting track across countries: same artist + title yields the
  * same key, so a blurb is written once and reused everywhere the track charts.
  */
-export function commentaryKey(
-  lang: string,
-  artist: string,
-  name: string,
-): string {
+export function commentaryKey(lang: string, artist: string, name: string): string {
   return `${lang}:${normalizeForKey(artist)}|${normalizeForKey(name)}`;
 }
 

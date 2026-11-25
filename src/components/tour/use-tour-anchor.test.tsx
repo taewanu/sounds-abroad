@@ -56,9 +56,7 @@ describe('useTourAnchor', () => {
   });
 
   test('is null when no element matches the selector', () => {
-    const { getByTestId } = render(
-      <Harness selector={TARGET} withTarget={false} />,
-    );
+    const { getByTestId } = render(<Harness selector={TARGET} withTarget={false} />);
 
     expect(getByTestId('probe').textContent).toBe('null');
   });
@@ -75,9 +73,7 @@ describe('useTourAnchor', () => {
   test('re-measures when watch changes (target moved without resizing)', () => {
     box = { top: 10, left: 20, width: 100, height: 40 };
     stubBoundingRect();
-    const { getByTestId, rerender } = render(
-      <Harness selector={TARGET} watch={1} />,
-    );
+    const { getByTestId, rerender } = render(<Harness selector={TARGET} watch={1} />);
 
     box = { top: 200, left: 20, width: 100, height: 40 };
     rerender(<Harness selector={TARGET} watch={2} />);

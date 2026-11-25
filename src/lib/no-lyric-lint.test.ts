@@ -6,8 +6,7 @@ import { findLyricRisks, lintCommentary } from './no-lyric-lint';
 // enjambed lines, repeats); they reproduce no real song.
 
 test('findLyricRisks flags a quoted run longer than a short phrase', () => {
-  const text =
-    'The hook leans on "na na na la la oh oh my my my" all the way through.';
+  const text = 'The hook leans on "na na na la la oh oh my my my" all the way through.';
 
   expect(findLyricRisks(text).some((r) => r.rule === 'quoted-span')).toBe(true);
 });
@@ -48,9 +47,7 @@ test('findLyricRisks flags a repeated line', () => {
   const text =
     'This is the summer breakout here.\nIt owns radio play.\nThis is the summer breakout here.';
 
-  expect(findLyricRisks(text).some((r) => r.rule === 'repeated-line')).toBe(
-    true,
-  );
+  expect(findLyricRisks(text).some((r) => r.rule === 'repeated-line')).toBe(true);
 });
 
 test('lintCommentary scans lead, detail, and tag', () => {
@@ -72,8 +69,7 @@ test('lintCommentary scans lead, detail, and tag', () => {
 test('lintCommentary passes clean prose commentary', () => {
   const entry = {
     lead: 'A summer single riding a viral dance clip to the top.',
-    detail:
-      "The duo's first charting entry; momentum built over three weeks of streaming growth.",
+    detail: "The duo's first charting entry; momentum built over three weeks of streaming growth.",
     tag: 'new entry',
     claim: 'why-charting' as const,
     sources: ['https://example.com/a', 'https://example.com/b'],

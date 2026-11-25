@@ -6,20 +6,13 @@ import { assert, expect, test } from 'vitest';
 
 import { AppleRssError, fetchAppleRss } from './apple-rss';
 
-const FIXTURE_PATH = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  '__fixtures__/rss-kr.json',
-);
+const FIXTURE_PATH = resolve(dirname(fileURLToPath(import.meta.url)), '__fixtures__/rss-kr.json');
 
 async function loadFixture(): Promise<string> {
   return readFile(FIXTURE_PATH, 'utf8');
 }
 
-function fakeFetch(response: {
-  ok: boolean;
-  status?: number;
-  body: string;
-}): typeof fetch {
+function fakeFetch(response: { ok: boolean; status?: number; body: string }): typeof fetch {
   return (async () =>
     new Response(response.body, {
       status: response.status ?? (response.ok ? 200 : 500),
@@ -136,9 +129,7 @@ test('throws AppleRssError when fetch itself rejects', async () => {
     throw new TypeError('network down');
   }) as typeof fetch;
 
-  await expect(
-    fetchAppleRss('kr', { fetch: failingFetch }),
-  ).rejects.toBeInstanceOf(AppleRssError);
+  await expect(fetchAppleRss('kr', { fetch: failingFetch })).rejects.toBeInstanceOf(AppleRssError);
 });
 
 // The URL rules are wired into this schema, so a feed carrying a value they
@@ -148,16 +139,13 @@ test.each([
   { field: 'url', value: 'https://evil.test/kr/song/1' },
   { field: 'artworkUrl100', value: 'data:image/svg+xml,<svg/onload=alert(1)>' },
   { field: 'artworkUrl100', value: 'https://evil.test/100x100bb.jpg' },
-])(
-  'a feed whose $field is $value fails the storefront',
-  async ({ field, value }) => {
-    const feed = JSON.parse(await loadFixture());
-    feed.feed.results[0][field] = value;
+])('a feed whose $field is $value fails the storefront', async ({ field, value }) => {
+  const feed = JSON.parse(await loadFixture());
+  feed.feed.results[0][field] = value;
 
-    await expect(
-      fetchAppleRss('kr', {
-        fetch: fakeFetch({ ok: true, body: JSON.stringify(feed) }),
-      }),
-    ).rejects.toThrow(AppleRssError);
-  },
-);
+  await expect(
+    fetchAppleRss('kr', {
+      fetch: fakeFetch({ ok: true, body: JSON.stringify(feed) }),
+    }),
+  ).rejects.toThrow(AppleRssError);
+});

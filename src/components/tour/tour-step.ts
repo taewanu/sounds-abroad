@@ -59,7 +59,5 @@ export function tourReducer(state: TourState, event: TourEvent): TourState {
   // for the same tap.
   if (event.type === 'SKIP') return { ...state, dismissed: true };
   const beat = state.beats[state.index];
-  return event.type === EVENT_FOR[beat]
-    ? { ...state, index: state.index + 1 }
-    : state;
+  return event.type === EVENT_FOR[beat] ? { ...state, index: state.index + 1 } : state;
 }

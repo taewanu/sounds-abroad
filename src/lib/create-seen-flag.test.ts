@@ -22,9 +22,7 @@ describe('hasSeen', () => {
   });
 
   test('treats any other stored value as not seen', () => {
-    expect(createSeenFlag(KEY).hasSeen(fakeStorage({ [KEY]: 'yes' }))).toBe(
-      false,
-    );
+    expect(createSeenFlag(KEY).hasSeen(fakeStorage({ [KEY]: 'yes' }))).toBe(false);
   });
 
   test("keys each flag by its own key, so a sibling flag's value doesn't leak", () => {
@@ -120,16 +118,12 @@ describe('falls back to the in-memory mirror when localStorage throws', () => {
   test('round-trips through the mirror when access throws (private mode)', () => {
     // Restore in finally, not afterEach: a leaked spy would make the next
     // suite's localStorage throw and read the mirror instead.
-    const getSpy = vi
-      .spyOn(Storage.prototype, 'getItem')
-      .mockImplementation(() => {
-        throw new Error('blocked');
-      });
-    const setSpy = vi
-      .spyOn(Storage.prototype, 'setItem')
-      .mockImplementation(() => {
-        throw new Error('blocked');
-      });
+    const getSpy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    const setSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
     try {
       const flag = createSeenFlag(KEY);
       expect(flag.hasSeen()).toBe(false);

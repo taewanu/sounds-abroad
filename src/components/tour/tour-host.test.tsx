@@ -89,9 +89,7 @@ describe('TourHost', () => {
     const { getByTestId } = renderHost();
     makeGlobeReady();
 
-    expect(getByTestId('tour-overlay').getAttribute('data-beat')).toBe(
-      'gesture',
-    );
+    expect(getByTestId('tour-overlay').getAttribute('data-beat')).toBe('gesture');
     expect(getByTestId('tour-flick-hint')).toBeTruthy();
     const badge = getByTestId('tour-badge');
     expect(badge.getAttribute('role')).toBe('status');
@@ -132,9 +130,7 @@ describe('TourHost', () => {
       rerenderWith({ selectedCode: 'jp' });
     });
 
-    expect(getByTestId('tour-overlay').getAttribute('data-beat')).toBe(
-      'gesture',
-    );
+    expect(getByTestId('tour-overlay').getAttribute('data-beat')).toBe('gesture');
   });
 
   test('the X control ends the tour and latches dismissed permanently', () => {
@@ -278,9 +274,7 @@ describe('TourHost', () => {
     });
 
     expect(queryByTestId('tour-flick-hint')).toBeNull();
-    expect(getByTestId('tour-overlay').getAttribute('data-beat')).toBe(
-      'gesture',
-    );
+    expect(getByTestId('tour-overlay').getAttribute('data-beat')).toBe('gesture');
 
     act(() => {
       globeChartStore.getState().signalSettle();

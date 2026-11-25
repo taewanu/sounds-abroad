@@ -39,12 +39,7 @@ interface SpinSnapControlsProps {
   // accidental tap from the flick it teaches. `origin` is "gesture" for a fling
   // or tap and "external" for a URL/list/programmatic settle, so the caller can
   // push a history entry for the first and relabel in place for the second.
-  onSettle: (
-    code: string,
-    changed: boolean,
-    viaTap: boolean,
-    origin: SettleOrigin,
-  ) => void;
+  onSettle: (code: string, changed: boolean, viaTap: boolean, origin: SettleOrigin) => void;
 }
 
 // Drives the camera as a spun globe: drag to rotate, release to fling with
@@ -115,30 +110,22 @@ export function SpinSnapControls({
 
   // Run one command: the impure work the reducer can only name (notify, skip,
   // capture/release the pointer).
-  const runCommand = useCallback(
-    (command: GestureCommand, el: HTMLCanvasElement) => {
-      switch (command.kind) {
-        case 'settle':
-          onSettleRef.current(
-            command.code,
-            command.changed,
-            command.viaTap,
-            command.origin,
-          );
-          break;
-        case 'signalSkip':
-          globeChartStore.getState().signalSkip(command.dir);
-          break;
-        case 'capturePointer':
-          el.setPointerCapture?.(command.id);
-          break;
-        case 'releasePointer':
-          el.releasePointerCapture?.(command.id);
-          break;
-      }
-    },
-    [],
-  );
+  const runCommand = useCallback((command: GestureCommand, el: HTMLCanvasElement) => {
+    switch (command.kind) {
+      case 'settle':
+        onSettleRef.current(command.code, command.changed, command.viaTap, command.origin);
+        break;
+      case 'signalSkip':
+        globeChartStore.getState().signalSkip(command.dir);
+        break;
+      case 'capturePointer':
+        el.setPointerCapture?.(command.id);
+        break;
+      case 'releasePointer':
+        el.releasePointerCapture?.(command.id);
+        break;
+    }
+  }, []);
 
   // Fold an event into the sim, then run its commands. Stable across renders
   // (gl and runCommand are), so the listener effect subscribes once.

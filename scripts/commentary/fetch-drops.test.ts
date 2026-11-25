@@ -36,7 +36,5 @@ test('a failed read throws rather than erasing the ledger', async () => {
 });
 
 test('a schema mismatch throws rather than overwriting from a bad read', async () => {
-  await expect(readDrops(async () => ({ 'en:a|b': {} }))).rejects.toThrow(
-    /schema validation/,
-  );
+  await expect(readDrops(async () => ({ 'en:a|b': {} }))).rejects.toThrow(/schema validation/);
 });

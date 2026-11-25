@@ -47,11 +47,9 @@ describe('VolumeControl', () => {
     fireEvent.click(screen.getByRole('button', { name: /volume/i }));
 
     expect(screen.getByRole('slider')).toBeDefined();
-    expect(
-      screen
-        .getByRole('button', { name: /volume/i })
-        .getAttribute('aria-expanded'),
-    ).toBe('true');
+    expect(screen.getByRole('button', { name: /volume/i }).getAttribute('aria-expanded')).toBe(
+      'true',
+    );
   });
 
   test('the slider reflects the stored volume', () => {
@@ -145,13 +143,12 @@ describe('VolumeControl', () => {
     outside.addEventListener('click', onClick);
     document.body.appendChild(outside);
     const matches = Element.prototype.matches;
-    const spy = vi
-      .spyOn(Element.prototype, 'matches')
-      .mockImplementation(function (this: Element, selector: string) {
-        return selector === ':focus-visible'
-          ? false
-          : matches.call(this, selector);
-      });
+    const spy = vi.spyOn(Element.prototype, 'matches').mockImplementation(function (
+      this: Element,
+      selector: string,
+    ) {
+      return selector === ':focus-visible' ? false : matches.call(this, selector);
+    });
 
     act(() => outside.focus());
     const openAfterFocus = screen.queryByRole('slider') !== null;

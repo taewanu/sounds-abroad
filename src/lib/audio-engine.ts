@@ -53,9 +53,7 @@ export function createBrowserAudioEngine(): AudioEngine {
     setMuted: (muted) => {
       element.muted = muted;
     },
-    addEventListener: (type, listener) =>
-      element.addEventListener(type, listener),
-    removeEventListener: (type, listener) =>
-      element.removeEventListener(type, listener),
+    addEventListener: (type, listener) => element.addEventListener(type, listener),
+    removeEventListener: (type, listener) => element.removeEventListener(type, listener),
   };
 }

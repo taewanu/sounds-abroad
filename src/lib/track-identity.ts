@@ -19,10 +19,7 @@ export function trackKey(track: TrackIdentity): string {
 }
 
 /** Whether two tracks are the same song. Null on either side is never a match. */
-export function sameTrack(
-  a: TrackIdentity | null,
-  b: TrackIdentity | null,
-): boolean {
+export function sameTrack(a: TrackIdentity | null, b: TrackIdentity | null): boolean {
   if (a === null || b === null) return false;
   return trackKey(a) === trackKey(b);
 }

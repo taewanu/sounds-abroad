@@ -26,13 +26,7 @@ if (!number || !/^\d+$/.test(number)) {
 }
 
 const pr = JSON.parse(
-  gh(
-    'pr',
-    'view',
-    number,
-    '--json',
-    'state,isDraft,mergeStateStatus,labels,body,headRefOid',
-  ),
+  gh('pr', 'view', number, '--json', 'state,isDraft,mergeStateStatus,labels,body,headRefOid'),
 ) as GhPullRequest;
 
 const { check_runs: checkRuns } = JSON.parse(
@@ -50,8 +44,7 @@ console.log(
     body: pr.body,
     headSha: pr.headRefOid,
     coderabbitConclusion:
-      checkRuns.find(({ app }) => app.slug === 'coderabbitai')?.conclusion ??
-      null,
+      checkRuns.find(({ app }) => app.slug === 'coderabbitai')?.conclusion ?? null,
     diff: gh('pr', 'diff', number),
   }),
 );

@@ -1,11 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import {
-  currentBeat,
-  initialTourState,
-  learnedSoFar,
-  tourReducer,
-} from './tour-step';
+import { currentBeat, initialTourState, learnedSoFar, tourReducer } from './tour-step';
 
 describe('initialTourState', () => {
   test('runs all three teachable beats by default, opening on the gesture beat', () => {

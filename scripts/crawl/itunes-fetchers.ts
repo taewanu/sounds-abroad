@@ -46,9 +46,8 @@ export function createItunesFetchers(deps: {
         sleep,
         shouldRetry: (err) => err instanceof ApplePlaylistsError,
       }),
-    lookupTracks: withLookupRetry(
-      (ids, cc) => throttle(() => deps.lookupTracks(ids, cc)),
-      { sleep },
-    ),
+    lookupTracks: withLookupRetry((ids, cc) => throttle(() => deps.lookupTracks(ids, cc)), {
+      sleep,
+    }),
   };
 }

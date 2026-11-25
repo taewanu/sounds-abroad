@@ -5,8 +5,7 @@ import { globeChartStore } from '@/lib/globe-chart-store';
 
 import { CountrySelector } from './country-selector';
 
-const openList = () =>
-  fireEvent.click(screen.getByRole('button', { name: /choose a country/i }));
+const openList = () => fireEvent.click(screen.getByRole('button', { name: /choose a country/i }));
 
 describe('CountrySelector', () => {
   let pushState: ReturnType<typeof vi.spyOn>;
@@ -14,12 +13,8 @@ describe('CountrySelector', () => {
 
   beforeEach(() => {
     globeChartStore.setState({ selectedCountry: 'br', readMode: false });
-    pushState = vi
-      .spyOn(window.history, 'pushState')
-      .mockImplementation(() => {});
-    replaceState = vi
-      .spyOn(window.history, 'replaceState')
-      .mockImplementation(() => {});
+    pushState = vi.spyOn(window.history, 'pushState').mockImplementation(() => {});
+    replaceState = vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -54,9 +49,7 @@ describe('CountrySelector', () => {
     openList();
 
     const americas = screen.getByRole('group', { name: 'Americas' });
-    expect(
-      within(americas).getByRole('button', { name: 'Brazil' }),
-    ).toBeDefined();
+    expect(within(americas).getByRole('button', { name: 'Brazil' })).toBeDefined();
     for (const region of ['Americas', 'Europe', 'Africa', 'Asia', 'Oceania']) {
       expect(screen.getByRole('group', { name: region })).toBeDefined();
     }
@@ -120,9 +113,7 @@ describe('CountrySelector', () => {
     const toggle = screen.getByRole('button', { name: /choose a country/i });
     fireEvent.click(toggle);
 
-    fireEvent.click(
-      screen.getByRole('button', { name: /close country list/i }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: /close country list/i }));
 
     expect(screen.queryByRole('navigation', { name: 'Countries' })).toBeNull();
     expect(document.activeElement).toBe(toggle);

@@ -45,18 +45,10 @@ export class ChartPartValidationError extends Error {
  * Swaps the final segment rather than reassembling the path, so a change of host
  * or prefix carries through untouched.
  */
-export function chartPartUrl(
-  chartsUrl: string,
-  folder: string,
-  name: string,
-): string {
+export function chartPartUrl(chartsUrl: string, folder: string, name: string): string {
   const cut = chartsUrl.lastIndexOf('/');
   if (cut === -1) {
-    throw new ChartPartFetchError(
-      name,
-      0,
-      `Cannot derive a ${folder} URL from "${chartsUrl}"`,
-    );
+    throw new ChartPartFetchError(name, 0, `Cannot derive a ${folder} URL from "${chartsUrl}"`);
   }
   return `${chartsUrl.slice(0, cut)}/${folder}/${encodeURIComponent(name)}.json`;
 }
@@ -140,29 +132,11 @@ async function fetchChartPart<T>(
 }
 
 /** Reads one playlist's track list (ADR-0016). */
-export function fetchPlaylistFile(
-  chartsUrl: string,
-  playlistId: string,
-): Promise<PlaylistFile> {
-  return fetchChartPart(
-    chartsUrl,
-    'playlists',
-    playlistId,
-    PlaylistFileSchema,
-    (file) => file.id,
-  );
+export function fetchPlaylistFile(chartsUrl: string, playlistId: string): Promise<PlaylistFile> {
+  return fetchChartPart(chartsUrl, 'playlists', playlistId, PlaylistFileSchema, (file) => file.id);
 }
 
 /** Reads one country's chart beyond the rows that travel eagerly. */
-export function fetchSongsTail(
-  chartsUrl: string,
-  countryCode: string,
-): Promise<SongsTailFile> {
-  return fetchChartPart(
-    chartsUrl,
-    'songs',
-    countryCode,
-    SongsTailFileSchema,
-    (file) => file.code,
-  );
+export function fetchSongsTail(chartsUrl: string, countryCode: string): Promise<SongsTailFile> {
+  return fetchChartPart(chartsUrl, 'songs', countryCode, SongsTailFileSchema, (file) => file.code);
 }

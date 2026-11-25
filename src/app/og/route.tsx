@@ -39,32 +39,9 @@ function eyebrowStyle(fontSize: number) {
 function WordmarkGlyph({ size }: { size: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none">
-      <circle
-        cx="32"
-        cy="32"
-        r="24"
-        stroke={FG2}
-        strokeWidth="1.6"
-        opacity="0.7"
-      />
-      <line
-        x1="8"
-        y1="32"
-        x2="56"
-        y2="32"
-        stroke={FG2}
-        strokeWidth="1.4"
-        opacity="0.5"
-      />
-      <ellipse
-        cx="32"
-        cy="32"
-        rx="7.4"
-        ry="24"
-        stroke={FG2}
-        strokeWidth="1.4"
-        opacity="0.3"
-      />
+      <circle cx="32" cy="32" r="24" stroke={FG2} strokeWidth="1.6" opacity="0.7" />
+      <line x1="8" y1="32" x2="56" y2="32" stroke={FG2} strokeWidth="1.4" opacity="0.5" />
+      <ellipse cx="32" cy="32" rx="7.4" ry="24" stroke={FG2} strokeWidth="1.4" opacity="0.3" />
       <circle cx="46.3" cy="23" r="4.5" fill={SUNRISE} />
     </svg>
   );
@@ -74,14 +51,7 @@ function WordmarkGlyph({ size }: { size: number }) {
 function GlobeMark({ size, color }: { size: number; color: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none">
-      <circle
-        cx="32"
-        cy="32"
-        r="24"
-        stroke={color}
-        strokeWidth="1"
-        opacity="0.7"
-      />
+      <circle cx="32" cy="32" r="24" stroke={color} strokeWidth="1" opacity="0.7" />
       <line
         x1="9.751"
         y1="23"
@@ -91,15 +61,7 @@ function GlobeMark({ size, color }: { size: number; color: string }) {
         strokeWidth="0.8"
         opacity="0.24"
       />
-      <line
-        x1="8"
-        y1="32"
-        x2="56"
-        y2="32"
-        stroke={color}
-        strokeWidth="0.8"
-        opacity="0.5"
-      />
+      <line x1="8" y1="32" x2="56" y2="32" stroke={color} strokeWidth="0.8" opacity="0.5" />
       <line
         x1="9.751"
         y1="41"
@@ -118,15 +80,7 @@ function GlobeMark({ size, color }: { size: number; color: string }) {
         strokeWidth="0.8"
         opacity="0.32"
       />
-      <ellipse
-        cx="32"
-        cy="32"
-        rx="7.416"
-        ry="24"
-        stroke={color}
-        strokeWidth="0.8"
-        opacity="0.22"
-      />
+      <ellipse cx="32" cy="32" rx="7.416" ry="24" stroke={color} strokeWidth="0.8" opacity="0.22" />
       <circle cx="46.3" cy="23" r="7" fill={SUNRISE} opacity="0.22" />
       <circle cx="46.3" cy="23" r="3.4" fill={SUNRISE} />
     </svg>
@@ -152,13 +106,7 @@ function Wordmark({ glyph, text }: { glyph: number; text: number }) {
   );
 }
 
-function CountryName({
-  lines,
-  fontSize,
-}: {
-  lines: string[];
-  fontSize: number;
-}) {
+function CountryName({ lines, fontSize }: { lines: string[]; fontSize: number }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       {lines.map((line, i) => (
@@ -310,9 +258,7 @@ export async function GET(request: Request) {
   const square = searchParams.get('shape') === 'square';
 
   const nameLines = entry ? [entry.name] : ['What the world', 'is playing'];
-  const eyebrow = entry
-    ? `${entry.code.toUpperCase()} · MOST PLAYED`
-    : 'TRENDING WORLDWIDE';
+  const eyebrow = entry ? `${entry.code.toUpperCase()} · MOST PLAYED` : 'TRENDING WORLDWIDE';
   const nameSize = entry ? (square ? 170 : 150) : square ? 112 : 104;
 
   const [poppins, instrument] = await Promise.all([

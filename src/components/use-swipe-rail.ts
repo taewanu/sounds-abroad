@@ -80,8 +80,7 @@ export function useSwipeRail({
   // A committed skip fires after the slide; drop it if the player unmounts first.
   useEffect(
     () => () => {
-      if (commitTimerRef.current !== null)
-        window.clearTimeout(commitTimerRef.current);
+      if (commitTimerRef.current !== null) window.clearTimeout(commitTimerRef.current);
     },
     [],
   );
@@ -156,8 +155,7 @@ export function useSwipeRail({
     // Engage once the travel is decisively horizontal; from then on the rail
     // follows the finger and the trailing click is a swipe, not a reopen tap.
     if (!engagedRef.current) {
-      if (Math.abs(dx) <= DRAG_ENGAGE_PX || Math.abs(dx) <= Math.abs(dy))
-        return;
+      if (Math.abs(dx) <= DRAG_ENGAGE_PX || Math.abs(dx) <= Math.abs(dy)) return;
       // Captured only now: a pointer captured from the press sends its click to
       // the bar instead of the control pressed, so no button would work.
       try {
@@ -171,8 +169,7 @@ export function useSwipeRail({
       engagedRef.current = true;
       swipedRef.current = true;
     }
-    if (railRef.current)
-      railRef.current.style.transform = `translateX(calc(-100% + ${dx}px))`;
+    if (railRef.current) railRef.current.style.transform = `translateX(calc(-100% + ${dx}px))`;
     const dt = Math.max(1, e.timeStamp - lastTRef.current);
     velRef.current = (e.clientX - lastXRef.current) / dt;
     lastXRef.current = e.clientX;
@@ -209,11 +206,7 @@ export function useSwipeRail({
     // skip: onNext/onPrev swaps the store, the neighbour becomes the current
     // card, and the layout effect snaps the rail back to rest seamlessly. The
     // cue is suppressed so the swap doesn't re-animate what the rail just did.
-    const slideMs = settleRail(
-      outcome === 'next' ? RAIL_NEXT : RAIL_PREV,
-      COMMIT_MS,
-      COMMIT_EASE,
-    );
+    const slideMs = settleRail(outcome === 'next' ? RAIL_NEXT : RAIL_PREV, COMMIT_MS, COMMIT_EASE);
     onCommitStart();
     pendingCommitRef.current = outcome === 'next' ? onNext : onPrev;
     commitTimerRef.current = window.setTimeout(() => {

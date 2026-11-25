@@ -46,9 +46,7 @@ test("a failing lookup's retry attempts each take their own throttle slot", asyn
   expect(err).toBeInstanceOf(ItunesLookupError);
   expect(attemptTimes.length).toBeGreaterThan(1);
   for (let i = 1; i < attemptTimes.length; i++) {
-    expect(attemptTimes[i] - attemptTimes[i - 1]).toBeGreaterThanOrEqual(
-      GAP_MS,
-    );
+    expect(attemptTimes[i] - attemptTimes[i - 1]).toBeGreaterThanOrEqual(GAP_MS);
   }
 });
 
@@ -61,9 +59,7 @@ test("a failing RSS fetch's retry attempts each take their own throttle slot", a
   const itunes = createItunesFetchers({
     fetchRss,
     fetchPlaylists: vi.fn(async () => []),
-    lookupTracks: vi.fn(async (ids: readonly string[]) =>
-      previewMap(ids, 'https://p/1.m4a'),
-    ),
+    lookupTracks: vi.fn(async (ids: readonly string[]) => previewMap(ids, 'https://p/1.m4a')),
     throttle: createThrottle(GAP_MS),
   });
 
@@ -74,9 +70,7 @@ test("a failing RSS fetch's retry attempts each take their own throttle slot", a
   expect(err).toBeInstanceOf(AppleRssError);
   expect(attemptTimes.length).toBeGreaterThan(1);
   for (let i = 1; i < attemptTimes.length; i++) {
-    expect(attemptTimes[i] - attemptTimes[i - 1]).toBeGreaterThanOrEqual(
-      GAP_MS,
-    );
+    expect(attemptTimes[i] - attemptTimes[i - 1]).toBeGreaterThanOrEqual(GAP_MS);
   }
 });
 
@@ -95,10 +89,7 @@ test('both fetchers draw from the one shared throttle budget', async () => {
     throttle: createThrottle(GAP_MS),
   });
 
-  const promise = Promise.all([
-    itunes.fetchRss('kr'),
-    itunes.lookupTracks(['1'], 'kr'),
-  ]);
+  const promise = Promise.all([itunes.fetchRss('kr'), itunes.lookupTracks(['1'], 'kr')]);
   await vi.runAllTimersAsync();
   await promise;
 
@@ -111,8 +102,7 @@ test('a lookup that recovers within the retry budget still resolves', async () =
   let attempt = 0;
   const lookupTracks = vi.fn(async (ids: readonly string[], cc: string) => {
     attempt += 1;
-    if (attempt === 1)
-      throw new ItunesLookupError(ids, cc, 'network', 'socket hang up');
+    if (attempt === 1) throw new ItunesLookupError(ids, cc, 'network', 'socket hang up');
     return previewMap(ids, previewUrl);
   });
   const itunes = createItunesFetchers({
@@ -137,9 +127,7 @@ test("a failing playlist feed's retry attempts each take their own throttle slot
   const itunes = createItunesFetchers({
     fetchRss: vi.fn(async () => []),
     fetchPlaylists,
-    lookupTracks: vi.fn(async (ids: readonly string[]) =>
-      previewMap(ids, 'https://p/1.m4a'),
-    ),
+    lookupTracks: vi.fn(async (ids: readonly string[]) => previewMap(ids, 'https://p/1.m4a')),
     throttle: createThrottle(GAP_MS),
   });
 
@@ -150,9 +138,7 @@ test("a failing playlist feed's retry attempts each take their own throttle slot
   expect(err).toBeInstanceOf(ApplePlaylistsError);
   expect(attemptTimes.length).toBeGreaterThan(1);
   for (let i = 1; i < attemptTimes.length; i++) {
-    expect(attemptTimes[i] - attemptTimes[i - 1]).toBeGreaterThanOrEqual(
-      GAP_MS,
-    );
+    expect(attemptTimes[i] - attemptTimes[i - 1]).toBeGreaterThanOrEqual(GAP_MS);
   }
 });
 
@@ -173,9 +159,7 @@ test('a playlist feed that recovers within the retry budget still resolves', asy
       if (attempt === 1) throw new ApplePlaylistsError(cc, '504');
       return feed;
     }),
-    lookupTracks: vi.fn(async (ids: readonly string[]) =>
-      previewMap(ids, 'https://p/1.m4a'),
-    ),
+    lookupTracks: vi.fn(async (ids: readonly string[]) => previewMap(ids, 'https://p/1.m4a')),
     throttle: createThrottle(GAP_MS),
   });
 

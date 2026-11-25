@@ -148,8 +148,6 @@ describe('hasConcluded', () => {
   });
 
   test('concludes once the appearance cap is reached', () => {
-    expect(
-      hasConcluded({ learned: ['gesture'], shows: 2, dismissed: false }),
-    ).toBe(true);
+    expect(hasConcluded({ learned: ['gesture'], shows: 2, dismissed: false })).toBe(true);
   });
 });

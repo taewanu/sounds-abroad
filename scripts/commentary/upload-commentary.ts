@@ -15,16 +15,12 @@ export async function readLiveCommentary(
   const json = await read(COMMENTARY_PATHNAME);
   if (json === null) return {};
   if (typeof json !== 'object' || Array.isArray(json)) {
-    throw new Error(
-      `Commentary store at ${COMMENTARY_PATHNAME} is not a JSON object.`,
-    );
+    throw new Error(`Commentary store at ${COMMENTARY_PATHNAME} is not a JSON object.`);
   }
   return json as CommentaryStore;
 }
 
-export async function uploadCommentary(
-  store: CommentaryStore,
-): Promise<string> {
+export async function uploadCommentary(store: CommentaryStore): Promise<string> {
   return putJson(COMMENTARY_PATHNAME, JSON.stringify(store, null, 2));
 }
 
@@ -35,8 +31,5 @@ export async function uploadCommentary(
  */
 export async function backupCommentary(timestamp: string): Promise<string> {
   const safe = timestamp.replace(/[:.]/g, '-');
-  return copyObject(
-    COMMENTARY_PATHNAME,
-    `commentary/v1/backups/commentary-${safe}.json`,
-  );
+  return copyObject(COMMENTARY_PATHNAME, `commentary/v1/backups/commentary-${safe}.json`);
 }

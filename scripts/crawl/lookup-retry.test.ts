@@ -1,10 +1,6 @@
 import { expect, test, vi } from 'vitest';
 
-import {
-  ItunesLookupError,
-  type ItunesLookupErrorKind,
-  type LookupResult,
-} from './itunes-lookup';
+import { ItunesLookupError, type ItunesLookupErrorKind, type LookupResult } from './itunes-lookup';
 import { withLookupRetry, type BatchLookup } from './lookup-retry';
 
 function lookupError(kind: ItunesLookupErrorKind): ItunesLookupError {
@@ -13,10 +9,7 @@ function lookupError(kind: ItunesLookupErrorKind): ItunesLookupError {
 
 function resolved(ids: readonly string[]): Map<string, LookupResult> {
   return new Map(
-    ids.map((id) => [
-      id,
-      { id, previewUrl: `https://preview/${id}.m4a`, genre: null },
-    ]),
+    ids.map((id) => [id, { id, previewUrl: `https://preview/${id}.m4a`, genre: null }]),
   );
 }
 

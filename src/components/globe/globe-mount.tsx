@@ -6,10 +6,7 @@ import dynamic from 'next/dynamic';
 // main thread on load. The WebGL canvas is client-only, so ssr:false keeps it
 // out of the server render. This wrapper exists to hold the dynamic(ssr:false)
 // seam, which is not allowed inside the Server Component layout.
-const GlobeScene = dynamic(
-  () => import('./globe-scene').then((m) => m.GlobeScene),
-  { ssr: false },
-);
+const GlobeScene = dynamic(() => import('./globe-scene').then((m) => m.GlobeScene), { ssr: false });
 
 export function GlobeMount() {
   return <GlobeScene />;

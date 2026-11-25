@@ -18,8 +18,7 @@ afterEach(() => {
 
 // The loader keeps its read for the visit, so each test takes a fresh module.
 async function renderFreshLoader() {
-  const { ChartScreenLoader: FreshLoader } =
-    await import('./chart-screen-loader');
+  const { ChartScreenLoader: FreshLoader } = await import('./chart-screen-loader');
   await act(async () => {
     render(
       <Suspense>
@@ -69,10 +68,7 @@ test('a response that never starts ends in the failure once the timer runs out',
 test('a body that keeps arriving is not cut off by the timer, however long it takes', async () => {
   vi.useFakeTimers();
   const chunks = ['{"lastUpdated":"",', '"countries":{}}'];
-  vi.stubGlobal(
-    'fetch',
-    streamingFetch(chunks, CHARTS_READ_TIMEOUT_MS * 0.9, { closes: true }),
-  );
+  vi.stubGlobal('fetch', streamingFetch(chunks, CHARTS_READ_TIMEOUT_MS * 0.9, { closes: true }));
 
   await renderFreshLoader();
   await act(async () => {

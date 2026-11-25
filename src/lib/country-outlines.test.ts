@@ -51,10 +51,7 @@ test('buildCountryOutlines exposes lat/lon rings for every chart-set country', (
 
   for (const country of COUNTRIES) {
     const rings = outlines.byIsoRings.get(country.isoNum);
-    expect(
-      rings,
-      `missing rings for ${country.code} (isoNum=${country.isoNum})`,
-    ).toBeDefined();
+    expect(rings, `missing rings for ${country.code} (isoNum=${country.isoNum})`).toBeDefined();
     expect(
       rings!.length,
       `empty rings for ${country.code} (isoNum=${country.isoNum})`,

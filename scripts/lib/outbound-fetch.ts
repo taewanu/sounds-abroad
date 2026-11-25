@@ -33,10 +33,7 @@ export interface AllowedTargetOptions {
  * forbidden range. Hostnames that merely resolve to a forbidden address pass
  * here and are refused where the connection is made.
  */
-export function assertAllowedTarget(
-  url: string,
-  options: AllowedTargetOptions = {},
-): void {
+export function assertAllowedTarget(url: string, options: AllowedTargetOptions = {}): void {
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -45,27 +42,18 @@ export function assertAllowedTarget(
   }
 
   if (parsed.protocol !== 'https:') {
-    throw new RefusedTargetError(
-      'scheme',
-      `refused non-https scheme ${parsed.protocol} in ${url}`,
-    );
+    throw new RefusedTargetError('scheme', `refused non-https scheme ${parsed.protocol} in ${url}`);
   }
 
   if (options.expectedHost && !options.expectedHost.test(parsed.hostname)) {
-    throw new RefusedTargetError(
-      'host',
-      `refused unexpected host ${parsed.hostname}`,
-    );
+    throw new RefusedTargetError('host', `refused unexpected host ${parsed.hostname}`);
   }
 
   // A literal IP in the URL never goes through DNS, so the connect-time check
   // is not what catches it; refuse it here. Brackets wrap a literal IPv6 host.
   const bareHost = parsed.hostname.replace(/^\[|\]$/g, '');
   if (isIP(bareHost) !== 0 && isForbiddenAddress(bareHost)) {
-    throw new RefusedTargetError(
-      'address',
-      `refused forbidden literal address ${bareHost}`,
-    );
+    throw new RefusedTargetError('address', `refused forbidden literal address ${bareHost}`);
   }
 }
 
@@ -129,9 +117,7 @@ const guardingAgent = new Agent({
           callback(err, []);
           return;
         }
-        const forbidden = addresses.find((candidate) =>
-          isForbiddenAddress(candidate.address),
-        );
+        const forbidden = addresses.find((candidate) => isForbiddenAddress(candidate.address));
         if (forbidden) {
           callback(
             new RefusedTargetError(
@@ -189,10 +175,7 @@ export async function guardedFetch(
     throw err;
   }
   if (res.status >= 300 && res.status < 400) {
-    throw new RefusedTargetError(
-      'redirect',
-      `refused redirect (${res.status}) from ${url}`,
-    );
+    throw new RefusedTargetError('redirect', `refused redirect (${res.status}) from ${url}`);
   }
   return res;
 }

@@ -1,11 +1,7 @@
 import { expect, test } from 'vitest';
 
 import fixture from './__fixtures__/charts.json';
-import {
-  ChartFileSchema,
-  PlaylistFileSchema,
-  SongsTailFileSchema,
-} from './chart-schema';
+import { ChartFileSchema, PlaylistFileSchema, SongsTailFileSchema } from './chart-schema';
 
 test('ChartFileSchema parses the hand-crafted fixture', () => {
   expect(() => ChartFileSchema.parse(fixture)).not.toThrow();
@@ -337,39 +333,34 @@ test.each([
   { field: 'appleUrl', value: 'https://evil.test/kr/song/1' },
   { field: 'previewUrl', value: 'javascript:alert(1)' },
   { field: 'spotifyUrl', value: 'https://evil.test/track/1' },
-])(
-  'a chart whose track $field is $value fails to parse',
-  ({ field, value }) => {
-    const chartWith = (overrides: Record<string, unknown>) => ({
-      lastUpdated: '2026-05-16T00:00:00.000Z',
-      countries: {
-        kr: {
-          name: 'South Korea',
-          valid: true,
-          tracks: [
-            {
-              rank: 1,
-              name: 'Test',
-              artist: 'Test Artist',
-              previewUrl: 'https://audio-ssl.itunes.apple.com/1.m4a',
-              artworkUrl: 'https://is1-ssl.mzstatic.com/600x600bb.jpg',
-              appleUrl: 'https://music.apple.com/kr/1',
-              spotifyUrl: 'https://open.spotify.com/track/1',
-              ...overrides,
-            },
-          ],
-        },
+])('a chart whose track $field is $value fails to parse', ({ field, value }) => {
+  const chartWith = (overrides: Record<string, unknown>) => ({
+    lastUpdated: '2026-05-16T00:00:00.000Z',
+    countries: {
+      kr: {
+        name: 'South Korea',
+        valid: true,
+        tracks: [
+          {
+            rank: 1,
+            name: 'Test',
+            artist: 'Test Artist',
+            previewUrl: 'https://audio-ssl.itunes.apple.com/1.m4a',
+            artworkUrl: 'https://is1-ssl.mzstatic.com/600x600bb.jpg',
+            appleUrl: 'https://music.apple.com/kr/1',
+            spotifyUrl: 'https://open.spotify.com/track/1',
+            ...overrides,
+          },
+        ],
       },
-    });
+    },
+  });
 
-    // Without the mutation the same payload has to parse, or the refusal says
-    // nothing about the field under test.
-    expect(ChartFileSchema.safeParse(chartWith({})).success).toBe(true);
-    expect(
-      ChartFileSchema.safeParse(chartWith({ [field]: value })).success,
-    ).toBe(false);
-  },
-);
+  // Without the mutation the same payload has to parse, or the refusal says
+  // nothing about the field under test.
+  expect(ChartFileSchema.safeParse(chartWith({})).success).toBe(true);
+  expect(ChartFileSchema.safeParse(chartWith({ [field]: value })).success).toBe(false);
+});
 
 // A name or artist is untrusted feed text that later travels into a model
 // prompt, so ingestion bounds its size and refuses control characters. The
@@ -417,13 +408,9 @@ test.each([
     });
 
     expect(SongsTailFileSchema.safeParse(tailWith({})).success).toBe(true);
-    expect(
-      SongsTailFileSchema.safeParse(tailWith({ [field]: value })).success,
-    ).toBe(false);
+    expect(SongsTailFileSchema.safeParse(tailWith({ [field]: value })).success).toBe(false);
     expect(PlaylistFileSchema.safeParse(playlistWith({})).success).toBe(true);
-    expect(
-      PlaylistFileSchema.safeParse(playlistWith({ [field]: value })).success,
-    ).toBe(false);
+    expect(PlaylistFileSchema.safeParse(playlistWith({ [field]: value })).success).toBe(false);
   },
 );
 
@@ -468,9 +455,7 @@ test.each(['../../commentary/v1/commentary', 'pl.not-a-playlist-id', 'pl.'])(
     });
 
     expect(
-      PlaylistFileSchema.safeParse(
-        playlistWith('pl.d838905f50af4200a2ebbc614922dee9'),
-      ).success,
+      PlaylistFileSchema.safeParse(playlistWith('pl.d838905f50af4200a2ebbc614922dee9')).success,
     ).toBe(true);
     expect(PlaylistFileSchema.safeParse(playlistWith(id)).success).toBe(false);
   },

@@ -72,15 +72,11 @@ test('assertAllowedTarget refuses a host outside the expected one', () => {
 });
 
 test('assertAllowedTarget refuses an unparsable target', () => {
-  expect(() => assertAllowedTarget('not a url')).toThrowError(
-    RefusedTargetError,
-  );
+  expect(() => assertAllowedTarget('not a url')).toThrowError(RefusedTargetError);
 });
 
 test('assertAllowedTarget passes a public https target', () => {
-  expect(() =>
-    assertAllowedTarget('https://example.com/article'),
-  ).not.toThrow();
+  expect(() => assertAllowedTarget('https://example.com/article')).not.toThrow();
 });
 
 test('assertAllowedTarget passes the expected host when pinned', () => {
@@ -114,9 +110,9 @@ test('guardedFetch refuses the target before any request goes out', async () => 
     return new Response('');
   };
 
-  await expect(
-    guardedFetch('http://example.com/', { fetchImpl: recording }),
-  ).rejects.toThrowError(RefusedTargetError);
+  await expect(guardedFetch('http://example.com/', { fetchImpl: recording })).rejects.toThrowError(
+    RefusedTargetError,
+  );
   expect(called).toBe(false);
 });
 
@@ -129,17 +125,12 @@ test('guardedFetch returns the response of an allowed target', async () => {
 });
 
 test('guardedFetch rethrows a connect-time refusal out of a wrapped fetch failure', async () => {
-  const refusal = new RefusedTargetError(
-    'address',
-    'host resolves to forbidden address ::1',
-  );
+  const refusal = new RefusedTargetError('address', 'host resolves to forbidden address ::1');
   const failing: typeof fetch = async () => {
     throw new TypeError('fetch failed', { cause: refusal });
   };
 
-  await expect(
-    guardedFetch('https://example.com/', { fetchImpl: failing }),
-  ).rejects.toBe(refusal);
+  await expect(guardedFetch('https://example.com/', { fetchImpl: failing })).rejects.toBe(refusal);
 });
 
 test.each([

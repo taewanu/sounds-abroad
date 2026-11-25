@@ -1,11 +1,6 @@
 import { expect, test, vi } from 'vitest';
 
-import type {
-  ChartFile,
-  Country,
-  Playlist,
-  PlaylistFile,
-} from '../../src/lib/chart-schema';
+import type { ChartFile, Country, Playlist, PlaylistFile } from '../../src/lib/chart-schema';
 import type { CountryEntry } from '../../src/lib/countries';
 import { ApplePlaylistsError, type ApplePlaylist } from './apple-playlists';
 import type { AppleRssTrack } from './apple-rss';
@@ -78,11 +73,7 @@ function priorCountry(overrides: Partial<Country> = {}): Country {
 }
 
 test("publishes this run's playlists when every page parsed", () => {
-  const outcome = resolvePlaylistAxis(
-    'kr',
-    attempt(['pl.a', 'pl.b']),
-    undefined,
-  );
+  const outcome = resolvePlaylistAxis('kr', attempt(['pl.a', 'pl.b']), undefined);
 
   expect(outcome.playlists?.map((p) => p.id)).toEqual(['pl.a', 'pl.b']);
   expect(outcome.playlistsValid).toBe(true);
@@ -122,10 +113,7 @@ test('keeps a carried playlist in the position selection gave it', () => {
     priorCountry({ playlists: [stale], playlistsValid: true }),
   );
 
-  expect(outcome.playlists?.map((p) => p.id)).toEqual([
-    'pl.first',
-    'pl.second',
-  ]);
+  expect(outcome.playlists?.map((p) => p.id)).toEqual(['pl.first', 'pl.second']);
 });
 
 test('drops a failed playlist the previous payload never carried', () => {
@@ -245,8 +233,7 @@ function makeDeps(input: {
           if (!feed) throw new ApplePlaylistsError(cc, 'no feed');
           return feed;
         }),
-        fetchPlaylistPage:
-          input.fetchPlaylistPage ?? vi.fn(async () => scrapedTracks()),
+        fetchPlaylistPage: input.fetchPlaylistPage ?? vi.fn(async () => scrapedTracks()),
         uploadPlaylistFile: vi.fn(async (file: PlaylistFile) => {
           uploaded.push(file);
         }),
@@ -262,9 +249,7 @@ test('attaches playlist metadata to each country', async () => {
 
   const result = await crawlAll(deps);
 
-  expect(result.chartFile.countries.kr.playlists?.map((p) => p.id)).toEqual([
-    'pl.kr',
-  ]);
+  expect(result.chartFile.countries.kr.playlists?.map((p) => p.id)).toEqual(['pl.kr']);
   expect(result.chartFile.countries.kr.playlistsValid).toBe(true);
 });
 
@@ -286,9 +271,7 @@ test('drops a playlist every storefront carries', async () => {
 
   const result = await crawlAll(deps);
 
-  expect(result.chartFile.countries.kr.playlists?.map((p) => p.id)).toEqual([
-    'pl.kr',
-  ]);
+  expect(result.chartFile.countries.kr.playlists?.map((p) => p.id)).toEqual(['pl.kr']);
 });
 
 test("bakes each published playlist's storefront count", async () => {
@@ -347,8 +330,7 @@ test('publishes the song tails after the playlist crawl and before commentary an
 
   await crawlAll({ ...deps, fetchCommentary });
 
-  const pages = vi.mocked(deps.playlistAxis!.fetchPlaylistPage).mock
-    .invocationCallOrder;
+  const pages = vi.mocked(deps.playlistAxis!.fetchPlaylistPage).mock.invocationCallOrder;
   const tails = vi.mocked(deps.uploadSongsTail).mock.invocationCallOrder;
   const commentary = fetchCommentary.mock.invocationCallOrder;
   const payload = vi.mocked(deps.uploadCharts).mock.invocationCallOrder;
@@ -434,8 +416,7 @@ test('leaves the previous payload untouched when carrying one failed page', asyn
     // scores the playlist at 1, so sharing the object would overwrite the 9.
     feedsByCc: { kr: [applePlaylist(local)], ng: [applePlaylist('pl.ng')] },
     fetchPlaylistPage: vi.fn(async (playlistId: string) => {
-      if (playlistId === local)
-        throw new PlaylistPageError(playlistId, 'http', '503');
+      if (playlistId === local) throw new PlaylistPageError(playlistId, 'http', '503');
       return scrapedTracks();
     }),
     fetchPrevious: vi.fn(async () => previous),
@@ -540,10 +521,7 @@ test('counts a silently truncated batch as a shortfall', async () => {
       new Map(
         ids
           .slice(0, -1)
-          .map((id) => [
-            id,
-            { id, previewUrl: `https://preview/${cc}/${id}.m4a`, genre: null },
-          ]),
+          .map((id) => [id, { id, previewUrl: `https://preview/${cc}/${id}.m4a`, genre: null }]),
       ),
   );
 

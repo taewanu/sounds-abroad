@@ -79,10 +79,7 @@ test('groundEntry drops the card when every source is unreachable', async () => 
     judge: groundedJudge,
   };
 
-  const verdict = await groundEntry(
-    entry('what-it-is', ['https://example.com/1']),
-    deps,
-  );
+  const verdict = await groundEntry(entry('what-it-is', ['https://example.com/1']), deps);
 
   expect(verdict.grounded).toBe(false);
 });
@@ -95,10 +92,7 @@ test('groundEntry fails closed when a source fetch throws', async () => {
     judge: groundedJudge,
   };
 
-  const verdict = await groundEntry(
-    entry('what-it-is', ['https://example.com/1']),
-    deps,
-  );
+  const verdict = await groundEntry(entry('what-it-is', ['https://example.com/1']), deps);
 
   expect(verdict.grounded).toBe(false);
 });
@@ -111,10 +105,7 @@ test('groundEntry fails closed when the judge throws', async () => {
     },
   };
 
-  const verdict = await groundEntry(
-    entry('what-it-is', ['https://example.com/1']),
-    deps,
-  );
+  const verdict = await groundEntry(entry('what-it-is', ['https://example.com/1']), deps);
 
   expect(verdict.grounded).toBe(false);
 });
@@ -130,10 +121,7 @@ test('groundEntry fetches no source when any cited target is refused', async () 
   };
 
   const verdict = await groundEntry(
-    entry('what-it-is', [
-      'https://www.billboard.com/article',
-      'https://10.0.0.5/internal',
-    ]),
+    entry('what-it-is', ['https://www.billboard.com/article', 'https://10.0.0.5/internal']),
     deps,
   );
 
@@ -157,10 +145,7 @@ test('groundEntry drops the card when a cited host is refused at connect time', 
   };
 
   const verdict = await groundEntry(
-    entry('what-it-is', [
-      'https://www.billboard.com/article',
-      'https://rebinding.test/page',
-    ]),
+    entry('what-it-is', ['https://www.billboard.com/article', 'https://rebinding.test/page']),
     deps,
   );
 

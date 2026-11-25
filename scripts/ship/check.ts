@@ -37,9 +37,10 @@ const CACHE_LIFETIME_WORDS =
   /cacheLife|revalidate|max-age|s-maxage|stale-while-revalidate|Cache-Control|CACHE_MAX_AGE|CHART_LIFETIME/;
 
 function changedFiles(diff: string): string[] {
-  return [...diff.matchAll(/^diff --git a\/(\S+) b\/(\S+)$/gm)].flatMap(
-    ([, from, to]) => [from, to],
-  );
+  return [...diff.matchAll(/^diff --git a\/(\S+) b\/(\S+)$/gm)].flatMap(([, from, to]) => [
+    from,
+    to,
+  ]);
 }
 
 function changedLines(diff: string): string[] {
@@ -86,9 +87,7 @@ export function shipCheck(pr: PullRequest): ShipCheck {
   }
   if (tier === 'high') return park('a human merges this tier');
   if (tier === 'medium' && pr.coderabbitConclusion !== 'success') {
-    return park(
-      `CodeRabbit on the latest commit: ${pr.coderabbitConclusion ?? 'no check'}`,
-    );
+    return park(`CodeRabbit on the latest commit: ${pr.coderabbitConclusion ?? 'no check'}`);
   }
   return { verdict: 'merge-ok', tier, reason: 'all checks passed' };
 }

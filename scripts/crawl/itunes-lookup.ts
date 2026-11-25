@@ -68,10 +68,7 @@ function lookupUrl(ids: readonly string[], cc: string): string {
 }
 
 /** Splits ids into request-sized batches, preserving order. */
-export function batchIds(
-  ids: readonly string[],
-  size: number = LOOKUP_BATCH_MAX,
-): string[][] {
+export function batchIds(ids: readonly string[], size: number = LOOKUP_BATCH_MAX): string[][] {
   const batches: string[][] = [];
   for (let i = 0; i < ids.length; i += size) {
     batches.push(ids.slice(i, i + size));

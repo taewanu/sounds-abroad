@@ -10,13 +10,7 @@ import { globeChartStore, useGlobeChart } from '@/lib/globe-chart-store';
 
 // Group the grid by continent, west-to-east so it mirrors the globe's eastward
 // spin; alphabetical within each region.
-const REGION_ORDER = [
-  'Americas',
-  'Europe',
-  'Africa',
-  'Asia',
-  'Oceania',
-] as const;
+const REGION_ORDER = ['Americas', 'Europe', 'Africa', 'Asia', 'Oceania'] as const;
 
 const COUNTRIES_BY_REGION = REGION_ORDER.map((region) => ({
   region,
@@ -30,10 +24,7 @@ const COUNTRIES_BY_REGION = REGION_ORDER.map((region) => ({
 // without flag glyphs (e.g. Windows).
 function flagEmoji(code: string): string {
   const offset = 0x1f1e6 - 'a'.charCodeAt(0);
-  return String.fromCodePoint(
-    code.charCodeAt(0) + offset,
-    code.charCodeAt(1) + offset,
-  );
+  return String.fromCodePoint(code.charCodeAt(0) + offset, code.charCodeAt(1) + offset);
 }
 
 // A keyboard- and screen-reader-first way to pick a country, equal to the globe
@@ -106,8 +97,7 @@ export function CountrySelector() {
         inert={readMode}
         data-testid="country-toggle-region"
         style={{
-          transform:
-            'translateY(calc(var(--sheet-cover, 0) * var(--badge-recede-rise, -64px)))',
+          transform: 'translateY(calc(var(--sheet-cover, 0) * var(--badge-recede-rise, -64px)))',
           opacity: 'calc(1 - var(--sheet-cover, 0))',
         }}
         className={`fixed top-[max(env(safe-area-inset-top),16px)] left-4 z-40 ${
@@ -121,18 +111,14 @@ export function CountrySelector() {
           aria-expanded={listOpen}
           aria-controls={navId}
           aria-label={
-            current
-              ? `Choose a country, currently showing ${current.name}`
-              : 'Choose a country'
+            current ? `Choose a country, currently showing ${current.name}` : 'Choose a country'
           }
           className="flex max-w-[60vw] items-center gap-2 rounded-full border border-aurora/70 bg-void/85 px-3.5 py-2.5 text-small font-medium text-fg-1 backdrop-blur-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora"
         >
           <span aria-hidden="true" className="text-base leading-none">
             {current ? flagEmoji(current.code) : '🌐'}
           </span>
-          <span className="min-w-0 truncate">
-            {current ? current.name : 'Countries'}
-          </span>
+          <span className="min-w-0 truncate">{current ? current.name : 'Countries'}</span>
           <span
             aria-hidden="true"
             className={`text-fg-3 transition-transform duration-200 ${
@@ -164,12 +150,7 @@ export function CountrySelector() {
           </div>
           <div className="overflow-y-auto p-2.5">
             {COUNTRIES_BY_REGION.map(({ region, countries }) => (
-              <div
-                key={region}
-                role="group"
-                aria-label={region}
-                className="mt-3 first:mt-0"
-              >
+              <div key={region} role="group" aria-label={region} className="mt-3 first:mt-0">
                 <p
                   aria-hidden="true"
                   className="px-1 pb-1.5 text-[10px] font-medium tracking-wider text-aurora uppercase"
@@ -182,15 +163,10 @@ export function CountrySelector() {
                       <button
                         type="button"
                         onClick={() => handleSelect(c.code, c.name)}
-                        aria-current={
-                          c.code === currentCode ? 'true' : undefined
-                        }
+                        aria-current={c.code === currentCode ? 'true' : undefined}
                         className="inline-flex items-center gap-1.5 rounded-full border border-fg-1/15 bg-dusk px-2.5 py-1.5 text-[11px] text-fg-2 transition-colors hover:border-fg-3 hover:text-fg-1 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-aurora aria-[current=true]:border-aurora aria-[current=true]:bg-aurora/10 aria-[current=true]:text-fg-1"
                       >
-                        <span
-                          aria-hidden="true"
-                          className="text-sm leading-none"
-                        >
+                        <span aria-hidden="true" className="text-sm leading-none">
                           {flagEmoji(c.code)}
                         </span>
                         <span className="whitespace-nowrap">{c.name}</span>

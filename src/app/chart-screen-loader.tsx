@@ -4,11 +4,7 @@ import * as Sentry from '@sentry/nextjs';
 import { use, useSyncExternalStore } from 'react';
 
 import type { ChartFile } from '@/lib/chart-schema';
-import {
-  CHARTS_READ_TIMEOUT_MS,
-  CHARTS_ROUTE,
-  EARLY_CHARTS_READ,
-} from '@/lib/charts-client';
+import { CHARTS_READ_TIMEOUT_MS, CHARTS_ROUTE, EARLY_CHARTS_READ } from '@/lib/charts-client';
 import { startChartsRead } from '@/lib/start-charts-read';
 
 import { ChartScreen } from './chart-screen';

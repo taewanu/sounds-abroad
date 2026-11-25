@@ -1,9 +1,6 @@
 import type { Track } from './chart-schema';
 
-export type GemTier =
-  | 'entirely their own'
-  | 'a local favorite'
-  | 'their most local pick today';
+export type GemTier = 'entirely their own' | 'a local favorite' | 'their most local pick today';
 
 export interface GemSelection {
   gem: Track;
@@ -52,17 +49,14 @@ export function selectGem(tracks: Track[]): GemSelection | null {
 }
 
 function bestRanked(tracks: Track[]): Track {
-  return tracks.reduce((best, track) =>
-    track.rank < best.rank ? track : best,
-  );
+  return tracks.reduce((best, track) => (track.rank < best.rank ? track : best));
 }
 
 function lowestSpread(tracks: Track[]): Track {
   return tracks.reduce((lowest, track) => {
     const trackSpread = track.spread ?? Infinity;
     const lowestSpread = lowest.spread ?? Infinity;
-    if (trackSpread !== lowestSpread)
-      return trackSpread < lowestSpread ? track : lowest;
+    if (trackSpread !== lowestSpread) return trackSpread < lowestSpread ? track : lowest;
     return track.rank < lowest.rank ? track : lowest;
   });
 }

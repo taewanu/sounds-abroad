@@ -59,11 +59,8 @@ if (typeof window !== 'undefined') {
   });
 
   Sentry.setContext('browser_features', {
-    colorScheme: window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : 'light',
-    reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)')
-      .matches,
+    colorScheme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+    reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     touch: 'ontouchstart' in window,
     online: navigator.onLine,
   });
@@ -74,8 +71,7 @@ if (typeof window !== 'undefined') {
     downlink?: number;
     saveData?: boolean;
   }
-  const conn = (navigator as Navigator & { connection?: NetworkInformation })
-    .connection;
+  const conn = (navigator as Navigator & { connection?: NetworkInformation }).connection;
   if (conn) {
     Sentry.setContext('network', {
       effectiveType: conn.effectiveType,

@@ -44,14 +44,7 @@ function Harness({ enabled }: { enabled: boolean }) {
     enabled,
     text: 'title',
   });
-  return (
-    <span
-      data-testid="viewport"
-      ref={ref}
-      data-active={active || undefined}
-      style={style}
-    />
-  );
+  return <span data-testid="viewport" ref={ref} data-active={active || undefined} style={style} />;
 }
 
 function measureWith(scrollWidth: number, clientWidth: number, enabled = true) {

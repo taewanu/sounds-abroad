@@ -42,8 +42,7 @@ export function ShuffleButton() {
       <div
         inert={readMode}
         style={{
-          transform:
-            'translateY(calc(var(--sheet-cover, 0) * var(--badge-recede-rise, -64px)))',
+          transform: 'translateY(calc(var(--sheet-cover, 0) * var(--badge-recede-rise, -64px)))',
           opacity: 'calc(1 - var(--sheet-cover, 0))',
         }}
         className={`fixed top-[max(env(safe-area-inset-top),16px)] right-4 z-40 ${

@@ -13,19 +13,12 @@ export interface ModeEmptyProps {
  * chart that failed to load rather than as the answer it is, and a country with
  * playlists is sent to one rather than left at a dead end.
  */
-export function ModeEmpty({
-  countryName,
-  playlist,
-  onOpenPlaylist,
-}: ModeEmptyProps) {
+export function ModeEmpty({ countryName, playlist, onOpenPlaylist }: ModeEmptyProps) {
   return (
     <li className="px-2 py-10 text-center">
-      <p className="text-body font-semibold text-fg-1">
-        Nothing is only here today
-      </p>
+      <p className="text-body font-semibold text-fg-1">Nothing is only here today</p>
       <p className="mx-auto mt-2 max-w-[36ch] text-small text-fg-3">
-        Every song on {countryName}&rsquo;s chart is charting somewhere else
-        too.
+        Every song on {countryName}&rsquo;s chart is charting somewhere else too.
         {playlist === null ? '' : ' Its playlists are still its own.'}
       </p>
       {playlist === null ? null : (

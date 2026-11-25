@@ -76,10 +76,7 @@ export function useRowTransitions(
       }));
       setDisplay([...arriving, ...leaving].sort(byRank));
       clearDrop();
-      dropTimer.current = setTimeout(
-        () => setDisplay(stable(rows)),
-        ROW_COLLAPSE_MS,
-      );
+      dropTimer.current = setTimeout(() => setDisplay(stable(rows)), ROW_COLLAPSE_MS);
     }
 
     prevMountKey.current = mountKey;

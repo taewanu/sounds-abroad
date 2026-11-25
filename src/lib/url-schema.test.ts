@@ -61,12 +61,8 @@ test.each(PINNED)(
 );
 
 test('an any-host URL is accepted over TLS and refused in plaintext', () => {
-  expect(CitationUrlSchema.safeParse('https://example.com/a').success).toBe(
-    true,
-  );
-  expect(CitationUrlSchema.safeParse('http://example.com/a').success).toBe(
-    false,
-  );
+  expect(CitationUrlSchema.safeParse('https://example.com/a').success).toBe(true);
+  expect(CitationUrlSchema.safeParse('http://example.com/a').success).toBe(false);
 });
 
 test.each(PINNED)(
@@ -124,17 +120,13 @@ test('a citation accepts any host, because which sources are citable is decided 
 // placeholders sit in the final path segment, so the host stays checkable, and
 // one schema covers both forms.
 test('artwork accepts a URL whose dimensions are still placeholders', () => {
-  const template =
-    'https://is1-ssl.mzstatic.com/image/thumb/Features/v4/a/b/c.png/{w}x{h}bb.{f}';
+  const template = 'https://is1-ssl.mzstatic.com/image/thumb/Features/v4/a/b/c.png/{w}x{h}bb.{f}';
 
   expect(AppleArtworkUrlSchema.safeParse(template).success).toBe(true);
 });
 
 test('artwork refuses a placeholder-bearing URL on an unexpected host', () => {
-  expect(
-    AppleArtworkUrlSchema.safeParse('https://example.com/{w}x{h}bb.{f}')
-      .success,
-  ).toBe(false);
+  expect(AppleArtworkUrlSchema.safeParse('https://example.com/{w}x{h}bb.{f}').success).toBe(false);
 });
 
 const PUBLISHED_ID = 'pl.d838905f50af4200a2ebbc614922dee9';

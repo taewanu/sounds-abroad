@@ -5,25 +5,19 @@ import { findTierSignals, lintTierConsistency } from './tier-consistency-lint';
 test('findTierSignals flags causal language', () => {
   const text = 'It charted because of a sync placement.';
 
-  expect(findTierSignals(text).some((v) => v.rule === 'causal-language')).toBe(
-    true,
-  );
+  expect(findTierSignals(text).some((v) => v.rule === 'causal-language')).toBe(true);
 });
 
 test('findTierSignals flags a multi-word causal marker', () => {
   const text = 'Its rise came thanks to a late-night performance.';
 
-  expect(findTierSignals(text).some((v) => v.rule === 'causal-language')).toBe(
-    true,
-  );
+  expect(findTierSignals(text).some((v) => v.rule === 'causal-language')).toBe(true);
 });
 
 test('findTierSignals flags temporal/virality language', () => {
   const text = 'The track surged across short-form video this week.';
 
-  expect(
-    findTierSignals(text).some((v) => v.rule === 'temporal-language'),
-  ).toBe(true);
+  expect(findTierSignals(text).some((v) => v.rule === 'temporal-language')).toBe(true);
 });
 
 test('findTierSignals does not match a marker inside another word', () => {
@@ -59,9 +53,7 @@ test("findTierSignals leaves a descriptive 'debut album' alone", () => {
 test("findTierSignals flags a charting 'debuted at'", () => {
   const text = 'It debuted at number one on the singles chart.';
 
-  expect(
-    findTierSignals(text).some((v) => v.rule === 'temporal-language'),
-  ).toBe(true);
+  expect(findTierSignals(text).some((v) => v.rule === 'temporal-language')).toBe(true);
 });
 
 test('lintTierConsistency flags a what-it-is entry carrying causal language', () => {
@@ -74,9 +66,7 @@ test('lintTierConsistency flags a what-it-is entry carrying causal language', ()
     generatedAt: '2026-05-16T00:00:00.000Z',
   };
 
-  expect(
-    lintTierConsistency(entry).some((v) => v.rule === 'causal-language'),
-  ).toBe(true);
+  expect(lintTierConsistency(entry).some((v) => v.rule === 'causal-language')).toBe(true);
 });
 
 test('lintTierConsistency flags a what-it-is entry carrying temporal language', () => {
@@ -89,9 +79,7 @@ test('lintTierConsistency flags a what-it-is entry carrying temporal language', 
     generatedAt: '2026-05-16T00:00:00.000Z',
   };
 
-  expect(
-    lintTierConsistency(entry).some((v) => v.rule === 'temporal-language'),
-  ).toBe(true);
+  expect(lintTierConsistency(entry).some((v) => v.rule === 'temporal-language')).toBe(true);
 });
 
 test('lintTierConsistency passes a clean what-it-is entry', () => {

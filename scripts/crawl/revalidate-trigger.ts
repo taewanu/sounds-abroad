@@ -48,10 +48,7 @@ export async function triggerRevalidate(
         signal: AbortSignal.timeout(15_000),
       });
       if (!res.ok) {
-        throw new RevalidateError(
-          res.status,
-          `revalidate failed: ${res.status} ${res.statusText}`,
-        );
+        throw new RevalidateError(res.status, `revalidate failed: ${res.status} ${res.statusText}`);
       }
     },
     { retries: 2, backoffMs: 5_000, sleep, shouldRetry: isTransient },

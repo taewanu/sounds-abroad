@@ -10,10 +10,7 @@ import { PlaylistIdSchema } from '@/lib/url-schema';
 import { readPlaylist } from './route';
 
 vi.mock('@/lib/chart-parts', async () => {
-  const actual =
-    await vi.importActual<typeof import('@/lib/chart-parts')>(
-      '@/lib/chart-parts',
-    );
+  const actual = await vi.importActual<typeof import('@/lib/chart-parts')>('@/lib/chart-parts');
   return { ...actual, fetchPlaylistFile: vi.fn() };
 });
 
@@ -65,9 +62,7 @@ test('returns the track list for a playlist that resolves', async () => {
 });
 
 test('passes an upstream not-found through as a not-found', async () => {
-  fetchPlaylistFileMock.mockRejectedValue(
-    new ChartPartFetchError(PLAYLIST_ID, 404, 'missing'),
-  );
+  fetchPlaylistFileMock.mockRejectedValue(new ChartPartFetchError(PLAYLIST_ID, 404, 'missing'));
 
   const res = await readPlaylist(makeReq(), params(PLAYLIST_ID));
 
@@ -136,7 +131,5 @@ test('fails loudly when the charts location is not configured', async () => {
 test('lets an unrecognized failure through rather than reporting it as upstream', async () => {
   fetchPlaylistFileMock.mockRejectedValue(new Error('something else'));
 
-  await expect(readPlaylist(makeReq(), params(PLAYLIST_ID))).rejects.toThrow(
-    'something else',
-  );
+  await expect(readPlaylist(makeReq(), params(PLAYLIST_ID))).rejects.toThrow('something else');
 });

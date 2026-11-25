@@ -8,9 +8,7 @@ import { computeWorklist } from './worklist';
 
 const chartsUrl = process.env.CHARTS_BLOB_URL;
 if (!chartsUrl) {
-  throw new Error(
-    'CHARTS_BLOB_URL missing. Set it to the published charts.json URL.',
-  );
+  throw new Error('CHARTS_BLOB_URL missing. Set it to the published charts.json URL.');
 }
 
 const current = await fetchPublishedCharts(chartsUrl);
@@ -24,15 +22,11 @@ if (!current) {
 const previous = await loadPreviousCharts(process.env.CHARTS_PREV_BLOB_URL);
 
 const commentaryUrl = process.env.COMMENTARY_BLOB_URL;
-const commentary = commentaryUrl
-  ? ((await fetchCommentaryStore(commentaryUrl)) ?? {})
-  : {};
+const commentary = commentaryUrl ? ((await fetchCommentaryStore(commentaryUrl)) ?? {}) : {};
 
 // Drop thin-market low-confidence positions instead of just down-ranking them,
 // so a focused pass writes only solid stories. See --json for the full list.
-const suppressLowConfidence = process.argv.includes(
-  '--suppress-low-confidence',
-);
+const suppressLowConfidence = process.argv.includes('--suppress-low-confidence');
 
 const worklist = computeWorklist({
   current,

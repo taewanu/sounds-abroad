@@ -19,13 +19,7 @@ function extractCron(relPath: string, pattern: RegExp): string {
 }
 
 test(`cron schedule in ${workflowPath} matches ${cronTsPath}`, () => {
-  const workflowCron = extractCron(
-    workflowPath,
-    /^\s*-\s*cron:\s*["']([^"']+)["']/m,
-  );
-  const tsCron = extractCron(
-    cronTsPath,
-    /^\s*schedule:\s*\{[\s\S]*?\bvalue:\s*["']([^"']+)["']/m,
-  );
+  const workflowCron = extractCron(workflowPath, /^\s*-\s*cron:\s*["']([^"']+)["']/m);
+  const tsCron = extractCron(cronTsPath, /^\s*schedule:\s*\{[\s\S]*?\bvalue:\s*["']([^"']+)["']/m);
   expect(workflowCron).toBe(tsCron);
 });

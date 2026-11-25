@@ -27,9 +27,7 @@ test('returns the snapshot and reports movement triggers live', async () => {
 
   expect(result).toBe(previous);
   expect(fetchCharts).toHaveBeenCalledWith(PREV_URL);
-  expect(warn).toHaveBeenCalledWith(
-    expect.stringContaining('movement triggers live'),
-  );
+  expect(warn).toHaveBeenCalledWith(expect.stringContaining('movement triggers live'));
 });
 
 test('returns null and reports inert triggers when the URL is not set', async () => {
@@ -40,9 +38,7 @@ test('returns null and reports inert triggers when the URL is not set', async ()
 
   expect(result).toBeNull();
   expect(fetchCharts).not.toHaveBeenCalled();
-  expect(warn).toHaveBeenCalledWith(
-    expect.stringContaining('movement triggers inert'),
-  );
+  expect(warn).toHaveBeenCalledWith(expect.stringContaining('movement triggers inert'));
 });
 
 test('returns null and reports inert triggers when the snapshot is unreadable', async () => {
@@ -52,7 +48,5 @@ test('returns null and reports inert triggers when the snapshot is unreadable', 
   const result = await loadPreviousCharts(PREV_URL, fetchCharts);
 
   expect(result).toBeNull();
-  expect(warn).toHaveBeenCalledWith(
-    expect.stringContaining('movement triggers inert'),
-  );
+  expect(warn).toHaveBeenCalledWith(expect.stringContaining('movement triggers inert'));
 });

@@ -1,13 +1,6 @@
 'use client';
 
-import {
-  startTransition,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from 'react';
+import { startTransition, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { track as trackEvent } from '@/lib/analytics';
 import { SONGS_CHART, isPlaylistRef, type ChartRef } from '@/lib/chart-ref';
@@ -163,9 +156,7 @@ export function useChartTracks(
   // would put a chart this country does not carry on screen.
   const isStale = useCallback(
     (token: number, askedIn: string) =>
-      !mounted.current ||
-      token !== latestRequest.current ||
-      askedIn !== shownCountryRef.current,
+      !mounted.current || token !== latestRequest.current || askedIn !== shownCountryRef.current,
     [],
   );
 
@@ -276,9 +267,7 @@ export function useChartTracks(
       // answered the country they are looking at, and both carry the same rows.
       // Non-urgent, so a spin in flight keeps its frames (ADR-0011). Pending
       // clears in the same commit, so no frame shows a country as read and empty.
-      const settled = Object.fromEntries(
-        Object.keys(landed).map((code) => [code, false]),
-      );
+      const settled = Object.fromEntries(Object.keys(landed).map((code) => [code, false]));
       startTransition(() => {
         setTails((read) => ({ ...landed, ...read }));
         setTailReading((reading) => ({ ...reading, ...settled }));
@@ -294,10 +283,7 @@ export function useChartTracks(
   // own ask for a country already in flight still shows it waiting. Each read
   // lands through `land` while the screen is still mounted.
   const askTails = useCallback(
-    (
-      codes: readonly string[],
-      land: (code: string, rows: ChartTrack[]) => void,
-    ) => {
+    (codes: readonly string[], land: (code: string, rows: ChartTrack[]) => void) => {
       const fresh = codes.filter((code) => !tailReads.current.has(code));
       if (fresh.length === 0) return;
       setTailReading((reading) => ({

@@ -3,12 +3,7 @@ import { expect, test } from 'vitest';
 import { CHARTS } from './__fixtures__';
 import { emptyCountry } from './chart-schema';
 import { COUNTRIES } from './countries';
-import {
-  addVisited,
-  codesWithTracks,
-  pickShuffleCountry,
-  weightedDraw,
-} from './fairness-draw';
+import { addVisited, codesWithTracks, pickShuffleCountry, weightedDraw } from './fairness-draw';
 
 const EVERY_CODE = COUNTRIES.map((c) => c.code);
 
@@ -36,9 +31,7 @@ test('pickShuffleCountry never returns an excluded country', () => {
 
   // Sweep the whole draw range: none of it may land on an excluded country.
   for (let r = 0; r < 1; r += 0.02) {
-    expect(
-      pickShuffleCountry(new Set(), [excluded], EVERY_CODE, () => r),
-    ).not.toBe(excluded);
+    expect(pickShuffleCountry(new Set(), [excluded], EVERY_CODE, () => r)).not.toBe(excluded);
   }
 });
 
@@ -46,9 +39,7 @@ test('pickShuffleCountry excludes every listed code, not only the first', () => 
   const excluded = COUNTRIES.slice(0, 3).map((c) => c.code);
 
   for (let r = 0; r < 1; r += 0.02) {
-    expect(excluded).not.toContain(
-      pickShuffleCountry(new Set(), excluded, EVERY_CODE, () => r),
-    );
+    expect(excluded).not.toContain(pickShuffleCountry(new Set(), excluded, EVERY_CODE, () => r));
   }
 });
 
@@ -59,15 +50,11 @@ test('pickShuffleCountry draws from the whole globe, not a rest-direction cluste
   const excluded = COUNTRIES[1].code;
   const firstOther = COUNTRIES.find((c) => c.code !== excluded)!.code;
 
-  expect(pickShuffleCountry(new Set(), [excluded], EVERY_CODE, () => 0)).toBe(
-    firstOther,
-  );
+  expect(pickShuffleCountry(new Set(), [excluded], EVERY_CODE, () => 0)).toBe(firstOther);
 });
 
 test('pickShuffleCountry allows any country when nothing is excluded', () => {
-  expect(pickShuffleCountry(new Set(), [], EVERY_CODE, () => 0)).toBe(
-    COUNTRIES[0].code,
-  );
+  expect(pickShuffleCountry(new Set(), [], EVERY_CODE, () => 0)).toBe(COUNTRIES[0].code);
 });
 
 test('pickShuffleCountry favours an unvisited country over any single visited one', () => {
@@ -77,9 +64,7 @@ test('pickShuffleCountry favours an unvisited country over any single visited on
   const excluded = COUNTRIES[0].code;
   const unseen = COUNTRIES[COUNTRIES.length - 1].code;
   const visited = new Set(
-    COUNTRIES.filter((c) => c.code !== excluded && c.code !== unseen).map(
-      (c) => c.code,
-    ),
+    COUNTRIES.filter((c) => c.code !== excluded && c.code !== unseen).map((c) => c.code),
   );
 
   const counts = new Map<string, number>();
@@ -90,9 +75,7 @@ test('pickShuffleCountry favours an unvisited country over any single visited on
 
   const unseenCount = counts.get(unseen) ?? 0;
   const maxVisited = Math.max(
-    ...[...counts]
-      .filter(([code]) => code !== unseen)
-      .map(([, count]) => count),
+    ...[...counts].filter(([code]) => code !== unseen).map(([, count]) => count),
   );
   expect(counts.has(excluded)).toBe(false);
   expect(unseenCount).toBeGreaterThan(maxVisited);
@@ -103,9 +86,7 @@ test('pickShuffleCountry never draws a country outside the drawable set', () => 
   const drawable = EVERY_CODE.slice(3);
 
   for (let r = 0; r < 1; r += 0.001) {
-    expect(withoutTracks).not.toContain(
-      pickShuffleCountry(new Set(), [], drawable, () => r),
-    );
+    expect(withoutTracks).not.toContain(pickShuffleCountry(new Set(), [], drawable, () => r));
   }
 });
 
@@ -158,9 +139,7 @@ test('pickShuffleCountry draws from every listed country when the only drawable 
   const only = EVERY_CODE[0];
 
   for (let r = 0; r < 1; r += 0.02) {
-    expect(EVERY_CODE.slice(1)).toContain(
-      pickShuffleCountry(new Set(), [only], [only], () => r),
-    );
+    expect(EVERY_CODE.slice(1)).toContain(pickShuffleCountry(new Set(), [only], [only], () => r));
   }
 });
 

@@ -1,10 +1,5 @@
 import { useEffect, useRef } from 'react';
-import {
-  CanvasTexture,
-  type MeshBasicMaterial,
-  RepeatWrapping,
-  SRGBColorSpace,
-} from 'three';
+import { CanvasTexture, type MeshBasicMaterial, RepeatWrapping, SRGBColorSpace } from 'three';
 
 import type { CountryRings } from '@/lib/country-outlines';
 

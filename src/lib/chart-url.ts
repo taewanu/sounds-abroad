@@ -48,9 +48,7 @@ export function countryCodeFromPath(pathname: string): string | null {
  */
 export function chartFromUrl(raw: string | null, country: Country): ChartRef {
   if (raw === null) return SONGS_CHART;
-  return country.playlists?.some((playlist) => playlist.id === raw)
-    ? raw
-    : SONGS_CHART;
+  return country.playlists?.some((playlist) => playlist.id === raw) ? raw : SONGS_CHART;
 }
 
 /**
@@ -60,7 +58,5 @@ export function chartFromUrl(raw: string | null, country: Country): ChartRef {
  */
 export function modeFromUrl(raw: string | null): ChartMode {
   if (raw === null) return DEFAULT_CHART_MODE;
-  return CHART_MODES.includes(raw as ChartMode)
-    ? (raw as ChartMode)
-    : DEFAULT_CHART_MODE;
+  return CHART_MODES.includes(raw as ChartMode) ? (raw as ChartMode) : DEFAULT_CHART_MODE;
 }

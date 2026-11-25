@@ -16,8 +16,5 @@ export function pickLandingCountry(
   rng: () => number = Math.random,
 ): string {
   const withTracks = codesWithTracks(countries);
-  return randomCountryCode(
-    withTracks.length > 0 ? withTracks : Object.keys(countries),
-    rng,
-  );
+  return randomCountryCode(withTracks.length > 0 ? withTracks : Object.keys(countries), rng);
 }

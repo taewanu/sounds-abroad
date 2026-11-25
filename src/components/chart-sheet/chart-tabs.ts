@@ -29,17 +29,11 @@ const KEY_STEP: Record<string, number | 'first' | 'last' | undefined> = {
  * Focus alone does not open a chart: opening one costs a read, so arrowing
  * across the rail under automatic activation would fire a request per keystroke.
  */
-export function focusAlongTabs(
-  rail: HTMLElement,
-  key: string,
-  focused: Element | null,
-): boolean {
+export function focusAlongTabs(rail: HTMLElement, key: string, focused: Element | null): boolean {
   const step = KEY_STEP[key];
   if (step === undefined) return false;
 
-  const tabs = [
-    ...rail.querySelectorAll<HTMLButtonElement>("[role='tab']:not([disabled])"),
-  ];
+  const tabs = [...rail.querySelectorAll<HTMLButtonElement>("[role='tab']:not([disabled])")];
   if (tabs.length === 0) return false;
 
   const from = tabs.indexOf(focused as HTMLButtonElement);

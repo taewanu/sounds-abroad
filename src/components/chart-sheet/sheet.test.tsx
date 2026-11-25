@@ -10,10 +10,7 @@ import { createAudioStore } from '@/lib/audio-store';
 import { SONGS_CHART } from '@/lib/chart-ref';
 import type { Country } from '@/lib/chart-schema';
 import { selectGem } from '@/lib/select-gem';
-import {
-  AudioStoreContext,
-  AudioStoreProvider,
-} from '@/providers/audio-store-provider';
+import { AudioStoreContext, AudioStoreProvider } from '@/providers/audio-store-provider';
 
 import { ChartSheet, type SnapState } from './sheet';
 import type { ChartTracksState } from './use-chart-tracks';
@@ -163,10 +160,7 @@ function renderAtPeek(country: Country, currentTrackRank: number) {
 // `alongside` renders next to the sheet, for overlays that stack above it.
 function renderSheet(
   snap: SnapState,
-  {
-    country = COUNTRY_KR,
-    alongside,
-  }: { country?: Country; alongside?: ReactNode } = {},
+  { country = COUNTRY_KR, alongside }: { country?: Country; alongside?: ReactNode } = {},
 ) {
   const onSnapChange = vi.fn();
   const store = createAudioStore(() => makeMockAudio());
@@ -249,9 +243,7 @@ describe('ChartSheet', () => {
     const sheet = screen.getByTestId('chart-sheet');
     const labelId = sheet.getAttribute('aria-labelledby');
     expect(labelId).toBeTruthy();
-    expect(document.getElementById(labelId as string)?.textContent).toBe(
-      COUNTRY_KR.name,
-    );
+    expect(document.getElementById(labelId as string)?.textContent).toBe(COUNTRY_KR.name);
   });
 
   // The sheet must not autofocus its own controls on mount, and Tab off the
@@ -310,9 +302,7 @@ describe('ChartSheet', () => {
 
     fireEvent.keyDown(row, { key: 'Escape' });
 
-    expect(document.activeElement).toBe(
-      screen.getByRole('button', { name: /collapse chart/i }),
-    );
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: /collapse chart/i }));
   });
 
   test('Escape leaves focus outside the sheet where it is', () => {
@@ -344,12 +334,8 @@ describe('ChartSheet', () => {
 
     function reachableControls() {
       const sheet = screen.getByTestId('chart-sheet');
-      return [
-        ...sheet.querySelectorAll<HTMLElement>('button, a[href], [tabindex]'),
-      ].filter(
-        (el) =>
-          el.getAttribute('tabindex') !== '-1' &&
-          el.closest('[inert]') === null,
+      return [...sheet.querySelectorAll<HTMLElement>('button, a[href], [tabindex]')].filter(
+        (el) => el.getAttribute('tabindex') !== '-1' && el.closest('[inert]') === null,
       );
     }
 
@@ -379,13 +365,10 @@ describe('ChartSheet', () => {
       );
     }
 
-    const isRail = (block: Element) =>
-      block.querySelector("[role='tablist']") !== null;
+    const isRail = (block: Element) => block.querySelector("[role='tablist']") !== null;
 
     function modeButtons() {
-      return within(
-        screen.getByRole('group', { name: /chart mode/i }),
-      ).getAllByRole('button');
+      return within(screen.getByRole('group', { name: /chart mode/i })).getAllByRole('button');
     }
 
     test('at closed, blocks measured below the screen leave the tab order while the grip stays', () => {
@@ -394,9 +377,7 @@ describe('ChartSheet', () => {
       renderSheet('closed', { country: WITH_RAIL });
 
       const reachable = reachableControls();
-      expect(reachable).toEqual([
-        screen.getByRole('button', { name: /expand chart/i }),
-      ]);
+      expect(reachable).toEqual([screen.getByRole('button', { name: /expand chart/i })]);
     });
 
     test('at closed, an on-screen rail stays reachable while the list stays out of reach', () => {
@@ -426,13 +407,9 @@ describe('ChartSheet', () => {
       renderSheet('closed', { country: WITH_RAIL });
 
       const reachable = reachableControls();
-      expect(reachable).toContain(
-        screen.getByRole('button', { name: /expand chart/i }),
-      );
+      expect(reachable).toContain(screen.getByRole('button', { name: /expand chart/i }));
       expect(reachable).toContain(screen.getAllByRole('tab')[0]);
-      expect(reachable.filter((el) => el.closest("[role='tabpanel']"))).toEqual(
-        [],
-      );
+      expect(reachable.filter((el) => el.closest("[role='tabpanel']"))).toEqual([]);
     });
 
     test('at hidden, nothing in the sheet is reachable even where measured on screen', () => {
@@ -556,12 +533,8 @@ describe('ChartSheet', () => {
 
     setSnap('full');
 
-    expect(screen.getByTestId('chart-sheet').style.transition).toContain(
-      'transform',
-    );
-    expect(document.documentElement.style.transition).toContain(
-      '--sheet-cover',
-    );
+    expect(screen.getByTestId('chart-sheet').style.transition).toContain('transform');
+    expect(document.documentElement.style.transition).toContain('--sheet-cover');
   });
 
   test('under reduced motion a snap change moves the sheet and badge without travel', () => {
@@ -1378,9 +1351,7 @@ describe('ChartSheet commentary focus', () => {
   // The focus-mode teasers carry data-commentary-teaser; the gem card's accordion
   // does not, so this selects a ranked row's commentary teaser.
   function firstTeaser(container: HTMLElement) {
-    return container.querySelector<HTMLButtonElement>(
-      '[data-commentary-teaser]',
-    );
+    return container.querySelector<HTMLButtonElement>('[data-commentary-teaser]');
   }
 
   test('opening a teaser focuses its card and dims the other rows', () => {
@@ -1391,9 +1362,7 @@ describe('ChartSheet commentary focus', () => {
     fireEvent.click(teaser!);
 
     expect(container.querySelector('[data-commentary-card]')).not.toBeNull();
-    expect(
-      container.querySelector("li[class*='pointer-events-none']"),
-    ).not.toBeNull();
+    expect(container.querySelector("li[class*='pointer-events-none']")).not.toBeNull();
   });
 
   test('the commentary badge toggles: a repeat focus ask for the open row closes it', () => {
@@ -1456,9 +1425,7 @@ describe('ChartSheet commentary focus', () => {
     const { container } = renderSheet('full');
     fireEvent.click(firstTeaser(container)!);
 
-    const sibling = container.querySelector(
-      'li[data-rank]:not([data-commentary-card])',
-    );
+    const sibling = container.querySelector('li[data-rank]:not([data-commentary-card])');
     expect(sibling?.hasAttribute('inert')).toBe(true);
 
     // The gem card is the one ranked-list <li> without a data-rank; its recede
@@ -1496,9 +1463,7 @@ describe('ChartSheet commentary focus', () => {
     fireEvent.click(firstTeaser(container)!);
     expect(container.querySelector('[data-commentary-card]')).not.toBeNull();
 
-    const sibling = container.querySelector(
-      'li[data-rank]:not([data-commentary-card])',
-    );
+    const sibling = container.querySelector('li[data-rank]:not([data-commentary-card])');
     fireEvent.click(sibling!);
 
     expect(container.querySelector('[data-commentary-card]')).toBeNull();

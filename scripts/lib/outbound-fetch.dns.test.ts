@@ -24,9 +24,7 @@ vi.mock('node:dns', () => ({
 const { guardedFetch, RefusedTargetError } = await import('./outbound-fetch');
 
 test('a host resolving to a private address is refused at connect time', async () => {
-  await expect(guardedFetch('https://private.test/')).rejects.toBeInstanceOf(
-    RefusedTargetError,
-  );
+  await expect(guardedFetch('https://private.test/')).rejects.toBeInstanceOf(RefusedTargetError);
   await expect(guardedFetch('https://private.test/')).rejects.toThrowError(
     /resolves to forbidden address 10\.0\.0\.5/,
   );

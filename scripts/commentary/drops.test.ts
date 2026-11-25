@@ -5,12 +5,7 @@ import { recordAttempts, type DropsStore } from './drops';
 const TRIED = '2026-06-23T04:00:00.000Z';
 
 test('recordAttempts logs a first-time drop at one attempt', () => {
-  const next = recordAttempts(
-    {},
-    [{ key: 'en:a|x', reasons: ['tier-consistency'] }],
-    [],
-    TRIED,
-  );
+  const next = recordAttempts({}, [{ key: 'en:a|x', reasons: ['tier-consistency'] }], [], TRIED);
 
   expect(next['en:a|x']).toEqual({
     attempts: 1,
@@ -28,12 +23,7 @@ test('recordAttempts increments a repeat drop toward the budget', () => {
     },
   };
 
-  const next = recordAttempts(
-    prior,
-    [{ key: 'en:a|x', reasons: ['tier-consistency'] }],
-    [],
-    TRIED,
-  );
+  const next = recordAttempts(prior, [{ key: 'en:a|x', reasons: ['tier-consistency'] }], [], TRIED);
 
   expect(next['en:a|x']).toEqual({
     attempts: 2,
@@ -57,12 +47,7 @@ test('recordAttempts leaves a key untouched this batch as it was', () => {
     'en:b|y': { attempts: 2, reasons: ['no-lyric'], lastTriedAt: 'old' },
   };
 
-  const next = recordAttempts(
-    prior,
-    [{ key: 'en:a|x', reasons: ['tier-consistency'] }],
-    [],
-    TRIED,
-  );
+  const next = recordAttempts(prior, [{ key: 'en:a|x', reasons: ['tier-consistency'] }], [], TRIED);
 
   expect(next['en:b|y']).toEqual(prior['en:b|y']);
 });
@@ -76,12 +61,7 @@ test('recordAttempts does not mutate the prior ledger', () => {
     },
   };
 
-  recordAttempts(
-    prior,
-    [{ key: 'en:a|x', reasons: ['tier-consistency'] }],
-    [],
-    TRIED,
-  );
+  recordAttempts(prior, [{ key: 'en:a|x', reasons: ['tier-consistency'] }], [], TRIED);
 
   expect(prior['en:a|x'].attempts).toBe(1);
 });

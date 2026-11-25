@@ -96,10 +96,7 @@ describe('MiniPlayer', () => {
   test('renders whenever currentTrack is set, regardless of sheet state', () => {
     const track = makeTrack();
 
-    const { container } = renderMiniPlayer(
-      { onTap: vi.fn() },
-      { currentTrack: track },
-    );
+    const { container } = renderMiniPlayer({ onTap: vi.fn() }, { currentTrack: track });
 
     expect(container.firstChild).not.toBeNull();
     expect(screen.getByText(track.name)).toBeDefined();
@@ -112,22 +109,15 @@ describe('MiniPlayer', () => {
       artworkUrl: 'https://example.com/cover.jpg',
     });
 
-    const { container } = renderMiniPlayer(
-      { onTap: vi.fn() },
-      { currentTrack: track },
-    );
+    const { container } = renderMiniPlayer({ onTap: vi.fn() }, { currentTrack: track });
 
     expect(screen.getByText('Hot Track')).toBeDefined();
     expect(screen.getByText('Hot Artist')).toBeDefined();
     // The empty prev/next preview slots carry no artwork, so the one image is
     // the current card's.
-    const sources = [...container.querySelectorAll('img')].map((img) =>
-      img.getAttribute('src'),
-    );
+    const sources = [...container.querySelectorAll('img')].map((img) => img.getAttribute('src'));
     expect(sources).toEqual([track.artworkUrl]);
-    expect(container.innerHTML.split(track.artworkUrl).length - 1).toBe(
-      sources.length,
-    );
+    expect(container.innerHTML.split(track.artworkUrl).length - 1).toBe(sources.length);
   });
 
   // Client-rendered, unlike the row and the gem card: the bar renders nothing
@@ -144,18 +134,11 @@ describe('MiniPlayer', () => {
     ];
     const [prevTrack, currentTrack, nextTrack] = railCards;
 
-    const { container } = renderMiniPlayer(
-      { prevTrack, nextTrack },
-      { currentTrack },
-    );
+    const { container } = renderMiniPlayer({ prevTrack, nextTrack }, { currentTrack });
 
-    const sources = [...container.querySelectorAll('img')].map((img) =>
-      img.getAttribute('src'),
-    );
+    const sources = [...container.querySelectorAll('img')].map((img) => img.getAttribute('src'));
     expect(sources).toEqual(railCards.map((card) => card.artworkUrl));
-    expect(container.innerHTML.split(artworkUrl).length - 1).toBe(
-      sources.length,
-    );
+    expect(container.innerHTML.split(artworkUrl).length - 1).toBe(sources.length);
   });
 
   test('a preview card whose track changes gets a fresh artwork element', () => {
@@ -173,9 +156,7 @@ describe('MiniPlayer', () => {
       { prevTrack, nextTrack },
       { currentTrack },
     );
-    const before = container.querySelector(
-      `img[src="${nextTrack.artworkUrl}"]`,
-    );
+    const before = container.querySelector(`img[src="${nextTrack.artworkUrl}"]`);
 
     rerender(
       <AudioStoreContext.Provider value={store}>
@@ -183,9 +164,7 @@ describe('MiniPlayer', () => {
       </AudioStoreContext.Provider>,
     );
 
-    const after = container.querySelector(
-      `img[src="${laterTrack.artworkUrl}"]`,
-    );
+    const after = container.querySelector(`img[src="${laterTrack.artworkUrl}"]`);
     expect(before).not.toBeNull();
     expect(after).not.toBeNull();
     expect(after).not.toBe(before);
@@ -217,9 +196,7 @@ describe('MiniPlayer', () => {
     fireEvent.click(playButton);
 
     expect(store.getState().isPlaying).toBe(true);
-    expect(
-      screen.getByRole('button', { name: /pause preview of Hot Track/i }),
-    ).toBeDefined();
+    expect(screen.getByRole('button', { name: /pause preview of Hot Track/i })).toBeDefined();
   });
 
   test('renders the volume control', () => {
@@ -456,17 +433,13 @@ describe('MiniPlayer', () => {
   test('commentary badge is absent when the track carries no commentary', () => {
     renderMiniPlayer({}, { currentTrack: makeTrack() });
 
-    expect(
-      screen.queryByRole('button', { name: /why this track is trending/i }),
-    ).toBeNull();
+    expect(screen.queryByRole('button', { name: /why this track is trending/i })).toBeNull();
   });
 
   test('commentary badge is absent when commentary is explicitly null', () => {
     renderMiniPlayer({}, { currentTrack: makeTrack({ commentary: null }) });
 
-    expect(
-      screen.queryByRole('button', { name: /why this track is trending/i }),
-    ).toBeNull();
+    expect(screen.queryByRole('button', { name: /why this track is trending/i })).toBeNull();
   });
 
   test('commentary badge fires onCommentary, not onTap', () => {
@@ -476,9 +449,7 @@ describe('MiniPlayer', () => {
 
     renderMiniPlayer({ onCommentary, onTap }, { currentTrack: track });
 
-    fireEvent.click(
-      screen.getByRole('button', { name: /why this track is trending/i }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: /why this track is trending/i }));
 
     expect(onCommentary).toHaveBeenCalledTimes(1);
     expect(onTap).not.toHaveBeenCalled();
@@ -492,10 +463,7 @@ describe('MiniPlayer', () => {
       rank: 2,
       appleUrl: 'https://music.apple.com/x/album?i=102',
     });
-    const { container, store } = renderMiniPlayer(
-      {},
-      { currentTrack: outgoing },
-    );
+    const { container, store } = renderMiniPlayer({}, { currentTrack: outgoing });
 
     act(() => {
       store.setState({ currentTrack: incoming });
@@ -514,10 +482,7 @@ describe('MiniPlayer', () => {
     const incoming = makeTrack({
       appleUrl: 'https://music.apple.com/x/album?i=101',
     });
-    const { container, store } = renderMiniPlayer(
-      {},
-      { currentTrack: outgoing },
-    );
+    const { container, store } = renderMiniPlayer({}, { currentTrack: outgoing });
 
     act(() => {
       store.setState({ currentTrack: incoming });
@@ -536,10 +501,7 @@ describe('MiniPlayer', () => {
       rank: 2,
       appleUrl: 'https://music.apple.com/x/album?i=102',
     });
-    const { container, store } = renderMiniPlayer(
-      {},
-      { currentTrack: outgoing },
-    );
+    const { container, store } = renderMiniPlayer({}, { currentTrack: outgoing });
 
     act(() => {
       store.setState({ currentTrack: incoming });
@@ -581,11 +543,9 @@ describe('MiniPlayer', () => {
   });
 
   test('a drag whose pointer cannot be captured is dropped, so the next click still lands', () => {
-    const capture = vi
-      .spyOn(HTMLElement.prototype, 'setPointerCapture')
-      .mockImplementation(() => {
-        throw new DOMException('pointer is not active', 'NotFoundError');
-      });
+    const capture = vi.spyOn(HTMLElement.prototype, 'setPointerCapture').mockImplementation(() => {
+      throw new DOMException('pointer is not active', 'NotFoundError');
+    });
     try {
       const onNext = vi.fn();
       renderMiniPlayer({ onNext }, { currentTrack: makeTrack() });

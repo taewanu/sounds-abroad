@@ -51,9 +51,7 @@ function findVerseRuns(lines: string[]): LyricRisk[] {
   let run: string[] = [];
   for (const line of lines) {
     const isVerse =
-      line.trim() !== '' &&
-      wordCount(line) <= VERSE_LINE_MAX_WORDS &&
-      !endsASentence(line);
+      line.trim() !== '' && wordCount(line) <= VERSE_LINE_MAX_WORDS && !endsASentence(line);
     if (isVerse) {
       run.push(line.trim());
     } else {
@@ -63,9 +61,7 @@ function findVerseRuns(lines: string[]): LyricRisk[] {
       run = [];
     }
   }
-  return run.length >= MIN_VERSE_LINES
-    ? [{ rule: 'verse-lines', excerpt: run.join(' / ') }]
-    : [];
+  return run.length >= MIN_VERSE_LINES ? [{ rule: 'verse-lines', excerpt: run.join(' / ') }] : [];
 }
 
 function findRepeatedLines(lines: string[]): LyricRisk[] {
@@ -84,11 +80,7 @@ function findRepeatedLines(lines: string[]): LyricRisk[] {
 /** Every lyric risk in a single block of text. */
 export function findLyricRisks(text: string): LyricRisk[] {
   const lines = text.split('\n');
-  return [
-    ...findQuotedSpans(text),
-    ...findVerseRuns(lines),
-    ...findRepeatedLines(lines),
-  ];
+  return [...findQuotedSpans(text), ...findVerseRuns(lines), ...findRepeatedLines(lines)];
 }
 
 /** Every lyric risk across a commentary entry's human-authored fields. */

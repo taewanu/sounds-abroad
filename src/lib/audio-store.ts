@@ -76,9 +76,7 @@ export interface AudioState {
 
 export type AudioStoreApi = ReturnType<typeof createAudioStore>;
 
-export function createAudioStore(
-  factory: AudioEngineFactory = createBrowserAudioEngine,
-) {
+export function createAudioStore(factory: AudioEngineFactory = createBrowserAudioEngine) {
   let engine: AudioEngine | null = null;
   // Monotonic id per play() attempt. A rejection only owns the state if its
   // token still matches; a newer attempt (even one on a track that shares this
@@ -150,8 +148,7 @@ export function createAudioStore(
     // isPlaying, record lastError, breadcrumb, and tell the OS it's paused.
     function handlePlayRejection(track: ChartTrack, token: number) {
       return (error: unknown) => {
-        if (error instanceof DOMException && error.name === 'AbortError')
-          return;
+        if (error instanceof DOMException && error.name === 'AbortError') return;
         if (token !== playToken) return;
         const previewUrl = track.previewUrl ?? null;
         set({ isPlaying: false, lastError: { previewUrl } });

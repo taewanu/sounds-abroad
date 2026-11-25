@@ -1,7 +1,4 @@
-import {
-  createMirroredStorage,
-  type MirroredStorage,
-} from '@/lib/mirrored-storage';
+import { createMirroredStorage, type MirroredStorage } from '@/lib/mirrored-storage';
 
 import { emptyRecord, type TourRecord } from './tour-record';
 import { TEACH_ORDER, type TeachBeat } from './tour-step';
@@ -26,8 +23,7 @@ function parseRecord(raw: string): TourRecord {
   const value = parsed as Record<string, unknown>;
   const learned = Array.isArray(value.learned)
     ? (value.learned.filter(
-        (beat): beat is TeachBeat =>
-          typeof beat === 'string' && TEACHABLE.has(beat),
+        (beat): beat is TeachBeat => typeof beat === 'string' && TEACHABLE.has(beat),
       ) as TeachBeat[])
     : [];
   return {
@@ -46,10 +42,7 @@ export function readRecord(storage: MirroredStorage = store): TourRecord {
   }
 }
 
-export function writeRecord(
-  record: TourRecord,
-  storage: MirroredStorage = store,
-): void {
+export function writeRecord(record: TourRecord, storage: MirroredStorage = store): void {
   try {
     storage.setItem(KEY, JSON.stringify(record));
   } catch {

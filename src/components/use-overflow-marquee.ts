@@ -1,12 +1,6 @@
 'use client';
 
-import {
-  type CSSProperties,
-  type RefObject,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { type CSSProperties, type RefObject, useEffect, useRef, useState } from 'react';
 
 import { usePrefersReducedMotion } from './use-prefers-reduced-motion';
 

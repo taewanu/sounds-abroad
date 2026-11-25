@@ -32,9 +32,7 @@ describe('readRecord', () => {
   });
 
   test('falls back to the empty record on corrupt JSON rather than throwing', () => {
-    expect(readRecord(fakeStorage({ [KEY]: '{not json' }))).toEqual(
-      emptyRecord,
-    );
+    expect(readRecord(fakeStorage({ [KEY]: '{not json' }))).toEqual(emptyRecord);
   });
 
   test("drops unknown values from learned so a stale key can't inject junk beats", () => {
@@ -44,9 +42,7 @@ describe('readRecord', () => {
       dismissed: false,
     });
 
-    expect(readRecord(fakeStorage({ [KEY]: stored })).learned).toEqual([
-      'gesture',
-    ]);
+    expect(readRecord(fakeStorage({ [KEY]: stored })).learned).toEqual(['gesture']);
   });
 
   test('returns the empty record instead of throwing when reading throws', () => {
@@ -97,16 +93,12 @@ describe('subscribeRecord', () => {
 
 describe('falls back to the in-memory mirror when localStorage throws', () => {
   test('round-trips through the mirror when access throws (private mode)', () => {
-    const getSpy = vi
-      .spyOn(Storage.prototype, 'getItem')
-      .mockImplementation(() => {
-        throw new Error('blocked');
-      });
-    const setSpy = vi
-      .spyOn(Storage.prototype, 'setItem')
-      .mockImplementation(() => {
-        throw new Error('blocked');
-      });
+    const getSpy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    const setSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
     try {
       const record: TourRecord = {
         learned: ['audio'],

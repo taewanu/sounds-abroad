@@ -32,9 +32,7 @@ export type GateDecision = 'publish' | 'drop';
  * the publish shell adds after the async grounding check, since this layer
  * stays pure and network-free.
  */
-export function deterministicChecks(
-  entry: Commentary,
-): Omit<GateChecks, 'grounding'> {
+export function deterministicChecks(entry: Commentary): Omit<GateChecks, 'grounding'> {
   return {
     noLyric: lintCommentary(entry).length === 0,
     sourceAuthority: findSourceViolations(entry).length === 0,
@@ -48,9 +46,6 @@ export function classifyGate(_tier: Claim, checks: GateChecks): GateDecision {
   // the signature documents, but is decision-neutral today. Naming each gate
   // (over iterating the object) forces a future check to be wired in here.
   const allPass =
-    checks.noLyric &&
-    checks.sourceAuthority &&
-    checks.tierConsistency &&
-    checks.grounding;
+    checks.noLyric && checks.sourceAuthority && checks.tierConsistency && checks.grounding;
   return allPass ? 'publish' : 'drop';
 }

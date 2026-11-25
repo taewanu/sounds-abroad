@@ -24,9 +24,7 @@ function sourceLabel(url: string): string {
 // CommentaryDetail. Both surfaces render identical commentary depth.
 function CommentaryText({ commentary }: { commentary: Commentary }) {
   if (!commentary.detail) return null;
-  return (
-    <p className="text-small leading-relaxed text-fg-2">{commentary.detail}</p>
-  );
+  return <p className="text-small leading-relaxed text-fg-2">{commentary.detail}</p>;
 }
 
 function CommentarySources({ commentary }: { commentary: Commentary }) {
@@ -64,9 +62,7 @@ function CommentaryDetail({ commentary }: { commentary: Commentary }) {
 
 function TagPill({ tag }: { tag: string }) {
   return (
-    <span className="shrink-0 rounded-pill bg-fg-1/5 px-2 py-0.5 text-micro text-fg-3">
-      {tag}
-    </span>
+    <span className="shrink-0 rounded-pill bg-fg-1/5 px-2 py-0.5 text-micro text-fg-3">{tag}</span>
   );
 }
 
@@ -95,11 +91,7 @@ function HintedGlyph({ children }: { children: React.ReactNode }) {
 }
 
 function PlainGlyph({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex shrink-0 items-center justify-center">
-      {children}
-    </span>
-  );
+  return <span className="inline-flex shrink-0 items-center justify-center">{children}</span>;
 }
 
 export interface TrackCommentaryProps {
@@ -123,11 +115,7 @@ export interface TrackCommentaryProps {
 // - gem card (no `focusCard`): an inline accordion that expands the detail here.
 // - chart row (`focusCard`): a teaser that opens the row's focused reader card,
 //   so the "why it's here" reads with room instead of fighting the cramped row.
-export function TrackCommentary({
-  commentary,
-  isHintTarget,
-  focusCard,
-}: TrackCommentaryProps) {
+export function TrackCommentary({ commentary, isHintTarget, focusCard }: TrackCommentaryProps) {
   const [expanded, setExpanded] = useState(false);
   const panelId = useId();
 
@@ -155,9 +143,7 @@ export function TrackCommentary({
               <TagPill tag={commentary.tag} />
               <MinimizeIcon className="ml-auto h-4 w-4 shrink-0 text-fg-3" />
             </div>
-            <p className="mt-2 text-small leading-relaxed text-fg-2">
-              {commentary.lead}
-            </p>
+            <p className="mt-2 text-small leading-relaxed text-fg-2">{commentary.lead}</p>
           </button>
         ) : (
           // Teaser: the compact hook. Pill + clamped lead + an "open into a
@@ -212,9 +198,7 @@ export function TrackCommentary({
         className="flex w-full items-center gap-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora"
       >
         <TagPill tag={commentary.tag} />
-        <span className="line-clamp-2 min-w-0 flex-1 text-small text-fg-2">
-          {commentary.lead}
-        </span>
+        <span className="line-clamp-2 min-w-0 flex-1 text-small text-fg-2">{commentary.lead}</span>
         <Glyph>
           <ChevronGlyph expanded={expanded} />
         </Glyph>

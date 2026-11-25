@@ -28,11 +28,7 @@ function validChartFile(): ChartFile {
   };
 }
 
-function fakeFetch(response: {
-  ok?: boolean;
-  status?: number;
-  body: string;
-}): typeof fetch {
+function fakeFetch(response: { ok?: boolean; status?: number; body: string }): typeof fetch {
   return (async () =>
     new Response(response.body, {
       status: response.status ?? (response.ok === false ? 500 : 200),
@@ -42,10 +38,7 @@ function fakeFetch(response: {
 test('returns the parsed payload on a valid response', async () => {
   const chartFile = validChartFile();
 
-  const result = await fetchPublishedCharts(
-    URL,
-    fakeFetch({ body: JSON.stringify(chartFile) }),
-  );
+  const result = await fetchPublishedCharts(URL, fakeFetch({ body: JSON.stringify(chartFile) }));
 
   expect(result).toEqual(chartFile);
 });
@@ -60,10 +53,7 @@ test('returns null on a non-OK response', async () => {
 });
 
 test('returns null on invalid JSON', async () => {
-  const result = await fetchPublishedCharts(
-    URL,
-    fakeFetch({ body: '<html>nope</html>' }),
-  );
+  const result = await fetchPublishedCharts(URL, fakeFetch({ body: '<html>nope</html>' }));
 
   expect(result).toBeNull();
 });

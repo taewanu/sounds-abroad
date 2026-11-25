@@ -57,9 +57,7 @@ test('issues the bearer POST without waiting on a timer', async () => {
 test('fails fast without retrying when revalidate rejects the request', async () => {
   const fetchSpy = vi
     .spyOn(globalThis, 'fetch')
-    .mockResolvedValue(
-      new Response(null, { status: 401, statusText: 'Unauthorized' }),
-    );
+    .mockResolvedValue(new Response(null, { status: 401, statusText: 'Unauthorized' }));
   const sleep = vi.fn(async () => {});
 
   await expect(triggerRevalidate(sleep)).rejects.toThrow(/401/);
@@ -81,9 +79,7 @@ test('retries a server error and succeeds on a later attempt', async () => {
 });
 
 test('retries a network failure and throws once every attempt fails', async () => {
-  const fetchSpy = vi
-    .spyOn(globalThis, 'fetch')
-    .mockRejectedValue(new TypeError('fetch failed'));
+  const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('fetch failed'));
   const sleep = vi.fn(async () => {});
 
   await expect(triggerRevalidate(sleep)).rejects.toThrow(/fetch failed/);

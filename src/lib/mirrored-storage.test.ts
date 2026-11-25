@@ -23,16 +23,12 @@ describe('createMirroredStorage', () => {
   });
 
   test('falls back to the in-memory mirror when access throws (private mode)', () => {
-    const getSpy = vi
-      .spyOn(Storage.prototype, 'getItem')
-      .mockImplementation(() => {
-        throw new Error('blocked');
-      });
-    const setSpy = vi
-      .spyOn(Storage.prototype, 'setItem')
-      .mockImplementation(() => {
-        throw new Error('blocked');
-      });
+    const getSpy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    const setSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
     try {
       const storage = createMirroredStorage();
       expect(storage.getItem(KEY)).toBeNull();

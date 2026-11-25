@@ -5,15 +5,7 @@ import { ESCAPE_LAYER, useEscapeLayer } from './use-escape-layer';
 
 type Rank = (typeof ESCAPE_LAYER)[keyof typeof ESCAPE_LAYER];
 
-function Layer({
-  active,
-  rank,
-  onEscape,
-}: {
-  active: boolean;
-  rank: Rank;
-  onEscape: () => void;
-}) {
+function Layer({ active, rank, onEscape }: { active: boolean; rank: Rank; onEscape: () => void }) {
   useEscapeLayer(active, rank, onEscape);
   return null;
 }
@@ -108,9 +100,7 @@ describe('useEscapeLayer', () => {
   test('calls the handler from the latest render', () => {
     const stale = vi.fn();
     const fresh = vi.fn();
-    const { rerender } = render(
-      <Layer active rank={ESCAPE_LAYER.sheet} onEscape={stale} />,
-    );
+    const { rerender } = render(<Layer active rank={ESCAPE_LAYER.sheet} onEscape={stale} />);
     rerender(<Layer active rank={ESCAPE_LAYER.sheet} onEscape={fresh} />);
 
     pressEscape();

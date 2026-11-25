@@ -114,9 +114,7 @@ export function findTierSignals(text: string): TierConsistencyViolation[] {
  * fields. A `why-charting` entry is never flagged: that language belongs there,
  * so the lint short-circuits to an empty result before scanning any text.
  */
-export function lintTierConsistency(
-  entry: Commentary,
-): TierConsistencyViolation[] {
+export function lintTierConsistency(entry: Commentary): TierConsistencyViolation[] {
   if (entry.claim !== 'what-it-is') return [];
 
   const fields = [entry.lead, entry.detail, entry.tag].filter(

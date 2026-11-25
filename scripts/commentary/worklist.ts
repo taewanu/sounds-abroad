@@ -1,9 +1,5 @@
 import type { ChartFile } from '../../src/lib/chart-schema';
-import {
-  DEFAULT_LANG,
-  commentaryKey,
-  type CommentaryStore,
-} from '../../src/lib/commentary-store';
+import { DEFAULT_LANG, commentaryKey, type CommentaryStore } from '../../src/lib/commentary-store';
 import { COUNTRIES, type Region } from '../../src/lib/countries';
 import { selectGem } from '../../src/lib/select-gem';
 import { DEFAULT_MAX_ATTEMPTS, type DropsStore } from './drops';
@@ -16,11 +12,7 @@ import { DEFAULT_MAX_ATTEMPTS, type DropsStore } from './drops';
  * quantitative gate, an analog to a significance trigger).
  */
 
-export type WorklistReason =
-  | 'new-entry'
-  | 'rank-jump'
-  | 'top-debut'
-  | 'local-gem';
+export type WorklistReason = 'new-entry' | 'rank-jump' | 'top-debut' | 'local-gem';
 
 export interface WorklistItem {
   key: string;
@@ -64,10 +56,7 @@ interface Aggregate {
   countries: { cc: string; rank: number }[];
 }
 
-function aggregateByKey(
-  chart: ChartFile,
-  lang: string,
-): Map<string, Aggregate> {
+function aggregateByKey(chart: ChartFile, lang: string): Map<string, Aggregate> {
   const byKey = new Map<string, Aggregate>();
   for (const [cc, country] of Object.entries(chart.countries)) {
     if (!country.valid) continue;
@@ -111,13 +100,9 @@ export type ConfidenceLevel = 'low' | 'ok';
 
 const BROAD_FOOTPRINT_MIN = 3;
 
-const REGION_BY_CC = new Map<string, Region>(
-  COUNTRIES.map((c) => [c.code, c.region]),
-);
+const REGION_BY_CC = new Map<string, Region>(COUNTRIES.map((c) => [c.code, c.region]));
 
-export function chartConfidence(
-  countries: readonly { cc: string }[],
-): ConfidenceLevel {
+export function chartConfidence(countries: readonly { cc: string }[]): ConfidenceLevel {
   const distinctCountries = new Set(countries.map((c) => c.cc));
   const distinctRegions = new Set<Region>();
   for (const cc of distinctCountries) {
@@ -149,17 +134,13 @@ function gemKeys(chart: ChartFile, lang: string): Set<string> {
   for (const country of Object.values(chart.countries)) {
     if (!country.valid) continue;
     const selection = selectGem(country.tracks);
-    if (!selection || selection.tier === 'their most local pick today')
-      continue;
+    if (!selection || selection.tier === 'their most local pick today') continue;
     keys.add(commentaryKey(lang, selection.gem.artist, selection.gem.name));
   }
   return keys;
 }
 
-function bestRankByKey(
-  chart: ChartFile | null,
-  lang: string,
-): Map<string, number> {
+function bestRankByKey(chart: ChartFile | null, lang: string): Map<string, number> {
   const best = new Map<string, number>();
   if (!chart) return best;
   for (const country of Object.values(chart.countries)) {

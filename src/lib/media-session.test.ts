@@ -81,9 +81,7 @@ test('setPlaybackState mirrors the state onto the session', () => {
 });
 
 test('setPlaybackState no-ops when mediaSession is unavailable', () => {
-  expect(() =>
-    setPlaybackState('playing', { mediaSession: null }),
-  ).not.toThrow();
+  expect(() => setPlaybackState('playing', { mediaSession: null })).not.toThrow();
 });
 
 test('setActionHandlers registers play and pause', () => {
@@ -93,22 +91,13 @@ test('setActionHandlers registers play and pause', () => {
 
   setActionHandlers({ play, pause }, deps);
 
-  expect(deps.mediaSession!.setActionHandler).toHaveBeenCalledWith(
-    'play',
-    play,
-  );
-  expect(deps.mediaSession!.setActionHandler).toHaveBeenCalledWith(
-    'pause',
-    pause,
-  );
+  expect(deps.mediaSession!.setActionHandler).toHaveBeenCalledWith('play', play);
+  expect(deps.mediaSession!.setActionHandler).toHaveBeenCalledWith('pause', pause);
 });
 
 test('setActionHandlers no-ops when mediaSession is unavailable', () => {
   expect(() =>
-    setActionHandlers(
-      { play: vi.fn(), pause: vi.fn() },
-      { mediaSession: null },
-    ),
+    setActionHandlers({ play: vi.fn(), pause: vi.fn() }, { mediaSession: null }),
   ).not.toThrow();
 });
 
@@ -119,22 +108,13 @@ test('setSkipHandlers registers nexttrack and previoustrack', () => {
 
   setSkipHandlers({ nexttrack, previoustrack }, deps);
 
-  expect(deps.mediaSession!.setActionHandler).toHaveBeenCalledWith(
-    'nexttrack',
-    nexttrack,
-  );
-  expect(deps.mediaSession!.setActionHandler).toHaveBeenCalledWith(
-    'previoustrack',
-    previoustrack,
-  );
+  expect(deps.mediaSession!.setActionHandler).toHaveBeenCalledWith('nexttrack', nexttrack);
+  expect(deps.mediaSession!.setActionHandler).toHaveBeenCalledWith('previoustrack', previoustrack);
 });
 
 test('setSkipHandlers no-ops when mediaSession is unavailable', () => {
   expect(() =>
-    setSkipHandlers(
-      { nexttrack: vi.fn(), previoustrack: vi.fn() },
-      { mediaSession: null },
-    ),
+    setSkipHandlers({ nexttrack: vi.fn(), previoustrack: vi.fn() }, { mediaSession: null }),
   ).not.toThrow();
 });
 

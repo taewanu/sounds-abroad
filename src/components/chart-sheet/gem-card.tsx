@@ -55,9 +55,7 @@ export function GemCard({ track, tier, countryCode }: GemCardProps) {
       s.currentCountryCode === countryCode &&
       s.currentChartRef === SONGS_CHART,
   );
-  const hasError = useAudioStore(
-    (s) => s.lastError?.previewUrl === track.previewUrl,
-  );
+  const hasError = useAudioStore((s) => s.lastError?.previewUrl === track.previewUrl);
   const toggle = useAudioStore((s) => s.toggle);
 
   const hasPreview = track.previewUrl !== null;
@@ -85,9 +83,7 @@ export function GemCard({ track, tier, countryCode }: GemCardProps) {
           {isPlaying ? (
             <PauseIcon className="h-4 w-4 text-sunrise" />
           ) : (
-            <PlayIcon
-              className={`h-4 w-4 ${isCurrent ? 'text-sunrise' : 'text-fg-3'}`}
-            />
+            <PlayIcon className={`h-4 w-4 ${isCurrent ? 'text-sunrise' : 'text-fg-3'}`} />
           )}
         </span>
         <TrackArtwork url={track.artworkUrl} />
@@ -101,9 +97,7 @@ export function GemCard({ track, tier, countryCode }: GemCardProps) {
             <span className="min-w-0 truncate">{tier}</span>
           </p>
           <p
-            className={`truncate text-body font-medium ${
-              isCurrent ? 'text-sunrise' : 'text-fg-1'
-            }`}
+            className={`truncate text-body font-medium ${isCurrent ? 'text-sunrise' : 'text-fg-1'}`}
           >
             {track.name}
             {isCurrent && (
@@ -122,9 +116,7 @@ export function GemCard({ track, tier, countryCode }: GemCardProps) {
             {hasPreview ? track.artist : `No preview · ${track.artist}`}
           </p>
           {hasError && (
-            <p className="mt-1 text-micro text-error">
-              Preview unavailable, try another track
-            </p>
+            <p className="mt-1 text-micro text-error">Preview unavailable, try another track</p>
           )}
         </div>
       </button>

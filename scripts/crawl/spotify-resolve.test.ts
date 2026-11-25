@@ -8,14 +8,9 @@ import {
   resolveSpotifyUrl,
 } from './spotify-resolve';
 
-function jsonFetch(response: {
-  ok?: boolean;
-  status?: number;
-  body: unknown;
-}): typeof fetch {
+function jsonFetch(response: { ok?: boolean; status?: number; body: unknown }): typeof fetch {
   const status = response.status ?? (response.ok === false ? 500 : 200);
-  return (async () =>
-    new Response(JSON.stringify(response.body), { status })) as typeof fetch;
+  return (async () => new Response(JSON.stringify(response.body), { status })) as typeof fetch;
 }
 
 const TOKEN_BODY = {
@@ -91,10 +86,9 @@ test('resolveSpotifyUrl hits the search endpoint with a scoped query and Bearer 
   const seen: { url: string; init?: RequestInit }[] = [];
   const spyFetch: typeof fetch = (async (url: string, init?: RequestInit) => {
     seen.push({ url, init });
-    return new Response(
-      JSON.stringify(searchBody('https://open.spotify.com/track/abc123')),
-      { status: 200 },
-    );
+    return new Response(JSON.stringify(searchBody('https://open.spotify.com/track/abc123')), {
+      status: 200,
+    });
   }) as typeof fetch;
 
   await resolveSpotifyUrl('REDRED', '코르티스', 'tok-xyz', { fetch: spyFetch });
@@ -165,9 +159,9 @@ test('resolveSpotifyUrl throws network when fetch rejects', async () => {
     throw new TypeError('boom');
   }) as typeof fetch;
 
-  await expect(
-    resolveSpotifyUrl('x', 'y', 'tok', { fetch: failingFetch }),
-  ).rejects.toBeInstanceOf(SpotifyResolveError);
+  await expect(resolveSpotifyUrl('x', 'y', 'tok', { fetch: failingFetch })).rejects.toBeInstanceOf(
+    SpotifyResolveError,
+  );
 });
 
 test('createSpotifyResolver fetches the token once and reuses it across calls', async () => {
@@ -177,10 +171,9 @@ test('createSpotifyResolver fetches the token once and reuses it across calls', 
       tokenCalls += 1;
       return new Response(JSON.stringify(TOKEN_BODY), { status: 200 });
     }
-    return new Response(
-      JSON.stringify(searchBody('https://open.spotify.com/track/abc123')),
-      { status: 200 },
-    );
+    return new Response(JSON.stringify(searchBody('https://open.spotify.com/track/abc123')), {
+      status: 200,
+    });
   }) as typeof fetch;
 
   const resolve = createSpotifyResolver({
@@ -207,10 +200,9 @@ test('createSpotifyResolver re-fetches the token and retries once on a cached-to
     searchCalls += 1;
     // First search 401s (token invalidated early); the retry succeeds.
     if (searchCalls === 1) return new Response('{}', { status: 401 });
-    return new Response(
-      JSON.stringify(searchBody('https://open.spotify.com/track/abc123')),
-      { status: 200 },
-    );
+    return new Response(JSON.stringify(searchBody('https://open.spotify.com/track/abc123')), {
+      status: 200,
+    });
   }) as typeof fetch;
 
   const resolve = createSpotifyResolver({
@@ -254,10 +246,9 @@ test('createSpotifyResolver refreshes the token after it nears expiry', async ()
       tokenCalls += 1;
       return new Response(JSON.stringify(TOKEN_BODY), { status: 200 });
     }
-    return new Response(
-      JSON.stringify(searchBody('https://open.spotify.com/track/abc123')),
-      { status: 200 },
-    );
+    return new Response(JSON.stringify(searchBody('https://open.spotify.com/track/abc123')), {
+      status: 200,
+    });
   }) as typeof fetch;
 
   let clock = 0;

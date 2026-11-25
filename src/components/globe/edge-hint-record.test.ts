@@ -74,9 +74,7 @@ describe('readRecord', () => {
   });
 
   test('falls back to the empty record on corrupt JSON rather than throwing', () => {
-    expect(readRecord(fakeStorage({ [KEY]: '{not json' }))).toEqual(
-      emptyRecord,
-    );
+    expect(readRecord(fakeStorage({ [KEY]: '{not json' }))).toEqual(emptyRecord);
   });
 
   test('degrades wrong-typed fields individually rather than dropping the record', () => {

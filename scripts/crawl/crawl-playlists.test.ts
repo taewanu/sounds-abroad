@@ -35,9 +35,7 @@ function scrapedTrack(id: string, rank: number): PlaylistTrack {
   };
 }
 
-function lookupReturning(
-  genreById: Record<string, string | null>,
-): BatchLookup {
+function lookupReturning(genreById: Record<string, string | null>): BatchLookup {
   return vi.fn<BatchLookup>(async (ids) => {
     const resolved = new Map<string, LookupResult>();
     for (const id of ids) {
@@ -53,10 +51,7 @@ function lookupReturning(
 
 function makeDeps(overrides: Partial<PlaylistAxisDeps> = {}): PlaylistAxisDeps {
   return {
-    fetchPlaylistPage: vi.fn(async () => [
-      scrapedTrack('t1', 1),
-      scrapedTrack('t2', 2),
-    ]),
+    fetchPlaylistPage: vi.fn(async () => [scrapedTrack('t1', 1), scrapedTrack('t2', 2)]),
     lookupTracks: lookupReturning({ t1: 'K-Pop', t2: 'K-Pop' }),
     ...overrides,
   };
@@ -91,12 +86,7 @@ test('tallies the genre histogram from the resolved member tracks', async () => 
     lookupTracks: lookupReturning({ t1: 'K-Pop', t2: 'Rock' }),
   });
 
-  const result = await crawlCountryPlaylists(
-    'kr',
-    [applePlaylist('pl.a')],
-    deps,
-    now,
-  );
+  const result = await crawlCountryPlaylists('kr', [applePlaylist('pl.a')], deps, now);
 
   expect(result.byId.get('pl.a')?.genres).toEqual([
     { name: 'K-Pop', count: 1 },
@@ -105,12 +95,7 @@ test('tallies the genre histogram from the resolved member tracks', async () => 
 });
 
 test("stamps each track file with the run's timestamp", async () => {
-  const result = await crawlCountryPlaylists(
-    'kr',
-    [applePlaylist('pl.a')],
-    makeDeps(),
-    now,
-  );
+  const result = await crawlCountryPlaylists('kr', [applePlaylist('pl.a')], makeDeps(), now);
 
   expect(result.files[0].lastUpdated).toBe(NOW.toISOString());
 });
@@ -120,12 +105,7 @@ test('keeps a track whose preview did not resolve', async () => {
     lookupTracks: vi.fn<BatchLookup>(async () => new Map()),
   });
 
-  const result = await crawlCountryPlaylists(
-    'kr',
-    [applePlaylist('pl.a')],
-    deps,
-    now,
-  );
+  const result = await crawlCountryPlaylists('kr', [applePlaylist('pl.a')], deps, now);
 
   expect(result.files[0].tracks.every((t) => t.previewUrl === null)).toBe(true);
   expect(result.files[0].tracks).toHaveLength(2);
@@ -160,12 +140,7 @@ test('reports the axis invalid when every page failed', async () => {
     }),
   });
 
-  const result = await crawlCountryPlaylists(
-    'kr',
-    [applePlaylist('pl.a')],
-    deps,
-    now,
-  );
+  const result = await crawlCountryPlaylists('kr', [applePlaylist('pl.a')], deps, now);
 
   expect(result.byId.size).toBe(0);
   expect(result.files).toHaveLength(0);
@@ -178,9 +153,9 @@ test('rethrows an error that is not a page failure', async () => {
     }),
   });
 
-  await expect(
-    crawlCountryPlaylists('kr', [applePlaylist('pl.a')], deps, now),
-  ).rejects.toThrow('unexpected');
+  await expect(crawlCountryPlaylists('kr', [applePlaylist('pl.a')], deps, now)).rejects.toThrow(
+    'unexpected',
+  );
 });
 
 test('reads ordinary churn as intact', () => {
@@ -247,12 +222,7 @@ test('asks about a track shared by two playlists only once', async () => {
   const shared = 't-shared';
   const lookupTracks = vi.fn<BatchLookup>(
     async (ids) =>
-      new Map(
-        ids.map((id) => [
-          id,
-          { id, previewUrl: `https://preview/${id}.m4a`, genre: null },
-        ]),
-      ),
+      new Map(ids.map((id) => [id, { id, previewUrl: `https://preview/${id}.m4a`, genre: null }])),
   );
   const deps = makeDeps({
     lookupTracks,
@@ -284,12 +254,7 @@ test('gives every playlist track a Spotify search link', async () => {
     ]),
   });
 
-  const result = await crawlCountryPlaylists(
-    'kr',
-    [applePlaylist('pl.a')],
-    deps,
-    now,
-  );
+  const result = await crawlCountryPlaylists('kr', [applePlaylist('pl.a')], deps, now);
 
   expect(result.files[0].tracks[0].spotifyUrl).toBe(
     'https://open.spotify.com/search/Ice%20Cream%20%EC%97%B0%EC%A4%80',
@@ -299,18 +264,12 @@ test('gives every playlist track a Spotify search link', async () => {
 test('still resolves the survivors when one page failed', async () => {
   const lookupTracks = vi.fn<BatchLookup>(
     async (ids) =>
-      new Map(
-        ids.map((id) => [
-          id,
-          { id, previewUrl: `https://preview/${id}.m4a`, genre: null },
-        ]),
-      ),
+      new Map(ids.map((id) => [id, { id, previewUrl: `https://preview/${id}.m4a`, genre: null }])),
   );
   const deps = makeDeps({
     lookupTracks,
     fetchPlaylistPage: vi.fn(async (playlistId: string) => {
-      if (playlistId === 'pl.a')
-        throw new PlaylistPageError(playlistId, 'http', '503');
+      if (playlistId === 'pl.a') throw new PlaylistPageError(playlistId, 'http', '503');
       return [scrapedTrack('t1', 1)];
     }),
   });

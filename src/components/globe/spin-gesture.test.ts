@@ -37,11 +37,7 @@ const half = () => 0.5; // deterministic rng stub for the snap draw
 
 // Fold a sequence of events through the reducer, returning the final state and
 // every command emitted along the way.
-function run(
-  state: GestureState,
-  events: GestureEvent[],
-  config: GestureConfig = CFG,
-) {
+function run(state: GestureState, events: GestureEvent[], config: GestureConfig = CFG) {
   let s = state;
   const commands = [];
   for (const event of events) {
@@ -91,10 +87,7 @@ test('pointerDown is ignored in read mode so reading never grabs the globe', () 
 });
 
 test('a second pointerDown is ignored while one gesture owns the drag', () => {
-  const { state } = run(initGestureState(START), [
-    down(1, 100, 100),
-    down(2, 300, 100),
-  ]);
+  const { state } = run(initGestureState(START), [down(1, 100, 100), down(2, 300, 100)]);
 
   expect(state.activePointerId).toBe(1);
 });
@@ -362,11 +355,7 @@ test('pointerCancel snaps to a country so it never rests on open ocean', () => {
     mode: 'drag',
     activePointerId: 1,
   };
-  const { commands } = run(
-    dragging,
-    [{ type: 'pointerCancel', id: 1, rng: half }],
-    CFG,
-  );
+  const { commands } = run(dragging, [{ type: 'pointerCancel', id: 1, rng: half }], CFG);
 
   const settle = commands.find((c) => c.kind === 'settle');
   expect(settle).toBeDefined();
@@ -383,9 +372,7 @@ test('pointerCancel wipes an armed skip window as it snaps', () => {
     activePointerId: 1,
     lastEdgeTapAt: 100,
   };
-  const { state, commands } = run(armedDrag, [
-    { type: 'pointerCancel', id: 1, rng: half },
-  ]);
+  const { state, commands } = run(armedDrag, [{ type: 'pointerCancel', id: 1, rng: half }]);
 
   expect(commands.some((c) => c.kind === 'settle')).toBe(true);
   expect(state.lastEdgeTapAt).toBeNull();
@@ -407,9 +394,7 @@ test('externalSelect settles to a new ?cc= country', () => {
 });
 
 test('externalSelect no-ops when the target already matches the landing', () => {
-  const { commands } = run(initGestureState(START), [
-    { type: 'externalSelect', code: START },
-  ]);
+  const { commands } = run(initGestureState(START), [{ type: 'externalSelect', code: START }]);
 
   expect(commands).toEqual([]);
 });
@@ -421,11 +406,7 @@ test('a fling hands off to the snap spring once it slows below threshold', () =>
     vAz: 1, // below SETTLE_VEL = 2
     vEl: 0,
   };
-  const { commands } = run(
-    slow,
-    [{ type: 'frame', dt: 0.016, rng: half }],
-    CFG,
-  );
+  const { commands } = run(slow, [{ type: 'frame', dt: 0.016, rng: half }], CFG);
 
   expect(commands.some((c) => c.kind === 'settle')).toBe(true);
 });

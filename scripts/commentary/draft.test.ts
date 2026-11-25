@@ -69,17 +69,13 @@ test('draftEntry returns null when the draft fails the schema', async () => {
 test('describeSubprocessFailure names a timeout, so a batch log says to raise the budget', () => {
   const killed = { killed: true, code: null, stderr: '' };
 
-  expect(describeSubprocessFailure(killed, 180_000)).toBe(
-    'drafter timed out after 180s',
-  );
+  expect(describeSubprocessFailure(killed, 180_000)).toBe('drafter timed out after 180s');
 });
 
 test("describeSubprocessFailure names the signal when it was not the budget's own kill", () => {
   const interrupted = { killed: true, signal: 'SIGKILL', stderr: '' };
 
-  expect(describeSubprocessFailure(interrupted, 180_000)).toBe(
-    'drafter killed by SIGKILL',
-  );
+  expect(describeSubprocessFailure(interrupted, 180_000)).toBe('drafter killed by SIGKILL');
 });
 
 test('describeSubprocessFailure names a non-zero exit and its last stderr line', () => {
@@ -89,9 +85,7 @@ test('describeSubprocessFailure names a non-zero exit and its last stderr line',
     stderr: 'warming up\nrate limit reached',
   };
 
-  expect(describeSubprocessFailure(exited, 180_000)).toBe(
-    'drafter exited 1: rate limit reached',
-  );
+  expect(describeSubprocessFailure(exited, 180_000)).toBe('drafter exited 1: rate limit reached');
 });
 
 test('describeSubprocessFailure leaves the command out of the message', () => {
@@ -101,15 +95,11 @@ test('describeSubprocessFailure leaves the command out of the message', () => {
     stderr: '',
   };
 
-  expect(describeSubprocessFailure(withCommand, 180_000)).not.toContain(
-    'prompt text',
-  );
+  expect(describeSubprocessFailure(withCommand, 180_000)).not.toContain('prompt text');
 });
 
 test('describeSubprocessFailure falls back to the thrown value when it carries no cause', () => {
-  expect(
-    describeSubprocessFailure(new Error('spawn ENOENT'), 180_000),
-  ).toContain('spawn ENOENT');
+  expect(describeSubprocessFailure(new Error('spawn ENOENT'), 180_000)).toContain('spawn ENOENT');
 });
 
 test("describeSubprocessFailure keeps a startup failure's own words, which name it", () => {

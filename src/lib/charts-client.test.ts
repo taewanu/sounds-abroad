@@ -4,11 +4,7 @@ import { CHARTS, CODE_US } from './__fixtures__';
 import fixture from './__fixtures__/charts.json';
 import { MUSIC_CHARTS_TAG } from './cache-tags';
 import { emptyCountry } from './chart-schema';
-import {
-  ChartsFetchError,
-  ChartsValidationError,
-  fetchCharts,
-} from './charts-client';
+import { ChartsFetchError, ChartsValidationError, fetchCharts } from './charts-client';
 import { COUNTRIES } from './countries';
 
 const FIXTURE_URL = 'https://data.example.com/charts/v1/charts.json';
@@ -67,27 +63,19 @@ test('fetchCharts throws ChartsValidationError when payload is malformed', async
     }),
   );
 
-  await expect(fetchCharts(FIXTURE_URL)).rejects.toBeInstanceOf(
-    ChartsValidationError,
-  );
+  await expect(fetchCharts(FIXTURE_URL)).rejects.toBeInstanceOf(ChartsValidationError);
 });
 
 test('fetchCharts throws ChartsFetchError on non-OK status', async () => {
   mockFetch(new Response(null, { status: 500, statusText: 'Server Error' }));
 
-  await expect(fetchCharts(FIXTURE_URL)).rejects.toBeInstanceOf(
-    ChartsFetchError,
-  );
+  await expect(fetchCharts(FIXTURE_URL)).rejects.toBeInstanceOf(ChartsFetchError);
 });
 
 test('fetchCharts throws ChartsFetchError when fetch rejects (network error)', async () => {
-  vi.spyOn(globalThis, 'fetch').mockRejectedValue(
-    new TypeError('fetch failed'),
-  );
+  vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('fetch failed'));
 
-  await expect(fetchCharts(FIXTURE_URL)).rejects.toBeInstanceOf(
-    ChartsFetchError,
-  );
+  await expect(fetchCharts(FIXTURE_URL)).rejects.toBeInstanceOf(ChartsFetchError);
 });
 
 test('fetchCharts throws ChartsFetchError when body is not valid JSON', async () => {
@@ -98,9 +86,7 @@ test('fetchCharts throws ChartsFetchError when body is not valid JSON', async ()
     }),
   );
 
-  await expect(fetchCharts(FIXTURE_URL)).rejects.toBeInstanceOf(
-    ChartsFetchError,
-  );
+  await expect(fetchCharts(FIXTURE_URL)).rejects.toBeInstanceOf(ChartsFetchError);
 });
 
 // The busiest read of the store, and the one the whole payload comes through, so
@@ -133,7 +119,5 @@ test('fetchCharts gives every listed country the file lacks an empty entry', asy
 
   expect(Object.keys(charts.countries)).toHaveLength(COUNTRIES.length);
   expect(charts.countries[CODE_US]).toEqual(CHARTS.countries[CODE_US]);
-  expect(charts.countries[uncharted.code]).toEqual(
-    emptyCountry(uncharted.name),
-  );
+  expect(charts.countries[uncharted.code]).toEqual(emptyCountry(uncharted.name));
 });

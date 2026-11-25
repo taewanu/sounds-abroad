@@ -60,10 +60,7 @@ export const APPLE_PREVIEW_HOST = 'audio-ssl.itunes.apple.com';
 export const APPLE_STOREFRONT_HOST = exactly('music.apple.com');
 
 /** The page a listener opens to play a track. */
-export const AppleStorefrontUrlSchema = httpsUrlOn(
-  APPLE_STOREFRONT_HOST,
-  'storefront',
-);
+export const AppleStorefrontUrlSchema = httpsUrlOn(APPLE_STOREFRONT_HOST, 'storefront');
 
 /**
  * Cover art, pinned to the image domain rather than to one host: the shard in an
@@ -81,16 +78,10 @@ export const AppleArtworkUrlSchema = httpsUrlOn(
  * so allowing subdomains here would buy nothing and accept a host the storefront
  * never serves from.
  */
-export const ApplePreviewUrlSchema = httpsUrlOn(
-  exactly(APPLE_PREVIEW_HOST),
-  'preview',
-);
+export const ApplePreviewUrlSchema = httpsUrlOn(exactly(APPLE_PREVIEW_HOST), 'preview');
 
 /** A deep link out to the other streaming service. */
-export const SpotifyUrlSchema = httpsUrlOn(
-  exactly('open.spotify.com'),
-  'Spotify',
-);
+export const SpotifyUrlSchema = httpsUrlOn(exactly('open.spotify.com'), 'Spotify');
 
 /**
  * What a playlist id may be.

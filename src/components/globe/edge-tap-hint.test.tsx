@@ -39,9 +39,7 @@ describe('EdgeTapHint', () => {
     cleanup();
 
     const { getByTestId } = renderHint(true);
-    expect(getByTestId('edge-tap-badge').textContent).toMatch(
-      /double-tap either edge to skip/i,
-    );
+    expect(getByTestId('edge-tap-badge').textContent).toMatch(/double-tap either edge to skip/i);
     expect(getByTestId('edge-tap-backdrop')).toBeTruthy();
   });
 
@@ -128,11 +126,7 @@ describe('EdgeTapHint', () => {
     // The left edge echoes the double-tap so "either edge" is shown, not worded.
     expect(getByTestId('edge-tap-echo')).toBeTruthy();
     // Pointer-transparent so it never intercepts the taps it teaches.
-    expect(getByTestId('edge-tap-backdrop').className).toContain(
-      'pointer-events-none',
-    );
-    expect(getByTestId('edge-tap-foreground').className).toContain(
-      'pointer-events-none',
-    );
+    expect(getByTestId('edge-tap-backdrop').className).toContain('pointer-events-none');
+    expect(getByTestId('edge-tap-foreground').className).toContain('pointer-events-none');
   });
 });

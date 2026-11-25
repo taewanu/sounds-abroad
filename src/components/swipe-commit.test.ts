@@ -1,10 +1,6 @@
 import { expect, test } from 'vitest';
 
-import {
-  type SwipeCommitConfig,
-  type SwipeSample,
-  decideSwipeCommit,
-} from './swipe-commit';
+import { type SwipeCommitConfig, type SwipeSample, decideSwipeCommit } from './swipe-commit';
 
 const CFG: SwipeCommitConfig = {
   commitThresholdPct: 33,
@@ -53,9 +49,7 @@ test('a flick whose velocity opposes the drag does not commit', () => {
 
 test('with flick disabled a short fast swipe still springs back', () => {
   const noFlick = { ...CFG, flickToCommit: false };
-  expect(decideSwipeCommit(sample({ dx: -40, vx: -0.9 }), noFlick)).toBe(
-    'cancel',
-  );
+  expect(decideSwipeCommit(sample({ dx: -40, vx: -0.9 }), noFlick)).toBe('cancel');
 });
 
 test('a drag exactly at the threshold commits', () => {
@@ -63,13 +57,9 @@ test('a drag exactly at the threshold commits', () => {
 });
 
 test('a next-ward commit at the last track clamps to a spring-back', () => {
-  expect(decideSwipeCommit(sample({ dx: -120, canNext: false }), CFG)).toBe(
-    'cancel',
-  );
+  expect(decideSwipeCommit(sample({ dx: -120, canNext: false }), CFG)).toBe('cancel');
 });
 
 test('a prev-ward commit at the first track clamps to a spring-back', () => {
-  expect(decideSwipeCommit(sample({ dx: 120, canPrev: false }), CFG)).toBe(
-    'cancel',
-  );
+  expect(decideSwipeCommit(sample({ dx: 120, canPrev: false }), CFG)).toBe('cancel');
 });

@@ -4,11 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { expect, test } from 'vitest';
 
-import {
-  fetchPlaylistPage,
-  parsePlaylistPage,
-  PlaylistPageError,
-} from './playlist-page';
+import { fetchPlaylistPage, parsePlaylistPage, PlaylistPageError } from './playlist-page';
 
 const PLAYLIST_ID = 'pl.48229b41bbfc47d7af39dae8e8b5276e';
 
@@ -36,9 +32,7 @@ function pageHtml(serverData: string): string {
 
 function trackItems(serverData: string): unknown[] {
   const sections = JSON.parse(serverData).data[0].data.sections;
-  return sections.find(
-    (s: { itemKind?: string }) => s.itemKind === 'trackLockup',
-  ).items;
+  return sections.find((s: { itemKind?: string }) => s.itemKind === 'trackLockup').items;
 }
 
 test('reads every track out of the captured kr playlist page', async () => {
@@ -66,9 +60,7 @@ test('ranks tracks by their order in the section', async () => {
 
   const tracks = parsePlaylistPage(pageHtml(serverData), PLAYLIST_ID);
 
-  expect(tracks.map((t) => t.rank)).toEqual(
-    tracks.map((_, index) => index + 1),
-  );
+  expect(tracks.map((t) => t.rank)).toEqual(tracks.map((_, index) => index + 1));
 });
 
 test('renders the artwork template at the requested dimensions', async () => {
@@ -89,18 +81,15 @@ test('skips an item that no longer matches, keeping the rest', async () => {
   const kept = section.items.length - 1;
   section.items[0] = { title: 'orphan with no descriptor' };
 
-  const tracks = parsePlaylistPage(
-    pageHtml(JSON.stringify(parsed)),
-    PLAYLIST_ID,
-  );
+  const tracks = parsePlaylistPage(pageHtml(JSON.stringify(parsed)), PLAYLIST_ID);
 
   expect(tracks).toHaveLength(kept);
 });
 
 test('throws missing-block when the page carries no embedded state', () => {
-  expect(() =>
-    parsePlaylistPage('<html><body>nope</body></html>', PLAYLIST_ID),
-  ).toThrowError(PlaylistPageError);
+  expect(() => parsePlaylistPage('<html><body>nope</body></html>', PLAYLIST_ID)).toThrowError(
+    PlaylistPageError,
+  );
 });
 
 test('names the playlist on the thrown error', () => {
@@ -113,15 +102,15 @@ test('names the playlist on the thrown error', () => {
 });
 
 test('throws json when the embedded block is not JSON', () => {
-  expect(() =>
-    parsePlaylistPage(pageHtml('not json'), PLAYLIST_ID),
-  ).toThrowError(expect.objectContaining({ kind: 'json' }));
+  expect(() => parsePlaylistPage(pageHtml('not json'), PLAYLIST_ID)).toThrowError(
+    expect.objectContaining({ kind: 'json' }),
+  );
 });
 
 test('throws shape when the envelope no longer matches', () => {
-  expect(() =>
-    parsePlaylistPage(pageHtml(JSON.stringify({ data: [] })), PLAYLIST_ID),
-  ).toThrowError(expect.objectContaining({ kind: 'shape' }));
+  expect(() => parsePlaylistPage(pageHtml(JSON.stringify({ data: [] })), PLAYLIST_ID)).toThrowError(
+    expect.objectContaining({ kind: 'shape' }),
+  );
 });
 
 test('throws shape when no track section is present', () => {
@@ -129,9 +118,9 @@ test('throws shape when no track section is present', () => {
     data: [{ data: { sections: [{ itemKind: 'spacer', items: [] }] } }],
   });
 
-  expect(() =>
-    parsePlaylistPage(pageHtml(serverData), PLAYLIST_ID),
-  ).toThrowError(expect.objectContaining({ kind: 'shape' }));
+  expect(() => parsePlaylistPage(pageHtml(serverData), PLAYLIST_ID)).toThrowError(
+    expect.objectContaining({ kind: 'shape' }),
+  );
 });
 
 test('throws shape when every item in the track section is unusable', () => {
@@ -145,9 +134,9 @@ test('throws shape when every item in the track section is unusable', () => {
     ],
   });
 
-  expect(() =>
-    parsePlaylistPage(pageHtml(serverData), PLAYLIST_ID),
-  ).toThrowError(expect.objectContaining({ kind: 'shape' }));
+  expect(() => parsePlaylistPage(pageHtml(serverData), PLAYLIST_ID)).toThrowError(
+    expect.objectContaining({ kind: 'shape' }),
+  );
 });
 
 test('fetchPlaylistPage throws http on non-OK status', async () => {
@@ -216,9 +205,9 @@ test('a track section left with nothing usable is a broken contract, not an empt
     item.contentDescriptor.url = 'javascript:alert(1)';
   }
 
-  expect(() =>
-    parsePlaylistPage(pageHtml(JSON.stringify(data)), PLAYLIST_ID),
-  ).toThrow(PlaylistPageError);
+  expect(() => parsePlaylistPage(pageHtml(JSON.stringify(data)), PLAYLIST_ID)).toThrow(
+    PlaylistPageError,
+  );
 });
 
 test('fetchPlaylistPage refuses a target off the storefront host before fetching', async () => {

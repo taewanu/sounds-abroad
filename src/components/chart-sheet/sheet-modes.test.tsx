@@ -122,10 +122,7 @@ function ModeHost({
   );
 }
 
-function renderSheet(
-  over: Partial<ChartTracksState> = {},
-  country: Country = COUNTRY,
-) {
+function renderSheet(over: Partial<ChartTracksState> = {}, country: Country = COUNTRY) {
   const store = createAudioStore(() => makeMockAudio());
   const tree = (chart: ChartTracksState, code: string, data: Country) => (
     <AudioStoreContext.Provider value={store}>
@@ -135,19 +132,14 @@ function renderSheet(
   const utils = render(tree(chartState(over), 'tl', country));
   // Re-renders the same tree with another chart or country, so a switch the
   // screen would drive can be driven here without remounting the mode above it.
-  const swap = (
-    next: Partial<ChartTracksState> = {},
-    code = 'tl',
-    data: Country = country,
-  ) => utils.rerender(tree(chartState(next), code, data));
+  const swap = (next: Partial<ChartTracksState> = {}, code = 'tl', data: Country = country) =>
+    utils.rerender(tree(chartState(next), code, data));
   return { ...utils, store, swap };
 }
 
 /** Whether the track list is set to play its arrival animation. */
 function rowsEntering(container: HTMLElement): boolean {
-  return (
-    container.querySelector('ol')?.hasAttribute('data-rows-entering') ?? false
-  );
+  return container.querySelector('ol')?.hasAttribute('data-rows-entering') ?? false;
 }
 
 function openOnlyHere() {
@@ -180,11 +172,9 @@ describe('ChartSheet chart modes', () => {
   test('opens on most played, listing the chart in its own order', () => {
     renderSheet();
 
-    expect(
-      screen
-        .getByRole('button', { name: 'Most played' })
-        .getAttribute('aria-pressed'),
-    ).toBe('true');
+    expect(screen.getByRole('button', { name: 'Most played' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
     expect(listedNames()).toEqual(['Song 1', 'Song 2', 'Song 3']);
   });
 
@@ -219,9 +209,7 @@ describe('ChartSheet chart modes', () => {
     openOnlyHere();
 
     expect(
-      screen
-        .getByRole('button', { name: 'Only here' })
-        .classList.contains('chart-tab-waiting'),
+      screen.getByRole('button', { name: 'Only here' }).classList.contains('chart-tab-waiting'),
     ).toBe(true);
   });
 
@@ -231,9 +219,7 @@ describe('ChartSheet chart modes', () => {
     openOnlyHere();
 
     expect(
-      screen
-        .getByRole('button', { name: 'Only here' })
-        .classList.contains('chart-tab-waiting'),
+      screen.getByRole('button', { name: 'Only here' }).classList.contains('chart-tab-waiting'),
     ).toBe(false);
   });
 
@@ -242,11 +228,9 @@ describe('ChartSheet chart modes', () => {
 
     openOnlyHere();
 
-    expect(
-      screen
-        .getByRole('tab', { name: 'Top Songs' })
-        .getAttribute('aria-selected'),
-    ).toBe('true');
+    expect(screen.getByRole('tab', { name: 'Top Songs' }).getAttribute('aria-selected')).toBe(
+      'true',
+    );
     expect(screen.queryByText('Testland')).not.toBeNull();
   });
 
@@ -325,10 +309,7 @@ describe('ChartSheet chart modes', () => {
 
   test('says nothing about an empty only here while the chart is arriving', () => {
     const shared = [song(1, 4)];
-    renderSheet(
-      { tracks: shared, tailPending: true },
-      { ...COUNTRY, tracks: shared },
-    );
+    renderSheet({ tracks: shared, tailPending: true }, { ...COUNTRY, tracks: shared });
 
     openOnlyHere();
 
@@ -410,26 +391,19 @@ describe('ChartSheet chart modes', () => {
   test('says the chart stops short when the rest would not load', () => {
     renderSheet({ tailFailed: true });
 
-    expect(
-      screen.queryByText('The rest of this chart would not load.'),
-    ).not.toBeNull();
+    expect(screen.queryByText('The rest of this chart would not load.')).not.toBeNull();
   });
 
   test('claims nothing about only here from a chart it could not finish reading', () => {
     // Every eager row is carried elsewhere, so only here holds nothing of the
     // twenty five in hand. It cannot speak for the rows it never got.
     const shared = [song(1, 4), song(2, 9)];
-    renderSheet(
-      { tracks: shared, tailFailed: true },
-      { ...COUNTRY, tracks: shared },
-    );
+    renderSheet({ tracks: shared, tailFailed: true }, { ...COUNTRY, tracks: shared });
 
     openOnlyHere();
 
     expect(screen.queryByText('Nothing is only here today')).toBeNull();
-    expect(
-      screen.queryByText('The rest of this chart would not load.'),
-    ).not.toBeNull();
+    expect(screen.queryByText('The rest of this chart would not load.')).not.toBeNull();
   });
 
   test('the collapsing rows are dropped once the switch has run', () => {
@@ -440,9 +414,7 @@ describe('ChartSheet chart modes', () => {
       act(() => {
         fireEvent.click(screen.getByRole('button', { name: 'Only here' }));
       });
-      expect(
-        container.querySelector('[data-row-transition="leaving"]'),
-      ).not.toBeNull();
+      expect(container.querySelector('[data-row-transition="leaving"]')).not.toBeNull();
 
       act(() => {
         vi.advanceTimersByTime(ROW_COLLAPSE_MS);
@@ -450,9 +422,7 @@ describe('ChartSheet chart modes', () => {
 
       // The rows the mode dropped are held only through their collapse, then
       // removed, so the list settles to the tracks the mode keeps.
-      expect(
-        container.querySelector('[data-row-transition="leaving"]'),
-      ).toBeNull();
+      expect(container.querySelector('[data-row-transition="leaving"]')).toBeNull();
     } finally {
       vi.useRealTimers();
     }
@@ -461,10 +431,7 @@ describe('ChartSheet chart modes', () => {
   test('the empty state opens a playlist chart in one action', () => {
     const open = vi.fn();
     const shared = [song(1, 4), song(2, 9)];
-    renderSheet(
-      { tracks: shared, tail: [], open },
-      { ...COUNTRY, tracks: shared },
-    );
+    renderSheet({ tracks: shared, tail: [], open }, { ...COUNTRY, tracks: shared });
 
     openOnlyHere();
     fireEvent.click(screen.getByRole('button', { name: 'Open Everywhere' }));
@@ -474,10 +441,7 @@ describe('ChartSheet chart modes', () => {
 
   test('a country carrying no playlists still reads as an answer', () => {
     const shared = [song(1, 4)];
-    renderSheet(
-      { tracks: shared, tail: [] },
-      { ...COUNTRY, tracks: shared, playlists: [] },
-    );
+    renderSheet({ tracks: shared, tail: [] }, { ...COUNTRY, tracks: shared, playlists: [] });
 
     openOnlyHere();
 

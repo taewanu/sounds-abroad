@@ -6,11 +6,7 @@ import { shuffleSeat } from './shuffle-seat';
 
 const PREVIEW = 'https://audio-ssl.itunes.apple.com/preview.m4a';
 
-function makeTrack(
-  rank: number,
-  previewUrl: string | null,
-  spread?: number,
-): Track {
+function makeTrack(rank: number, previewUrl: string | null, spread?: number): Track {
   return {
     rank,
     name: `Track ${rank}`,
@@ -39,10 +35,7 @@ describe('shuffleSeat', () => {
   });
 
   test('a gem that carries no preview leaves the landing silent', () => {
-    const country = makeCountry([
-      makeTrack(1, null, 1),
-      makeTrack(2, PREVIEW, 6),
-    ]);
+    const country = makeCountry([makeTrack(1, null, 1), makeTrack(2, PREVIEW, 6)]);
 
     expect(shuffleSeat(country)).toBeNull();
   });

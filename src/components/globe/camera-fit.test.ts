@@ -7,8 +7,7 @@ const BASE_DISTANCE = 3.5;
 
 function shorterDimensionFill(aspect: number): number {
   const { fov, distance } = cameraForViewport(aspect);
-  const halfExtent =
-    distance * Math.tan((fov / 2) * (Math.PI / 180)) * Math.min(1, aspect);
+  const halfExtent = distance * Math.tan((fov / 2) * (Math.PI / 180)) * Math.min(1, aspect);
   return 1 / halfExtent;
 }
 

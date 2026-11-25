@@ -1,19 +1,11 @@
 import { expect, test } from 'vitest';
 
 import type { ChartFile, Country, Track } from '../../src/lib/chart-schema';
-import {
-  commentaryKey,
-  type CommentaryStore,
-} from '../../src/lib/commentary-store';
+import { commentaryKey, type CommentaryStore } from '../../src/lib/commentary-store';
 import type { DropsStore } from './drops';
 import { chartConfidence, computeWorklist } from './worklist';
 
-function track(
-  rank: number,
-  artist: string,
-  name: string,
-  spread?: number,
-): Track {
+function track(rank: number, artist: string, name: string, spread?: number): Track {
   return {
     rank,
     name,
@@ -171,10 +163,7 @@ test('flags a track absent from the previous snapshot as a new entry', () => {
     us: country('United States', [track(1, 'Artist A', 'Song A')]),
   });
   const current = chart({
-    us: country('United States', [
-      track(1, 'Artist A', 'Song A'),
-      track(2, 'Artist B', 'Song B'),
-    ]),
+    us: country('United States', [track(1, 'Artist A', 'Song A'), track(2, 'Artist B', 'Song B')]),
   });
   const commentary = storeWith(commentaryKey('en', 'Artist A', 'Song A'));
 
@@ -412,10 +401,6 @@ test('a local-gem sorts ahead of similarly thin non-gems despite a worse rank', 
 
   const items = computeWorklist({ current, previous: null, commentary: {} });
 
-  expect(items.map((i) => i.name)).toEqual([
-    'Local Hit',
-    'Filler',
-    'Thin Mover',
-  ]);
+  expect(items.map((i) => i.name)).toEqual(['Local Hit', 'Filler', 'Thin Mover']);
   expect(items[0].isGem).toBe(true);
 });

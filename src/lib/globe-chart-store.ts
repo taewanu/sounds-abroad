@@ -108,8 +108,7 @@ export const globeChartStore = createStore<GlobeChartState>()((set) => ({
     set((state) => ({
       skipIntent: { dir, nonce: state.skipIntent.nonce + 1 },
     })),
-  requestShuffle: () =>
-    set((state) => ({ shuffleSignal: state.shuffleSignal + 1 })),
+  requestShuffle: () => set((state) => ({ shuffleSignal: state.shuffleSignal + 1 })),
   shuffleTo: (code) =>
     set((state) => ({
       selectedCountry: code,

@@ -3,11 +3,7 @@
  * over. The page inlines this function's source as a script, so its body may
  * use only its parameters and browser globals.
  */
-export function startChartsRead(
-  route: string,
-  timeoutMs: number,
-  key: string,
-): Promise<Response> {
+export function startChartsRead(route: string, timeoutMs: number, key: string): Promise<Response> {
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
   // Gives one wait, for the response or for a body chunk, timeoutMs before the

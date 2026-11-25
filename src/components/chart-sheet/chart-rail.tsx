@@ -5,12 +5,7 @@ import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { SONGS_CHART, type ChartRef } from '@/lib/chart-ref';
 import type { Playlist } from '@/lib/chart-schema';
 
-import {
-  CHART_PANEL_ID,
-  SONGS_CHART_LABEL,
-  chartTabId,
-  focusAlongTabs,
-} from './chart-tabs';
+import { CHART_PANEL_ID, SONGS_CHART_LABEL, chartTabId, focusAlongTabs } from './chart-tabs';
 
 // Closes over nothing, so it is built once rather than per render.
 function handleKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
@@ -43,13 +38,7 @@ export interface ChartRailProps {
  * normalisation rule would fire for a small minority and could not shorten the
  * genuinely long descriptive names anyway.
  */
-export function ChartRail({
-  playlists,
-  current,
-  pending,
-  failed,
-  onOpen,
-}: ChartRailProps) {
+export function ChartRail({ playlists, current, pending, failed, onOpen }: ChartRailProps) {
   // A country with no playlists has nothing to choose between, and the row it
   // would cost is scarce at the smaller snaps.
   if (playlists.length === 0) return null;

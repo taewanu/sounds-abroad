@@ -50,18 +50,14 @@ const RAW_DRAFT_SCHEMA = JSON.stringify({
  * shows the prompt back and not what went wrong. This reads the cause and
  * leaves the prompt out.
  */
-export function describeSubprocessFailure(
-  error: unknown,
-  timeoutMs: number,
-): string {
+export function describeSubprocessFailure(error: unknown, timeoutMs: number): string {
   const e = error as {
     killed?: boolean;
     signal?: unknown;
     code?: unknown;
     stderr?: unknown;
   };
-  const stderr =
-    typeof e.stderr === 'string' ? e.stderr.trim().split('\n').at(-1) : '';
+  const stderr = typeof e.stderr === 'string' ? e.stderr.trim().split('\n').at(-1) : '';
   const tail = stderr ? `: ${stderr}` : '';
   // Killed says a signal ended it, not which one sent it. The budget's own kill
   // is SIGTERM, and so is an operator or a supervisor stopping the batch, so a
@@ -122,7 +118,7 @@ export function createClaudeDrafter(timeoutMs = 180_000): DraftClient {
         { timeout: timeoutMs, maxBuffer: 8 * 1024 * 1024 },
       ));
     } catch (error) {
-      throw new Error(describeSubprocessFailure(error, timeoutMs));
+      throw new Error(describeSubprocessFailure(error, timeoutMs), { cause: error });
     }
     const envelope = JSON.parse(stdout) as {
       is_error?: boolean;

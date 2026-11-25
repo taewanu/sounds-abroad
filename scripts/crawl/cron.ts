@@ -16,11 +16,7 @@ import { fetchPublishedCharts } from './published-charts';
 import { triggerRevalidate } from './revalidate-trigger';
 import { crawlAll, summarizeValidity, type SpotifyResolution } from './run';
 import { createSpotifyResolver } from './spotify-resolve';
-import {
-  createPlaylistPageThrottle,
-  createSpotifyThrottle,
-  createThrottle,
-} from './throttle';
+import { createPlaylistPageThrottle, createSpotifyThrottle, createThrottle } from './throttle';
 import {
   DATA_CACHE_ENTRY_CAP,
   uploadCharts,
@@ -31,8 +27,7 @@ import {
 
 assertObjectStoreEnv('Set them as workflow secrets.');
 
-const sleep = (ms: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Public URL of the last published payload, read back for carry-forward.
 // Absent locally → carry-forward skipped.
@@ -53,9 +48,7 @@ const spotify: SpotifyResolution | undefined =
       }
     : undefined;
 if (!spotify) {
-  console.warn(
-    '[crawl] SPOTIFY_CLIENT_ID/SECRET not set: Spotify links fall back to search URLs.',
-  );
+  console.warn('[crawl] SPOTIFY_CLIENT_ID/SECRET not set: Spotify links fall back to search URLs.');
 }
 
 // Session-owned commentary store, baked into the served charts when present.
@@ -64,9 +57,7 @@ const commentaryUrl = process.env.COMMENTARY_BLOB_URL;
 if (!commentaryUrl) {
   // Optional by design, so absence must not abort; warn so a missing wire
   // surfaces in the run output instead of silently skipping all commentary.
-  console.warn(
-    '[crawl] COMMENTARY_BLOB_URL not set: commentary will not be baked this run.',
-  );
+  console.warn('[crawl] COMMENTARY_BLOB_URL not set: commentary will not be baked this run.');
 }
 
 // Short-lived process: must flush before exit so the monitor check-in + the
@@ -90,8 +81,7 @@ try {
         countries: COUNTRIES,
         playlistAxis: {
           fetchPlaylists: itunes.fetchPlaylists,
-          fetchPlaylistPage: (id, url) =>
-            pageThrottle(() => fetchPlaylistPage(id, url)),
+          fetchPlaylistPage: (id, url) => pageThrottle(() => fetchPlaylistPage(id, url)),
           uploadPlaylistFile,
         },
         fetchRss: itunes.fetchRss,
@@ -131,9 +121,7 @@ try {
           }
         },
         triggerRevalidate,
-        fetchPrevious: previousUrl
-          ? () => fetchPublishedCharts(previousUrl)
-          : undefined,
+        fetchPrevious: previousUrl ? () => fetchPublishedCharts(previousUrl) : undefined,
         // A configured store that reads back null means the bake silently
         // skips and freshly-crawled cards ship without commentary, so the
         // degradation must surface in Sentry, not just the run log.
@@ -141,9 +129,7 @@ try {
           ? withCommentaryDegradationSignal(
               () => fetchCommentaryStore(commentaryUrl),
               () => {
-                console.warn(
-                  '[crawl] commentary store unreadable: bake skipped this run.',
-                );
+                console.warn('[crawl] commentary store unreadable: bake skipped this run.');
                 Sentry.captureMessage('commentary:unavailable', {
                   level: 'warning',
                   extra: { run_id: process.env.GITHUB_RUN_ID },

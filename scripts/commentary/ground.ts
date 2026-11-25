@@ -7,11 +7,7 @@ import {
   type GroundingClient,
   type GroundingVerdict,
 } from '../../src/lib/grounding';
-import {
-  assertAllowedTarget,
-  guardedFetch,
-  RefusedTargetError,
-} from '../lib/outbound-fetch';
+import { assertAllowedTarget, guardedFetch, RefusedTargetError } from '../lib/outbound-fetch';
 
 /**
  * The grounding shell: the network-and-subprocess half of the check whose pure
@@ -137,9 +133,7 @@ export function createClaudeJudge(timeoutMs = 60_000): GroundingClient {
 export function combineSourceTexts(
   texts: Array<string | null>,
 ): { ok: true; sourceText: string } | { ok: false; verdict: GroundingVerdict } {
-  const loaded = texts
-    .filter((t) => t !== null)
-    .map((t) => t.slice(0, SOURCE_TEXT_CEILING));
+  const loaded = texts.filter((t) => t !== null).map((t) => t.slice(0, SOURCE_TEXT_CEILING));
 
   if (loaded.length === 0) {
     return {
@@ -160,9 +154,7 @@ export function combineSourceTexts(
 function refusedVerdict(err: unknown): GroundingVerdict {
   return {
     grounded: false,
-    reason: `Cited source is a refused target: ${
-      err instanceof Error ? err.message : String(err)
-    }`,
+    reason: `Cited source is a refused target: ${err instanceof Error ? err.message : String(err)}`,
   };
 }
 
@@ -217,12 +209,7 @@ export async function groundEntry(
   const combined = combineSourceTexts(texts);
   if (!combined.ok) return combined.verdict;
   try {
-    return await gradeGrounding(
-      entry.lead,
-      entry.detail,
-      combined.sourceText,
-      deps.judge,
-    );
+    return await gradeGrounding(entry.lead, entry.detail, combined.sourceText, deps.judge);
   } catch {
     return {
       grounded: false,

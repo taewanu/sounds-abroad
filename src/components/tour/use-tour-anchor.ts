@@ -16,15 +16,11 @@ export interface TourAnchor {
 // size or firing scroll, so the host passes the snap (or any positional signal)
 // as `watch` to force a fresh read. `selector` is any CSS selector, letting a
 // beat target a nested element (e.g. the first track row) without its own id.
-export function useTourAnchor(
-  selector: string | null,
-  watch?: unknown,
-): TourAnchor | null {
+export function useTourAnchor(selector: string | null, watch?: unknown): TourAnchor | null {
   const [anchor, setAnchor] = useState<TourAnchor | null>(null);
 
   useEffect(() => {
-    const find = () =>
-      selector ? document.querySelector<HTMLElement>(selector) : null;
+    const find = () => (selector ? document.querySelector<HTMLElement>(selector) : null);
 
     // The single write path; reused as the observer/listener callback. Routing
     // every update (including the "no target" reset to null) through here keeps
@@ -83,10 +79,5 @@ function sameAnchor(a: TourAnchor | null, b: TourAnchor | null): boolean {
 }
 
 function sameRect(a: DOMRect, b: DOMRect): boolean {
-  return (
-    a.top === b.top &&
-    a.left === b.left &&
-    a.width === b.width &&
-    a.height === b.height
-  );
+  return a.top === b.top && a.left === b.left && a.width === b.width && a.height === b.height;
 }

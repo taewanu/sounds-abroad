@@ -17,12 +17,7 @@ test('gradeGrounding returns grounded for a grounded judgment', async () => {
     reason: 'The source states the song debuted at number two.',
   });
 
-  const verdict = await gradeGrounding(
-    'Debuted at #2.',
-    undefined,
-    'src',
-    judge,
-  );
+  const verdict = await gradeGrounding('Debuted at #2.', undefined, 'src', judge);
 
   expect(verdict).toEqual({
     grounded: true,
@@ -36,12 +31,7 @@ test('gradeGrounding withholds grounding for an ungrounded judgment', async () =
     reason: 'The source never mentions a chart position.',
   });
 
-  const verdict = await gradeGrounding(
-    'Debuted at #2.',
-    undefined,
-    'src',
-    judge,
-  );
+  const verdict = await gradeGrounding('Debuted at #2.', undefined, 'src', judge);
 
   expect(verdict.grounded).toBe(false);
   expect(verdict.reason.length).toBeGreaterThan(0);
@@ -53,12 +43,7 @@ test('gradeGrounding fails safe on an uncertain judgment', async () => {
     reason: 'The source is ambiguous about the ranking.',
   });
 
-  const verdict = await gradeGrounding(
-    'Debuted at #2.',
-    undefined,
-    'src',
-    judge,
-  );
+  const verdict = await gradeGrounding('Debuted at #2.', undefined, 'src', judge);
 
   expect(verdict.grounded).toBe(false);
 });
@@ -66,12 +51,7 @@ test('gradeGrounding fails safe on an uncertain judgment', async () => {
 test('gradeGrounding fails safe on an unrecognized status', async () => {
   const judge = judgeReturning({ status: 'maybe', reason: 'unclear' });
 
-  const verdict = await gradeGrounding(
-    'Debuted at #2.',
-    undefined,
-    'src',
-    judge,
-  );
+  const verdict = await gradeGrounding('Debuted at #2.', undefined, 'src', judge);
 
   expect(verdict.grounded).toBe(false);
 });
@@ -79,12 +59,7 @@ test('gradeGrounding fails safe on an unrecognized status', async () => {
 test('gradeGrounding fails safe on a grounded judgment with no reason', async () => {
   const judge = judgeReturning({ status: 'grounded' });
 
-  const verdict = await gradeGrounding(
-    'Debuted at #2.',
-    undefined,
-    'src',
-    judge,
-  );
+  const verdict = await gradeGrounding('Debuted at #2.', undefined, 'src', judge);
 
   expect(verdict.grounded).toBe(false);
   expect(verdict.reason.length).toBeGreaterThan(0);
@@ -93,12 +68,7 @@ test('gradeGrounding fails safe on a grounded judgment with no reason', async ()
 test('gradeGrounding yields a readable reason when the model omits one', async () => {
   const judge = judgeReturning({ status: 'banana' });
 
-  const verdict = await gradeGrounding(
-    'Debuted at #2.',
-    undefined,
-    'src',
-    judge,
-  );
+  const verdict = await gradeGrounding('Debuted at #2.', undefined, 'src', judge);
 
   expect(verdict.grounded).toBe(false);
   expect(verdict.reason.length).toBeGreaterThan(0);
