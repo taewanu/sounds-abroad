@@ -1,37 +1,50 @@
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { afterEach, expect, test } from 'vitest';
 
 const ROOT = path.resolve(__dirname, '..');
-const FIXTURE_DIR = path.join(ROOT, 'src', 'lint-plugin-fixture');
 
 type Diagnostic = { code: string; labels: { span: { line: number } }[] };
 
-const lint = (file: string): Diagnostic[] => {
-  const run = spawnSync('pnpm', ['exec', 'vp', 'lint', '--format', 'json', file], {
+const fixtureDirs: string[] = [];
+
+function runLinter(args: string[]): string {
+  const run = spawnSync('pnpm', ['exec', 'vp', 'lint', ...args], {
     cwd: ROOT,
     encoding: 'utf8',
+    timeout: 30_000,
   });
-  const start = run.stdout.indexOf('{');
-  return (JSON.parse(run.stdout.slice(start)) as { diagnostics: Diagnostic[] }).diagnostics;
-};
+  if (run.error || (run.status !== 0 && run.status !== 1)) {
+    throw new Error(`vp lint ${args.join(' ')} exited ${run.status}: ${run.stderr}`, {
+      cause: run.error,
+    });
+  }
+  return run.stdout.slice(run.stdout.indexOf('{'));
+}
 
-// Lines (1-based) on which `rule` fired.
-const linesFor = (diagnostics: Diagnostic[], rule: string) =>
-  diagnostics.filter((d) => d.code === `sounds-abroad(${rule})`).map((d) => d.labels[0].span.line);
+function lint(file: string): Diagnostic[] {
+  const output = runLinter(['--format', 'json', file]);
+  const report = JSON.parse(output) as { diagnostics?: Diagnostic[] };
+  if (!Array.isArray(report.diagnostics)) {
+    throw new Error(`vp lint printed no diagnostics array: ${output.slice(0, 200)}`);
+  }
+  return report.diagnostics;
+}
 
-// Writes one fixture per source and returns the lines the rule flagged.
-const lintSource = (rule: string, lines: string[]) => {
-  mkdirSync(FIXTURE_DIR, { recursive: true });
-  const file = path.join(FIXTURE_DIR, 'fixture.tsx');
+function lintSource(rule: string, lines: string[]): number[] {
+  const dir = mkdtempSync(path.join(ROOT, 'src', 'lint-fixture-'));
+  fixtureDirs.push(dir);
+  const file = path.join(dir, 'fixture.tsx');
   writeFileSync(file, `${lines.join('\n')}\n`);
-  return linesFor(lint(file), rule);
-};
+  return lint(file)
+    .filter((d) => d.code === `sounds-abroad(${rule})`)
+    .map((d) => d.labels[0].span.line);
+}
 
 afterEach(() => {
-  rmSync(FIXTURE_DIR, { recursive: true, force: true });
+  for (const dir of fixtureDirs.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 
 test('no-transition-all reports the class in a string, a JSX attribute, and a template literal', () => {
@@ -88,11 +101,7 @@ test('no-bare-escape leaves other keys and non-comparison uses alone', () => {
 test('no-bare-escape is switched off for the one file that implements the escape layer', () => {
   const exempt = 'src/components/use-escape-layer.ts';
 
-  const run = spawnSync('pnpm', ['exec', 'vp', 'lint', '--print-config', exempt], {
-    cwd: ROOT,
-    encoding: 'utf8',
-  });
-  const config = JSON.parse(run.stdout.slice(run.stdout.indexOf('{'))) as {
+  const config = JSON.parse(runLinter(['--print-config', exempt])) as {
     overrides: { files: string[]; rules: Record<string, string> }[];
   };
   const verdicts = config.overrides
