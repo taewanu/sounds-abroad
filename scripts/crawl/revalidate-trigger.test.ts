@@ -49,6 +49,7 @@ test('issues the bearer POST without waiting on a timer', async () => {
     expect.objectContaining({
       method: 'POST',
       headers: { Authorization: `Bearer ${SECRET}` },
+      // oxlint-disable-next-line typescript/no-unsafe-assignment -- Vitest types asymmetric matchers as any, so a matcher in an expected object has no typed form.
       signal: expect.any(AbortSignal),
     }),
   );

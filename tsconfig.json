@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2017",
+    // ES2022, not esnext: some browsers inside Next's supported range lack ES2023 methods such as toSorted.
     "lib": ["dom", "dom.iterable", "es2022"],
     "allowJs": true,
     "skipLibCheck": true,
@@ -27,6 +28,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".vite-hooks/*.ts",
+    ".claude/hooks/*.ts",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"

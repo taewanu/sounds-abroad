@@ -29,10 +29,10 @@ function validChartFile(): ChartFile {
 }
 
 function fakeFetch(response: { ok?: boolean; status?: number; body: string }): typeof fetch {
-  return (async () =>
+  return async () =>
     new Response(response.body, {
       status: response.status ?? (response.ok === false ? 500 : 200),
-    })) as typeof fetch;
+    });
 }
 
 test('returns the parsed payload on a valid response', async () => {
@@ -68,9 +68,9 @@ test('returns null on schema mismatch', async () => {
 });
 
 test('returns null when fetch rejects', async () => {
-  const failingFetch: typeof fetch = (async () => {
+  const failingFetch: typeof fetch = async () => {
     throw new TypeError('network down');
-  }) as typeof fetch;
+  };
 
   const result = await fetchPublishedCharts(URL, failingFetch);
 

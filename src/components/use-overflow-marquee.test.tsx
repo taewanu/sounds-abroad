@@ -7,7 +7,7 @@ let resizeCallback: (() => void) | null = null;
 
 class MockResizeObserver {
   constructor(callback: ResizeObserverCallback) {
-    resizeCallback = () => callback([], this as unknown as ResizeObserver);
+    resizeCallback = () => callback([], this);
   }
   observe = vi.fn();
   unobserve = vi.fn();

@@ -105,6 +105,7 @@ async function runAllCountries(): Promise<void> {
       }
     },
     // Local debug entry never hits production revalidate; cron.ts injects the real one.
+    // oxlint-disable-next-line typescript/require-await -- a no-op standing in for the async revalidate dependency
     triggerRevalidate: async () => {
       console.log('[crawl] revalidate skipped (local debug)');
     },

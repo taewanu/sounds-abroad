@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi, type MockInstance } from 'vitest';
 
 import { globeChartStore } from '@/lib/globe-chart-store';
 
@@ -8,8 +8,8 @@ import { CountrySelector } from './country-selector';
 const openList = () => fireEvent.click(screen.getByRole('button', { name: /choose a country/i }));
 
 describe('CountrySelector', () => {
-  let pushState: ReturnType<typeof vi.spyOn>;
-  let replaceState: ReturnType<typeof vi.spyOn>;
+  let pushState: MockInstance<History['pushState']>;
+  let replaceState: MockInstance<History['replaceState']>;
 
   beforeEach(() => {
     globeChartStore.setState({ selectedCountry: 'br', readMode: false });

@@ -1,7 +1,6 @@
 import { act, fireEvent, render } from '@testing-library/react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
-import type { SnapState } from '@/components/chart-sheet/sheet';
 import { globeChartStore } from '@/lib/globe-chart-store';
 import { tourBridge } from '@/lib/tour-bridge';
 
@@ -27,7 +26,7 @@ function seedRecord(record: TourRecord) {
 
 function renderHost(overrides: Partial<TourHostProps> = {}) {
   const props: TourHostProps = {
-    snap: 'peek' as SnapState,
+    snap: 'peek',
     currentTrackKey: null,
     selectedCode: 'us',
     ...overrides,

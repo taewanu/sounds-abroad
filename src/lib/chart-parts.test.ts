@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi, type MockInstance } from 'vitest';
 
 import { MUSIC_CHARTS_TAG } from './cache-tags';
 import {
@@ -49,7 +49,7 @@ function playlistFile(id = PLAYLIST_ID): PlaylistFile {
   };
 }
 
-function mockJson(body: unknown, status = 200): ReturnType<typeof vi.spyOn> {
+function mockJson(body: unknown, status = 200): MockInstance<typeof fetch> {
   return vi.spyOn(globalThis, 'fetch').mockResolvedValue(
     new Response(JSON.stringify(body), {
       status,
@@ -86,6 +86,7 @@ test('returns the parsed track list when the body matches the schema', async () 
   expect(spy).toHaveBeenCalledWith(chartPartUrl(CHARTS_URL, 'playlists', PLAYLIST_ID), {
     cache: 'force-cache',
     next: { tags: [MUSIC_CHARTS_TAG] },
+    // oxlint-disable-next-line typescript/no-unsafe-assignment -- Vitest types asymmetric matchers as any, so a matcher in an expected object has no typed form.
     signal: expect.any(AbortSignal),
     // Empty with no key configured, which is how this suite runs. What the
     // header carries when one is set has its own test below.

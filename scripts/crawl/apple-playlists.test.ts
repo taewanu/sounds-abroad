@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { expect, test } from 'vitest';
 
+import { requestUrl } from '../../src/lib/__fixtures__/request-url';
 import { ApplePlaylistsError, fetchPlaylists, resizeArtwork } from './apple-playlists';
 
 const FIXTURE_PATH = resolve(
@@ -11,20 +12,24 @@ const FIXTURE_PATH = resolve(
   '__fixtures__/playlists-kr.json',
 );
 
+interface RawFeed {
+  feed: { results: Record<string, string>[] };
+}
+
 async function loadFixture(): Promise<string> {
   return readFile(FIXTURE_PATH, 'utf8');
 }
 
 function fakeFetch(response: { ok: boolean; status?: number; body: string }): typeof fetch {
-  return (async () =>
+  return async () =>
     new Response(response.body, {
       status: response.status ?? (response.ok ? 200 : 500),
-    })) as typeof fetch;
+    });
 }
 
 test('maps every playlist in the captured kr fixture', async () => {
   const body = await loadFixture();
-  const raw = JSON.parse(body).feed.results;
+  const raw = (JSON.parse(body) as RawFeed).feed.results;
 
   const playlists = await fetchPlaylists('kr', {
     fetch: fakeFetch({ ok: true, body }),
@@ -42,10 +47,10 @@ test('maps every playlist in the captured kr fixture', async () => {
 test('requests the playlists feed at the depth ceiling', async () => {
   const body = await loadFixture();
   const seen: string[] = [];
-  const spyFetch: typeof fetch = (async (input: RequestInfo | URL) => {
-    seen.push(String(input));
+  const spyFetch: typeof fetch = async (input: RequestInfo | URL) => {
+    seen.push(requestUrl(input));
     return new Response(body, { status: 200 });
-  }) as typeof fetch;
+  };
 
   await fetchPlaylists('kr', { fetch: spyFetch });
 
@@ -77,9 +82,9 @@ test('throws on invalid JSON', async () => {
 });
 
 test('throws when fetch rejects', async () => {
-  const failingFetch: typeof fetch = (async () => {
+  const failingFetch: typeof fetch = async () => {
     throw new TypeError('boom');
-  }) as typeof fetch;
+  };
 
   await expect(fetchPlaylists('kr', { fetch: failingFetch })).rejects.toBeInstanceOf(
     ApplePlaylistsError,
@@ -104,11 +109,11 @@ test('resizeArtwork leaves a URL with no dimension segment alone', () => {
 });
 
 test('every fixture artwork URL resizes to the requested dimensions', async () => {
-  const raw = JSON.parse(await loadFixture()).feed.results;
+  const raw = (JSON.parse(await loadFixture()) as RawFeed).feed.results;
 
-  const resized = raw.map((r: { artworkUrl100: string }) => resizeArtwork(r.artworkUrl100));
+  const resized = raw.map((r) => resizeArtwork(r.artworkUrl100));
 
-  expect(resized.every((url: string) => url.includes('/600x600'))).toBe(true);
+  expect(resized.every((url) => url.includes('/600x600'))).toBe(true);
 });
 
 // The URL and id rules are wired into this schema, so a feed carrying a value
@@ -122,7 +127,7 @@ test.each([
   { field: 'artworkUrl100', value: 'javascript:alert(1)' },
   { field: 'artworkUrl100', value: 'https://evil.test/600x600bb.jpg' },
 ])('a feed whose $field is $value fails the storefront', async ({ field, value }) => {
-  const feed = JSON.parse(await loadFixture());
+  const feed = JSON.parse(await loadFixture()) as RawFeed;
   feed.feed.results[0][field] = value;
 
   await expect(

@@ -57,7 +57,7 @@ describe('VolumeControl', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /volume/i }));
 
-    expect((screen.getByRole('slider') as HTMLInputElement).value).toBe('0.5');
+    expect(screen.getByRole<HTMLInputElement>('slider').value).toBe('0.5');
   });
 
   test('dragging the slider drives the volume', () => {

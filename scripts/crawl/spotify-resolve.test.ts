@@ -10,7 +10,7 @@ import {
 
 function jsonFetch(response: { ok?: boolean; status?: number; body: unknown }): typeof fetch {
   const status = response.status ?? (response.ok === false ? 500 : 200);
-  return (async () => new Response(JSON.stringify(response.body), { status })) as typeof fetch;
+  return async () => new Response(JSON.stringify(response.body), { status });
 }
 
 const TOKEN_BODY = {
@@ -155,9 +155,9 @@ test('resolveSpotifyUrl throws shape on an unexpected payload', async () => {
 });
 
 test('resolveSpotifyUrl throws network when fetch rejects', async () => {
-  const failingFetch: typeof fetch = (async () => {
+  const failingFetch: typeof fetch = async () => {
     throw new TypeError('boom');
-  }) as typeof fetch;
+  };
 
   await expect(resolveSpotifyUrl('x', 'y', 'tok', { fetch: failingFetch })).rejects.toBeInstanceOf(
     SpotifyResolveError,

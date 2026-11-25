@@ -30,11 +30,7 @@ async function renderFreshLoader() {
 
 test('a failed chart read offers a retry that reloads the page', async () => {
   vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
-  const reload = vi.fn();
-  vi.spyOn(window, 'location', 'get').mockReturnValue({
-    ...window.location,
-    reload,
-  });
+  const reload = vi.spyOn(window.location, 'reload').mockImplementation(() => {});
 
   await renderFreshLoader();
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import type { GeometryCollection, Topology } from 'topojson-specification';
 import { expect, test } from 'vitest';
 
 import { COUNTRIES } from './countries';
@@ -8,7 +9,7 @@ import { buildCountryOutlines, unwrapLongitudes } from './country-outlines';
 
 const realTopology = JSON.parse(
   readFileSync(join(process.cwd(), 'public/data/countries-50m.json'), 'utf-8'),
-);
+) as Topology<{ countries: GeometryCollection }>;
 
 test('buildCountryOutlines splits chart-set countries from others by isoNum', () => {
   const outlines = buildCountryOutlines(realTopology);

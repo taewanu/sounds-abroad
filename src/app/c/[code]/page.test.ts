@@ -12,7 +12,7 @@ describe('generateMetadata', () => {
       });
 
       expect(metadata.title).toBe(`${name} — Top Songs on Sounds Abroad`);
-      expect(String(metadata.title)).not.toMatch(/\d/);
+      expect(metadata.title).not.toMatch(/\d/);
     }
   });
 });
