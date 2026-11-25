@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 
-import type { DraftClient, RawDraft } from '../../src/lib/drafting';
+import type { DraftClient } from '../../src/lib/drafting';
 import { describeSubprocessFailure, draftEntry, toDraftInput } from './draft';
 import type { WorklistItem } from './worklist';
 
@@ -60,8 +60,12 @@ test('draftEntry returns null when the drafter throws', async () => {
 });
 
 test('draftEntry returns null when the draft fails the schema', async () => {
-  const badDrafter: DraftClient = async () =>
-    ({ lead: '', tag: 'x', claim: 'why-charting', sources: [] }) as RawDraft;
+  const badDrafter: DraftClient = async () => ({
+    lead: '',
+    tag: 'x',
+    claim: 'why-charting',
+    sources: [],
+  });
 
   expect(await draftEntry(item(), TS, badDrafter)).toBeNull();
 });

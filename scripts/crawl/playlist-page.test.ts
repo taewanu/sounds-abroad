@@ -18,6 +18,15 @@ const FIXTURE_PATH = resolve(
  * Telemetry keys the parser never reads were pruned when it was captured, so
  * what it pins is exactly the shape the contract depends on.
  */
+interface RawTrackItem {
+  contentDescriptor: { url: string };
+  artwork: { dictionary: { url: string } };
+}
+
+interface RawServerData {
+  data: { data: { sections: { itemKind?: string; items: RawTrackItem[] }[] } }[];
+}
+
 async function loadServerData(): Promise<string> {
   return readFile(FIXTURE_PATH, 'utf8');
 }
@@ -31,8 +40,8 @@ function pageHtml(serverData: string): string {
 }
 
 function trackItems(serverData: string): unknown[] {
-  const sections = JSON.parse(serverData).data[0].data.sections;
-  return sections.find((s: { itemKind?: string }) => s.itemKind === 'trackLockup').items;
+  const sections = (JSON.parse(serverData) as RawServerData).data[0].data.sections;
+  return sections.find((s) => s.itemKind === 'trackLockup')!.items;
 }
 
 test('reads every track out of the captured kr playlist page', async () => {
@@ -74,12 +83,12 @@ test('renders the artwork template at the requested dimensions', async () => {
 
 test('skips an item that no longer matches, keeping the rest', async () => {
   const serverData = await loadServerData();
-  const parsed = JSON.parse(serverData);
-  const section = parsed.data[0].data.sections.find(
-    (s: { itemKind?: string }) => s.itemKind === 'trackLockup',
-  );
-  const kept = section.items.length - 1;
-  section.items[0] = { title: 'orphan with no descriptor' };
+  const parsed = JSON.parse(serverData) as RawServerData;
+  const items: unknown[] = parsed.data[0].data.sections.find(
+    (s) => s.itemKind === 'trackLockup',
+  )!.items;
+  const kept = items.length - 1;
+  items[0] = { title: 'orphan with no descriptor' };
 
   const tracks = parsePlaylistPage(pageHtml(JSON.stringify(parsed)), PLAYLIST_ID);
 
@@ -140,8 +149,7 @@ test('throws shape when every item in the track section is unusable', () => {
 });
 
 test('fetchPlaylistPage throws http on non-OK status', async () => {
-  const failingFetch: typeof fetch = (async () =>
-    new Response('', { status: 404 })) as typeof fetch;
+  const failingFetch: typeof fetch = async () => new Response('', { status: 404 });
 
   await expect(
     fetchPlaylistPage(PLAYLIST_ID, 'https://music.apple.com/kr/playlist/x', {
@@ -151,9 +159,9 @@ test('fetchPlaylistPage throws http on non-OK status', async () => {
 });
 
 test('fetchPlaylistPage throws network when fetch rejects', async () => {
-  const failingFetch: typeof fetch = (async () => {
+  const failingFetch: typeof fetch = async () => {
     throw new TypeError('boom');
-  }) as typeof fetch;
+  };
 
   await expect(
     fetchPlaylistPage(PLAYLIST_ID, 'https://music.apple.com/kr/playlist/x', {
@@ -166,10 +174,10 @@ test("fetchPlaylistPage requests the playlist's own URL", async () => {
   const serverData = await loadServerData();
   const appleUrl = 'https://music.apple.com/kr/playlist/kpopwrld/pl.482';
   const seen: string[] = [];
-  const spyFetch: typeof fetch = (async (input: RequestInfo | URL) => {
-    seen.push(String(input));
+  const spyFetch: typeof fetch = async (input: RequestInfo | URL) => {
+    seen.push(input instanceof Request ? input.url : String(input));
     return new Response(pageHtml(serverData), { status: 200 });
-  }) as typeof fetch;
+  };
 
   await fetchPlaylistPage(PLAYLIST_ID, appleUrl, { fetch: spyFetch });
 
@@ -180,7 +188,7 @@ test("fetchPlaylistPage requests the playlist's own URL", async () => {
 // they refuse stops being usable. The parser's existing contract decides what
 // that costs: one unusable item is skipped, a section with nothing left throws.
 test('a track whose storefront URL is refused is skipped, keeping its section-mates', async () => {
-  const data = JSON.parse(await loadServerData());
+  const data = JSON.parse(await loadServerData()) as RawServerData;
   const items = data.data[0].data.sections[1].items;
   items[0].contentDescriptor.url = 'javascript:alert(1)';
 
@@ -190,7 +198,7 @@ test('a track whose storefront URL is refused is skipped, keeping its section-ma
 });
 
 test('a track whose artwork host is refused is skipped, keeping its section-mates', async () => {
-  const data = JSON.parse(await loadServerData());
+  const data = JSON.parse(await loadServerData()) as RawServerData;
   const items = data.data[0].data.sections[1].items;
   items[0].artwork.dictionary.url = 'https://evil.test/{w}x{h}bb.{f}';
 
@@ -200,7 +208,7 @@ test('a track whose artwork host is refused is skipped, keeping its section-mate
 });
 
 test('a track section left with nothing usable is a broken contract, not an empty playlist', async () => {
-  const data = JSON.parse(await loadServerData());
+  const data = JSON.parse(await loadServerData()) as RawServerData;
   for (const item of data.data[0].data.sections[1].items) {
     item.contentDescriptor.url = 'javascript:alert(1)';
   }

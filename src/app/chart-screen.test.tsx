@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi, type MockInstance } from 'vitest';
 
 import { readRecord } from '@/components/globe/edge-hint-record';
 import { writeRecord as writeTourRecord } from '@/components/tour/tour-record-store';
@@ -242,7 +242,7 @@ function advanceFromHead(advance: () => void): string | null {
 }
 
 describe('ChartScreen', () => {
-  let replaceState: ReturnType<typeof vi.spyOn>;
+  let replaceState: MockInstance<History['replaceState']>;
 
   beforeEach(() => {
     mockSearchParams.value = new URLSearchParams();
@@ -831,7 +831,7 @@ describe('ChartScreen auto-advance', () => {
 });
 
 describe('ChartScreen end-of-chart roll', () => {
-  let replaceState: ReturnType<typeof vi.spyOn>;
+  let replaceState: MockInstance<History['replaceState']>;
 
   beforeEach(() => {
     mockPathname.value = `/c/${ADJ_CODE}`;
@@ -894,9 +894,9 @@ describe('ChartScreen end-of-chart roll', () => {
 
   test('pressing next at the last playable rolls the same way the ended signal does', async () => {
     await playLastPlayable(ROLL_CHARTS);
-    const next = screen.getByRole('button', {
+    const next = screen.getByRole<HTMLButtonElement>('button', {
       name: 'Next track',
-    }) as HTMLButtonElement;
+    });
 
     expect(next.disabled).toBe(false);
     await advance(() => fireEvent.click(next));
@@ -1032,9 +1032,9 @@ describe('ChartScreen end-of-chart roll', () => {
       globeChartStore.getState().setSelectedCountry(DRAW_3);
     });
 
-    const prev = screen.getByRole('button', {
+    const prev = screen.getByRole<HTMLButtonElement>('button', {
       name: 'Previous track',
-    }) as HTMLButtonElement;
+    });
     expect(prev.disabled).toBe(true);
   });
 });
@@ -1531,7 +1531,7 @@ describe('ChartScreen playlist playback', () => {
 });
 
 describe('ChartScreen chart in the URL', () => {
-  let replaceState: ReturnType<typeof vi.spyOn>;
+  let replaceState: MockInstance<History['replaceState']>;
 
   beforeEach(() => {
     replaceState = vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
@@ -1646,11 +1646,9 @@ describe('ChartScreen while a chart is read', () => {
 
     expect(screen.getAllByText(songsTrack).length).toBeGreaterThan(0);
     expect(
-      (
-        screen.getByRole('tab', {
-          name: 'A playlist chart',
-        }) as HTMLButtonElement
-      ).disabled,
+      screen.getByRole<HTMLButtonElement>('tab', {
+        name: 'A playlist chart',
+      }).disabled,
     ).toBe(true);
     expect(container.querySelector('[data-chart-waiting]')).toBeNull();
   });
@@ -1872,7 +1870,7 @@ describe('ChartScreen stepping past the eager rows', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request) =>
-        String(input).endsWith(`/${DEEP_CODE}`)
+        (input instanceof Request ? input.url : String(input)).endsWith(`/${DEEP_CODE}`)
           ? new Response(
               JSON.stringify({
                 code: DEEP_CODE,
@@ -1921,7 +1919,7 @@ describe('ChartScreen stepping past the eager rows', () => {
   function tailsRead(): string[] {
     return vi
       .mocked(fetch)
-      .mock.calls.map(([input]) => String(input))
+      .mock.calls.map(([input]) => (input instanceof Request ? input.url : String(input)))
       .filter((url) => url.startsWith('/api/songs/'))
       .map((url) => url.slice('/api/songs/'.length));
   }

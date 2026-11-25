@@ -8,20 +8,24 @@ import { AppleRssError, fetchAppleRss } from './apple-rss';
 
 const FIXTURE_PATH = resolve(dirname(fileURLToPath(import.meta.url)), '__fixtures__/rss-kr.json');
 
+interface RawFeed {
+  feed: { results: Record<string, string>[] };
+}
+
 async function loadFixture(): Promise<string> {
   return readFile(FIXTURE_PATH, 'utf8');
 }
 
 function fakeFetch(response: { ok: boolean; status?: number; body: string }): typeof fetch {
-  return (async () =>
+  return async () =>
     new Response(response.body, {
       status: response.status ?? (response.ok ? 200 : 500),
-    })) as typeof fetch;
+    });
 }
 
 test('ranks every result the storefront returns', async () => {
   const body = await loadFixture();
-  const raw = JSON.parse(body).feed.results[0];
+  const raw = (JSON.parse(body) as RawFeed).feed.results[0];
   const tracks = await fetchAppleRss('kr', {
     fetch: fakeFetch({ ok: true, body }),
   });
@@ -52,10 +56,10 @@ test('rewrites 100x100 artwork URL to 600x600', async () => {
 test('hits the canonical rss.marketingtools.apple.com endpoint', async () => {
   const body = await loadFixture();
   const seen: string[] = [];
-  const spyFetch: typeof fetch = (async (input: RequestInfo | URL) => {
-    seen.push(typeof input === 'string' ? input : input.toString());
+  const spyFetch: typeof fetch = async (input: RequestInfo | URL) => {
+    seen.push(input instanceof Request ? input.url : String(input));
     return new Response(body, { status: 200 });
-  }) as typeof fetch;
+  };
 
   await fetchAppleRss('kr', { fetch: spyFetch });
 
@@ -98,7 +102,7 @@ test('throws AppleRssError on shape mismatch', async () => {
 
 test('accepts a storefront that ranks fewer songs than the depth asked for', async () => {
   const body = await loadFixture();
-  const fixture = JSON.parse(body);
+  const fixture = JSON.parse(body) as RawFeed;
   assert.equal(fixture.feed.results.length, 25);
 
   fixture.feed.results.pop();
@@ -113,7 +117,7 @@ test('accepts a storefront that ranks fewer songs than the depth asked for', asy
 
 test('rejects a feed longer than the depth asked for', async () => {
   const body = await loadFixture();
-  const fixture = JSON.parse(body);
+  const fixture = JSON.parse(body) as RawFeed;
   const one = fixture.feed.results[0];
   fixture.feed.results = Array.from({ length: 101 }, () => ({ ...one }));
 
@@ -125,9 +129,9 @@ test('rejects a feed longer than the depth asked for', async () => {
 });
 
 test('throws AppleRssError when fetch itself rejects', async () => {
-  const failingFetch: typeof fetch = (async () => {
+  const failingFetch: typeof fetch = async () => {
     throw new TypeError('network down');
-  }) as typeof fetch;
+  };
 
   await expect(fetchAppleRss('kr', { fetch: failingFetch })).rejects.toBeInstanceOf(AppleRssError);
 });
@@ -140,7 +144,7 @@ test.each([
   { field: 'artworkUrl100', value: 'data:image/svg+xml,<svg/onload=alert(1)>' },
   { field: 'artworkUrl100', value: 'https://evil.test/100x100bb.jpg' },
 ])('a feed whose $field is $value fails the storefront', async ({ field, value }) => {
-  const feed = JSON.parse(await loadFixture());
+  const feed = JSON.parse(await loadFixture()) as RawFeed;
   feed.feed.results[0][field] = value;
 
   await expect(

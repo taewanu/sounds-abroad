@@ -11,15 +11,19 @@ const FIXTURE_PATH = resolve(
   '__fixtures__/lookup-kr-redred.json',
 );
 
+interface RawLookup {
+  results: { trackId: number; previewUrl: string; primaryGenreName?: string }[];
+}
+
 async function loadFixture(): Promise<string> {
   return readFile(FIXTURE_PATH, 'utf8');
 }
 
 function fakeFetch(response: { ok: boolean; status?: number; body: string }): typeof fetch {
-  return (async () =>
+  return async () =>
     new Response(response.body, {
       status: response.status ?? (response.ok ? 200 : 500),
-    })) as typeof fetch;
+    });
 }
 
 function trackRecord(id: number): { trackId: number; previewUrl: string } {
@@ -35,7 +39,7 @@ function responseBody(records: unknown[]): string {
 
 test('resolves previewUrl from the captured kr fixture', async () => {
   const body = await loadFixture();
-  const raw = JSON.parse(body).results[0];
+  const raw = (JSON.parse(body) as RawLookup).results[0];
   const id = String(raw.trackId);
 
   const resolved = await lookupTracks([id], 'kr', {
@@ -52,12 +56,12 @@ test('resolves previewUrl from the captured kr fixture', async () => {
 test('sends every requested id in one comma-separated request', async () => {
   const ids = ['11', '22', '33'];
   const seen: string[] = [];
-  const spyFetch: typeof fetch = (async (input: RequestInfo | URL) => {
-    seen.push(typeof input === 'string' ? input : input.toString());
+  const spyFetch: typeof fetch = async (input: RequestInfo | URL) => {
+    seen.push(input instanceof Request ? input.url : String(input));
     return new Response(responseBody(ids.map((id) => trackRecord(Number(id)))), {
       status: 200,
     });
-  }) as typeof fetch;
+  };
 
   await lookupTracks(ids, 'kr', { fetch: spyFetch });
 
@@ -126,10 +130,10 @@ test('returns an empty map when the response holds no results', async () => {
 
 test('makes no request for an empty id set', async () => {
   const seen: string[] = [];
-  const spyFetch: typeof fetch = (async (input: RequestInfo | URL) => {
-    seen.push(String(input));
+  const spyFetch: typeof fetch = async (input: RequestInfo | URL) => {
+    seen.push(input instanceof Request ? input.url : String(input));
     return new Response(responseBody([]), { status: 200 });
-  }) as typeof fetch;
+  };
 
   const resolved = await lookupTracks([], 'kr', { fetch: spyFetch });
 
@@ -162,9 +166,9 @@ test('throws shape when the envelope is unexpected', async () => {
 });
 
 test('throws network when fetch rejects', async () => {
-  const failingFetch: typeof fetch = (async () => {
+  const failingFetch: typeof fetch = async () => {
     throw new TypeError('boom');
-  }) as typeof fetch;
+  };
 
   await expect(lookupTracks(['1'], 'kr', { fetch: failingFetch })).rejects.toMatchObject({
     name: 'ItunesLookupError',

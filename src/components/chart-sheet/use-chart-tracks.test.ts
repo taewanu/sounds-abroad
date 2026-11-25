@@ -54,7 +54,9 @@ function playlistPayload(id: string, songName: string) {
 function deferredFetch() {
   const waiting = new Map<string, (payload: unknown) => void>();
   const spy = vi.fn((input: string | URL | Request) => {
-    const id = decodeURIComponent(String(input).split('/').pop() ?? '');
+    const id = decodeURIComponent(
+      (input instanceof Request ? input.url : String(input)).split('/').pop() ?? '',
+    );
     return new Promise<Response>((resolve) => {
       waiting.set(id, (payload) =>
         resolve(
@@ -481,7 +483,7 @@ test("a country's deeper rows stay reachable from another country", async () => 
 /** Deeper rows for whichever country the request names. */
 function tailsFor(status: Record<string, number> = {}) {
   return vi.fn(async (input: string | URL | Request) => {
-    const code = String(input).split('/').pop() ?? '';
+    const code = (input instanceof Request ? input.url : String(input)).split('/').pop() ?? '';
     const code_ = status[code];
     if (code_ !== undefined) return new Response('', { status: code_ });
     return new Response(

@@ -31,10 +31,10 @@ function makeReq(headers?: Record<string, string>): Request {
 async function snapshot(
   req: Request,
 ): Promise<{ status: number; headers: [string, string][]; body: string }> {
-  const res = await revalidateCharts(req);
+  const res = revalidateCharts(req);
   return {
     status: res.status,
-    headers: [...res.headers.entries()].sort(),
+    headers: [...res.headers.entries()].sort(([a], [b]) => a.localeCompare(b)),
     body: await res.text(),
   };
 }
@@ -51,8 +51,8 @@ afterEach(() => {
 test('returns 200 and revalidates MUSIC_CHARTS_TAG with valid bearer', async () => {
   const req = makeReq({ authorization: `Bearer ${SECRET}` });
 
-  const res = await revalidateCharts(req);
-  const body = await res.json();
+  const res = revalidateCharts(req);
+  const body: unknown = await res.json();
 
   expect(res.status).toBe(200);
   expect(body).toEqual({ ok: true });
@@ -69,8 +69,8 @@ test('returns 200 and revalidates MUSIC_CHARTS_TAG with valid bearer', async () 
 test('returns 401 with WWW-Authenticate when Authorization header is missing', async () => {
   const req = makeReq();
 
-  const res = await revalidateCharts(req);
-  const body = await res.json();
+  const res = revalidateCharts(req);
+  const body: unknown = await res.json();
 
   expect(res.status).toBe(401);
   expect(body).toEqual({ ok: false });
@@ -87,8 +87,8 @@ test('returns 401 with WWW-Authenticate when Authorization header is missing', a
 test('returns 401 when bearer token is wrong', async () => {
   const req = makeReq({ authorization: 'Bearer wrong' });
 
-  const res = await revalidateCharts(req);
-  const body = await res.json();
+  const res = revalidateCharts(req);
+  const body: unknown = await res.json();
 
   expect(res.status).toBe(401);
   expect(body).toEqual({ ok: false });
@@ -116,8 +116,8 @@ test('returns 500 and captures message when REVALIDATE_SECRET is unset', async (
   delete process.env.REVALIDATE_SECRET;
   const req = makeReq({ authorization: `Bearer ${SECRET}` });
 
-  const res = await revalidateCharts(req);
-  const body = await res.json();
+  const res = revalidateCharts(req);
+  const body: unknown = await res.json();
 
   expect(res.status).toBe(500);
   expect(body).toEqual({ ok: false });

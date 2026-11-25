@@ -27,6 +27,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".vite-hooks/*.ts",
+    ".claude/hooks/*.ts",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"

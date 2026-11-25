@@ -22,9 +22,9 @@ function parseRecord(raw: string): TourRecord {
   if (typeof parsed !== 'object' || parsed === null) return emptyRecord;
   const value = parsed as Record<string, unknown>;
   const learned = Array.isArray(value.learned)
-    ? (value.learned.filter(
+    ? value.learned.filter(
         (beat): beat is TeachBeat => typeof beat === 'string' && TEACHABLE.has(beat),
-      ) as TeachBeat[])
+      )
     : [];
   return {
     learned,

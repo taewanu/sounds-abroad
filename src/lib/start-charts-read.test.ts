@@ -31,7 +31,7 @@ test('startChartsRead aborts a response that has not started by the timeout', as
     }),
   );
 
-  startChartsRead('/route', timeoutMs, KEY);
+  void startChartsRead('/route', timeoutMs, KEY);
   await vi.advanceTimersByTimeAsync(timeoutMs);
 
   expect(signal?.aborted).toBe(true);
@@ -65,7 +65,8 @@ test('startChartsRead aborts a body that goes quiet for the timeout', async () =
 test("startChartsRead's source runs on its own, as the inlined script does", async () => {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('chart data')));
 
-  new Function(`(${startChartsRead.toString()})("/route", 1_000, "${KEY}");`)();
+  // oxlint-disable-next-line typescript/no-implied-eval -- the test runs the serialized source exactly as the inlined script does
+  (new Function(`(${startChartsRead.toString()})("/route", 1_000, "${KEY}");`) as () => void)();
   const read = (window as unknown as Record<string, Promise<Response>>)[KEY];
 
   await expect(read?.then((res) => res.text())).resolves.toBe('chart data');

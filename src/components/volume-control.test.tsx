@@ -57,7 +57,7 @@ describe('VolumeControl', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /volume/i }));
 
-    expect((screen.getByRole('slider') as HTMLInputElement).value).toBe('0.5');
+    expect(screen.getByRole<HTMLInputElement>('slider').value).toBe('0.5');
   });
 
   test('dragging the slider drives the volume', () => {
@@ -142,6 +142,7 @@ describe('VolumeControl', () => {
     const onClick = vi.fn();
     outside.addEventListener('click', onClick);
     document.body.appendChild(outside);
+    // oxlint-disable-next-line typescript/unbound-method -- the native method is saved to be called below with an explicit `this`
     const matches = Element.prototype.matches;
     const spy = vi.spyOn(Element.prototype, 'matches').mockImplementation(function (
       this: Element,

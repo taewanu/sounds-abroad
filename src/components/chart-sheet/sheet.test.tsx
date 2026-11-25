@@ -41,12 +41,18 @@ function setScrollTop(el: Element, value: number) {
   Object.defineProperty(el, 'scrollTop', { value, configurable: true });
 }
 
-const originalScrollIntoView = Element.prototype.scrollIntoView;
-const originalGetBoundingClientRect = Element.prototype.getBoundingClientRect;
+const originalScrollIntoView = Object.getOwnPropertyDescriptor(
+  Element.prototype,
+  'scrollIntoView',
+)!;
+const originalGetBoundingClientRect = Object.getOwnPropertyDescriptor(
+  Element.prototype,
+  'getBoundingClientRect',
+)!;
 
 afterEach(() => {
-  Element.prototype.scrollIntoView = originalScrollIntoView;
-  Element.prototype.getBoundingClientRect = originalGetBoundingClientRect;
+  Object.defineProperty(Element.prototype, 'scrollIntoView', originalScrollIntoView);
+  Object.defineProperty(Element.prototype, 'getBoundingClientRect', originalGetBoundingClientRect);
 });
 
 // jsdom has no layout, so reveal-only's visibility check reads all-zero rects.
@@ -63,7 +69,7 @@ function rect(top: number, bottom: number): DOMRect {
     x: 0,
     y: top,
     toJSON: () => ({}),
-  } as DOMRect;
+  };
 }
 
 function stubRects(viewport: DOMRect, row: DOMRect) {

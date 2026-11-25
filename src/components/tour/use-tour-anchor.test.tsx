@@ -6,17 +6,14 @@ import { useTourAnchor } from './use-tour-anchor';
 let box = { top: 0, left: 0, width: 0, height: 0 };
 
 function stubBoundingRect() {
-  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
-    () =>
-      ({
-        ...box,
-        right: box.left + box.width,
-        bottom: box.top + box.height,
-        x: box.left,
-        y: box.top,
-        toJSON: () => '',
-      }) as DOMRect,
-  );
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(() => ({
+    ...box,
+    right: box.left + box.width,
+    bottom: box.top + box.height,
+    x: box.left,
+    y: box.top,
+    toJSON: () => '',
+  }));
 }
 
 const TARGET = '[data-testid="anchor-target"]';

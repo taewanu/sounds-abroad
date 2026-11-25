@@ -7,7 +7,7 @@ let resizeCallback: (() => void) | null = null;
 
 class MockResizeObserver {
   constructor(callback: ResizeObserverCallback) {
-    resizeCallback = () => callback([], this as unknown as ResizeObserver);
+    resizeCallback = () => callback([], this);
   }
   observe = vi.fn();
   unobserve = vi.fn();
@@ -40,7 +40,7 @@ function sizeElement(el: Element, scrollWidth: number, clientWidth: number) {
 }
 
 function Harness({ enabled }: { enabled: boolean }) {
-  const { ref, active, style } = useOverflowMarquee<HTMLSpanElement>({
+  const { ref, active, style } = useOverflowMarquee({
     enabled,
     text: 'title',
   });

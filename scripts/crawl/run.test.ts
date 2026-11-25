@@ -302,7 +302,7 @@ function makeCrawlAllDeps(input: {
 }): CrawlAllDeps {
   return {
     countries: input.countries,
-    fetchRss: input.fetchRss ?? vi.fn(async (cc) => fakeRssFor(cc)),
+    fetchRss: input.fetchRss ?? vi.fn(async (cc: string) => fakeRssFor(cc)),
     lookupTracks:
       input.lookupTracks ??
       vi.fn<BatchLookup>(
@@ -757,7 +757,7 @@ test('keeps the eager rows in the payload and publishes the rest separately', as
   const uploadSongsTail = vi.fn(async (_file: SongsTailFile) => {});
   const deps = makeCrawlAllDeps({
     countries: [KR],
-    fetchRss: vi.fn(async (cc) => deepRssFor(cc, 40)),
+    fetchRss: vi.fn(async (cc: string) => deepRssFor(cc, 40)),
     uploadSongsTail,
   });
 
@@ -779,7 +779,7 @@ test('publishes an empty tail for a country that ranks no deeper than the payloa
   const uploadSongsTail = vi.fn(async (_file: SongsTailFile) => {});
   const deps = makeCrawlAllDeps({
     countries: [KR],
-    fetchRss: vi.fn(async (cc) => deepRssFor(cc, EAGER_TRACK_COUNT)),
+    fetchRss: vi.fn(async (cc: string) => deepRssFor(cc, EAGER_TRACK_COUNT)),
     uploadSongsTail,
   });
 
@@ -813,7 +813,7 @@ test('publishes an empty tail for a chart that no longer ranks past the payload'
   const uploadSongsTail = vi.fn(async (_file: SongsTailFile) => {});
   const deps = makeCrawlAllDeps({
     countries: [KR],
-    fetchRss: vi.fn(async (cc) => deepRssFor(cc, EAGER_TRACK_COUNT - 5)),
+    fetchRss: vi.fn(async (cc: string) => deepRssFor(cc, EAGER_TRACK_COUNT - 5)),
     uploadSongsTail,
   });
 
@@ -839,7 +839,7 @@ test('counts spread across the whole chart, not only the eager rows', async () =
   };
   const deps = makeCrawlAllDeps({
     countries: [KR, NG],
-    fetchRss: vi.fn(async (cc) => rssWithSharedDeepTrack(cc)),
+    fetchRss: vi.fn(async (cc: string) => rssWithSharedDeepTrack(cc)),
     uploadSongsTail: vi.fn(async (_file: SongsTailFile) => {}),
   });
 
@@ -853,7 +853,7 @@ test('counts spread across the whole chart, not only the eager rows', async () =
 test('publishes no charts when a songs tail fails to upload', async () => {
   const deps = makeCrawlAllDeps({
     countries: [KR],
-    fetchRss: vi.fn(async (cc) => deepRssFor(cc, 40)),
+    fetchRss: vi.fn(async (cc: string) => deepRssFor(cc, 40)),
     uploadSongsTail: vi.fn(async () => {
       throw new Error('tail write failed');
     }),

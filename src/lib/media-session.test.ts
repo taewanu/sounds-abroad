@@ -33,11 +33,11 @@ class FakeMediaMetadata {
   }
 }
 
-function makeMediaSession(): MediaSession {
+function makeMediaSession(setActionHandler = vi.fn()): MediaSession {
   return {
     metadata: null,
     playbackState: 'none',
-    setActionHandler: vi.fn(),
+    setActionHandler,
   } as unknown as MediaSession;
 }
 
@@ -85,14 +85,15 @@ test('setPlaybackState no-ops when mediaSession is unavailable', () => {
 });
 
 test('setActionHandlers registers play and pause', () => {
-  const deps = makeDeps();
+  const setActionHandler = vi.fn();
+  const deps = makeDeps({ mediaSession: makeMediaSession(setActionHandler) });
   const play = vi.fn();
   const pause = vi.fn();
 
   setActionHandlers({ play, pause }, deps);
 
-  expect(deps.mediaSession!.setActionHandler).toHaveBeenCalledWith('play', play);
-  expect(deps.mediaSession!.setActionHandler).toHaveBeenCalledWith('pause', pause);
+  expect(setActionHandler).toHaveBeenCalledWith('play', play);
+  expect(setActionHandler).toHaveBeenCalledWith('pause', pause);
 });
 
 test('setActionHandlers no-ops when mediaSession is unavailable', () => {
@@ -102,14 +103,15 @@ test('setActionHandlers no-ops when mediaSession is unavailable', () => {
 });
 
 test('setSkipHandlers registers nexttrack and previoustrack', () => {
-  const deps = makeDeps();
+  const setActionHandler = vi.fn();
+  const deps = makeDeps({ mediaSession: makeMediaSession(setActionHandler) });
   const nexttrack = vi.fn();
   const previoustrack = vi.fn();
 
   setSkipHandlers({ nexttrack, previoustrack }, deps);
 
-  expect(deps.mediaSession!.setActionHandler).toHaveBeenCalledWith('nexttrack', nexttrack);
-  expect(deps.mediaSession!.setActionHandler).toHaveBeenCalledWith('previoustrack', previoustrack);
+  expect(setActionHandler).toHaveBeenCalledWith('nexttrack', nexttrack);
+  expect(setActionHandler).toHaveBeenCalledWith('previoustrack', previoustrack);
 });
 
 test('setSkipHandlers no-ops when mediaSession is unavailable', () => {

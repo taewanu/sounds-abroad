@@ -105,8 +105,9 @@ async function runAllCountries(): Promise<void> {
       }
     },
     // Local debug entry never hits production revalidate; cron.ts injects the real one.
-    triggerRevalidate: async () => {
+    triggerRevalidate: () => {
       console.log('[crawl] revalidate skipped (local debug)');
+      return Promise.resolve();
     },
   });
 }

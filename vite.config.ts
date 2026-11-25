@@ -17,6 +17,7 @@ export default defineConfig({
     plugins: ['typescript', 'unicorn', 'oxc', 'react', 'jsx-a11y', 'nextjs', 'import', 'vitest'],
     categories: { correctness: 'error', suspicious: 'warn', perf: 'warn' },
     jsPlugins: ['./scripts/lint-plugin.ts'],
+    options: { typeAware: true },
     rules: {
       // react.dev eslint-plugin-react-hooks recommended; oxlint files these under pedantic/restriction
       'react/rules-of-hooks': 'error',
@@ -34,6 +35,19 @@ export default defineConfig({
       'typescript/no-namespace': 'error',
       'typescript/no-require-imports': 'error',
       'typescript/no-unsafe-function-type': 'error',
+      // typescript-eslint `recommended-type-checked`, not covered by the categories at error
+      'typescript/no-misused-promises': 'error',
+      'typescript/no-unnecessary-type-assertion': 'error',
+      'typescript/no-unsafe-argument': 'error',
+      'typescript/no-unsafe-assignment': 'error',
+      'typescript/no-unsafe-call': 'error',
+      'typescript/no-unsafe-enum-comparison': 'error',
+      'typescript/no-unsafe-member-access': 'error',
+      'typescript/no-unsafe-return': 'error',
+      'typescript/only-throw-error': 'error',
+      'typescript/prefer-promise-reject-errors': 'error',
+      'typescript/require-await': 'error',
+      'typescript/restrict-plus-operands': 'error',
       // typescript-eslint `eslint-recommended`
       'eslint/no-var': 'error',
       'eslint/prefer-const': 'error',
@@ -90,6 +104,8 @@ export default defineConfig({
           'vitest/no-mocks-import': 'error',
           'vitest/no-unneeded-async-expect-function': 'error',
           'vitest/prefer-called-exactly-once-with': 'error',
+          // React documents `await act(async () => ...)` even with nothing to await, and async test doubles are the natural stand-in for promise-returning dependencies.
+          'typescript/require-await': 'off',
         },
       },
     ],
