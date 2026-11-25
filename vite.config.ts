@@ -51,17 +51,20 @@ export default defineConfig({
       // typescript-eslint `eslint-recommended`
       'eslint/no-var': 'error',
       'eslint/prefer-const': 'error',
-      // eslint-config-next
+      'eslint/prefer-rest-params': 'error',
+      'eslint/prefer-spread': 'error',
+      // eslint-config-next, outside the correctness category
       'import/no-anonymous-default-export': 'error',
+      'react/display-name': 'error',
+      'react/jsx-no-comment-textnodes': 'error',
+      'react/no-unescaped-entities': 'error',
+      'typescript/no-unnecessary-type-constraint': 'error',
       'eslint/no-unused-vars': [
-        'warn',
+        'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
-      // Existing mocks predate this rule; turn it on once they carry type parameters.
+      // Oxlint's correctness category has these, but @vitest/eslint-plugin `recommended` leaves them out.
       'vitest/require-mock-type-parameters': 'off',
-      // Tests narrow a result union with `if (result.ok)` after asserting its tag.
-      'vitest/no-conditional-expect': 'off',
-      // Schema tests assert that input is rejected, not the validator's wording.
       'vitest/require-to-throw-message': 'off',
       // Packages that re-export dynamically, such as @sentry/nextjs, read as missing names.
       'import/namespace': 'off',
@@ -95,7 +98,17 @@ export default defineConfig({
       },
       {
         files: ['**/*.test.{ts,tsx}'],
-        rules: { 'vitest/consistent-test-it': ['error', { fn: 'test' }] },
+        rules: {
+          'vitest/consistent-test-it': ['error', { fn: 'test' }],
+          // @vitest/eslint-plugin `recommended`, outside the correctness category
+          'vitest/no-commented-out-tests': 'error',
+          'vitest/no-identical-title': 'error',
+          'vitest/no-import-node-test': 'error',
+          'vitest/no-interpolation-in-snapshots': 'error',
+          'vitest/no-mocks-import': 'error',
+          'vitest/no-unneeded-async-expect-function': 'error',
+          'vitest/prefer-called-exactly-once-with': 'error',
+        },
       },
     ],
   },

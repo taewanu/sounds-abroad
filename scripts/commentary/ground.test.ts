@@ -1,4 +1,4 @@
-import { expect, test, vi } from 'vitest';
+import { assert, expect, test, vi } from 'vitest';
 
 import type { Commentary } from '../../src/lib/chart-schema';
 import type { GroundingClient } from '../../src/lib/grounding';
@@ -46,19 +46,17 @@ test('combineSourceTexts truncates each source at the ceiling before it reaches 
 
   const result = combineSourceTexts([oversized, 'short body']);
 
-  expect(result.ok).toBe(true);
-  if (result.ok) {
-    expect(result.sourceText).not.toContain('OVERFLOW');
-    expect(result.sourceText).toContain('a'.repeat(SOURCE_TEXT_CEILING));
-    expect(result.sourceText).toContain('short body');
-  }
+  assert(result.ok);
+  expect(result.sourceText).not.toContain('OVERFLOW');
+  expect(result.sourceText).toContain('a'.repeat(SOURCE_TEXT_CEILING));
+  expect(result.sourceText).toContain('short body');
 });
 
 test('combineSourceTexts drops the card when every source is unreachable', () => {
   const result = combineSourceTexts([null, null]);
 
-  expect(result.ok).toBe(false);
-  if (!result.ok) expect(result.verdict.grounded).toBe(false);
+  assert(!result.ok);
+  expect(result.verdict.grounded).toBe(false);
 });
 
 test('groundEntry grounds a why-charting entry the same way as what-it-is', async () => {

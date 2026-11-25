@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest';
+import { assert, expect, test } from 'vitest';
 
 import { commentaryKey } from '../../src/lib/commentary-store';
 import { parseCandidateStore } from './parse-store';
@@ -20,8 +20,8 @@ test('accepts a schema-valid store', () => {
 
   const result = parseCandidateStore(store);
 
-  expect(result.ok).toBe(true);
-  if (result.ok) expect(result.store).toEqual(store);
+  assert(result.ok);
+  expect(result.store).toEqual(store);
 });
 
 test('rejects a schema-invalid entry', () => {
@@ -29,8 +29,6 @@ test('rejects a schema-invalid entry', () => {
 
   const result = parseCandidateStore(store);
 
-  expect(result.ok).toBe(false);
-  if (!result.ok) {
-    expect(result.errors.some((e) => e.startsWith('schema'))).toBe(true);
-  }
+  assert(!result.ok);
+  expect(result.errors.some((e) => e.startsWith('schema'))).toBe(true);
 });
