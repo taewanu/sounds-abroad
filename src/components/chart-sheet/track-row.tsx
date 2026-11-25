@@ -95,7 +95,7 @@ export function TrackRow({
     ref: titleRef,
     active: titleScrolling,
     style: titleStyle,
-  } = useOverflowMarquee({
+  } = useOverflowMarquee<HTMLSpanElement>({
     enabled: isCurrent || hovered,
     text: track.name,
   });

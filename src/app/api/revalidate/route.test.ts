@@ -34,7 +34,7 @@ async function snapshot(
   const res = revalidateCharts(req);
   return {
     status: res.status,
-    headers: [...res.headers.entries()].sort(),
+    headers: [...res.headers.entries()].sort(([a], [b]) => a.localeCompare(b)),
     body: await res.text(),
   };
 }

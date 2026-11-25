@@ -33,7 +33,6 @@ export function ShuffleButton() {
     });
   }, []);
 
-  // oxlint-disable-next-line unicorn/consistent-function-scoping -- React documents declaring event handlers inside the component.
   const onShuffle = () => {
     globeChartStore.getState().requestShuffle();
   };

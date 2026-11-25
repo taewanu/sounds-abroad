@@ -86,7 +86,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  headers() {
+  async headers() {
     return [{ source: '/(.*)', headers: [...securityHeaders, ...cspHeaders()] }];
   },
 };
