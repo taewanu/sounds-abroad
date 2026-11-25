@@ -5,19 +5,17 @@ export default defineConfig({
     singleQuote: true,
     sortImports: true,
     sortTailwindcss: { stylesheet: './src/app/globals.css' },
+    // Formatting already skips git-ignored files; these are tracked but must stay byte for byte.
     ignorePatterns: [
-      'pnpm-lock.yaml',
+      // Static assets, served as committed.
       'public/**',
-      // Vendored upstream; formatting them buries real changes in the next sync diff
+      // Copied verbatim from upstream repos; reformatting them would bury upstream's real edits in the next refresh's diff.
       '.claude/skills/**',
-      '.claude/worktrees/**',
-      '.autopilot/**',
     ],
   },
   lint: {
     plugins: ['typescript', 'unicorn', 'oxc', 'react', 'jsx-a11y', 'nextjs', 'import', 'vitest'],
     categories: { correctness: 'error', suspicious: 'warn', perf: 'warn' },
-    ignorePatterns: ['.next/**', 'out/**', 'build/**', 'next-env.d.ts', '.claude/worktrees/**'],
     jsPlugins: ['./scripts/lint-plugin.ts'],
     rules: {
       // react.dev eslint-plugin-react-hooks recommended; oxlint files these under pedantic/restriction
