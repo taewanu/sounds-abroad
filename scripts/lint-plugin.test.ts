@@ -1,116 +1,74 @@
-import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
+import { RuleTester } from 'vite-plus/lint/plugins-dev';
+import { describe, expect, test } from 'vitest';
 
-import { afterEach, expect, test } from 'vitest';
+import config from '../vite.config';
+import plugin from './lint-plugin';
 
-const ROOT = path.resolve(__dirname, '..');
-const PLUGIN = path.join(__dirname, 'lint-plugin.ts');
+RuleTester.describe = describe;
+RuleTester.it = test;
 
-type Diagnostic = { code: string; labels: { span: { line: number } }[] };
+const tester = new RuleTester();
 
-const scratchDirs: string[] = [];
+function ruleNamed(name: string) {
+  const rule = plugin.rules[name];
+  if (!rule) throw new Error(`${name} is not registered`);
+  return rule;
+}
 
-function runLinter(args: string[]): string {
-  const run = spawnSync('pnpm', ['exec', 'vp', 'lint', ...args], {
-    cwd: ROOT,
-    encoding: 'utf8',
-    timeout: 30_000,
+describe('no-transition-all', () => {
+  tester.run('no-transition-all', ruleNamed('no-transition-all'), {
+    valid: [
+      "const a = 'transition-colors';",
+      "const b = 'transition-[color,background-color]';",
+      "const c = 'transition-allowed';",
+    ],
+    invalid: [
+      {
+        code: "const a = 'transition-all duration-200';",
+        errors: [{ messageId: 'transitionAll' }],
+      },
+      {
+        code: "const b = <div className='p-2 transition-all' />;",
+        filename: 'view.tsx',
+        errors: [{ messageId: 'transitionAll' }],
+      },
+      { code: 'const c = `p-2 transition-all ${a}`;', errors: [{ messageId: 'transitionAll' }] },
+    ],
   });
-  if (run.error || (run.status !== 0 && run.status !== 1)) {
-    throw new Error(`vp lint ${args.join(' ')} exited ${run.status}: ${run.stderr}`, {
-      cause: run.error,
-    });
-  }
-  return run.stdout.slice(run.stdout.indexOf('{'));
-}
+});
 
-function lintSource(rule: string, lines: string[]): number[] {
-  const dir = mkdtempSync(path.join(tmpdir(), 'lint-plugin-'));
-  scratchDirs.push(dir);
-  const config = path.join(dir, '.oxlintrc.json');
-  const file = path.join(dir, 'fixture.tsx');
-  writeFileSync(
-    config,
-    JSON.stringify({ jsPlugins: [PLUGIN], rules: { [`sounds-abroad/${rule}`]: 'error' } }),
+describe('no-bare-escape', () => {
+  tester.run('no-bare-escape', ruleNamed('no-bare-escape'), {
+    valid: [
+      "const a = (k) => k === 'Enter';",
+      "const b = (k) => { switch (k) { case 'Enter': return 1; default: return 0; } };",
+      "const c = 'Escape';",
+      "const d = (k) => k === 'Escape key';",
+    ],
+    invalid: [
+      { code: "const a = (k) => k === 'Escape';", errors: [{ messageId: 'bareEscape' }] },
+      { code: "const b = (k) => 'Escape' === k;", errors: [{ messageId: 'bareEscape' }] },
+      { code: "const c = (k) => k == 'Escape';", errors: [{ messageId: 'bareEscape' }] },
+      { code: "const d = (k) => k !== 'Escape';", errors: [{ messageId: 'bareEscape' }] },
+      {
+        code: "const e = (k) => { switch (k) { case 'Escape': return 1; default: return 0; } };",
+        errors: [{ messageId: 'bareEscape' }],
+      },
+    ],
+  });
+});
+
+test('the config enables both rules on src and exempts the escape layer from no-bare-escape', () => {
+  const overrides = config.lint?.overrides ?? [];
+  const severityFor = (file: string, rule: string) =>
+    overrides
+      .filter((o) => o.files.includes(file) && o.rules && rule in o.rules)
+      .map((o) => o.rules?.[rule])
+      .at(-1);
+
+  expect(severityFor('src/**/*.{ts,tsx}', 'sounds-abroad/no-transition-all')).toBe('error');
+  expect(severityFor('src/**/*.{ts,tsx}', 'sounds-abroad/no-bare-escape')).toBe('error');
+  expect(severityFor('src/components/use-escape-layer.ts', 'sounds-abroad/no-bare-escape')).toBe(
+    'off',
   );
-  writeFileSync(file, `${lines.join('\n')}\n`);
-
-  const output = runLinter(['-c', config, '--format', 'json', file]);
-  const report = JSON.parse(output) as { diagnostics?: Diagnostic[] };
-  if (!Array.isArray(report.diagnostics)) {
-    throw new Error(`vp lint printed no diagnostics array: ${output.slice(0, 200)}`);
-  }
-  return report.diagnostics
-    .filter((d) => d.code === `sounds-abroad(${rule})`)
-    .map((d) => d.labels[0].span.line);
-}
-
-afterEach(() => {
-  for (const dir of scratchDirs.splice(0)) rmSync(dir, { recursive: true, force: true });
-});
-
-test('no-transition-all reports the class in a string, a JSX attribute, and a template literal', () => {
-  const flagged = [
-    "export const a = 'transition-all duration-200';",
-    "export const b = <div className='p-2 transition-all' />;",
-    'export const c = `p-2 transition-all ${a}`;',
-  ];
-
-  const lines = lintSource('no-transition-all', flagged);
-
-  expect(lines).toEqual(flagged.map((_, i) => i + 1));
-});
-
-test('no-transition-all leaves other transition classes alone', () => {
-  const allowed = [
-    "export const a = 'transition-colors';",
-    "export const b = 'transition-[color,background-color]';",
-    "export const c = 'transition-allowed';",
-  ];
-
-  const lines = lintSource('no-transition-all', allowed);
-
-  expect(lines).toEqual([]);
-});
-
-test('no-bare-escape reports the literal in strict and loose comparisons, either operand order, and a case', () => {
-  const flagged = [
-    "export const a = (k: string) => k === 'Escape';",
-    "export const b = (k: string) => 'Escape' === k;",
-    "export const c = (k: string) => k == 'Escape';",
-    "export const d = (k: string) => k !== 'Escape';",
-    "export const e = (k: string) => { switch (k) { case 'Escape': return 1; default: return 0; } };",
-  ];
-
-  const lines = lintSource('no-bare-escape', flagged);
-
-  expect(lines).toEqual(flagged.map((_, i) => i + 1));
-});
-
-test('no-bare-escape leaves other keys and non-comparison uses alone', () => {
-  const allowed = [
-    "export const a = (k: string) => k === 'Enter';",
-    "export const b = (k: string) => { switch (k) { case 'Enter': return 1; default: return 0; } };",
-    "export const c = 'Escape';",
-    "export const d = (k: string) => k === 'Escape key';",
-  ];
-
-  const lines = lintSource('no-bare-escape', allowed);
-
-  expect(lines).toEqual([]);
-});
-
-test('no-bare-escape is switched off for the one file that implements the escape layer', () => {
-  const exempt = 'src/components/use-escape-layer.ts';
-
-  const config = JSON.parse(runLinter(['--print-config', exempt])) as {
-    overrides: { files: string[]; rules: Record<string, string> }[];
-  };
-  const verdicts = config.overrides
-    .filter((o) => o.files.includes(exempt) && 'sounds-abroad/no-bare-escape' in o.rules)
-    .map((o) => o.rules['sounds-abroad/no-bare-escape']);
-
-  expect(verdicts).toEqual(['allow']);
 });
