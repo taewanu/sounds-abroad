@@ -1,0 +1,72 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: [
+    "config:recommended",
+    "schedule:weekly",
+    // Delays npm updates until a release has aged, so one pulled soon after publishing isn't proposed.
+    "security:minimumReleaseAgeNpm",
+    "helpers:pinGitHubActionDigests",
+  ],
+  // Later rules override earlier ones, so the catch-all groups come before the coupled sets.
+  packageRules: [
+    {
+      // Keeps dependency PRs typed chore, overriding the preset that marks production bumps as fixes.
+      matchPackageNames: ["*"],
+      semanticCommitType: "chore",
+    },
+    {
+      // Minor and patch bumps batch into one PR per dependency type; majors stay separate because they may need code or config changes.
+      groupName: "tooling",
+      matchDepTypes: ["devDependencies"],
+      matchUpdateTypes: ["minor", "patch"],
+    },
+    {
+      groupName: "runtime",
+      matchDepTypes: ["dependencies"],
+      matchUpdateTypes: ["minor", "patch"],
+    },
+    {
+      // Sentry's SDK packages are versioned together, so bumping one alone leaves them mismatched.
+      groupName: "sentry",
+      matchPackageNames: ["@sentry/*"],
+    },
+    {
+      // three.js can break its API in a minor release and its React bindings and types follow it, so they move as one.
+      groupName: "three",
+      matchPackageNames: ["three", "@types/three", "@react-three/*"],
+      separateMajorMinor: false,
+    },
+    {
+      // Actions run only in CI, so one PR for all of them is enough review surface.
+      groupName: "actions",
+      matchManagers: ["github-actions"],
+    },
+    {
+      // mise.lock and package.json#packageManager pin the same pnpm, so their updates share a PR.
+      groupName: "pnpm",
+      matchPackageNames: ["pnpm"],
+    },
+    {
+      // Raised by hand: Renovate can bump packageManager's pnpm major but not mise.toml's major-only pin, and the two must match.
+      matchPackageNames: ["pnpm"],
+      matchUpdateTypes: ["major"],
+      enabled: false,
+    },
+    {
+      // @types/node follows the Node major pinned in mise.toml, not the newest release.
+      matchPackageNames: ["@types/node"],
+      matchUpdateTypes: ["major"],
+      enabled: false,
+    },
+  ],
+  customManagers: [
+    {
+      // Updates versions a workflow passes as an action input, marked by a `# renovate:` comment on the line above.
+      customType: "regex",
+      managerFilePatterns: ["/^\\.github/workflows/[^/]+\\.ya?ml$/"],
+      matchStrings: [
+        '# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+version: "(?<currentValue>[^"]+)"',
+      ],
+    },
+  ],
+}
