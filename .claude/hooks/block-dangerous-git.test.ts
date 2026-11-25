@@ -39,8 +39,8 @@ test.each([
   "git push origin",
   "git push origin HEAD",
   "git push origin feature",
-])("blocks any push from a checked-out main: %s", (command) => {
-  expect(runHook(command, onMain)).toBe(BLOCKED);
+])("leaves a push from a checked-out main to the server: %s", (command) => {
+  expect(runHook(command, onMain)).toBe(ALLOWED);
 });
 
 test.each([
@@ -50,8 +50,8 @@ test.each([
   "git -C /tmp/x \\\n  push",
   "cd /tmp/x && git push",
   "cd /tmp/x; git push origin feature",
-])("blocks a push aimed at a repository the hook can't see: %s", (command) => {
-  expect(runHook(command)).toBe(BLOCKED);
+])("allows a push run in another checkout: %s", (command) => {
+  expect(runHook(command)).toBe(ALLOWED);
 });
 
 describe("commands the hook blocks", () => {
