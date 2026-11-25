@@ -27,7 +27,7 @@ const HUMAN_ONLY_PATHS = [
   /^scripts\/ship\//,
   /^(AGENTS|CLAUDE)\.md$/,
   /^\.coderabbit\.yaml$/,
-  /^(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|mise\.)/,
+  /^(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml)$/,
   /^(eslint|vitest|next)\.config\./,
   /^tsconfig/,
 ];

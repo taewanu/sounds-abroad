@@ -42,18 +42,13 @@
       matchManagers: ["github-actions"],
     },
     {
-      // mise.lock and package.json#packageManager pin the same pnpm, so their updates share a PR.
-      groupName: "pnpm",
-      matchPackageNames: ["pnpm"],
-    },
-    {
-      // Raised by hand: Renovate can bump packageManager's pnpm major but not mise.toml's major-only pin, and the two must match.
-      matchPackageNames: ["pnpm"],
+      // Raised by hand: Vercel serves on the Node major set in its project settings, not on devEngines.runtime.
+      matchPackageNames: ["node"],
       matchUpdateTypes: ["major"],
       enabled: false,
     },
     {
-      // @types/node follows the Node major pinned in mise.toml, not the newest release.
+      // @types/node follows the Node major pinned in devEngines.runtime, not the newest release.
       matchPackageNames: ["@types/node"],
       matchUpdateTypes: ["major"],
       enabled: false,

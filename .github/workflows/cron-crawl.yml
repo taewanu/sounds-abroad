@@ -28,17 +28,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Setup Node and pnpm via mise
-        uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5.2.8
+      # pnpm reads its version from packageManager and installs the Node that
+      # devEngines.runtime pins, so the runner's own Node never runs the crawl.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          standalone: true
 
       - name: Install dependencies
-        run: mise exec -- pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Check scripts run on the pinned Node
+        run: test "$(pnpm exec node -p 'process.version')" = "v$(pnpm exec node -p 'require("./package.json").devEngines.runtime.version')"
 
       # Secrets are scoped to this step, not the job: only the crawl consumes
       # them, and install can run dependency lifecycle scripts that would
       # otherwise see them.
       - name: Crawl, publish, and revalidate
-        run: mise exec -- pnpm crawl:cron
+        run: pnpm crawl:cron
         env:
           SITE_URL: https://sounds-abroad.vercel.app
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}

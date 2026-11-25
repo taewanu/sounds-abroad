@@ -8,7 +8,6 @@ Add a row when you add an ADR. Move a record to Historical only once no running 
 
 | ADR                                                        | Area       | Decides                                                                                                                       |
 | ---------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| [0001](0001-toolchain-mise-pnpm-node-24.md)                | Toolchain  | mise, pnpm 10 and Node 24 LTS                                                                                                 |
 | [0002](0002-public-repo-for-actions-budget.md)             | Toolchain  | A public repo, for the free Actions minutes the crawl needs                                                                   |
 | [0003](0003-zustand-for-client-state.md)                   | Client     | Zustand for client state                                                                                                      |
 | [0005](0005-semver-milestone-versions.md)                  | Process    | Milestones name semver versions, not phases                                                                                   |
@@ -28,10 +27,12 @@ Add a row when you add an ADR. Move a record to Historical only once no running 
 | [0020](0020-drag-to-select-globe-interaction.md)           | Globe      | Drag-to-select. Accepted but only partly shipped, so check `main` before assuming any part of it                              |
 | [0021](0021-chart-file-fetched-apart-from-pages.md)        | Delivery   | The browser fetches the chart file from one route; pages carry no chart data                                                  |
 | [0022](0022-bare-audio-element-without-web-audio-graph.md) | Client     | Play the bare audio element, with no Web Audio graph                                                                          |
+| [0023](0023-package-json-pins-node-and-pnpm.md)            | Toolchain  | `package.json` pins Node and pnpm, with no version manager                                                                    |
 
 ## Historical
 
 | ADR                                                         | Was                                  | Replaced by |
 | ----------------------------------------------------------- | ------------------------------------ | ----------- |
+| [0001](0001-toolchain-mise-pnpm-node-24.md)                 | mise pinning Node and pnpm           | 0023        |
 | [0004](0004-dynamic-home-route-for-server-painted-chart.md) | A dynamically rendered home route    | 0018        |
 | [0006](0006-web-audio-graph-for-volume.md)                  | A Web Audio graph for volume control | 0022        |

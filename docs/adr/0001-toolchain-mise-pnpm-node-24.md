@@ -1,6 +1,6 @@
 # ADR-0001: Toolchain — mise + pnpm 10 + Node 24 LTS
 
-**Status:** Accepted (2026-04-28). Amended 2026-10-28: added `mise.lock`, after CI's tool cache kept a floating `"24"` on an unpatched Node for months.
+**Status:** Superseded by [ADR-0023](0023-package-json-pins-node-and-pnpm.md) (2026-11-24). Accepted (2026-04-28). Amended 2026-10-28: added `mise.lock`, after CI's tool cache kept a floating `"24"` on an unpatched Node for months.
 
 ## Context
 

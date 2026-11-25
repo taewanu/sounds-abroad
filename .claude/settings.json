@@ -1,6 +1,6 @@
 {
   "permissions": {
-    "allow": ["Bash(mise ls)", "Bash(mise current)", "Bash(pnpm --version)"]
+    "allow": ["Bash(pnpm --version)"]
   },
   "hooks": {
     "PreToolUse": [

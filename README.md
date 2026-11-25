@@ -35,17 +35,17 @@ Next.js 16 (App Router) · React 19 · react-three-fiber / three · topojson-cli
 
 ## For developers
 
-Node 24 + pnpm 10 via [mise](https://mise.jdx.dev). Wrap commands with `mise exec --` so non-interactive shells (CI, git hooks) resolve the right binaries. Copy [`.env.example`](.env.example) to `.env.local` for the configuration it lists.
+Install [pnpm](https://pnpm.io/installation); it switches to the version in `packageManager` and runs every script on the Node that `devEngines.runtime` pins, so no separate Node install is needed. Copy [`.env.example`](.env.example) to `.env.local` for the configuration it lists.
 
 ```bash
-mise exec -- pnpm install
-mise exec -- pnpm dev        # dev server on http://localhost:3000
-mise exec -- pnpm build      # production build
-mise exec -- pnpm lint
-mise exec -- pnpm format
-mise exec -- pnpm typecheck
-mise exec -- pnpm test
-mise exec -- pnpm health     # the commit production is serving
+pnpm install
+pnpm dev        # dev server on http://localhost:3000
+pnpm build      # production build
+pnpm lint
+pnpm format
+pnpm typecheck
+pnpm test
+pnpm health     # the commit production is serving
 ```
 
 Pre-commit hook (Husky 9 + lint-staged) formats and lints the staged files, then typechecks the whole project.

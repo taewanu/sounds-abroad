@@ -5,6 +5,13 @@
   "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@10.34.9",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "24.22.3",
+      "onFail": "download"
+    }
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
