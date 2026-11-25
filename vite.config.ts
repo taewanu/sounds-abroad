@@ -45,7 +45,6 @@ export default defineConfig({
       'react/jsx-no-comment-textnodes': 'error',
       'react/no-unescaped-entities': 'error',
       'typescript/no-unnecessary-type-constraint': 'error',
-      'eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       // Oxlint's correctness category has these, but @vitest/eslint-plugin `recommended` leaves them out.
       'vitest/require-mock-type-parameters': 'off',
       'vitest/require-to-throw-message': 'off',
