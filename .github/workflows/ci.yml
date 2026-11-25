@@ -34,8 +34,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Show toolchain
-        run: pnpm --version && pnpm exec node --version
+      - name: Check scripts run on the pinned Node
+        run: test "$(pnpm exec node -p 'process.version')" = "v$(pnpm exec node -p 'require("./package.json").devEngines.runtime.version')"
 
       - name: Lint
         run: pnpm lint

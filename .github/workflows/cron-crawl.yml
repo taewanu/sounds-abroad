@@ -38,6 +38,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check scripts run on the pinned Node
+        run: test "$(pnpm exec node -p 'process.version')" = "v$(pnpm exec node -p 'require("./package.json").devEngines.runtime.version')"
+
       # Secrets are scoped to this step, not the job: only the crawl consumes
       # them, and install can run dependency lifecycle scripts that would
       # otherwise see them.
