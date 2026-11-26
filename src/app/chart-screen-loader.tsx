@@ -63,7 +63,7 @@ export function ChartScreenLoader() {
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="rounded-full px-3 py-1 font-medium text-aurora focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora"
+          className="rounded-full px-3 py-1 font-medium text-aurora focus-ring"
         >
           Try again
         </button>

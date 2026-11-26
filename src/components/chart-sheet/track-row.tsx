@@ -118,7 +118,7 @@ export function TrackRow({
   // the card fades its surface in and the siblings dim/undim both when opening
   // and when closing, off the same class change.
   const baseClass =
-    'flex flex-col rounded-[14px] px-3 py-2.5 transition-[background-color,box-shadow,opacity] duration-[240ms] ease-[var(--ease-out)] data-[disabled]:opacity-40 motion-reduce:transition-none';
+    'flex flex-col rounded-[14px] px-3 py-2.5 transition-[background-color,box-shadow,opacity] duration-(--dur-base) data-[disabled]:opacity-40 motion-reduce:transition-none';
   const stateClass = focused
     ? 'bg-atmos ring-aurora/25 relative z-10 shadow-sheet ring-1'
     : dimmed
@@ -161,7 +161,7 @@ export function TrackRow({
             onPlay?.();
           }}
           aria-label={`${isPlaying ? 'Pause' : 'Play'} preview of ${track.name} by ${track.artist}`}
-          className="flex min-w-0 flex-1 items-center gap-[14px] text-left transition-transform duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora active:scale-[0.97] disabled:pointer-events-none"
+          className="flex min-w-0 flex-1 items-center gap-[14px] text-left focus-ring transition-transform ease-spring active:scale-[0.97] disabled:pointer-events-none"
         >
           <span className="flex w-7 shrink-0 items-center justify-center font-mono text-body text-fg-3 tabular-nums">
             {isCurrent ? (
@@ -222,7 +222,7 @@ export function TrackRow({
               });
             }}
             aria-label={`Open ${track.name} in Apple Music`}
-            className="flex h-8 w-8 items-center justify-center rounded-full transition-[color,background-color,scale] duration-150 ease-[var(--ease-spring)] hover:bg-orbit focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora active:scale-[0.97]"
+            className="flex h-8 w-8 items-center justify-center rounded-full focus-ring transition-[color,background-color,scale] ease-spring hover:bg-orbit active:scale-[0.97]"
           >
             <AppleMusicIcon className="h-3.5 w-3.5" />
           </a>
@@ -240,7 +240,7 @@ export function TrackRow({
               });
             }}
             aria-label={`Open ${track.name} on Spotify`}
-            className="flex h-8 w-8 items-center justify-center rounded-full transition-[color,background-color,scale] duration-150 ease-[var(--ease-spring)] hover:bg-orbit focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora active:scale-[0.97]"
+            className="flex h-8 w-8 items-center justify-center rounded-full focus-ring transition-[color,background-color,scale] ease-spring hover:bg-orbit active:scale-[0.97]"
           >
             <SpotifyIcon className="h-3.5 w-3.5" />
           </a>

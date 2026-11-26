@@ -41,7 +41,7 @@ function CommentarySources({ commentary }: { commentary: Commentary }) {
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="underline-offset-2 hover:text-fg-1 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora"
+            className="underline-offset-2 focus-ring hover:text-fg-1 hover:underline"
           >
             {sourceLabel(url)}
           </a>
@@ -70,7 +70,7 @@ function ChevronGlyph({ expanded }: { expanded: boolean }) {
   return (
     <ChevronDownIcon
       data-expanded={expanded || undefined}
-      className="h-4 w-4 text-fg-3 transition-transform duration-200 ease-[var(--ease-out)] data-[expanded]:rotate-180 motion-reduce:transition-none"
+      className="h-4 w-4 text-fg-3 transition-transform data-[expanded]:rotate-180 motion-reduce:transition-none"
     />
   );
 }
@@ -137,7 +137,7 @@ export function TrackCommentary({ commentary, isHintTarget, focusCard }: TrackCo
             onClick={onClose}
             aria-expanded
             aria-controls={panelId}
-            className="block w-full text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora"
+            className="block w-full text-left focus-ring"
           >
             <div className="flex items-center gap-2">
               <TagPill tag={commentary.tag} />
@@ -154,7 +154,7 @@ export function TrackCommentary({ commentary, isHintTarget, focusCard }: TrackCo
             data-commentary-teaser
             aria-expanded={false}
             aria-controls={panelId}
-            className="flex w-full items-center gap-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora"
+            className="flex w-full items-center gap-2 text-left focus-ring"
           >
             <TagPill tag={commentary.tag} />
             <span className="line-clamp-2 min-w-0 flex-1 text-small text-fg-2">
@@ -195,7 +195,7 @@ export function TrackCommentary({ commentary, isHintTarget, focusCard }: TrackCo
         onClick={() => setExpanded((open) => !open)}
         aria-expanded={expanded}
         aria-controls={panelId}
-        className="flex w-full items-center gap-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora"
+        className="flex w-full items-center gap-2 text-left focus-ring"
       >
         <TagPill tag={commentary.tag} />
         <span className="line-clamp-2 min-w-0 flex-1 text-small text-fg-2">{commentary.lead}</span>
@@ -207,7 +207,7 @@ export function TrackCommentary({ commentary, isHintTarget, focusCard }: TrackCo
         id={panelId}
         inert={!expanded}
         data-expanded={expanded || undefined}
-        className="grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 ease-[var(--ease-out)] data-[expanded]:grid-rows-[1fr] motion-reduce:transition-none"
+        className="grid grid-rows-[0fr] transition-[grid-template-rows] duration-(--dur-base) data-[expanded]:grid-rows-[1fr] motion-reduce:transition-none"
       >
         <div className="min-h-0 overflow-hidden">
           <CommentaryDetail commentary={commentary} />
