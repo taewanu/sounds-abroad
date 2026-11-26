@@ -4,6 +4,7 @@ import { GemIcon } from '@/components/icons/gem';
 import { PauseIcon } from '@/components/icons/pause';
 import { PlayIcon } from '@/components/icons/play';
 import { TrackArtwork } from '@/components/track-artwork';
+import { RowButton } from '@/components/ui/row-button';
 import { DEFAULT_CHART_MODE } from '@/lib/chart-mode';
 import { SONGS_CHART } from '@/lib/chart-ref';
 import type { Track } from '@/lib/chart-schema';
@@ -66,8 +67,7 @@ export function GemCard({ track, tier, countryCode }: GemCardProps) {
       aria-label="Local Gem"
       className="mb-3 flex flex-col rounded-lg border border-fg-1/10 bg-atmos px-3 py-2.5"
     >
-      <button
-        type="button"
+      <RowButton
         disabled={!hasPreview}
         onClick={() =>
           toggle(
@@ -77,7 +77,7 @@ export function GemCard({ track, tier, countryCode }: GemCardProps) {
           )
         }
         aria-label={`${isPlaying ? 'Pause' : 'Play'} the Local Gem, ${track.name} by ${track.artist}`}
-        className="flex min-w-0 items-center gap-[14px] text-left focus-ring transition-transform ease-spring active:scale-[0.97] disabled:pointer-events-none"
+        className="flex min-w-0 items-center gap-[14px]"
       >
         <span className="flex w-7 shrink-0 items-center justify-center text-body text-fg-3">
           {isPlaying ? (
@@ -119,7 +119,7 @@ export function GemCard({ track, tier, countryCode }: GemCardProps) {
             <p className="mt-1 text-micro text-error">Preview unavailable, try another track</p>
           )}
         </div>
-      </button>
+      </RowButton>
       {commentary ? <TrackCommentary commentary={commentary} /> : null}
     </section>
   );
