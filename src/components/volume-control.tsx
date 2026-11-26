@@ -8,7 +8,7 @@ import { ESCAPE_LAYER, useEscapeLayer } from '@/components/use-escape-layer';
 import { useAudioStore } from '@/providers/audio-store-provider';
 
 const MUTE_TRIGGER_CLASS =
-  'focus-visible:outline-aurora text-fg-2 hover:bg-orbit hover:text-fg-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-[color,background-color,scale] duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97]';
+  'text-fg-2 hover:bg-orbit hover:text-fg-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-[color,background-color,scale] ease-spring focus-ring active:scale-[0.97]';
 
 /** The mute toggle alone, for where the level belongs to the hardware buttons. */
 export function MuteButton() {
@@ -97,7 +97,7 @@ export function VolumeControl() {
         aria-label="Volume"
         aria-expanded={open}
         aria-controls="mini-player-volume"
-        className={`flex h-10 w-10 items-center justify-center rounded-full transition-[color,background-color,scale] duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora active:scale-[0.97] ${
+        className={`flex h-10 w-10 items-center justify-center rounded-full focus-ring transition-[color,background-color,scale] ease-spring active:scale-[0.97] ${
           open ? 'bg-orbit text-fg-1' : 'text-fg-2 hover:bg-orbit hover:text-fg-1'
         }`}
       >
@@ -116,7 +116,7 @@ export function VolumeControl() {
             onClick={() => setMuted(!muted)}
             aria-label={muted ? 'Unmute' : 'Mute'}
             aria-pressed={muted}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-fg-2 hover:text-fg-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora active:scale-[0.97]"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-fg-2 focus-ring hover:text-fg-1 active:scale-[0.97]"
           >
             <Icon className="h-4 w-4" />
           </button>
@@ -130,7 +130,7 @@ export function VolumeControl() {
             onChange={(event) => applyVolume(event.target.valueAsNumber)}
             aria-label="Volume"
             aria-valuetext={`${percent}%`}
-            className="volume-slider w-full"
+            className="volume-slider w-full focus-ring"
             style={{ '--vol-fill': `${percent}%` } as CSSProperties}
           />
         </div>

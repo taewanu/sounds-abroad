@@ -205,7 +205,7 @@ export function GlobeScene() {
         WebkitUserSelect: 'none',
         WebkitTouchCallout: 'none',
       }}
-      className={`transition-opacity duration-700 ease-out ${ready ? 'opacity-100' : 'opacity-0'}`}
+      className={`transition-opacity duration-(--dur-slow) ease-out ${ready ? 'opacity-100' : 'opacity-0'}`}
     >
       <AspectCameraFit />
       <SceneContent />

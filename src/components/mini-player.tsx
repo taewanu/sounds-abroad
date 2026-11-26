@@ -39,7 +39,7 @@ export interface MiniPlayerProps {
 }
 
 const SKIP_BUTTON_CLASS =
-  'text-fg-2 hover:bg-orbit hover:text-fg-1 focus-visible:outline-aurora flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-[color,background-color,scale,opacity] duration-150 ease-[var(--ease-spring)] focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-30';
+  'text-fg-2 hover:bg-orbit hover:text-fg-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-[color,background-color,scale,opacity] ease-spring focus-ring active:scale-[0.97] disabled:pointer-events-none disabled:opacity-30';
 
 // A non-interactive preview of an adjacent track for the rail: only the current
 // card carries the marquee, EQ, and a11y text, so the neighbours stay plain and
@@ -140,7 +140,7 @@ export function MiniPlayer({
           type="button"
           onClick={onTap}
           aria-label="Reopen chart"
-          className="min-w-0 flex-1 overflow-hidden text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora"
+          className="min-w-0 flex-1 overflow-hidden text-left focus-ring"
         >
           {/* The rail: prev | current | next, each the strip's full width, so a
               drag reveals the neighbours and a commit slides one into place. The
@@ -210,7 +210,7 @@ export function MiniPlayer({
               ? `Pause preview of ${currentTrack.name}`
               : `Play preview of ${currentTrack.name}`
           }
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-fg-1 transition-[color,background-color,scale] duration-150 ease-[var(--ease-spring)] hover:bg-orbit focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora active:scale-[0.97]"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-fg-1 focus-ring transition-[color,background-color,scale] ease-spring hover:bg-orbit active:scale-[0.97]"
         >
           {isPlaying ? <PauseIcon className="h-4 w-4" /> : <PlayIcon className="h-4 w-4" />}
         </button>

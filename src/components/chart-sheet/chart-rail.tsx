@@ -85,7 +85,7 @@ export function ChartRail({ playlists, current, pending, failed, onOpen }: Chart
             tabIndex={selected ? 0 : -1}
             title={label}
             onClick={() => onOpen(ref)}
-            className={`max-w-[42vw] shrink-0 truncate rounded-pill border px-3.5 py-1.5 text-small transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora disabled:opacity-30 ${
+            className={`max-w-[42vw] shrink-0 truncate rounded-pill border px-3.5 py-1.5 text-small focus-ring transition-colors disabled:opacity-30 ${
               selected
                 ? 'border-fg-1/20 bg-fg-1/15 font-semibold text-fg-1'
                 : 'border-fg-1/10 bg-fg-1/5 text-fg-2'

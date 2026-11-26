@@ -113,7 +113,7 @@ export function CountrySelector() {
           aria-label={
             current ? `Choose a country, currently showing ${current.name}` : 'Choose a country'
           }
-          className="flex max-w-[60vw] items-center gap-2 rounded-full border border-aurora/70 bg-void/85 px-3.5 py-2.5 text-small font-medium text-fg-1 backdrop-blur-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora"
+          className="flex max-w-[60vw] items-center gap-2 rounded-full border border-aurora/70 bg-void/85 px-3.5 py-2.5 text-small font-medium text-fg-1 focus-ring backdrop-blur-md transition-colors"
         >
           <span aria-hidden="true" className="text-base leading-none">
             {current ? flagEmoji(current.code) : '🌐'}
@@ -121,9 +121,7 @@ export function CountrySelector() {
           <span className="min-w-0 truncate">{current ? current.name : 'Countries'}</span>
           <span
             aria-hidden="true"
-            className={`text-fg-3 transition-transform duration-200 ${
-              listOpen ? 'rotate-180' : ''
-            }`}
+            className={`text-fg-3 transition-transform ${listOpen ? 'rotate-180' : ''}`}
           >
             ▾
           </span>
@@ -143,7 +141,7 @@ export function CountrySelector() {
               type="button"
               onClick={() => close(true)}
               aria-label="Close country list"
-              className="flex h-6 w-6 items-center justify-center rounded-full bg-orbit text-xs leading-none text-fg-2 hover:text-fg-1 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-aurora"
+              className="flex h-6 w-6 items-center justify-center rounded-full bg-orbit text-xs leading-none text-fg-2 focus-ring [--focus-ring-offset:1px] hover:text-fg-1"
             >
               ✕
             </button>
@@ -164,7 +162,7 @@ export function CountrySelector() {
                         type="button"
                         onClick={() => handleSelect(c.code, c.name)}
                         aria-current={c.code === currentCode ? 'true' : undefined}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-fg-1/15 bg-dusk px-2.5 py-1.5 text-[11px] text-fg-2 transition-colors hover:border-fg-3 hover:text-fg-1 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-aurora aria-[current=true]:border-aurora aria-[current=true]:bg-aurora/10 aria-[current=true]:text-fg-1"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-fg-1/15 bg-dusk px-2.5 py-1.5 text-[11px] text-fg-2 focus-ring transition-colors [--focus-ring-offset:1px] hover:border-fg-3 hover:text-fg-1 aria-[current=true]:border-aurora aria-[current=true]:bg-aurora/10 aria-[current=true]:text-fg-1"
                       >
                         <span aria-hidden="true" className="text-sm leading-none">
                           {flagEmoji(c.code)}

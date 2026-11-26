@@ -276,7 +276,7 @@ export function TourOverlay({
         type="button"
         onClick={onSkip}
         aria-label="Dismiss tour"
-        className="pointer-events-auto fixed top-[56px] right-4 grid h-[42px] w-[42px] place-items-center rounded-full bg-[rgba(10,11,16,0.62)] text-fg-1 shadow-[inset_0_0_0_1px_rgba(245,242,236,0.14)] backdrop-blur-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora"
+        className="pointer-events-auto fixed top-[56px] right-4 grid h-[42px] w-[42px] place-items-center rounded-full bg-[rgba(10,11,16,0.62)] text-fg-1 shadow-[inset_0_0_0_1px_rgba(245,242,236,0.14)] focus-ring backdrop-blur-md"
       >
         <svg
           viewBox="0 0 24 24"

@@ -1,16 +1,16 @@
 @import 'tailwindcss';
 
-/* Sounds Abroad design tokens — cosmic dark theme, warm sunrise accent, editorial type. */
+/* Sounds Abroad design tokens: cosmic dark theme, warm sunrise accent, editorial type. */
 
 @theme {
-  /* Backgrounds — deep to elevated */
+  /* Backgrounds: deep to elevated */
   --color-void: #050608;
   --color-night: #0a0b10;
   --color-dusk: #11131b;
   --color-atmos: #1a1d29;
   --color-orbit: #262a3a;
 
-  /* Foreground — warm whites, never pure */
+  /* Foreground: warm whites, never pure */
   --color-fg-1: #f5f2ec;
   --color-fg-2: #b8b5ae;
   --color-fg-3: #6e6b66;
@@ -35,7 +35,7 @@
   --color-error: #ff6b7a;
   --color-info: #6bc4ff;
 
-  /* Type families — `next/font` injects --font-poppins / --font-instrument /
+  /* Type families: `next/font` injects --font-poppins / --font-instrument /
      --font-jetbrains on <html>; we alias them into Tailwind's font namespaces. */
   --font-sans: var(--font-poppins), ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-display: var(--font-instrument), 'Times New Roman', serif;
@@ -61,7 +61,7 @@
   --radius-2xl: 32px;
   --radius-pill: 9999px;
 
-  /* Shadows — cosmic glow rather than drop shadows */
+  /* Shadows: cosmic glow rather than drop shadows */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.6), 0 4px 16px rgba(0, 0, 0, 0.4);
@@ -69,13 +69,18 @@
   --shadow-glow-accent: 0 0 24px rgba(255, 107, 71, 0.35);
   --shadow-glow-aurora: 0 0 32px rgba(107, 229, 197, 0.25);
 
-  /* Motion — Toss-inspired easing tokens */
+  /* Motion: Toss-inspired easing tokens */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* Every transition-* utility reads these unless a call site names a
+     duration-(--dur-*) or ease-* of its own. */
+  --default-transition-duration: var(--dur-fast);
+  --default-transition-timing-function: var(--ease-out);
 }
 
-/* CSS-only tokens (effects + bespoke durations) — referenced via var() */
+/* CSS-only tokens (effects + bespoke durations): referenced via var() */
 :root {
   --globe-line: rgba(107, 196, 255, 0.18);
   --globe-grid: rgba(245, 242, 236, 0.04);
@@ -93,6 +98,10 @@
   --dur-base: 240ms;
   --dur-slow: 400ms;
   --dur-globe: 900ms;
+
+  --focus-ring-width: 2px;
+  --focus-ring-color: var(--color-aurora);
+  --focus-ring-offset: 2px;
 
   /* How far the country badge slides up as it recedes under the rising sheet.
      Zeroed under reduced motion so the recede is a plain fade, no sweep. */
@@ -119,6 +128,15 @@
   initial-value: 0px;
 }
 
+/* The keyboard focus ring for every control. A control that sits flush against
+   a clipping edge tightens it with [--focus-ring-offset:1px]. */
+@utility focus-ring {
+  &:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
+}
+
 @layer base {
   html,
   body {
@@ -138,7 +156,7 @@
     align-items: flex-end;
     gap: 2px;
     height: 12px;
-    animation: eq-enter 160ms var(--ease-out);
+    animation: eq-enter var(--dur-fast) var(--ease-out);
   }
 
   .eq span {
@@ -199,6 +217,8 @@
       rgba(245, 242, 236, 0.16) var(--vol-fill, 100%)
     );
     cursor: pointer;
+    /* The 14px thumb overhangs the 4px track, so the focus ring sits farther out. */
+    --focus-ring-offset: 4px;
   }
 
   .volume-slider::-webkit-slider-thumb {
@@ -219,11 +239,6 @@
     border-radius: 50%;
     background: var(--color-fg-1);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-  }
-
-  .volume-slider:focus-visible {
-    outline: 2px solid var(--color-aurora);
-    outline-offset: 4px;
   }
 }
 
@@ -272,7 +287,7 @@
 .commentary-reveal {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows 300ms var(--ease-out);
+  transition: grid-template-rows var(--dur-base) var(--ease-out);
 }
 .commentary-reveal[data-open] {
   grid-template-rows: 1fr;
@@ -284,8 +299,8 @@
   opacity: 0;
   transform: translateY(10px);
   transition:
-    opacity 300ms var(--ease-out),
-    transform 300ms var(--ease-spring);
+    opacity var(--dur-base) var(--ease-out),
+    transform var(--dur-base) var(--ease-spring);
 }
 .commentary-reveal[data-open] .commentary-rise {
   opacity: 1;
@@ -1229,17 +1244,17 @@
    commentary row shown with its teaser. A focused card is taller, so the sheet
    closes any open card on a switch rather than collapse one that would clip.
 
-   The 300ms below mirrors ROW_COLLAPSE_MS in use-row-transitions.ts, which the
-   hook's drop timer and the reveal timer both key on, along with the gem's own
-   fold in sheet.tsx; keep the four in step. */
+   The --dur-base below mirrors ROW_COLLAPSE_MS in use-row-transitions.ts,
+   which the hook's drop timer and the reveal timer both key on, along with the
+   gem's own fold in sheet.tsx; keep the four in step. */
 [data-row-transition='leaving'] {
   overflow: hidden;
   pointer-events: none;
-  animation: chart-row-collapse 300ms var(--ease-out) forwards;
+  animation: chart-row-collapse var(--dur-base) var(--ease-out) forwards;
 }
 [data-row-transition='entering'] {
   overflow: hidden;
-  animation: chart-row-expand 300ms var(--ease-out) both;
+  animation: chart-row-expand var(--dur-base) var(--ease-out) both;
 }
 @keyframes chart-row-collapse {
   from {
@@ -1290,12 +1305,14 @@
 }
 
 /* The track list's clamp moves on two clocks: its own height as the sheet
-   settles, and the mode row's as that row leaves. Declared here rather than on
-   the sheet, whose inline transition the drag code owns and overwrites. */
+   settles, and the mode row's as that row leaves, which shares the row's
+   --dur-base and spring in sheet.tsx so the two move together. Declared here
+   rather than on the sheet, whose inline transition the drag code owns and
+   overwrites. */
 .chart-list {
   transition:
-    max-height 300ms ease-out,
-    --mode-h 280ms var(--ease-spring);
+    max-height var(--dur-base) ease-out,
+    --mode-h var(--dur-base) var(--ease-spring);
 }
 
 @media (prefers-reduced-motion: reduce) {

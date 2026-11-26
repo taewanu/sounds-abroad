@@ -876,7 +876,7 @@ export function ChartSheet({
           onClick={handleToggle}
           aria-label={snap === 'full' ? 'Collapse chart' : 'Expand chart'}
           aria-expanded={snap === 'full'}
-          className="relative mx-auto mt-3 mb-2 block h-1.5 w-12 rounded-pill bg-fg-1/15 before:absolute before:-inset-x-12 before:-top-3 before:-bottom-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora"
+          className="relative mx-auto mt-3 mb-2 block h-1.5 w-12 rounded-pill bg-fg-1/15 focus-ring before:absolute before:-inset-x-12 before:-top-3 before:-bottom-2"
         />
         <h2 id="chart-sheet-title" className="px-6 pb-3 text-h3 font-semibold">
           {country.name}
@@ -902,7 +902,7 @@ export function ChartSheet({
           // not still answer to a keyboard or a screen reader.
           aria-hidden={!onSongsChart || undefined}
           inert={!onSongsChart || (closed && offscreen.tabs)}
-          className="grid grid-rows-[1fr] transition-[grid-template-rows,opacity] duration-[280ms] ease-[var(--ease-spring)] data-[gone]:grid-rows-[0fr] data-[gone]:opacity-0 motion-reduce:transition-none"
+          className="grid grid-rows-[1fr] transition-[grid-template-rows,opacity] duration-(--dur-base) ease-spring data-[gone]:grid-rows-[0fr] data-[gone]:opacity-0 motion-reduce:transition-none"
         >
           <div className="min-h-0 overflow-hidden">
             <ModeTabs current={mode} waiting={waitingMode} onOpen={openMode} />
@@ -945,13 +945,13 @@ export function ChartSheet({
             // Only here has no gem, so on a switch into it the card folds away
             // like the rows it sits above: grid-rows 1fr to 0fr because its
             // height is tall and not fixed, unlike a row's capped collapse. Out
-            // of reach as well as out of sight once folded. The 300ms below
+            // of reach as well as out of sight once folded. The --dur-base below
             // mirrors ROW_COLLAPSE_MS, which the reveal waits on to measure a
             // settled list.
             data-gem-gone={onlyHereMode || undefined}
             aria-hidden={onlyHereMode || undefined}
             inert={onlyHereMode || focusedRank !== null}
-            className="grid grid-rows-[1fr] transition-[grid-template-rows,opacity] duration-300 ease-[var(--ease-out)] data-[gem-gone]:grid-rows-[0fr] data-[gem-gone]:opacity-0 motion-reduce:transition-none"
+            className="grid grid-rows-[1fr] transition-[grid-template-rows,opacity] duration-(--dur-base) data-[gem-gone]:grid-rows-[0fr] data-[gem-gone]:opacity-0 motion-reduce:transition-none"
           >
             <div
               // Recede with the rest of the list while a track's card is focused,
@@ -959,7 +959,7 @@ export function ChartSheet({
               // the grid row above collapse it to nothing.
               className={`min-h-0 overflow-hidden ${
                 focusedRank !== null
-                  ? 'pointer-events-none opacity-40 transition-opacity duration-[240ms] ease-[var(--ease-out)] motion-reduce:transition-none'
+                  ? 'pointer-events-none opacity-40 transition-opacity duration-(--dur-base) motion-reduce:transition-none'
                   : ''
               }`}
             >

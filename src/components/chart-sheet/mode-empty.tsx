@@ -26,7 +26,7 @@ export function ModeEmpty({ countryName, playlist, onOpenPlaylist }: ModeEmptyPr
           type="button"
           onClick={() => onOpenPlaylist(playlist.id)}
           title={playlist.name}
-          className="mt-4 max-w-[70%] truncate rounded-pill border border-fg-1/15 bg-fg-1/10 px-4 py-2 text-small text-fg-1 transition-colors duration-150 hover:bg-fg-1/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aurora"
+          className="mt-4 max-w-[70%] truncate rounded-pill border border-fg-1/15 bg-fg-1/10 px-4 py-2 text-small text-fg-1 focus-ring transition-colors hover:bg-fg-1/15"
         >
           Open {playlist.name}
         </button>

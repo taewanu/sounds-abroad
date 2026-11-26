@@ -14,11 +14,11 @@ export interface DisplayRow {
 
 /**
  * How long a leaving row is held in the list while it collapses, after which it
- * is dropped from the rendered set. Three other sites must match: the
- * chart-row-collapse keyframe and the gem fold in globals.css and sheet.tsx,
- * and the sheet's reveal timer that waits this out to measure a settled list.
+ * is dropped from the rendered set. It equals --dur-base in globals.css, which
+ * the chart-row-collapse keyframe and the gem fold in sheet.tsx read; the
+ * sheet's reveal timer waits this out to measure a settled list.
  */
-export const ROW_COLLAPSE_MS = 300;
+export const ROW_COLLAPSE_MS = 240;
 
 function stable(rows: readonly ChartTrack[]): DisplayRow[] {
   return rows.map((track) => ({ track, transition: 'stable' }));
