@@ -1247,17 +1247,17 @@
    commentary row shown with its teaser. A focused card is taller, so the sheet
    closes any open card on a switch rather than collapse one that would clip.
 
-   The 300ms below mirrors ROW_COLLAPSE_MS in use-row-transitions.ts, which the
-   hook's drop timer and the reveal timer both key on, along with the gem's own
-   fold in sheet.tsx; keep the four in step. */
+   The --dur-base below mirrors ROW_COLLAPSE_MS in use-row-transitions.ts,
+   which the hook's drop timer and the reveal timer both key on, along with the
+   gem's own fold in sheet.tsx; keep the four in step. */
 [data-row-transition='leaving'] {
   overflow: hidden;
   pointer-events: none;
-  animation: chart-row-collapse 300ms var(--ease-out) forwards;
+  animation: chart-row-collapse var(--dur-base) var(--ease-out) forwards;
 }
 [data-row-transition='entering'] {
   overflow: hidden;
-  animation: chart-row-expand 300ms var(--ease-out) both;
+  animation: chart-row-expand var(--dur-base) var(--ease-out) both;
 }
 @keyframes chart-row-collapse {
   from {
@@ -1308,12 +1308,14 @@
 }
 
 /* The track list's clamp moves on two clocks: its own height as the sheet
-   settles, and the mode row's as that row leaves. Declared here rather than on
-   the sheet, whose inline transition the drag code owns and overwrites. */
+   settles, and the mode row's as that row leaves, which shares the row's
+   --dur-base and spring in sheet.tsx so the two move together. Declared here
+   rather than on the sheet, whose inline transition the drag code owns and
+   overwrites. */
 .chart-list {
   transition:
-    max-height 300ms ease-out,
-    --mode-h 280ms var(--ease-spring);
+    max-height var(--dur-base) ease-out,
+    --mode-h var(--dur-base) var(--ease-spring);
 }
 
 @media (prefers-reduced-motion: reduce) {
