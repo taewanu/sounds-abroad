@@ -3,6 +3,7 @@
 import type { CSSProperties } from 'react';
 
 import { PointerIcon } from '@/components/icons/pointer';
+import { IconButton } from '@/components/ui/icon-button';
 
 import type { Beat } from './tour-step';
 
@@ -272,11 +273,12 @@ export function TourOverlay({
 
       <NudgeBadge beat={beat} spotlight={spotlight} />
 
-      <button
-        type="button"
+      <IconButton
+        size="xl"
+        press="none"
         onClick={onSkip}
         aria-label="Dismiss tour"
-        className="pointer-events-auto fixed top-[56px] right-4 grid h-[42px] w-[42px] place-items-center rounded-full bg-[rgba(10,11,16,0.62)] text-fg-1 shadow-[inset_0_0_0_1px_rgba(245,242,236,0.14)] focus-ring backdrop-blur-md"
+        className="pointer-events-auto fixed top-[56px] right-4 bg-[rgba(10,11,16,0.62)] text-fg-1 shadow-[inset_0_0_0_1px_rgba(245,242,236,0.14)] backdrop-blur-md"
       >
         <svg
           viewBox="0 0 24 24"
@@ -289,7 +291,7 @@ export function TourOverlay({
           <line x1="6" y1="6" x2="18" y2="18" />
           <line x1="18" y1="6" x2="6" y2="18" />
         </svg>
-      </button>
+      </IconButton>
     </div>
   );
 }

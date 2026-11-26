@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
+import { IconButton } from '@/components/ui/icon-button';
 import { countryByCode } from '@/lib/country-code';
 import { globeChartStore, useGlobeChart } from '@/lib/globe-chart-store';
 
@@ -49,11 +50,12 @@ export function ShuffleButton() {
           readMode ? 'pointer-events-none' : ''
         }`}
       >
-        <button
-          type="button"
+        <IconButton
+          size="2xl"
+          press="lift"
           onClick={onShuffle}
           aria-label="Surprise me with a random country"
-          className="flex items-center justify-center rounded-full bg-void/55 p-3 text-aurora shadow-lg ring-1 ring-aurora/40 focus-ring backdrop-blur transition-transform hover:scale-[1.03] active:scale-95"
+          className="bg-void/55 text-aurora shadow-lg ring-1 ring-aurora/40 backdrop-blur"
         >
           <svg
             aria-hidden="true"
@@ -71,7 +73,7 @@ export function ShuffleButton() {
             <path d="m15 15 6 6" />
             <path d="M4 4l5 5" />
           </svg>
-        </button>
+        </IconButton>
       </div>
 
       <div className="sr-only" role="status" aria-live="polite">
