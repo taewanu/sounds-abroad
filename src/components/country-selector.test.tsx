@@ -17,6 +17,15 @@ const queryList = () => screen.queryByRole('navigation', { name: 'Countries' });
 const pressEscape = () =>
   fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
 
+// Moves focus as the Tab key does: to the next tabbable element in document order.
+function pressTab() {
+  const tabbable = Array.from(
+    document.querySelectorAll<HTMLElement>('button, input, [tabindex]:not([tabindex="-1"])'),
+  ).filter((el) => !el.matches(':disabled') && !el.closest('[hidden], [inert]'));
+  const next = tabbable[tabbable.indexOf(document.activeElement as HTMLElement) + 1];
+  act(() => next?.focus());
+}
+
 type Rank = (typeof ESCAPE_LAYER)[keyof typeof ESCAPE_LAYER];
 
 function OtherLayer({ rank, onEscape }: { rank: Rank; onEscape: () => void }) {
@@ -182,6 +191,24 @@ describe('CountrySelector', () => {
 
     await waitFor(() => expect(queryList()).toBeNull());
     await waitFor(() => expect(document.activeElement).toBe(toggle));
+  });
+
+  test('tabbing out of the list closes it and leaves focus where Tab sent it', async () => {
+    render(<CountrySelector />);
+    openList();
+    const pills = within(await screen.findByRole('navigation', { name: 'Countries' })).getAllByRole(
+      'button',
+    );
+    const after = document.createElement('button');
+    document.body.appendChild(after);
+    act(() => pills[pills.length - 1].focus());
+
+    pressTab();
+
+    await waitFor(() => expect(queryList()).toBeNull());
+    await settle();
+    expect(document.activeElement).toBe(after);
+    after.remove();
   });
 
   test('tapping the scrim closes the list without moving focus to the toggle', async () => {
