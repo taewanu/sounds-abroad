@@ -48,6 +48,7 @@ describe('CountrySelector', () => {
     });
 
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(toggle.hasAttribute('aria-haspopup')).toBe(false);
     expect(screen.queryByRole('navigation', { name: 'Countries' })).toBeNull();
   });
 
@@ -123,6 +124,7 @@ describe('CountrySelector', () => {
     fireEvent.click(toggle);
 
     await screen.findByRole('navigation', { name: 'Countries' });
+    await settle();
     expect(document.activeElement).toBe(toggle);
   });
 
