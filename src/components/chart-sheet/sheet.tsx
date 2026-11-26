@@ -400,25 +400,6 @@ export function ChartSheet({
     return () => window.removeEventListener('click', onClick, true);
   }, [focusedRank]);
 
-  // When a card opens, its grown height can push its own top above the list
-  // viewport; nudge it into view so the read starts at the top, not mid-card.
-  // Only when clipped (so an already-visible card never yanks); rAF so the grown
-  // card is measured, not the pre-open row.
-  useEffect(() => {
-    if (focusedRank === null) return;
-    const id = requestAnimationFrame(() => {
-      const ol = olRef.current;
-      const row = ol?.querySelector<HTMLElement>(`[data-rank="${focusedRank}"]`);
-      if (!ol || !row) return;
-      // Leave a small margin above the card so its top outline clears the
-      // viewport edge instead of sitting flush against it (clipped on mobile).
-      const MARGIN_PX = 12;
-      const delta = row.getBoundingClientRect().top - ol.getBoundingClientRect().top - MARGIN_PX;
-      if (delta < 0) ol.scrollBy({ top: delta, behavior: 'smooth' });
-    });
-    return () => cancelAnimationFrame(id);
-  }, [focusedRank]);
-
   // Mount-time snap, captured once. React writes this transform for SSR/first
   // paint and never reconciles it (it never changes across renders), so the
   // gesture and settle code own the transform imperatively from then on. Do not

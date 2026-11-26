@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment } from 'react';
+import { Fragment, useRef, useState } from 'react';
 
 import { ChevronDownIcon } from '@/components/icons/chevron-down';
 import { ExpandIcon } from '@/components/icons/expand';
@@ -9,6 +9,7 @@ import * as Collapsible from '@/components/ui/collapsible';
 import type { Commentary } from '@/lib/chart-schema';
 
 import { useCommentaryHintPulse } from './use-commentary-hint-pulse';
+import { useRevealOnToggle } from './use-reveal-on-toggle';
 
 // Cited sources show as bare hostnames; drop a leading www. for scannability.
 const WWW_PREFIX = /^www\./;
@@ -112,15 +113,23 @@ export type CommentaryOpenSource = 'press' | 'find';
 //   so the "why it's here" reads with room instead of fighting the cramped row.
 export function TrackCommentary({ commentary, isHintTarget, focusCard }: TrackCommentaryProps) {
   const Glyph = isHintTarget ? HintedGlyph : PlainGlyph;
+  const [inlineOpen, setInlineOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const openedByFind = useRef(false);
+  useRevealOnToggle(focusCard ? focusCard.active : inlineOpen, rootRef, panelRef, openedByFind);
 
   if (focusCard) {
     const { active, onOpen, onClose } = focusCard;
     return (
       <Collapsible.Root
+        ref={rootRef}
         open={active}
-        onOpenChange={(open, { event }) =>
-          open ? onOpen(event.type === 'beforematch' ? 'find' : 'press') : onClose()
-        }
+        onOpenChange={(open, { event }) => {
+          openedByFind.current = event.type === 'beforematch';
+          if (open) onOpen(openedByFind.current ? 'find' : 'press');
+          else onClose();
+        }}
         className="mt-2.5 border-t border-fg-1/10 pt-2.5"
       >
         {active ? (
@@ -151,7 +160,7 @@ export function TrackCommentary({ commentary, isHintTarget, focusCard }: TrackCo
             </Glyph>
           </Collapsible.Trigger>
         )}
-        <Collapsible.Panel hiddenUntilFound className="commentary-reveal">
+        <Collapsible.Panel ref={panelRef} hiddenUntilFound className="commentary-reveal">
           <div className="flex flex-col gap-2 pt-2">
             {commentary.detail ? (
               <div className="commentary-rise">
@@ -168,7 +177,15 @@ export function TrackCommentary({ commentary, isHintTarget, focusCard }: TrackCo
   }
 
   return (
-    <Collapsible.Root className="mt-2.5 border-t border-fg-1/10 pt-2.5">
+    <Collapsible.Root
+      ref={rootRef}
+      open={inlineOpen}
+      onOpenChange={(open, { event }) => {
+        openedByFind.current = event.type === 'beforematch';
+        setInlineOpen(open);
+      }}
+      className="mt-2.5 border-t border-fg-1/10 pt-2.5"
+    >
       <Collapsible.Trigger className="group flex w-full items-center gap-2 text-left">
         <TagPill tag={commentary.tag} />
         <span className="line-clamp-2 min-w-0 flex-1 text-small text-fg-2">{commentary.lead}</span>
@@ -176,7 +193,7 @@ export function TrackCommentary({ commentary, isHintTarget, focusCard }: TrackCo
           <ChevronDownIcon className="h-4 w-4 text-fg-3 transition-transform group-data-[panel-open]:rotate-180 motion-reduce:transition-none" />
         </Glyph>
       </Collapsible.Trigger>
-      <Collapsible.Panel hiddenUntilFound className="commentary-reveal">
+      <Collapsible.Panel ref={panelRef} hiddenUntilFound className="commentary-reveal">
         <CommentaryDetail commentary={commentary} />
       </Collapsible.Panel>
     </Collapsible.Root>
