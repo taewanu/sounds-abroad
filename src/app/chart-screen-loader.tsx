@@ -3,6 +3,7 @@
 import * as Sentry from '@sentry/nextjs';
 import { use, useSyncExternalStore } from 'react';
 
+import { PillButton } from '@/components/ui/pill-button';
 import type { ChartFile } from '@/lib/chart-schema';
 import { CHARTS_READ_TIMEOUT_MS, CHARTS_ROUTE, EARLY_CHARTS_READ } from '@/lib/charts-client';
 import { startChartsRead } from '@/lib/start-charts-read';
@@ -60,13 +61,12 @@ export function ChartScreenLoader() {
         className="fixed inset-x-4 bottom-[max(env(safe-area-inset-bottom),16px)] z-40 mx-auto flex max-w-sm items-center justify-between gap-3 rounded-2xl bg-void/55 px-4 py-3 text-sm text-fg-2 shadow-lg ring-1 ring-aurora/40 backdrop-blur"
       >
         <span>Charts didn’t load</span>
-        <button
-          type="button"
+        <PillButton
           onClick={() => window.location.reload()}
-          className="rounded-full px-3 py-1 font-medium text-aurora focus-ring"
+          className="px-3 py-1 font-medium text-aurora"
         >
           Try again
-        </button>
+        </PillButton>
       </div>
     );
   }

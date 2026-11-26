@@ -11,6 +11,7 @@ import {
   useState,
 } from 'react';
 
+import { PillButton } from '@/components/ui/pill-button';
 import { ESCAPE_LAYER, useEscapeLayer } from '@/components/use-escape-layer';
 import {
   prefersReducedMotion,
@@ -870,13 +871,12 @@ export function ChartSheet({
       <div className="shrink-0 touch-none">
         {/* The pill stays 48 by 6; the pseudo-element widens the target across
             the strip between the sheet's top edge and the title. */}
-        <button
+        <PillButton
           ref={gripRef}
-          type="button"
           onClick={handleToggle}
           aria-label={snap === 'full' ? 'Collapse chart' : 'Expand chart'}
           aria-expanded={snap === 'full'}
-          className="relative mx-auto mt-3 mb-2 block h-1.5 w-12 rounded-pill bg-fg-1/15 focus-ring before:absolute before:-inset-x-12 before:-top-3 before:-bottom-2"
+          className="relative mx-auto mt-3 mb-2 block h-1.5 w-12 bg-fg-1/15 before:absolute before:-inset-x-12 before:-top-3 before:-bottom-2"
         />
         <h2 id="chart-sheet-title" className="px-6 pb-3 text-h3 font-semibold">
           {country.name}
