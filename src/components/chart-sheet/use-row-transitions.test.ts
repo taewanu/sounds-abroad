@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -116,4 +119,11 @@ describe('useRowTransitions', () => {
       [4, 'stable'],
     ]);
   });
+});
+
+test('ROW_COLLAPSE_MS equals the --dur-base token the collapse animation reads', () => {
+  const css = readFileSync(join(process.cwd(), 'src/app/globals.css'), 'utf-8');
+  const durBase = /--dur-base:\s*(\d+)ms;/.exec(css)?.[1];
+
+  expect(Number(durBase)).toBe(ROW_COLLAPSE_MS);
 });
