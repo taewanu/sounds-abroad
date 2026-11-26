@@ -34,6 +34,11 @@ function onKeyDown(e: KeyboardEvent) {
   if (e.key === 'Escape') topLayer()?.onEscape(e);
 }
 
+/** Whether an open layer outranks `rank`, so the next Escape belongs to it. */
+export function isEscapeLayerAbove(rank: EscapeRank) {
+  return layers.some((layer) => layer.rank > rank);
+}
+
 /** While `active`, Escape reaches `onEscape` only if no higher layer is open. */
 export function useEscapeLayer(
   active: boolean,
