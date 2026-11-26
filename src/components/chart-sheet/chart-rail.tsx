@@ -1,19 +1,10 @@
 'use client';
 
-import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
-
-import { PillButton } from '@/components/ui/pill-button';
+import { Tab, Tabs } from '@/components/ui/tabs';
 import { SONGS_CHART, type ChartRef } from '@/lib/chart-ref';
 import type { Playlist } from '@/lib/chart-schema';
 
-import { CHART_PANEL_ID, SONGS_CHART_LABEL, chartTabId, focusAlongTabs } from './chart-tabs';
-
-// Closes over nothing, so it is built once rather than per render.
-function handleKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
-  if (focusAlongTabs(event.currentTarget, event.key, document.activeElement)) {
-    event.preventDefault();
-  }
-}
+import { CHART_PANEL_ID, SONGS_CHART_LABEL, chartTabId } from './chart-tabs';
 
 export interface ChartRailProps {
   /** The country's playlists, in the order the crawl received them. */
@@ -52,49 +43,38 @@ export function ChartRail({ playlists, current, pending, failed, onOpen }: Chart
     })),
   ];
 
+  // The asked-for chart reads as selected the moment it is tapped, so the tap is
+  // acknowledged before its track list arrives.
   const active = pending ?? current;
 
   return (
-    // oxlint-disable-next-line jsx-a11y/interactive-supports-focus -- The tabs hold the roving focus and the tablist only hears their bubbled keys.
-    <div
-      role="tablist"
+    // Focus alone opens nothing: opening a chart costs a read, so arrowing across
+    // the rail must not fire one per keystroke.
+    <Tabs
+      value={active}
+      onValueChange={onOpen}
       aria-label="Charts"
-      aria-orientation="horizontal"
-      onKeyDown={handleKeyDown}
       className="flex shrink-0 [scrollbar-width:none] gap-2 overflow-x-auto px-4 pb-3 [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
     >
-      {entries.map(({ ref, label }, index) => {
-        // The asked-for chart reads as selected the moment it is tapped, so the
-        // tap is acknowledged before its track list arrives.
-        const selected = active === ref;
-        const waiting = pending === ref;
-        const unavailable = failed.has(ref);
-        return (
-          <PillButton
-            key={ref}
-            id={chartTabId(ref)}
-            role="tab"
-            aria-controls={CHART_PANEL_ID}
-            aria-selected={selected}
-            aria-disabled={unavailable || undefined}
-            aria-posinset={index + 1}
-            aria-setsize={entries.length}
-            disabled={unavailable}
-            // Roving tabindex: the rail is one tab stop, so reaching the track
-            // list does not mean tabbing past every chart the country carries.
-            tabIndex={selected ? 0 : -1}
-            title={label}
-            onClick={() => onOpen(ref)}
-            className={`max-w-[42vw] shrink-0 truncate border px-3.5 py-1.5 text-small ${
-              selected
-                ? 'border-fg-1/20 bg-fg-1/15 font-semibold text-fg-1'
-                : 'border-fg-1/10 bg-fg-1/5 text-fg-2'
-            } ${waiting ? 'chart-tab-waiting' : ''}`}
-          >
-            {label}
-          </PillButton>
-        );
-      })}
-    </div>
+      {entries.map(({ ref, label }, index) => (
+        <Tab
+          key={ref}
+          value={ref}
+          id={chartTabId(ref)}
+          aria-controls={CHART_PANEL_ID}
+          aria-posinset={index + 1}
+          aria-setsize={entries.length}
+          disabled={failed.has(ref)}
+          title={label}
+          className={`max-w-[42vw] shrink-0 truncate rounded-pill border px-3.5 py-1.5 text-small ${
+            ref === active
+              ? 'border-fg-1/20 bg-fg-1/15 font-semibold text-fg-1'
+              : 'border-fg-1/10 bg-fg-1/5 text-fg-2'
+          } ${pending === ref ? 'chart-tab-waiting' : ''}`}
+        >
+          {label}
+        </Tab>
+      ))}
+    </Tabs>
   );
 }

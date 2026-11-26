@@ -1647,10 +1647,8 @@ describe('ChartScreen while a chart is read', () => {
 
     expect(screen.getAllByText(songsTrack).length).toBeGreaterThan(0);
     expect(
-      screen.getByRole<HTMLButtonElement>('tab', {
-        name: 'A playlist chart',
-      }).disabled,
-    ).toBe(true);
+      screen.getByRole('tab', { name: 'A playlist chart' }).getAttribute('aria-disabled'),
+    ).toBe('true');
     expect(container.querySelector('[data-chart-waiting]')).toBeNull();
   });
 });
