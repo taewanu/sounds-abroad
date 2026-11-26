@@ -5,7 +5,7 @@ import { Fragment } from 'react';
 import { ChevronDownIcon } from '@/components/icons/chevron-down';
 import { ExpandIcon } from '@/components/icons/expand';
 import { MinimizeIcon } from '@/components/icons/minimize';
-import { Collapsible } from '@/components/ui/collapsible';
+import * as Collapsible from '@/components/ui/collapsible';
 import type { Commentary } from '@/lib/chart-schema';
 
 import { useCommentaryHintPulse } from './use-commentary-hint-pulse';
