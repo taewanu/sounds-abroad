@@ -342,12 +342,16 @@ export function ChartSheet({
   // switch drops, and a focused card is taller than a row's collapse can hold,
   // so it would clip on the way out.
   const [focusMode, setFocusMode] = useState(mode);
-  // Fire commentary_opened when a card opens or switches, never on close.
+  // Fire commentary_opened when a card opens or switches, never on close, and
+  // not when find-in-page reveals it, since nobody chose to read that card.
   const prevFocusedRef = useRef<number | null>(null);
+  const foundRankRef = useRef<number | null>(null);
   useEffect(() => {
     const prev = prevFocusedRef.current;
+    const found = foundRankRef.current;
     prevFocusedRef.current = focusedRank;
-    if (focusedRank !== null && focusedRank !== prev) {
+    foundRankRef.current = null;
+    if (focusedRank !== null && focusedRank !== prev && focusedRank !== found) {
       trackEvent('commentary_opened', {
         country: countryCode,
         rank: focusedRank,
@@ -992,7 +996,10 @@ export function ChartSheet({
             isHintTarget={track.rank === hintRank}
             focused={track.rank === focusedRank}
             dimmed={focusedRank !== null && track.rank !== focusedRank}
-            onOpenCommentary={() => setFocusedRank(track.rank)}
+            onOpenCommentary={(source) => {
+              foundRankRef.current = source === 'find' ? track.rank : null;
+              setFocusedRank(track.rank);
+            }}
             onCloseCommentary={() => setFocusedRank(null)}
             onPlay={() => setTapSignal((n) => n + 1)}
           />

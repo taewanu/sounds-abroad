@@ -98,10 +98,13 @@ export interface TrackCommentaryProps {
   // inline accordion.
   focusCard?: {
     active: boolean;
-    onOpen: () => void;
+    onOpen: (source: CommentaryOpenSource) => void;
     onClose: () => void;
   };
 }
+
+/** A press on the teaser, or a find-in-page match revealing the closed card. */
+export type CommentaryOpenSource = 'press' | 'find';
 
 // The tag/lead teaser plus its depth. Two shells over one body:
 // - gem card (no `focusCard`): an inline accordion that expands the detail here.
@@ -115,7 +118,9 @@ export function TrackCommentary({ commentary, isHintTarget, focusCard }: TrackCo
     return (
       <Collapsible.Root
         open={active}
-        onOpenChange={(open) => (open ? onOpen() : onClose())}
+        onOpenChange={(open, { event }) =>
+          open ? onOpen(event.type === 'beforematch' ? 'find' : 'press') : onClose()
+        }
         className="mt-2.5 border-t border-fg-1/10 pt-2.5"
       >
         {active ? (
