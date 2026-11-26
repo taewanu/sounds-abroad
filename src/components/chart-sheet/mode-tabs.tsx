@@ -49,13 +49,13 @@ export function ModeTabs({ current, waiting, onOpen }: ModeTabsProps) {
       value={current}
       onValueChange={onOpen}
       aria-label="Chart mode"
-      className="relative mx-6 mb-2 flex gap-5 border-b border-fg-1/10"
+      className="relative mx-4 mb-2 flex gap-1 border-b border-fg-1/10"
     >
       {CHART_MODES.map((mode) => (
         <ToggleGroupItem
           key={mode}
           value={mode}
-          className={`pt-1.5 pb-2 text-small text-fg-2 data-[pressed]:font-semibold data-[pressed]:text-fg-1 ${
+          className={`px-2 pt-1.5 pb-2 text-small text-fg-2 [--focus-ring-offset:-2px] data-[pressed]:font-semibold data-[pressed]:text-fg-1 ${
             waiting === mode ? 'chart-tab-waiting' : ''
           }`}
         >

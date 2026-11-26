@@ -14,6 +14,7 @@ Moving those decisions into components needs headless UI primitives: components 
 
 - Base UI is headless: its components render unstyled elements and expose state as `data-*` attributes (`data-disabled`, `data-pressed`), so the tokens stay the only source of how controls look.
 - The button-level components are `IconButton` and `PillButton` on Base UI `Button`, and `IconToggle` on Base UI `Toggle`, which sets `aria-pressed` from its `pressed` prop.
+- The composite controls are `ToggleGroup` on Base UI `ToggleGroup` and `Tabs` on Base UI `Tabs`. `Tabs` keeps the tab stop on the selected tab, as the WAI-ARIA APG Tabs pattern asks; Base UI alone leaves it on the last-focused tab.
 - A link that looks like a button stays an `<a>` (`IconLink`) and shares only the styling. Base UI's Button docs ("Rendering links as buttons") say links must not be rendered through `Button`, which enforces button semantics.
 - Callers pass color and state classes; size is a prop. A caller writing a transition, focus-ring or press class is a sign the component is missing something.
 - The pin is exact (`1.9.0` at adoption), since a headless library's behavior changes reach every control at once.

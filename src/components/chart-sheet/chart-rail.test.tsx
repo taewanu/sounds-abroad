@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { expect, test, vi } from 'vitest';
 
 import { SONGS_CHART } from '@/lib/chart-ref';
@@ -33,6 +33,12 @@ function renderRail(overrides: Partial<Parameters<typeof ChartRail>[0]> = {}) {
     />,
   );
   return { onOpen };
+}
+
+async function pressKey(key: string) {
+  fireEvent.keyDown(document.activeElement as HTMLElement, { key });
+  // Base UI moves focus in a microtask after the keydown.
+  await act(async () => {});
 }
 
 test('lists the songs chart first, then the playlists as published', () => {
@@ -73,7 +79,7 @@ test('a chart that would not load stops offering itself', () => {
   const { onOpen } = renderRail({ failed: new Set(['pl.a']) });
 
   const tab = screen.getByRole('tab', { name: 'First playlist' });
-  expect((tab as HTMLButtonElement).disabled).toBe(true);
+  expect(tab.getAttribute('aria-disabled')).toBe('true');
   fireEvent.click(tab);
 
   expect(onOpen).not.toHaveBeenCalled();
@@ -96,52 +102,74 @@ test('the rail is one tab stop, on the chart that is open', () => {
   expect(stops).toEqual(['First playlist']);
 });
 
-test('arrow keys move focus along the rail and wrap at both ends', () => {
+test('arrow keys move focus along the rail and wrap at both ends', async () => {
   renderRail();
   const tabs = screen.getAllByRole('tab');
-  const rail = screen.getByRole('tablist');
   tabs[0].focus();
 
-  fireEvent.keyDown(rail, { key: 'ArrowRight' });
+  await pressKey('ArrowRight');
   expect(document.activeElement).toBe(tabs[1]);
 
-  fireEvent.keyDown(rail, { key: 'ArrowLeft' });
-  fireEvent.keyDown(rail, { key: 'ArrowLeft' });
+  await pressKey('ArrowLeft');
+  await pressKey('ArrowLeft');
   expect(document.activeElement).toBe(tabs[2]);
 });
 
-test('Home and End reach the ends of the rail', () => {
+test('Home and End reach the ends of the rail', async () => {
   renderRail();
   const tabs = screen.getAllByRole('tab');
-  const rail = screen.getByRole('tablist');
   tabs[0].focus();
 
-  fireEvent.keyDown(rail, { key: 'End' });
+  await pressKey('End');
   expect(document.activeElement).toBe(tabs[2]);
 
-  fireEvent.keyDown(rail, { key: 'Home' });
+  await pressKey('Home');
   expect(document.activeElement).toBe(tabs[0]);
 });
 
-test('moving focus does not open a chart', () => {
+test('moving focus does not open a chart', async () => {
   const { onOpen } = renderRail();
-  const rail = screen.getByRole('tablist');
   screen.getAllByRole('tab')[0].focus();
 
-  fireEvent.keyDown(rail, { key: 'ArrowRight' });
+  await pressKey('ArrowRight');
 
   expect(onOpen).not.toHaveBeenCalled();
 });
 
-test('arrowing skips a chart that would not load', () => {
-  renderRail({ failed: new Set(['pl.a']) });
+test('arrow keys stop on a chart that would not load, and pressing it opens nothing', async () => {
+  const { onOpen } = renderRail({ failed: new Set(['pl.a']) });
   const tabs = screen.getAllByRole('tab');
-  const rail = screen.getByRole('tablist');
   tabs[0].focus();
 
-  fireEvent.keyDown(rail, { key: 'ArrowRight' });
+  await pressKey('ArrowRight');
+  fireEvent.click(tabs[1]);
 
+  expect(document.activeElement).toBe(tabs[1]);
+  expect(onOpen).not.toHaveBeenCalled();
+});
+
+test('wrapping and End stop on a chart that would not load at the far end', async () => {
+  renderRail({ failed: new Set(['pl.b']) });
+  const tabs = screen.getAllByRole('tab');
+  tabs[0].focus();
+
+  await pressKey('ArrowLeft');
   expect(document.activeElement).toBe(tabs[2]);
+
+  await pressKey('Home');
+  await pressKey('End');
+  expect(document.activeElement).toBe(tabs[2]);
+});
+
+test('the tab stop stays on the open chart after arrowing away from it', async () => {
+  renderRail();
+  const tabs = screen.getAllByRole('tab');
+  tabs[0].focus();
+
+  await pressKey('ArrowRight');
+
+  expect(document.activeElement).toBe(tabs[1]);
+  expect(tabs.map((tab) => tab.tabIndex)).toEqual([0, -1, -1]);
 });
 
 test("announces each chart's position in the set", () => {
