@@ -5,7 +5,7 @@ import { type CSSProperties, type PointerEvent, useRef } from 'react';
 import { VolumeIcon } from '@/components/icons/volume';
 import { VolumeMuteIcon } from '@/components/icons/volume-mute';
 import { IconButton, IconToggle } from '@/components/ui/icon-button';
-import { Popover } from '@/components/ui/popover';
+import * as Popover from '@/components/ui/popover';
 import { useAudioStore } from '@/providers/audio-store-provider';
 
 /** The mute toggle alone, for where the level belongs to the hardware buttons. */

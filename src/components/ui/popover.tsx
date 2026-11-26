@@ -8,7 +8,7 @@ import { ESCAPE_LAYER, isEscapeLayerAbove } from '@/components/use-escape-layer'
  * Base UI handles Escape before the `useEscapeLayer` window listener and stops
  * it there, so an Escape meant for a higher layer is passed on untouched.
  */
-function Root({ onOpenChange, ...props }: BasePopover.Root.Props) {
+export function Root({ onOpenChange, ...props }: BasePopover.Root.Props) {
   return (
     <BasePopover.Root
       {...props}
@@ -24,4 +24,9 @@ function Root({ onOpenChange, ...props }: BasePopover.Root.Props) {
   );
 }
 
-export const Popover = { ...BasePopover, Root };
+export const Trigger = BasePopover.Trigger;
+export const Portal = BasePopover.Portal;
+export const Backdrop = BasePopover.Backdrop;
+export const Positioner = BasePopover.Positioner;
+export const Popup = BasePopover.Popup;
+export const Close = BasePopover.Close;

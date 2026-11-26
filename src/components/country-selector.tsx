@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 
 import { PillButton } from '@/components/ui/pill-button';
-import { Popover } from '@/components/ui/popover';
+import * as Popover from '@/components/ui/popover';
 import { countryPath } from '@/lib/chart-url';
 import { COUNTRIES } from '@/lib/countries';
 import { countryByCode } from '@/lib/country-code';

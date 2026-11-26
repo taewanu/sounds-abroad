@@ -4,7 +4,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { ESCAPE_LAYER, useEscapeLayer } from '@/components/use-escape-layer';
 
-import { Popover } from './popover';
+import * as Popover from './popover';
 
 type Rank = (typeof ESCAPE_LAYER)[keyof typeof ESCAPE_LAYER];
 
