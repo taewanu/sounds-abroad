@@ -42,6 +42,19 @@ describe('IconButton', () => {
     expect(classes).toContain('focus-ring');
     expect(classes).toContain('h-9');
   });
+
+  test('takes a press other than the default tap, or none', () => {
+    const { rerender } = render(<IconButton aria-label="Shuffle" press="lift" />);
+    const button = screen.getByRole('button', { name: 'Shuffle' });
+
+    expect(button.classList).toContain('hover:scale-[1.03]');
+    expect(button.classList).toContain('active:scale-95');
+    expect(button.classList).not.toContain('active:scale-[0.97]');
+
+    rerender(<IconButton aria-label="Shuffle" press="none" />);
+
+    expect(button.className).not.toContain('active:scale');
+  });
 });
 
 describe('IconToggle', () => {
