@@ -140,7 +140,7 @@ export function CountrySelector() {
                 ✕
               </Popover.Close>
             </div>
-            <div className="overflow-y-auto p-2.5">
+            <div className="[scrollbar-width:none] overflow-y-auto p-2.5 [&::-webkit-scrollbar]:hidden">
               {COUNTRIES_BY_REGION.map(({ region, countries }) => (
                 <div key={region} role="group" aria-label={region} className="mt-3 first:mt-0">
                   <p
