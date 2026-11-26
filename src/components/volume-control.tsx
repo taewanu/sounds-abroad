@@ -130,7 +130,7 @@ export function VolumeControl() {
             onChange={(event) => applyVolume(event.target.valueAsNumber)}
             aria-label="Volume"
             aria-valuetext={`${percent}%`}
-            className="volume-slider w-full"
+            className="volume-slider w-full focus-ring"
             style={{ '--vol-fill': `${percent}%` } as CSSProperties}
           />
         </div>
