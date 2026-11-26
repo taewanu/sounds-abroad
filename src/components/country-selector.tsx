@@ -1,9 +1,9 @@
 'use client';
 
-import { useId, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { PillButton } from '@/components/ui/pill-button';
-import { ESCAPE_LAYER, useEscapeLayer } from '@/components/use-escape-layer';
+import * as Popover from '@/components/ui/popover';
 import { countryPath } from '@/lib/chart-url';
 import { COUNTRIES } from '@/lib/countries';
 import { countryByCode } from '@/lib/country-code';
@@ -46,18 +46,13 @@ export function CountrySelector() {
 
   const [open, setOpen] = useState(false);
   const [announcement, setAnnouncement] = useState('');
-  const toggleRef = useRef<HTMLButtonElement>(null);
-  const navId = useId();
+  // A scrim tap dismisses in place; every other close hands focus back to the toggle.
+  const returnFocusRef = useRef(true);
 
   // Read mode makes the wrapper inert, so the list must never render open behind
   // it. Derive that here rather than correcting `open` in an effect: the list is
   // open only when the user opened it AND the badge isn't receded.
   const listOpen = open && !readMode;
-
-  const close = (returnFocus: boolean) => {
-    setOpen(false);
-    if (returnFocus) toggleRef.current?.focus();
-  };
 
   const handleSelect = (code: string, name: string) => {
     // A pick is the most deliberate way to choose a country, so it pushes and
@@ -73,23 +68,14 @@ export function CountrySelector() {
     setAnnouncement(`Now showing ${name}`);
   };
 
-  // Escape closes and returns focus to the toggle, the one focus move a
-  // disclosure needs. (No focus trap; tab order alone walks in and out.)
-  useEscapeLayer(listOpen, ESCAPE_LAYER.popover, () => close(true));
-
   return (
-    <>
-      {/* Scrim: dims the globe, is the big easy tap-to-dismiss target, and
-          intercepts the pointer so a dismiss tap never spins the globe. */}
-      {listOpen ? (
-        <div
-          data-testid="country-scrim"
-          aria-hidden="true"
-          onClick={() => close(false)}
-          className="fixed inset-0 z-30 bg-[rgba(5,6,8,0.5)] backdrop-blur-[1px]"
-        />
-      ) : null}
-
+    <Popover.Root
+      open={listOpen}
+      onOpenChange={(next, { reason }) => {
+        returnFocusRef.current = reason !== 'outside-press';
+        setOpen(next);
+      }}
+    >
       <div
         // The badge slides up and fades as the sheet rises over it, bound to
         // --sheet-cover so it tracks the drag at any speed and settles in step
@@ -105,15 +91,14 @@ export function CountrySelector() {
           readMode ? 'pointer-events-none' : ''
         }`}
       >
-        <PillButton
-          ref={toggleRef}
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={listOpen}
-          aria-controls={navId}
+        <Popover.Trigger
+          aria-haspopup={undefined}
           aria-label={
             current ? `Choose a country, currently showing ${current.name}` : 'Choose a country'
           }
-          className="flex max-w-[60vw] items-center gap-2 border border-aurora/70 bg-void/85 px-3.5 py-2.5 text-small font-medium text-fg-1 backdrop-blur-md"
+          render={
+            <PillButton className="flex max-w-[60vw] items-center gap-2 border border-aurora/70 bg-void/85 px-3.5 py-2.5 text-small font-medium text-fg-1 backdrop-blur-md" />
+          }
         >
           <span aria-hidden="true" className="text-base leading-none">
             {current ? flagEmoji(current.code) : '🌐'}
@@ -125,61 +110,71 @@ export function CountrySelector() {
           >
             ▾
           </span>
-        </PillButton>
-
-        <nav
-          id={navId}
-          aria-label="Countries"
-          hidden={!listOpen}
-          className="absolute top-[calc(100%+8px)] left-0 flex max-h-[58vh] w-[min(86vw,360px)] flex-col overflow-hidden rounded-2xl border border-fg-1/10 bg-night/95 shadow-lg backdrop-blur-lg"
-        >
-          <div className="flex flex-none items-center justify-between border-b border-fg-1/10 px-3 py-2">
-            <span className="text-[10px] font-medium tracking-wider text-fg-3 uppercase">
-              Jump to a country
-            </span>
-            <button
-              type="button"
-              onClick={() => close(true)}
-              aria-label="Close country list"
-              className="flex h-6 w-6 items-center justify-center rounded-full bg-orbit text-xs leading-none text-fg-2 focus-ring [--focus-ring-offset:1px] hover:text-fg-1"
-            >
-              ✕
-            </button>
-          </div>
-          <div className="overflow-y-auto p-2.5">
-            {COUNTRIES_BY_REGION.map(({ region, countries }) => (
-              <div key={region} role="group" aria-label={region} className="mt-3 first:mt-0">
-                <p
-                  aria-hidden="true"
-                  className="px-1 pb-1.5 text-[10px] font-medium tracking-wider text-aurora uppercase"
-                >
-                  {region}
-                </p>
-                <ul className="flex flex-wrap content-start gap-1.5">
-                  {countries.map((c) => (
-                    <li key={c.code}>
-                      <PillButton
-                        onClick={() => handleSelect(c.code, c.name)}
-                        aria-current={c.code === currentCode ? 'true' : undefined}
-                        className="inline-flex items-center gap-1.5 border border-fg-1/15 bg-dusk px-2.5 py-1.5 text-[11px] text-fg-2 [--focus-ring-offset:1px] hover:border-fg-3 hover:text-fg-1 aria-[current=true]:border-aurora aria-[current=true]:bg-aurora/10 aria-[current=true]:text-fg-1"
-                      >
-                        <span aria-hidden="true" className="text-sm leading-none">
-                          {flagEmoji(c.code)}
-                        </span>
-                        <span className="whitespace-nowrap">{c.name}</span>
-                      </PillButton>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </nav>
+        </Popover.Trigger>
       </div>
+
+      <Popover.Portal>
+        {/* Scrim: dims the globe, is the big easy tap-to-dismiss target, and
+            intercepts the pointer so a dismiss tap never spins the globe. */}
+        <Popover.Backdrop
+          data-testid="country-scrim"
+          className="fixed inset-0 z-30 bg-[rgba(5,6,8,0.5)] backdrop-blur-[1px]"
+        />
+        <Popover.Positioner side="bottom" align="start" sideOffset={8} className="z-40">
+          <Popover.Popup
+            // A disclosure of a nav landmark rather than a dialog, so opening leaves focus on the toggle.
+            render={<nav aria-label="Countries" />}
+            role={undefined}
+            initialFocus={false}
+            finalFocus={() => returnFocusRef.current}
+            className="flex max-h-[58vh] w-[min(86vw,360px)] flex-col overflow-hidden rounded-2xl border border-fg-1/10 bg-night/95 shadow-lg backdrop-blur-lg"
+          >
+            <div className="flex flex-none items-center justify-between border-b border-fg-1/10 px-3 py-2">
+              <span className="text-[10px] font-medium tracking-wider text-fg-3 uppercase">
+                Jump to a country
+              </span>
+              <Popover.Close
+                aria-label="Close country list"
+                className="flex h-6 w-6 items-center justify-center rounded-full bg-orbit text-xs leading-none text-fg-2 focus-ring [--focus-ring-offset:1px] hover:text-fg-1"
+              >
+                ✕
+              </Popover.Close>
+            </div>
+            <div className="[scrollbar-width:none] overflow-y-auto p-2.5 [&::-webkit-scrollbar]:hidden">
+              {COUNTRIES_BY_REGION.map(({ region, countries }) => (
+                <div key={region} role="group" aria-label={region} className="mt-3 first:mt-0">
+                  <p
+                    aria-hidden="true"
+                    className="px-1 pb-1.5 text-[10px] font-medium tracking-wider text-aurora uppercase"
+                  >
+                    {region}
+                  </p>
+                  <ul className="flex flex-wrap content-start gap-1.5">
+                    {countries.map((c) => (
+                      <li key={c.code}>
+                        <PillButton
+                          onClick={() => handleSelect(c.code, c.name)}
+                          aria-current={c.code === currentCode ? 'true' : undefined}
+                          className="inline-flex items-center gap-1.5 border border-fg-1/15 bg-dusk px-2.5 py-1.5 text-[11px] text-fg-2 [--focus-ring-offset:1px] hover:border-fg-3 hover:text-fg-1 aria-[current=true]:border-aurora aria-[current=true]:bg-aurora/10 aria-[current=true]:text-fg-1"
+                        >
+                          <span aria-hidden="true" className="text-sm leading-none">
+                            {flagEmoji(c.code)}
+                          </span>
+                          <span className="whitespace-nowrap">{c.name}</span>
+                        </PillButton>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
 
       <div className="sr-only" role="status" aria-live="polite">
         {announcement}
       </div>
-    </>
+    </Popover.Root>
   );
 }

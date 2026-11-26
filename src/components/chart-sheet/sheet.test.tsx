@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
@@ -1506,7 +1506,7 @@ describe('ChartSheet commentary focus', () => {
     expect(container.querySelector('[data-commentary-card]')).toBeNull();
   });
 
-  test('with the volume popover open over a card, one Escape on its mute button closes only the popover', () => {
+  test('with the volume popover open over a card, one Escape on its mute button closes only the popover', async () => {
     const { container, onSnapChange } = renderSheet('full', {
       alongside: <VolumeControl />,
     });
@@ -1517,22 +1517,22 @@ describe('ChartSheet commentary focus', () => {
 
     fireEvent.keyDown(mute, { key: 'Escape' });
 
-    expect(screen.queryByRole('slider')).toBeNull();
+    await waitFor(() => expect(screen.queryByRole('slider')).toBeNull());
     expect(container.querySelector('[data-commentary-card]')).not.toBeNull();
     expect(onSnapChange).not.toHaveBeenCalled();
   });
 });
 
 describe('ChartSheet under the country list', () => {
-  test('with the country list open over the sheet, one Escape closes only the list', () => {
+  test('with the country list open over the sheet, one Escape closes only the list', async () => {
     const { onSnapChange } = renderSheet('peek', {
       alongside: <CountrySelector />,
     });
     fireEvent.click(screen.getByRole('button', { name: /choose a country/i }));
 
-    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.keyDown(document.body, { key: 'Escape' });
 
-    expect(screen.queryByRole('navigation', { name: 'Countries' })).toBeNull();
+    await waitFor(() => expect(screen.queryByRole('navigation', { name: 'Countries' })).toBeNull());
     expect(onSnapChange).not.toHaveBeenCalled();
   });
 });
