@@ -161,6 +161,17 @@ test('wrapping and End stop on a chart that would not load at the far end', asyn
   expect(document.activeElement).toBe(tabs[2]);
 });
 
+test('the tab stop stays on the open chart after arrowing away from it', async () => {
+  renderRail();
+  const tabs = screen.getAllByRole('tab');
+  tabs[0].focus();
+
+  await pressKey('ArrowRight');
+
+  expect(document.activeElement).toBe(tabs[1]);
+  expect(tabs.map((tab) => tab.tabIndex)).toEqual([0, -1, -1]);
+});
+
 test("announces each chart's position in the set", () => {
   renderRail();
 

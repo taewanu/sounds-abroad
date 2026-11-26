@@ -84,7 +84,6 @@ describe('Tabs', () => {
 
     await pressKey('Home');
     expect(document.activeElement).toBe(tab('first'));
-    expect(tabStops()).toEqual(['first']);
     expect(onValueChange).not.toHaveBeenCalled();
     expect(selected()).toEqual(['second']);
   });
@@ -102,6 +101,16 @@ describe('Tabs', () => {
     expect(tab('third').hasAttribute('data-disabled')).toBe(true);
     expect(onValueChange).not.toHaveBeenCalled();
     expect(selected()).toEqual(['second']);
+  });
+
+  test('keeps the tab stop on the selected tab while focus roams', async () => {
+    render(<Choices />);
+    tab('second').focus();
+
+    await pressKey('ArrowRight');
+
+    expect(document.activeElement).toBe(tab('third'));
+    expect(tabStops()).toEqual(['second']);
   });
 
   test('keeps the caller’s classes alongside its own', () => {

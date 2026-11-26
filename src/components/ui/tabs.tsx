@@ -1,4 +1,5 @@
 import { Tabs as BaseTabs } from '@base-ui/react/tabs';
+import { createContext, useContext } from 'react';
 
 type TabsProps<Value extends string> = Omit<
   BaseTabs.List.Props,
@@ -9,6 +10,8 @@ type TabsProps<Value extends string> = Omit<
   className?: string;
 };
 
+const SelectedValue = createContext<string | null>(null);
+
 /**
  * A tab list with one tab stop: arrow keys, Home and End move focus and wrap,
  * and only a press selects a tab. Its panel can live anywhere, so each `Tab`
@@ -17,21 +20,29 @@ type TabsProps<Value extends string> = Omit<
 export function Tabs<Value extends string>({ value, onValueChange, ...props }: TabsProps<Value>) {
   return (
     <BaseTabs.Root value={value} onValueChange={(next: Value) => onValueChange(next)}>
-      <BaseTabs.List {...props} />
+      <SelectedValue.Provider value={value}>
+        <BaseTabs.List {...props} />
+      </SelectedValue.Provider>
     </BaseTabs.Root>
   );
 }
 
-type TabProps<Value extends string> = Omit<BaseTabs.Tab.Props, 'className' | 'value'> & {
+type TabProps<Value extends string> = Omit<
+  BaseTabs.Tab.Props,
+  'className' | 'value' | 'tabIndex'
+> & {
   value: Value;
   className?: string;
 };
 
 /** Callers style only shape, color and state; the focus ring, color transition and disabled look belong here. */
 export function Tab<Value extends string>({ className = '', ...props }: TabProps<Value>) {
+  // Base UI leaves the tab stop on the last-focused tab; tabbing back in must land on the selected one.
+  const selected = useContext(SelectedValue) === props.value;
   return (
     <BaseTabs.Tab
       {...props}
+      tabIndex={selected ? 0 : -1}
       className={`focus-ring transition-colors data-[disabled]:opacity-30 ${className}`}
     />
   );
