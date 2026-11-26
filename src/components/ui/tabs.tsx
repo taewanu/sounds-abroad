@@ -35,7 +35,7 @@ type TabProps<Value extends string> = Omit<
   className?: string;
 };
 
-/** Callers style only shape, color and state; the focus ring, color transition and disabled look belong here. */
+/** Callers style only size, color and state; the shape, focus ring, transition and disabled look belong here. */
 export function Tab<Value extends string>({ className = '', ...props }: TabProps<Value>) {
   // Base UI leaves the tab stop on the last-focused tab; tabbing back in must land on the selected one.
   const selected = useContext(SelectedValue) === props.value;
@@ -43,7 +43,7 @@ export function Tab<Value extends string>({ className = '', ...props }: TabProps
     <BaseTabs.Tab
       {...props}
       tabIndex={selected ? 0 : -1}
-      className={`focus-ring transition-colors data-[disabled]:opacity-30 ${className}`}
+      className={`rounded-pill focus-ring transition-colors ease-spring data-[disabled]:opacity-30 motion-reduce:transition-none ${className}`}
     />
   );
 }

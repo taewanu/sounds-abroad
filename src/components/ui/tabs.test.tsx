@@ -113,6 +113,18 @@ describe('Tabs', () => {
     expect(tabStops()).toEqual(['second']);
   });
 
+  test('cancels Enter and Space on a disabled tab, so the browser never presses it', async () => {
+    render(<Choices disabled="third" />);
+    tab('second').focus();
+    await pressKey('ArrowRight');
+
+    const enterProceeded = fireEvent.keyDown(tab('third'), { key: 'Enter' });
+    const spaceProceeded = fireEvent.keyDown(tab('third'), { key: ' ' });
+
+    expect(enterProceeded).toBe(false);
+    expect(spaceProceeded).toBe(false);
+  });
+
   test('keeps the caller’s classes alongside its own', () => {
     render(<Choices />);
 

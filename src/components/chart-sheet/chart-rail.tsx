@@ -66,7 +66,7 @@ export function ChartRail({ playlists, current, pending, failed, onOpen }: Chart
           aria-setsize={entries.length}
           disabled={failed.has(ref)}
           title={label}
-          className={`max-w-[42vw] shrink-0 truncate rounded-pill border px-3.5 py-1.5 text-small ${
+          className={`max-w-[42vw] shrink-0 truncate border px-3.5 py-1.5 text-small ${
             ref === active
               ? 'border-fg-1/20 bg-fg-1/15 font-semibold text-fg-1'
               : 'border-fg-1/10 bg-fg-1/5 text-fg-2'
