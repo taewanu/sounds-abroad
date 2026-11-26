@@ -1,5 +1,7 @@
 'use client';
 
+import { PillButton } from '@/components/ui/pill-button';
+
 export interface ModeEmptyProps {
   /** The country whose chart came back empty, named so the claim is about it. */
   countryName: string;
@@ -22,14 +24,13 @@ export function ModeEmpty({ countryName, playlist, onOpenPlaylist }: ModeEmptyPr
         {playlist === null ? '' : ' Its playlists are still its own.'}
       </p>
       {playlist === null ? null : (
-        <button
-          type="button"
+        <PillButton
           onClick={() => onOpenPlaylist(playlist.id)}
           title={playlist.name}
-          className="mt-4 max-w-[70%] truncate rounded-pill border border-fg-1/15 bg-fg-1/10 px-4 py-2 text-small text-fg-1 focus-ring transition-colors hover:bg-fg-1/15"
+          className="mt-4 max-w-[70%] truncate border border-fg-1/15 bg-fg-1/10 px-4 py-2 text-small text-fg-1 hover:bg-fg-1/15"
         >
           Open {playlist.name}
-        </button>
+        </PillButton>
       )}
     </li>
   );

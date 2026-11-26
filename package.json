@@ -25,6 +25,7 @@
     "prepare": "vp config --no-agent"
   },
   "dependencies": {
+    "@base-ui/react": "1.9.0",
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",
     "@sentry/nextjs": "^11.12.0",

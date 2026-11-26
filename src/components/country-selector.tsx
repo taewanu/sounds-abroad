@@ -2,6 +2,7 @@
 
 import { useId, useRef, useState } from 'react';
 
+import { PillButton } from '@/components/ui/pill-button';
 import { ESCAPE_LAYER, useEscapeLayer } from '@/components/use-escape-layer';
 import { countryPath } from '@/lib/chart-url';
 import { COUNTRIES } from '@/lib/countries';
@@ -104,16 +105,15 @@ export function CountrySelector() {
           readMode ? 'pointer-events-none' : ''
         }`}
       >
-        <button
+        <PillButton
           ref={toggleRef}
-          type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={listOpen}
           aria-controls={navId}
           aria-label={
             current ? `Choose a country, currently showing ${current.name}` : 'Choose a country'
           }
-          className="flex max-w-[60vw] items-center gap-2 rounded-full border border-aurora/70 bg-void/85 px-3.5 py-2.5 text-small font-medium text-fg-1 focus-ring backdrop-blur-md transition-colors"
+          className="flex max-w-[60vw] items-center gap-2 border border-aurora/70 bg-void/85 px-3.5 py-2.5 text-small font-medium text-fg-1 backdrop-blur-md"
         >
           <span aria-hidden="true" className="text-base leading-none">
             {current ? flagEmoji(current.code) : '🌐'}
@@ -125,7 +125,7 @@ export function CountrySelector() {
           >
             ▾
           </span>
-        </button>
+        </PillButton>
 
         <nav
           id={navId}
@@ -158,17 +158,16 @@ export function CountrySelector() {
                 <ul className="flex flex-wrap content-start gap-1.5">
                   {countries.map((c) => (
                     <li key={c.code}>
-                      <button
-                        type="button"
+                      <PillButton
                         onClick={() => handleSelect(c.code, c.name)}
                         aria-current={c.code === currentCode ? 'true' : undefined}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-fg-1/15 bg-dusk px-2.5 py-1.5 text-[11px] text-fg-2 focus-ring transition-colors [--focus-ring-offset:1px] hover:border-fg-3 hover:text-fg-1 aria-[current=true]:border-aurora aria-[current=true]:bg-aurora/10 aria-[current=true]:text-fg-1"
+                        className="inline-flex items-center gap-1.5 border border-fg-1/15 bg-dusk px-2.5 py-1.5 text-[11px] text-fg-2 [--focus-ring-offset:1px] hover:border-fg-3 hover:text-fg-1 aria-[current=true]:border-aurora aria-[current=true]:bg-aurora/10 aria-[current=true]:text-fg-1"
                       >
                         <span aria-hidden="true" className="text-sm leading-none">
                           {flagEmoji(c.code)}
                         </span>
                         <span className="whitespace-nowrap">{c.name}</span>
-                      </button>
+                      </PillButton>
                     </li>
                   ))}
                 </ul>

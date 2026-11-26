@@ -17,6 +17,9 @@ two Dialog features it actually used (Title semantics and Escape-to-collapse)
 without the trap. The render-in-place, de-portaled decision below is unchanged;
 only the focus-trap premise was wrong.
 
+The headless primitive layer adopted since, and whether it can host the sheet
+without a trap, is in [ADR-0025](0025-base-ui-under-own-base-components.md).
+
 ## Context
 
 The home route `/` renders a per-country chart sheet (the track list). Until now it was statically prerendered, but the sheet was client-rendered: `ChartScreen` reads the selected country from the URL via `useSearchParams()`, which renders its Suspense subtree as the server `null` fallback, so the chart was absent from the initial HTML. The LCP element was therefore the client-rendered chart, painting only after hydration. Deferring the globe (#69 / PR #73) did not measurably move the chart's LCP in a controlled re-measurement, consistent with the LCP element being the client-rendered chart rather than the globe. So the chart-SSR work moved to #74.

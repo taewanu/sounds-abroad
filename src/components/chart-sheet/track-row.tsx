@@ -7,6 +7,7 @@ import { PauseIcon } from '@/components/icons/pause';
 import { PlayIcon } from '@/components/icons/play';
 import { SpotifyIcon } from '@/components/icons/spotify';
 import { TrackArtwork } from '@/components/track-artwork';
+import { IconLink } from '@/components/ui/icon-button';
 import { useOverflowMarquee } from '@/components/use-overflow-marquee';
 import { track as trackEvent } from '@/lib/analytics';
 import type { ChartMode } from '@/lib/chart-mode';
@@ -208,7 +209,8 @@ export function TrackRow({
           </div>
         </button>
         <div className="flex shrink-0 gap-1">
-          <a
+          <IconLink
+            size="sm"
             href={track.appleUrl}
             target="_blank"
             rel="noopener noreferrer"
@@ -222,11 +224,12 @@ export function TrackRow({
               });
             }}
             aria-label={`Open ${track.name} in Apple Music`}
-            className="flex h-8 w-8 items-center justify-center rounded-full focus-ring transition-[color,background-color,scale] ease-spring hover:bg-orbit active:scale-[0.97]"
+            className="hover:bg-orbit"
           >
             <AppleMusicIcon className="h-3.5 w-3.5" />
-          </a>
-          <a
+          </IconLink>
+          <IconLink
+            size="sm"
             href={spotifyHref}
             target="_blank"
             rel="noopener noreferrer"
@@ -240,10 +243,10 @@ export function TrackRow({
               });
             }}
             aria-label={`Open ${track.name} on Spotify`}
-            className="flex h-8 w-8 items-center justify-center rounded-full focus-ring transition-[color,background-color,scale] ease-spring hover:bg-orbit active:scale-[0.97]"
+            className="hover:bg-orbit"
           >
             <SpotifyIcon className="h-3.5 w-3.5" />
-          </a>
+          </IconLink>
         </div>
       </div>
       {commentary ? (
