@@ -19,6 +19,27 @@ export function revealInList(card: HTMLElement) {
   if (delta !== 0) list.scrollBy({ top: delta, behavior: 'smooth' });
 }
 
+// Frames to look for the panel's transition before treating it as instant
+// (reduced motion, or no height change).
+const SETTLE_LOOKAHEAD_FRAMES = 4;
+
+/**
+ * Resolves once the panel's height transition has finished. Base UI marks a
+ * close a render after `open` flips, and Chrome can list the exit transition a
+ * frame later still, so a single look can miss it and report the close settled
+ * before it starts.
+ */
+async function panelTransitionSettled(getPanel: () => HTMLElement | null) {
+  for (let frame = 0; frame < SETTLE_LOOKAHEAD_FRAMES; frame++) {
+    await new Promise(requestAnimationFrame);
+    const running = getPanel()?.getAnimations() ?? [];
+    if (running.length > 0) {
+      await Promise.allSettled(running.map((a) => a.finished));
+      return;
+    }
+  }
+}
+
 /**
  * After a disclosure opens or closes, waits for its panel's height transition
  * to settle and keeps the card around it in view, since growing or shrinking
@@ -41,20 +62,15 @@ export function useRevealOnToggle(
   useEffect(() => {
     if (!settling) return;
     let cancelled = false;
-    // One frame so the height transition has started and is listed.
-    const frame = requestAnimationFrame(() => {
-      const animations = panelRef.current?.getAnimations() ?? [];
-      void Promise.allSettled(animations.map((a) => a.finished)).then(() => {
-        if (cancelled) return;
-        const card = rootRef.current?.closest('li');
-        // Find-in-page scrolls to its own match; moving the list would hide it again.
-        if (card && !skipReveal) revealInList(card);
-        setSettling(false);
-      });
+    void panelTransitionSettled(() => panelRef.current).then(() => {
+      if (cancelled) return;
+      const card = rootRef.current?.closest('li');
+      // Find-in-page scrolls to its own match; moving the list would hide it again.
+      if (card && !skipReveal) revealInList(card);
+      setSettling(false);
     });
     return () => {
       cancelled = true;
-      cancelAnimationFrame(frame);
     };
   }, [settling, open, skipReveal, rootRef, panelRef]);
 
