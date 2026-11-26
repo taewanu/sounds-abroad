@@ -224,7 +224,7 @@ export function TrackRow({
               });
             }}
             aria-label={`Open ${track.name} in Apple Music`}
-            className="hover:bg-orbit"
+            className="[--focus-ring-offset:-2px] hover:bg-orbit"
           >
             <AppleMusicIcon className="h-3.5 w-3.5" />
           </IconLink>
@@ -243,7 +243,7 @@ export function TrackRow({
               });
             }}
             aria-label={`Open ${track.name} on Spotify`}
-            className="hover:bg-orbit"
+            className="[--focus-ring-offset:-2px] hover:bg-orbit"
           >
             <SpotifyIcon className="h-3.5 w-3.5" />
           </IconLink>

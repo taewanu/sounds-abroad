@@ -217,8 +217,8 @@
       rgba(245, 242, 236, 0.16) var(--vol-fill, 100%)
     );
     cursor: pointer;
-    /* The 14px thumb overhangs the 4px track, so the focus ring sits farther out. */
-    --focus-ring-offset: 4px;
+    /* The 14px thumb overhangs the 4px track by 5px, so the ring starts past it. */
+    --focus-ring-offset: 7px;
   }
 
   .volume-slider::-webkit-slider-thumb {

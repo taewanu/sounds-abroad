@@ -31,7 +31,7 @@ function CommentaryText({ commentary }: { commentary: Commentary }) {
 
 function CommentarySources({ commentary }: { commentary: Commentary }) {
   return (
-    <div className="flex flex-wrap items-center gap-y-1 text-micro text-fg-3">
+    <div className="flex flex-wrap items-center gap-y-2 text-micro text-fg-3">
       {commentary.sources.map((url, i) => (
         <Fragment key={`${url}-${i}`}>
           {i > 0 ? (
@@ -55,7 +55,7 @@ function CommentarySources({ commentary }: { commentary: Commentary }) {
 
 function CommentaryDetail({ commentary }: { commentary: Commentary }) {
   return (
-    <div className="flex flex-col gap-2 pt-2">
+    <div className="flex flex-col gap-2 px-1 pt-2 pb-1">
       <CommentaryText commentary={commentary} />
       <CommentarySources commentary={commentary} />
     </div>
@@ -160,8 +160,8 @@ export function TrackCommentary({ commentary, isHintTarget, focusCard }: TrackCo
             </Glyph>
           </Collapsible.Trigger>
         )}
-        <Collapsible.Panel ref={panelRef} hiddenUntilFound className="commentary-reveal">
-          <div className="flex flex-col gap-2 pt-2">
+        <Collapsible.Panel ref={panelRef} hiddenUntilFound className="commentary-reveal -mx-1">
+          <div className="flex flex-col gap-2 px-1 pt-2 pb-1">
             {commentary.detail ? (
               <div className="commentary-rise">
                 <CommentaryText commentary={commentary} />
@@ -193,7 +193,7 @@ export function TrackCommentary({ commentary, isHintTarget, focusCard }: TrackCo
           <ChevronDownIcon className="h-4 w-4 text-fg-3 transition-transform group-data-[panel-open]:rotate-180 motion-reduce:transition-none" />
         </Glyph>
       </Collapsible.Trigger>
-      <Collapsible.Panel ref={panelRef} hiddenUntilFound className="commentary-reveal">
+      <Collapsible.Panel ref={panelRef} hiddenUntilFound className="commentary-reveal -mx-1">
         <CommentaryDetail commentary={commentary} />
       </Collapsible.Panel>
     </Collapsible.Root>
