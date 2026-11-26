@@ -8,6 +8,7 @@ import { PlayIcon } from '@/components/icons/play';
 import { SkipBackIcon } from '@/components/icons/skip-back';
 import { SkipForwardIcon } from '@/components/icons/skip-forward';
 import { TrackArtwork } from '@/components/track-artwork';
+import { IconButton } from '@/components/ui/icon-button';
 import { useOverflowMarquee } from '@/components/use-overflow-marquee';
 import { MuteButton, VolumeControl } from '@/components/volume-control';
 import type { ChartTrack } from '@/lib/chart-schema';
@@ -38,8 +39,7 @@ export interface MiniPlayerProps {
   nextTrack: ChartTrack | null;
 }
 
-const SKIP_BUTTON_CLASS =
-  'text-fg-2 hover:bg-orbit hover:text-fg-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-[color,background-color,scale,opacity] ease-spring focus-ring active:scale-[0.97] disabled:pointer-events-none disabled:opacity-30';
+const SECONDARY_TONE = 'text-fg-2 hover:bg-orbit hover:text-fg-1';
 
 // A non-interactive preview of an adjacent track for the rail: only the current
 // card carries the marquee, EQ, and a11y text, so the neighbours stay plain and
@@ -183,46 +183,45 @@ export function MiniPlayer({
             Commentary is gated per track, so the affordance renders only when
             the playing track actually carries it. */}
         {currentTrack.commentary ? (
-          <button
-            type="button"
+          <IconButton
+            size="md"
             onClick={onCommentary}
             aria-label="Read why this track is trending"
-            className={SKIP_BUTTON_CLASS}
+            className={SECONDARY_TONE}
           >
             <ExpandIcon className="h-4 w-4" />
-          </button>
+          </IconButton>
         ) : null}
         {volumeAdjustable ? <VolumeControl /> : <MuteButton />}
-        <button
-          type="button"
+        <IconButton
+          size="md"
           onClick={onPrev}
           disabled={!canPrev}
           aria-label="Previous track"
-          className={SKIP_BUTTON_CLASS}
+          className={SECONDARY_TONE}
         >
           <SkipBackIcon className="h-[18px] w-[18px]" />
-        </button>
-        <button
-          type="button"
+        </IconButton>
+        <IconButton
           onClick={() => toggle(currentTrack)}
           aria-label={
             isPlaying
               ? `Pause preview of ${currentTrack.name}`
               : `Play preview of ${currentTrack.name}`
           }
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-fg-1 focus-ring transition-[color,background-color,scale] ease-spring hover:bg-orbit active:scale-[0.97]"
+          className="text-fg-1 hover:bg-orbit"
         >
           {isPlaying ? <PauseIcon className="h-4 w-4" /> : <PlayIcon className="h-4 w-4" />}
-        </button>
-        <button
-          type="button"
+        </IconButton>
+        <IconButton
+          size="md"
           onClick={onNext}
           disabled={!canNext}
           aria-label="Next track"
-          className={SKIP_BUTTON_CLASS}
+          className={SECONDARY_TONE}
         >
           <SkipForwardIcon className="h-[18px] w-[18px]" />
-        </button>
+        </IconButton>
       </div>
     </div>
   );

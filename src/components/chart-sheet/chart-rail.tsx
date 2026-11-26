@@ -2,6 +2,7 @@
 
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 
+import { PillButton } from '@/components/ui/pill-button';
 import { SONGS_CHART, type ChartRef } from '@/lib/chart-ref';
 import type { Playlist } from '@/lib/chart-schema';
 
@@ -69,10 +70,9 @@ export function ChartRail({ playlists, current, pending, failed, onOpen }: Chart
         const waiting = pending === ref;
         const unavailable = failed.has(ref);
         return (
-          <button
+          <PillButton
             key={ref}
             id={chartTabId(ref)}
-            type="button"
             role="tab"
             aria-controls={CHART_PANEL_ID}
             aria-selected={selected}
@@ -85,14 +85,14 @@ export function ChartRail({ playlists, current, pending, failed, onOpen }: Chart
             tabIndex={selected ? 0 : -1}
             title={label}
             onClick={() => onOpen(ref)}
-            className={`max-w-[42vw] shrink-0 truncate rounded-pill border px-3.5 py-1.5 text-small focus-ring transition-colors disabled:opacity-30 ${
+            className={`max-w-[42vw] shrink-0 truncate border px-3.5 py-1.5 text-small ${
               selected
                 ? 'border-fg-1/20 bg-fg-1/15 font-semibold text-fg-1'
                 : 'border-fg-1/10 bg-fg-1/5 text-fg-2'
             } ${waiting ? 'chart-tab-waiting' : ''}`}
           >
             {label}
-          </button>
+          </PillButton>
         );
       })}
     </div>

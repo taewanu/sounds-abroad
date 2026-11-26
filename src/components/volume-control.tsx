@@ -4,11 +4,9 @@ import { type CSSProperties, useEffect, useRef, useState } from 'react';
 
 import { VolumeIcon } from '@/components/icons/volume';
 import { VolumeMuteIcon } from '@/components/icons/volume-mute';
+import { IconButton, IconToggle } from '@/components/ui/icon-button';
 import { ESCAPE_LAYER, useEscapeLayer } from '@/components/use-escape-layer';
 import { useAudioStore } from '@/providers/audio-store-provider';
-
-const MUTE_TRIGGER_CLASS =
-  'text-fg-2 hover:bg-orbit hover:text-fg-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-[color,background-color,scale] ease-spring focus-ring active:scale-[0.97]';
 
 /** The mute toggle alone, for where the level belongs to the hardware buttons. */
 export function MuteButton() {
@@ -17,15 +15,14 @@ export function MuteButton() {
   const Icon = muted ? VolumeMuteIcon : VolumeIcon;
 
   return (
-    <button
-      type="button"
-      onClick={() => setMuted(!muted)}
+    <IconToggle
+      pressed={muted}
+      onPressedChange={setMuted}
       aria-label={muted ? 'Unmute' : 'Mute'}
-      aria-pressed={muted}
-      className={MUTE_TRIGGER_CLASS}
+      className="text-fg-2 hover:bg-orbit hover:text-fg-1"
     >
       <Icon className="h-[18px] w-[18px]" />
-    </button>
+    </IconToggle>
   );
 }
 
@@ -90,19 +87,16 @@ export function VolumeControl() {
 
   return (
     <div ref={wrapperRef} className="relative shrink-0">
-      <button
+      <IconButton
         ref={buttonRef}
-        type="button"
         onClick={() => setOpen((isOpen) => !isOpen)}
         aria-label="Volume"
         aria-expanded={open}
         aria-controls="mini-player-volume"
-        className={`flex h-10 w-10 items-center justify-center rounded-full focus-ring transition-[color,background-color,scale] ease-spring active:scale-[0.97] ${
-          open ? 'bg-orbit text-fg-1' : 'text-fg-2 hover:bg-orbit hover:text-fg-1'
-        }`}
+        className={open ? 'bg-orbit text-fg-1' : 'text-fg-2 hover:bg-orbit hover:text-fg-1'}
       >
         <Icon className="h-[18px] w-[18px]" />
-      </button>
+      </IconButton>
       {open ? (
         <div
           id="mini-player-volume"
@@ -111,15 +105,15 @@ export function VolumeControl() {
           onPointerDown={(event) => event.stopPropagation()}
           className="absolute right-0 bottom-[calc(100%+8px)] z-10 flex w-44 items-center gap-2.5 rounded-xl border border-fg-1/10 bg-atmos px-3 py-2.5 shadow-md"
         >
-          <button
-            type="button"
-            onClick={() => setMuted(!muted)}
+          <IconToggle
+            size="sm"
+            pressed={muted}
+            onPressedChange={setMuted}
             aria-label={muted ? 'Unmute' : 'Mute'}
-            aria-pressed={muted}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-fg-2 focus-ring hover:text-fg-1 active:scale-[0.97]"
+            className="text-fg-2 hover:text-fg-1"
           >
             <Icon className="h-4 w-4" />
-          </button>
+          </IconToggle>
           <input
             ref={sliderRef}
             type="range"
