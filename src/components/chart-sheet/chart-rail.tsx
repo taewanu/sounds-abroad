@@ -54,7 +54,7 @@ export function ChartRail({ playlists, current, pending, failed, onOpen }: Chart
       value={active}
       onValueChange={onOpen}
       aria-label="Charts"
-      className="flex shrink-0 [scrollbar-width:none] gap-2 overflow-x-auto px-4 pb-3 [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      className="flex shrink-0 [scrollbar-width:none] gap-2 overflow-x-auto px-4 pt-1 pb-3 [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
     >
       {entries.map(({ ref, label }, index) => (
         <Tab

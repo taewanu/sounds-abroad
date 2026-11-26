@@ -878,7 +878,7 @@ export function ChartSheet({
           aria-expanded={snap === 'full'}
           className="relative mx-auto mt-3 mb-2 block h-1.5 w-12 bg-fg-1/15 before:absolute before:-inset-x-12 before:-top-3 before:-bottom-2"
         />
-        <h2 id="chart-sheet-title" className="px-6 pb-3 text-h3 font-semibold">
+        <h2 id="chart-sheet-title" className="px-6 pb-2 text-h3 font-semibold">
           {country.name}
         </h2>
         <div ref={railRef} inert={closed && offscreen.rail}>
