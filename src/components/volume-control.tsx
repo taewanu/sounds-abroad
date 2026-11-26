@@ -59,14 +59,14 @@ export function VolumeControl() {
         <Icon className="h-[18px] w-[18px]" />
       </Popover.Trigger>
       <Popover.Portal>
-        {/* Invisible and above every control, so the tap that dismisses lands
-            here and never presses the control underneath. */}
+        {/* Invisible and above every layer, the tour's z-60 included, so the
+            tap that dismisses lands here and never presses the control underneath. */}
         <Popover.Backdrop
           data-testid="volume-backdrop"
           onPointerDown={stopSwipe}
-          className="fixed inset-0 z-50"
+          className="fixed inset-0 z-[70]"
         />
-        <Popover.Positioner side="top" align="end" sideOffset={8} className="z-50">
+        <Popover.Positioner side="top" align="end" sideOffset={8} className="z-[70]">
           <Popover.Popup
             aria-label="Volume"
             initialFocus={sliderRef}
