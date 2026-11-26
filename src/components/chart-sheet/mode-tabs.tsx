@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef, useState } from 'react';
 
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { CHART_MODES, CHART_MODE_LABELS, type ChartMode } from '@/lib/chart-mode';
 
 export interface ModeTabsProps {
@@ -43,28 +44,24 @@ export function ModeTabs({ current, waiting, onOpen }: ModeTabsProps) {
   }, [current]);
 
   return (
-    <div
+    <ToggleGroup
       ref={railRef}
-      role="group"
+      value={current}
+      onValueChange={onOpen}
       aria-label="Chart mode"
       className="relative mx-6 mb-2 flex gap-5 border-b border-fg-1/10"
     >
-      {CHART_MODES.map((mode) => {
-        const selected = mode === current;
-        return (
-          <button
-            key={mode}
-            type="button"
-            aria-pressed={selected}
-            onClick={() => onOpen(mode)}
-            className={`pt-1.5 pb-2 text-small focus-ring transition-colors ease-spring motion-reduce:transition-none ${
-              selected ? 'font-semibold text-fg-1' : 'text-fg-2'
-            } ${waiting === mode ? 'chart-tab-waiting' : ''}`}
-          >
-            {CHART_MODE_LABELS[mode]}
-          </button>
-        );
-      })}
+      {CHART_MODES.map((mode) => (
+        <ToggleGroupItem
+          key={mode}
+          value={mode}
+          className={`pt-1.5 pb-2 text-small text-fg-2 data-[pressed]:font-semibold data-[pressed]:text-fg-1 ${
+            waiting === mode ? 'chart-tab-waiting' : ''
+          }`}
+        >
+          {CHART_MODE_LABELS[mode]}
+        </ToggleGroupItem>
+      ))}
       {/* Sits on the group's own bottom rule, so the two read as one edge. One
           pixel wide and scaled to the label it is under, so travelling between
           two labels of different widths animates transform alone rather than
@@ -76,6 +73,6 @@ export function ModeTabs({ current, waiting, onOpen }: ModeTabsProps) {
         }}
         className="absolute -bottom-px left-0 h-0.5 w-px origin-left bg-sunrise transition-transform ease-spring motion-reduce:transition-none"
       />
-    </div>
+    </ToggleGroup>
   );
 }
