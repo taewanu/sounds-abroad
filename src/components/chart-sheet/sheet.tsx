@@ -342,22 +342,24 @@ export function ChartSheet({
   // switch drops, and a focused card is taller than a row's collapse can hold,
   // so it would clip on the way out.
   const [focusMode, setFocusMode] = useState(mode);
-  // Fire commentary_opened when a card opens or switches, never on close, and
-  // not when find-in-page reveals it, since nobody chose to read that card.
+  // The rank find-in-page revealed, while its card is the one open. Nobody chose
+  // to read that card, so it neither counts as a read nor recedes the other rows:
+  // inert rows would hide their text from the next search.
+  const [foundRank, setFoundRank] = useState<number | null>(null);
+  const reading = focusedRank !== null && focusedRank !== foundRank;
+  // Fire commentary_opened when a card opens or switches, never on close.
   const prevFocusedRef = useRef<number | null>(null);
-  const foundRankRef = useRef<number | null>(null);
   useEffect(() => {
     const prev = prevFocusedRef.current;
-    const found = foundRankRef.current;
     prevFocusedRef.current = focusedRank;
-    foundRankRef.current = null;
-    if (focusedRank !== null && focusedRank !== prev && focusedRank !== found) {
+    if (focusedRank !== null && focusedRank !== prev && focusedRank !== foundRank) {
       trackEvent('commentary_opened', {
         country: countryCode,
         rank: focusedRank,
       });
     }
-  }, [focusedRank, countryCode]);
+  }, [focusedRank, foundRank, countryCode]);
+  if (focusedRank === null && foundRank !== null) setFoundRank(null);
   if (focusCountry !== countryCode || focusMode !== mode) {
     setFocusCountry(countryCode);
     setFocusMode(mode);
@@ -935,7 +937,7 @@ export function ChartSheet({
             // settled list.
             data-gem-gone={onlyHereMode || undefined}
             aria-hidden={onlyHereMode || undefined}
-            inert={onlyHereMode || focusedRank !== null}
+            inert={onlyHereMode || reading}
             className="grid grid-rows-[1fr] transition-[grid-template-rows,opacity] duration-(--dur-base) data-[gem-gone]:grid-rows-[0fr] data-[gem-gone]:opacity-0 motion-reduce:transition-none"
           >
             <div
@@ -943,7 +945,7 @@ export function ChartSheet({
               // so its play / commentary can't fire mid-read. Min-height-0 lets
               // the grid row above collapse it to nothing.
               className={`min-h-0 overflow-hidden ${
-                focusedRank !== null
+                reading
                   ? 'pointer-events-none opacity-40 transition-opacity duration-(--dur-base) motion-reduce:transition-none'
                   : ''
               }`}
@@ -976,9 +978,9 @@ export function ChartSheet({
             transition={transition}
             isHintTarget={track.rank === hintRank}
             focused={track.rank === focusedRank}
-            dimmed={focusedRank !== null && track.rank !== focusedRank}
+            dimmed={reading && track.rank !== focusedRank}
             onOpenCommentary={(source) => {
-              foundRankRef.current = source === 'find' ? track.rank : null;
+              setFoundRank(source === 'find' ? track.rank : null);
               setFocusedRank(track.rank);
             }}
             onCloseCommentary={() => setFocusedRank(null)}

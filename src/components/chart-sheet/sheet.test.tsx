@@ -1390,6 +1390,18 @@ describe('ChartSheet commentary focus', () => {
     expect(trackEvent).not.toHaveBeenCalledWith('commentary_opened', expect.anything());
   });
 
+  test('a find-in-page open leaves the other rows live, so the next search can reach them', () => {
+    const { container } = renderSheet('full');
+    const panel = firstTeaser(container)!.parentElement!.querySelector('[hidden]')!;
+
+    act(() => {
+      panel.dispatchEvent(new Event('beforematch'));
+    });
+
+    expect(container.querySelector('[data-commentary-card]')).not.toBeNull();
+    expect(container.querySelector('li[inert]')).toBeNull();
+  });
+
   test('the commentary badge toggles: a repeat focus ask for the open row closes it', () => {
     const store = createAudioStore(() => makeMockAudio());
     const rank = COUNTRY_KR.tracks[0].rank;
