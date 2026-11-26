@@ -364,7 +364,7 @@ describe('TrackRow commentary card', () => {
     expect(screen.queryByRole('button', { expanded: false })).toBeNull();
   });
 
-  test('collapsed: shows tag + lead, panel starts inert', () => {
+  test('collapsed: shows tag + lead, panel starts hidden until found', () => {
     const track = makeTrack({ commentary: COMMENTARY });
 
     renderTrackRow(track);
@@ -372,20 +372,21 @@ describe('TrackRow commentary card', () => {
     const toggle = screen.getByRole('button', { expanded: false });
     expect(toggle.textContent).toContain(COMMENTARY.lead);
     expect(screen.getByText(COMMENTARY.tag)).toBeDefined();
-    const panel = document.getElementById(toggle.getAttribute('aria-controls')!);
-    expect(panel?.hasAttribute('inert')).toBe(true);
+    const panel = screen.getByText(COMMENTARY.detail).closest('[hidden]');
+    expect(panel?.getAttribute('hidden')).toBe('until-found');
   });
 
-  test('tapping the teaser expands: aria-expanded flips and the panel un-inerts', () => {
+  test('tapping the teaser expands: aria-expanded flips and the panel it controls unhides', () => {
     const track = makeTrack({ commentary: COMMENTARY });
 
     renderTrackRow(track);
     const toggle = screen.getByRole('button', { expanded: false });
     fireEvent.click(toggle);
 
-    expect(screen.getByRole('button', { expanded: true })).toBeDefined();
+    expect(screen.getByRole('button', { expanded: true })).toBe(toggle);
     const panel = document.getElementById(toggle.getAttribute('aria-controls')!);
-    expect(panel?.hasAttribute('inert')).toBe(false);
+    expect(panel?.contains(screen.getByText(COMMENTARY.detail))).toBe(true);
+    expect(panel?.hasAttribute('hidden')).toBe(false);
   });
 
   test('expanded: shows detail and sources as bare hostnames', () => {

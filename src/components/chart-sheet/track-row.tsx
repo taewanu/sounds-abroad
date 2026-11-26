@@ -18,7 +18,7 @@ import { spotifySearchUrl } from '@/lib/spotify-search-url';
 import { sameTrack } from '@/lib/track-identity';
 import { useAudioStore } from '@/providers/audio-store-provider';
 
-import { TrackCommentary } from './track-commentary';
+import { type CommentaryOpenSource, TrackCommentary } from './track-commentary';
 import type { RowTransition } from './use-row-transitions';
 
 // How many rows the entrance stagger runs across before every later row lands
@@ -46,7 +46,7 @@ export interface TrackRowProps {
   // without commentary and for the gem card.
   focused?: boolean;
   dimmed?: boolean;
-  onOpenCommentary?: () => void;
+  onOpenCommentary?: (source: CommentaryOpenSource) => void;
   onCloseCommentary?: () => void;
   // Fired when this row starts a track, so the sheet can nudge a partly-clipped
   // row into view. Only ranked rows carry it; the gem card does not, so a gem
@@ -224,7 +224,7 @@ export function TrackRow({
               });
             }}
             aria-label={`Open ${track.name} in Apple Music`}
-            className="hover:bg-orbit"
+            className="[--focus-ring-offset:-2px] hover:bg-orbit"
           >
             <AppleMusicIcon className="h-3.5 w-3.5" />
           </IconLink>
@@ -243,7 +243,7 @@ export function TrackRow({
               });
             }}
             aria-label={`Open ${track.name} on Spotify`}
-            className="hover:bg-orbit"
+            className="[--focus-ring-offset:-2px] hover:bg-orbit"
           >
             <SpotifyIcon className="h-3.5 w-3.5" />
           </IconLink>

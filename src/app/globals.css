@@ -217,8 +217,8 @@
       rgba(245, 242, 236, 0.16) var(--vol-fill, 100%)
     );
     cursor: pointer;
-    /* The 14px thumb overhangs the 4px track, so the focus ring sits farther out. */
-    --focus-ring-offset: 4px;
+    /* The 14px thumb overhangs the 4px track by 5px, so the ring starts past it. */
+    --focus-ring-offset: 7px;
   }
 
   .volume-slider::-webkit-slider-thumb {
@@ -280,20 +280,28 @@
   }
 }
 
-/* Commentary focus card open/close: the detail + sources grow and shrink on a
-   grid-rows track (height on ease-out so it never jiggles) while the content
-   rises in with a slight spring; the sources trail by a beat. Both directions
-   animate off the single data-open toggle. */
+/* Commentary disclosure open/close: the panel grows and shrinks on its measured
+   height (ease-out so it never jiggles) while the focus card's content rises in
+   with a slight spring; the sources trail by a beat. The rise waits for
+   data-starting-style to clear, so it starts from the closed style once the
+   panel is unhidden. */
 .commentary-reveal {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows var(--dur-base) var(--ease-out);
-}
-.commentary-reveal[data-open] {
-  grid-template-rows: 1fr;
-}
-.commentary-reveal-inner {
   overflow: hidden;
+  height: var(--collapsible-panel-height);
+  transition: height var(--dur-base) var(--ease-out);
+}
+.commentary-reveal[data-starting-style],
+.commentary-reveal[data-ending-style] {
+  height: 0;
+}
+/* Base UI measures the panel before the rise settles; clipping the content box
+   keeps the rise's offset out of that height, so the open ends without a snap. */
+.commentary-reveal > * {
+  overflow: clip;
+}
+/* Find-in-page lands on the match at once, so its text must not still be fading in. */
+.commentary-reveal[data-found] .commentary-rise {
+  transition: none;
 }
 .commentary-rise {
   opacity: 0;
@@ -302,7 +310,7 @@
     opacity var(--dur-base) var(--ease-out),
     transform var(--dur-base) var(--ease-spring);
 }
-.commentary-reveal[data-open] .commentary-rise {
+.commentary-reveal[data-open]:not([data-starting-style]) .commentary-rise {
   opacity: 1;
   transform: translateY(0);
 }

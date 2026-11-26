@@ -343,18 +343,24 @@ export function ChartSheet({
   // switch drops, and a focused card is taller than a row's collapse can hold,
   // so it would clip on the way out.
   const [focusMode, setFocusMode] = useState(mode);
+  // The rank find-in-page revealed, while its card is the one open. Nobody chose
+  // to read that card, so it neither counts as a read nor recedes the other rows:
+  // inert rows would hide their text from the next search.
+  const [foundRank, setFoundRank] = useState<number | null>(null);
+  const reading = focusedRank !== null && focusedRank !== foundRank;
   // Fire commentary_opened when a card opens or switches, never on close.
   const prevFocusedRef = useRef<number | null>(null);
   useEffect(() => {
     const prev = prevFocusedRef.current;
     prevFocusedRef.current = focusedRank;
-    if (focusedRank !== null && focusedRank !== prev) {
+    if (focusedRank !== null && focusedRank !== prev && focusedRank !== foundRank) {
       trackEvent('commentary_opened', {
         country: countryCode,
         rank: focusedRank,
       });
     }
-  }, [focusedRank, countryCode]);
+  }, [focusedRank, foundRank, countryCode]);
+  if (focusedRank === null && foundRank !== null) setFoundRank(null);
   if (focusCountry !== countryCode || focusMode !== mode) {
     setFocusCountry(countryCode);
     setFocusMode(mode);
@@ -395,25 +401,6 @@ export function ChartSheet({
     };
     window.addEventListener('click', onClick, true);
     return () => window.removeEventListener('click', onClick, true);
-  }, [focusedRank]);
-
-  // When a card opens, its grown height can push its own top above the list
-  // viewport; nudge it into view so the read starts at the top, not mid-card.
-  // Only when clipped (so an already-visible card never yanks); rAF so the grown
-  // card is measured, not the pre-open row.
-  useEffect(() => {
-    if (focusedRank === null) return;
-    const id = requestAnimationFrame(() => {
-      const ol = olRef.current;
-      const row = ol?.querySelector<HTMLElement>(`[data-rank="${focusedRank}"]`);
-      if (!ol || !row) return;
-      // Leave a small margin above the card so its top outline clears the
-      // viewport edge instead of sitting flush against it (clipped on mobile).
-      const MARGIN_PX = 12;
-      const delta = row.getBoundingClientRect().top - ol.getBoundingClientRect().top - MARGIN_PX;
-      if (delta < 0) ol.scrollBy({ top: delta, behavior: 'smooth' });
-    });
-    return () => cancelAnimationFrame(id);
   }, [focusedRank]);
 
   // Mount-time snap, captured once. React writes this transform for SSR/first
@@ -938,7 +925,7 @@ export function ChartSheet({
             '--mode-h': onSongsChart ? '45px' : '0px',
           } as CSSProperties
         }
-        className="chart-list min-h-0 flex-1 touch-none [scrollbar-width:none] overflow-y-auto overscroll-y-contain px-4 pb-12 [-ms-overflow-style:none] group-data-[snap=full]:touch-pan-y data-[peek]:max-h-[calc(35dvh-62px-var(--rail-h)-var(--mode-h))] [&::-webkit-scrollbar]:hidden"
+        className="chart-list min-h-0 flex-1 touch-none [scrollbar-width:none] overflow-y-auto overscroll-y-contain px-4 pt-2 pb-12 focus-ring [--focus-ring-offset:-2px] [-ms-overflow-style:none] group-data-[snap=full]:touch-pan-y data-[peek]:max-h-[calc(35dvh-62px-var(--rail-h)-var(--mode-h))] [&::-webkit-scrollbar]:hidden"
       >
         {gemSelection ? (
           <li
@@ -950,7 +937,7 @@ export function ChartSheet({
             // settled list.
             data-gem-gone={onlyHereMode || undefined}
             aria-hidden={onlyHereMode || undefined}
-            inert={onlyHereMode || focusedRank !== null}
+            inert={onlyHereMode || reading}
             className="grid grid-rows-[1fr] transition-[grid-template-rows,opacity] duration-(--dur-base) data-[gem-gone]:grid-rows-[0fr] data-[gem-gone]:opacity-0 motion-reduce:transition-none"
           >
             <div
@@ -958,7 +945,7 @@ export function ChartSheet({
               // so its play / commentary can't fire mid-read. Min-height-0 lets
               // the grid row above collapse it to nothing.
               className={`min-h-0 overflow-hidden ${
-                focusedRank !== null
+                reading
                   ? 'pointer-events-none opacity-40 transition-opacity duration-(--dur-base) motion-reduce:transition-none'
                   : ''
               }`}
@@ -991,8 +978,11 @@ export function ChartSheet({
             transition={transition}
             isHintTarget={track.rank === hintRank}
             focused={track.rank === focusedRank}
-            dimmed={focusedRank !== null && track.rank !== focusedRank}
-            onOpenCommentary={() => setFocusedRank(track.rank)}
+            dimmed={reading && track.rank !== focusedRank}
+            onOpenCommentary={(source) => {
+              setFoundRank(source === 'find' ? track.rank : null);
+              setFocusedRank(track.rank);
+            }}
             onCloseCommentary={() => setFocusedRank(null)}
             onPlay={() => setTapSignal((n) => n + 1)}
           />

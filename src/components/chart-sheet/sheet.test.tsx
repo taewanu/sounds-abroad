@@ -16,6 +16,9 @@ import { ChartSheet, type SnapState } from './sheet';
 import type { ChartTracksState } from './use-chart-tracks';
 import { ROW_COLLAPSE_MS } from './use-row-transitions';
 
+const trackEvent = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/analytics', () => ({ track: trackEvent }));
+
 function makeMockAudio(): AudioEngine {
   return {
     src: '',
@@ -1363,6 +1366,40 @@ describe('ChartSheet commentary focus', () => {
 
     expect(container.querySelector('[data-commentary-card]')).not.toBeNull();
     expect(container.querySelector("li[class*='pointer-events-none']")).not.toBeNull();
+  });
+
+  test('a press that opens a card counts as a commentary read', () => {
+    const { container } = renderSheet('full');
+    trackEvent.mockClear();
+
+    fireEvent.click(firstTeaser(container)!);
+
+    expect(trackEvent).toHaveBeenCalledWith('commentary_opened', expect.anything());
+  });
+
+  test('a find-in-page match that opens a card does not count as a read', () => {
+    const { container } = renderSheet('full');
+    const panel = firstTeaser(container)!.parentElement!.querySelector('[hidden]')!;
+    trackEvent.mockClear();
+
+    act(() => {
+      panel.dispatchEvent(new Event('beforematch'));
+    });
+
+    expect(container.querySelector('[data-commentary-card]')).not.toBeNull();
+    expect(trackEvent).not.toHaveBeenCalledWith('commentary_opened', expect.anything());
+  });
+
+  test('a find-in-page open leaves the other rows live, so the next search can reach them', () => {
+    const { container } = renderSheet('full');
+    const panel = firstTeaser(container)!.parentElement!.querySelector('[hidden]')!;
+
+    act(() => {
+      panel.dispatchEvent(new Event('beforematch'));
+    });
+
+    expect(container.querySelector('[data-commentary-card]')).not.toBeNull();
+    expect(container.querySelector('li[inert]')).toBeNull();
   });
 
   test('the commentary badge toggles: a repeat focus ask for the open row closes it', () => {
