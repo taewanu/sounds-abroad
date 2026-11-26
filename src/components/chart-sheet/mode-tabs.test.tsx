@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -52,6 +52,24 @@ describe('ModeTabs', () => {
 
     fireEvent.click(modeButton(FIRST));
 
+    expect(pressedModes()).toEqual([FIRST]);
+  });
+
+  test('is one tab stop, and an arrow key moves focus to the next mode without opening it', async () => {
+    const onOpen = vi.fn();
+    render(<OpenableModes onOpen={onOpen} />);
+    const tabStops = () => CHART_MODES.filter((mode) => modeButton(mode).tabIndex === 0);
+
+    expect(tabStops()).toHaveLength(1);
+
+    modeButton(FIRST).focus();
+    fireEvent.keyDown(modeButton(FIRST), { key: 'ArrowRight' });
+    // Base UI moves focus in a microtask after the keydown.
+    await act(async () => {});
+
+    expect(document.activeElement).toBe(modeButton(SECOND));
+    expect(tabStops()).toEqual([SECOND]);
+    expect(onOpen).not.toHaveBeenCalled();
     expect(pressedModes()).toEqual([FIRST]);
   });
 

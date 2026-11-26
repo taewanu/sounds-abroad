@@ -1,13 +1,15 @@
 import { Toggle } from '@base-ui/react/toggle';
 import { ToggleGroup as BaseToggleGroup } from '@base-ui/react/toggle-group';
+import type { RefAttributes } from 'react';
 
 type ToggleGroupProps<Value extends string> = Omit<
   BaseToggleGroup.Props<Value>,
   'value' | 'defaultValue' | 'onValueChange' | 'multiple'
-> & {
-  value: Value;
-  onValueChange: (value: Value) => void;
-};
+> &
+  RefAttributes<HTMLDivElement> & {
+    value: Value;
+    onValueChange: (value: Value) => void;
+  };
 
 /**
  * Mutually exclusive toggles with exactly one pressed: one tab stop, arrow keys
