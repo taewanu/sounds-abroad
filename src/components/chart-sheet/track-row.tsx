@@ -8,6 +8,7 @@ import { PlayIcon } from '@/components/icons/play';
 import { SpotifyIcon } from '@/components/icons/spotify';
 import { TrackArtwork } from '@/components/track-artwork';
 import { IconLink } from '@/components/ui/icon-button';
+import { RowButton } from '@/components/ui/row-button';
 import { useOverflowMarquee } from '@/components/use-overflow-marquee';
 import { track as trackEvent } from '@/lib/analytics';
 import type { ChartMode } from '@/lib/chart-mode';
@@ -154,15 +155,14 @@ export function TrackRow({
       className={`${baseClass} ${stateClass}`}
     >
       <div className="flex items-center gap-[14px]">
-        <button
-          type="button"
+        <RowButton
           disabled={!hasPreview}
           onClick={() => {
             toggle(track, { countryCode, chartRef, mode }, 'track_row');
             onPlay?.();
           }}
           aria-label={`${isPlaying ? 'Pause' : 'Play'} preview of ${track.name} by ${track.artist}`}
-          className="flex min-w-0 flex-1 items-center gap-[14px] text-left focus-ring transition-transform ease-spring active:scale-[0.97] disabled:pointer-events-none"
+          className="flex min-w-0 flex-1 items-center gap-[14px]"
         >
           <span className="flex w-7 shrink-0 items-center justify-center font-mono text-body text-fg-3 tabular-nums">
             {isCurrent ? (
@@ -207,7 +207,7 @@ export function TrackRow({
               <p className="mt-1 text-micro text-error">Preview unavailable, try another track</p>
             )}
           </div>
-        </button>
+        </RowButton>
         <div className="flex shrink-0 gap-1">
           <IconLink
             size="sm"

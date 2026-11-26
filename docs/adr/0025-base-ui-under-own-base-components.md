@@ -28,7 +28,7 @@ Moving those decisions into components needs headless UI primitives: components 
 
 - A new runtime dependency, with `@floating-ui/*` and `@base-ui/utils` under it. Its cost to first-load JavaScript was not measured at adoption.
 - The chart sheet and the tour are not yet on Base UI. Whether its `Drawer` or non-modal `Dialog` can host them without a portal, which the server-rendered sheet needs, is open, and so is how Base UI's Escape handling orders with `useEscapeLayer` while both exist.
-- Row-sized controls (the track row's play target, the gem card) and one-off controls (the shuffle button, the country list's close button) still carry their own classes until a base component fits them.
+- Row-sized press targets use `RowButton`, and one-off round controls use `IconButton`'s size and `press` variants. The country list's close button still carries its own classes until `IconButton` has its size.
 
 ## Revisit if
 

@@ -9,6 +9,7 @@ import { SkipBackIcon } from '@/components/icons/skip-back';
 import { SkipForwardIcon } from '@/components/icons/skip-forward';
 import { TrackArtwork } from '@/components/track-artwork';
 import { IconButton } from '@/components/ui/icon-button';
+import { RowButton } from '@/components/ui/row-button';
 import { useOverflowMarquee } from '@/components/use-overflow-marquee';
 import { MuteButton, VolumeControl } from '@/components/volume-control';
 import type { ChartTrack } from '@/lib/chart-schema';
@@ -136,11 +137,12 @@ export function MiniPlayer({
         }}
         className="flex touch-pan-y items-center gap-[14px] px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)]"
       >
-        <button
-          type="button"
+        {/* No press scale: the strip is also the swipe surface, so it would shrink under every drag. */}
+        <RowButton
+          press="none"
           onClick={onTap}
           aria-label="Reopen chart"
-          className="min-w-0 flex-1 overflow-hidden text-left focus-ring"
+          className="min-w-0 flex-1 overflow-hidden"
         >
           {/* The rail: prev | current | next, each the strip's full width, so a
               drag reveals the neighbours and a commit slides one into place. The
@@ -177,7 +179,7 @@ export function MiniPlayer({
             </div>
             <PreviewCard track={nextTrack} />
           </div>
-        </button>
+        </RowButton>
         {/* A sibling of the strip button, never inside it: nested buttons are
             invalid HTML and would tangle the strip's tap/swipe tracking.
             Commentary is gated per track, so the affordance renders only when
