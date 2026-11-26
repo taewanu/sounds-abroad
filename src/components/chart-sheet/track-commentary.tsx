@@ -1,11 +1,11 @@
 'use client';
 
-import { Collapsible } from '@base-ui/react/collapsible';
 import { Fragment } from 'react';
 
 import { ChevronDownIcon } from '@/components/icons/chevron-down';
 import { ExpandIcon } from '@/components/icons/expand';
 import { MinimizeIcon } from '@/components/icons/minimize';
+import { Collapsible } from '@/components/ui/collapsible';
 import type { Commentary } from '@/lib/chart-schema';
 
 import { useCommentaryHintPulse } from './use-commentary-hint-pulse';
@@ -123,7 +123,7 @@ export function TrackCommentary({ commentary, isHintTarget, focusCard }: TrackCo
           // a full-width lead. The whole button toggles closed (tap the card
           // again), so there's no separate close control. Its content names it,
           // so the full lead is announced and aria-expanded carries the action.
-          <Collapsible.Trigger className="block w-full text-left focus-ring">
+          <Collapsible.Trigger className="block w-full text-left">
             <div className="flex items-center gap-2">
               <TagPill tag={commentary.tag} />
               <MinimizeIcon className="ml-auto h-4 w-4 shrink-0 text-fg-3" />
@@ -135,7 +135,7 @@ export function TrackCommentary({ commentary, isHintTarget, focusCard }: TrackCo
           // larger view" icon (a chevron would imply an in-place fold).
           <Collapsible.Trigger
             data-commentary-teaser
-            className="flex w-full items-center gap-2 text-left focus-ring"
+            className="flex w-full items-center gap-2 text-left"
           >
             <TagPill tag={commentary.tag} />
             <span className="line-clamp-2 min-w-0 flex-1 text-small text-fg-2">
@@ -164,7 +164,7 @@ export function TrackCommentary({ commentary, isHintTarget, focusCard }: TrackCo
 
   return (
     <Collapsible.Root className="mt-2.5 border-t border-fg-1/10 pt-2.5">
-      <Collapsible.Trigger className="group flex w-full items-center gap-2 text-left focus-ring">
+      <Collapsible.Trigger className="group flex w-full items-center gap-2 text-left">
         <TagPill tag={commentary.tag} />
         <span className="line-clamp-2 min-w-0 flex-1 text-small text-fg-2">{commentary.lead}</span>
         <Glyph>
