@@ -280,20 +280,19 @@
   }
 }
 
-/* Commentary focus card open/close: the detail + sources grow and shrink on a
-   grid-rows track (height on ease-out so it never jiggles) while the content
-   rises in with a slight spring; the sources trail by a beat. Both directions
-   animate off the single data-open toggle. */
+/* Commentary disclosure open/close: the panel grows and shrinks on its measured
+   height (ease-out so it never jiggles) while the focus card's content rises in
+   with a slight spring; the sources trail by a beat. The rise waits for
+   data-starting-style to clear, so it starts from the closed style once the
+   panel is unhidden. */
 .commentary-reveal {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows var(--dur-base) var(--ease-out);
-}
-.commentary-reveal[data-open] {
-  grid-template-rows: 1fr;
-}
-.commentary-reveal-inner {
   overflow: hidden;
+  height: var(--collapsible-panel-height);
+  transition: height var(--dur-base) var(--ease-out);
+}
+.commentary-reveal[data-starting-style],
+.commentary-reveal[data-ending-style] {
+  height: 0;
 }
 .commentary-rise {
   opacity: 0;
@@ -302,7 +301,7 @@
     opacity var(--dur-base) var(--ease-out),
     transform var(--dur-base) var(--ease-spring);
 }
-.commentary-reveal[data-open] .commentary-rise {
+.commentary-reveal[data-open]:not([data-starting-style]) .commentary-rise {
   opacity: 1;
   transform: translateY(0);
 }

@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { useState } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, test } from 'vitest';
 
 import type { Commentary } from '@/lib/chart-schema';
@@ -68,6 +69,26 @@ describe.each(SHELLS)('TrackCommentary %s', (_, renderShell) => {
 
     expect(screen.getByRole('button', { expanded: false })).toBeDefined();
     expect(isHiddenFromUsers(detail())).toBe(true);
+  });
+
+  test('a find-in-page match inside the closed panel opens it', () => {
+    render(renderShell());
+    const panel = detail().closest('[hidden]')!;
+
+    act(() => {
+      panel.dispatchEvent(new Event('beforematch'));
+    });
+
+    expect(screen.getByRole('button', { expanded: true })).toBeDefined();
+    expect(isHiddenFromUsers(detail())).toBe(false);
+  });
+
+  test('server-renders closed with its detail hidden', () => {
+    const host = document.createElement('div');
+
+    host.innerHTML = renderToStaticMarkup(renderShell());
+
+    expect(isHiddenFromUsers(within(host).getByText(COMMENTARY.detail))).toBe(true);
   });
 
   test('under reduced motion, every element that animates the reveal has its transition turned off', () => {
