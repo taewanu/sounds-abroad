@@ -116,8 +116,19 @@ export function TrackCommentary({ commentary, isHintTarget, focusCard }: TrackCo
   const [inlineOpen, setInlineOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const openedByFind = useRef(false);
-  useRevealOnToggle(focusCard ? focusCard.active : inlineOpen, rootRef, panelRef, openedByFind);
+  const open = focusCard ? focusCard.active : inlineOpen;
+  const [openedByFind, setOpenedByFind] = useState(false);
+  if (!open && openedByFind) setOpenedByFind(false);
+  const settling = useRevealOnToggle(open, rootRef, panelRef, openedByFind);
+  // A closing panel stays visible while it shrinks but must not take focus; once
+  // closed, Base UI hides it until found, which inert would block.
+  const panelProps = {
+    ref: panelRef,
+    hiddenUntilFound: true,
+    inert: (!open && settling) || undefined,
+    'data-found': (open && openedByFind) || undefined,
+    className: 'commentary-reveal -mx-1',
+  };
 
   if (focusCard) {
     const { active, onOpen, onClose } = focusCard;
@@ -125,9 +136,10 @@ export function TrackCommentary({ commentary, isHintTarget, focusCard }: TrackCo
       <Collapsible.Root
         ref={rootRef}
         open={active}
-        onOpenChange={(open, { event }) => {
-          openedByFind.current = event.type === 'beforematch';
-          if (open) onOpen(openedByFind.current ? 'find' : 'press');
+        onOpenChange={(next, { event }) => {
+          const found = event.type === 'beforematch';
+          setOpenedByFind(found);
+          if (next) onOpen(found ? 'find' : 'press');
           else onClose();
         }}
         className="mt-2.5 border-t border-fg-1/10 pt-2.5"
@@ -160,7 +172,7 @@ export function TrackCommentary({ commentary, isHintTarget, focusCard }: TrackCo
             </Glyph>
           </Collapsible.Trigger>
         )}
-        <Collapsible.Panel ref={panelRef} hiddenUntilFound className="commentary-reveal -mx-1">
+        <Collapsible.Panel {...panelProps}>
           <div className="flex flex-col gap-2 px-1 pt-2 pb-1">
             {commentary.detail ? (
               <div className="commentary-rise">
@@ -180,9 +192,9 @@ export function TrackCommentary({ commentary, isHintTarget, focusCard }: TrackCo
     <Collapsible.Root
       ref={rootRef}
       open={inlineOpen}
-      onOpenChange={(open, { event }) => {
-        openedByFind.current = event.type === 'beforematch';
-        setInlineOpen(open);
+      onOpenChange={(next, { event }) => {
+        setOpenedByFind(event.type === 'beforematch');
+        setInlineOpen(next);
       }}
       className="mt-2.5 border-t border-fg-1/10 pt-2.5"
     >
@@ -193,7 +205,7 @@ export function TrackCommentary({ commentary, isHintTarget, focusCard }: TrackCo
           <ChevronDownIcon className="h-4 w-4 text-fg-3 transition-transform group-data-[panel-open]:rotate-180 motion-reduce:transition-none" />
         </Glyph>
       </Collapsible.Trigger>
-      <Collapsible.Panel ref={panelRef} hiddenUntilFound className="commentary-reveal -mx-1">
+      <Collapsible.Panel {...panelProps}>
         <CommentaryDetail commentary={commentary} />
       </Collapsible.Panel>
     </Collapsible.Root>

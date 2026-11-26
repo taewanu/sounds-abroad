@@ -1,4 +1,4 @@
-import { type RefObject, useEffect, useRef } from 'react';
+import { type RefObject, useEffect, useState } from 'react';
 
 // Room left between a revealed card and the list's edge, so the card's outline
 // clears the viewport instead of sitting flush against it.
@@ -22,33 +22,41 @@ export function revealInList(card: HTMLElement) {
 /**
  * After a disclosure opens or closes, waits for its panel's height transition
  * to settle and keeps the card around it in view, since growing or shrinking
- * the panel can leave the card above or below the list's viewport.
+ * the panel can leave the card above or below the list's viewport. Returns
+ * whether the panel is still settling.
  */
 export function useRevealOnToggle(
   open: boolean,
   rootRef: RefObject<HTMLElement | null>,
   panelRef: RefObject<HTMLElement | null>,
-  skip: RefObject<boolean>,
+  skipReveal: boolean,
 ) {
-  const wasOpen = useRef(open);
+  const [settledOpen, setSettledOpen] = useState(open);
+  const [settling, setSettling] = useState(false);
+  if (settledOpen !== open) {
+    setSettledOpen(open);
+    setSettling(true);
+  }
+
   useEffect(() => {
-    if (wasOpen.current === open) return;
-    wasOpen.current = open;
-    // Find-in-page scrolls to its own match; moving the list would hide it again.
-    if (skip.current) return;
-    const card = rootRef.current?.closest('li');
-    const panel = panelRef.current;
-    if (!card || !panel) return;
+    if (!settling) return;
     let cancelled = false;
     // One frame so the height transition has started and is listed.
     const frame = requestAnimationFrame(() => {
-      void Promise.allSettled(panel.getAnimations().map((a) => a.finished)).then(() => {
-        if (!cancelled) revealInList(card);
+      const animations = panelRef.current?.getAnimations() ?? [];
+      void Promise.allSettled(animations.map((a) => a.finished)).then(() => {
+        if (cancelled) return;
+        const card = rootRef.current?.closest('li');
+        // Find-in-page scrolls to its own match; moving the list would hide it again.
+        if (card && !skipReveal) revealInList(card);
+        setSettling(false);
       });
     });
     return () => {
       cancelled = true;
       cancelAnimationFrame(frame);
     };
-  }, [open, rootRef, panelRef, skip]);
+  }, [settling, open, skipReveal, rootRef, panelRef]);
+
+  return settling;
 }

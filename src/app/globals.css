@@ -294,6 +294,15 @@
 .commentary-reveal[data-ending-style] {
   height: 0;
 }
+/* Base UI measures the panel before the rise settles; clipping the content box
+   keeps the rise's offset out of that height, so the open ends without a snap. */
+.commentary-reveal > * {
+  overflow: clip;
+}
+/* Find-in-page lands on the match at once, so its text must not still be fading in. */
+.commentary-reveal[data-found] .commentary-rise {
+  transition: none;
+}
 .commentary-rise {
   opacity: 0;
   transform: translateY(10px);
