@@ -1,11 +1,28 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, test, vi, type MockInstance } from 'vitest';
 
+import { ESCAPE_LAYER, useEscapeLayer } from '@/components/use-escape-layer';
 import { globeChartStore } from '@/lib/globe-chart-store';
 
 import { CountrySelector } from './country-selector';
 
 const openList = () => fireEvent.click(screen.getByRole('button', { name: /choose a country/i }));
+
+// Lets queued focus and dismissal work run, so a check that nothing moved is not premature.
+const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 20)));
+
+const queryList = () => screen.queryByRole('navigation', { name: 'Countries' });
+
+// A real key press targets the focused element, or the body when nothing is.
+const pressEscape = () =>
+  fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
+
+type Rank = (typeof ESCAPE_LAYER)[keyof typeof ESCAPE_LAYER];
+
+function OtherLayer({ rank, onEscape }: { rank: Rank; onEscape: () => void }) {
+  useEscapeLayer(true, rank, onEscape);
+  return null;
+}
 
 describe('CountrySelector', () => {
   let pushState: MockInstance<History['pushState']>;
@@ -88,44 +105,105 @@ describe('CountrySelector', () => {
     expect(screen.getByRole('status').textContent).toContain('Brazil');
   });
 
-  test('stays open after selecting so exploration can continue', () => {
+  test('stays open after selecting so exploration can continue', async () => {
     render(<CountrySelector />);
     openList();
 
     fireEvent.click(screen.getByRole('button', { name: 'France' }));
+    await settle();
 
     expect(screen.getByRole('navigation', { name: 'Countries' })).toBeDefined();
   });
 
-  test('Escape closes the list and returns focus to the toggle', () => {
+  test('opening leaves focus on the toggle', async () => {
     render(<CountrySelector />);
     const toggle = screen.getByRole('button', { name: /choose a country/i });
+    act(() => toggle.focus());
+
     fireEvent.click(toggle);
 
-    fireEvent.keyDown(window, { key: 'Escape' });
-
-    expect(screen.queryByRole('navigation', { name: 'Countries' })).toBeNull();
+    await screen.findByRole('navigation', { name: 'Countries' });
     expect(document.activeElement).toBe(toggle);
   });
 
-  test('the close button closes the list and returns focus to the toggle', () => {
+  test('Escape closes the list and returns focus to the toggle', async () => {
+    render(<CountrySelector />);
+    const toggle = screen.getByRole('button', { name: /choose a country/i });
+    fireEvent.click(toggle);
+    act(() => screen.getByRole('button', { name: 'France' }).focus());
+
+    pressEscape();
+
+    await waitFor(() => expect(queryList()).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(toggle));
+  });
+
+  test('with the list open over the sheet, one Escape closes only the list', async () => {
+    const sheetEscape = vi.fn();
+    render(
+      <>
+        <OtherLayer rank={ESCAPE_LAYER.sheet} onEscape={sheetEscape} />
+        <CountrySelector />
+      </>,
+    );
+    openList();
+
+    pressEscape();
+
+    await waitFor(() => expect(queryList()).toBeNull());
+    expect(sheetEscape).not.toHaveBeenCalled();
+  });
+
+  test('with the tour up, one Escape closes only the tour', async () => {
+    const tourEscape = vi.fn();
+    render(
+      <>
+        <OtherLayer rank={ESCAPE_LAYER.tour} onEscape={tourEscape} />
+        <CountrySelector />
+      </>,
+    );
+    openList();
+
+    pressEscape();
+    await settle();
+
+    expect(tourEscape).toHaveBeenCalledTimes(1);
+    expect(queryList()).not.toBeNull();
+  });
+
+  test('the close button closes the list and returns focus to the toggle', async () => {
     render(<CountrySelector />);
     const toggle = screen.getByRole('button', { name: /choose a country/i });
     fireEvent.click(toggle);
 
     fireEvent.click(screen.getByRole('button', { name: /close country list/i }));
 
-    expect(screen.queryByRole('navigation', { name: 'Countries' })).toBeNull();
-    expect(document.activeElement).toBe(toggle);
+    await waitFor(() => expect(queryList()).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(toggle));
   });
 
-  test('tapping the scrim closes the list', () => {
+  test('tapping the scrim closes the list without moving focus to the toggle', async () => {
+    // Browsers read `preventScroll` from focus options; the test DOM ignores
+    // them, which would hide a focus return that only runs where it is read.
+    const focus = HTMLElement.prototype.focus;
+    const focusSpy = vi.spyOn(HTMLElement.prototype, 'focus').mockImplementation(function (
+      this: HTMLElement,
+      options?: FocusOptions,
+    ) {
+      void options?.preventScroll;
+      focus.call(this);
+    });
     render(<CountrySelector />);
-    openList();
+    const toggle = screen.getByRole('button', { name: /choose a country/i });
+    fireEvent.click(toggle);
+    act(() => screen.getByRole('button', { name: 'France' }).focus());
 
     fireEvent.click(screen.getByTestId('country-scrim'));
 
-    expect(screen.queryByRole('navigation', { name: 'Countries' })).toBeNull();
+    await waitFor(() => expect(queryList()).toBeNull());
+    await settle();
+    expect(document.activeElement).not.toBe(toggle);
+    focusSpy.mockRestore();
   });
 
   test("in read mode the badge is inert and non-interactive, off the sheet's grip", () => {
