@@ -86,6 +86,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // AGENTS.md is written by hand; left on, `next dev` adds its own block whenever an agent runs it.
+  agentRules: false,
   async headers() {
     return [{ source: '/(.*)', headers: [...securityHeaders, ...cspHeaders()] }];
   },
