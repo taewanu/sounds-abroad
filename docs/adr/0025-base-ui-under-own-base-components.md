@@ -6,11 +6,11 @@
 
 Every interactive element was assembled from raw classes and hand-wired behavior at its call site. The focus ring, the press effect and the transition list were restated per button, and each overlay (chart sheet, commentary card, country list, volume popover, tour) wired its own Escape, outside-click and focus-return logic. Two lint rules held fixed bugs back (`transition-all`, and Escape checks outside `useEscapeLayer`), because no component owned the right behavior and made it the default.
 
-Moving those decisions into components needs a primitive layer for keyboard, focus and ARIA behavior. The visual decisions already live in the theme's tokens, so the layer must ship no styles of its own.
+Moving those decisions into components needs headless UI primitives: components that bring keyboard, focus and ARIA behavior and no styles, since the visual decisions already live in the theme's tokens.
 
 ## Decision
 
-**Base UI (`@base-ui/react`) is the primitive layer, and feature code never uses it directly: it composes the repo's base components in `src/components/ui/`, which wrap Base UI and own the focus ring, the press effect and the transition list on top of the theme tokens.**
+**Base UI (`@base-ui/react`) is the headless primitive layer, and feature code never uses it directly: it composes the repo's base components in `src/components/ui/`, which wrap Base UI and own the focus ring, the press effect and the transition list on top of the theme tokens.**
 
 - Base UI is headless: its components render unstyled elements and expose state as `data-*` attributes (`data-disabled`, `data-pressed`), so the tokens stay the only source of how controls look.
 - The button-level components are `IconButton` and `PillButton` on Base UI `Button`, and `IconToggle` on Base UI `Toggle`, which sets `aria-pressed` from its `pressed` prop.
