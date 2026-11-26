@@ -61,6 +61,16 @@ describe('CountrySelector', () => {
     expect(screen.queryByRole('navigation', { name: 'Countries' })).toBeNull();
   });
 
+  test('while open, the toggle names the list it controls', () => {
+    render(<CountrySelector />);
+    const toggle = screen.getByRole('button', { name: /currently showing Brazil/i });
+
+    openList();
+
+    const controlled = document.getElementById(toggle.getAttribute('aria-controls') ?? '');
+    expect(controlled).toBe(screen.getByRole('navigation', { name: 'Countries' }));
+  });
+
   test('opens a Countries landmark of named country buttons', () => {
     render(<CountrySelector />);
 
