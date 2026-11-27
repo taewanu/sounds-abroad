@@ -92,7 +92,7 @@ The owner set both numbers on 2026-11-26. Both are estimates, not measurements, 
 
 ### Expiry length: 14 days from `generatedAt`
 
-- **It bounds the measured failure:** no baked claim is older than two weeks, against 121 days today.
+- **It bounds the measured failure:** no claim stays in the payload more than one crawl past two weeks (crawls run four times a day), against 121 days today.
 - **It keeps pace with a changing cause:** the Justice song's cause moved from the trailer (2026-10-15) to the game's release (2026-11-19) within 35 days, and a card first drafted with the trailer would have been redrafted twice in that span.
 - **It is priced in plan quota, not store writes:** a publishing run writes the same three objects whatever its card count, so expiry sets only how often a top-10 track is drafted again, whether it holds a card or had no stated cause. That repeat draw is about 27 drafts a day (382 tracks over 14 days) if every one kept charting, and 7 days would double it to about 55. It is not a ceiling: first drafts come on top, for songs entering a top 10 and for tracks the movement and gem triggers add.
 - **Meters:** plan quota per run, no-cause results per run, and the share of baked rows with a card. Redrafts and no-cause retries taking a large share of quota per run, or a steep fall in the share as cards reach their expiry, mean the length is too short. Too long has no meter of its own: it shows as a baked card whose dated cause the chart has moved past, found by reading the payload.
@@ -122,8 +122,8 @@ No estimate is made here, because a card's cost in quota is unmeasured. What a r
 **Positive**
 
 - Every baked card states a sourced reason the song is moving now.
-- A card ends: no claim outlives its expiry, and a song that keeps charting is redrafted from current sources.
-- The songs at the top of a chart get cards, not only the ones that moved.
+- A card ends: no claim stays in the payload more than one crawl past its expiry, and a song that keeps charting is redrafted from current sources unless it has spent its two gate attempts.
+- The songs at the top of a chart are drafted, not only the ones that moved, and each gets a card when its sources state a cause.
 - A song popular in only one country is queued like any other top-10 track.
 - Drafting runs without a laptop once a run is measured.
 
