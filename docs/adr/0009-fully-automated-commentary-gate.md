@@ -1,6 +1,6 @@
 # ADR-0009: Fully automated commentary gate, no human in the publish path
 
-**Status:** Accepted (2026-06-18)
+**Status:** Accepted (2026-06-18). Revisited by [ADR-0026](0026-why-now-or-nothing-commentary.md) (2026-11-26), not yet built: a card must state a sourced reason the song is moving now, so drafting no longer falls back to a stable fact, and the tag is grounded with the lead and detail, which reverses the 2026-07-10 amendment's ungrounded tag. The gate itself stands.
 
 Supersedes the human-in-the-loop disposition of [ADR-0008](0008-risk-tiered-commentary-gate.md). The rest of ADR-0008 (code as the primary gate, the explicit risk tier, the deterministic checks, the grounding check) stands and is in fact made central. Only the human leaves: where ADR-0008 routed the risky tier to a person and sampled the safe tier, this ADR removes the person from the publish path entirely.
 
