@@ -33,6 +33,6 @@ Moving those decisions into components needs headless UI primitives: components 
 
 ## Revisit if
 
-- Base UI cannot host the chart sheet or the tour without a portal or a focus trap.
+- A Base UI popup can render in the server HTML without a portal, or open without taking focus, so the chart sheet or the tour could move onto it.
 - A Base UI release changes focus or keyboard behavior that the base components' tests do not catch.
 - First-load JavaScript grows noticeably on a release that adds Base UI components.
