@@ -28,7 +28,7 @@ Moving those decisions into components needs headless UI primitives: components 
 ## Consequences
 
 - A new runtime dependency, with `@floating-ui/*` and `@base-ui/utils` under it. Its cost to first-load JavaScript was not measured at adoption.
-- The chart sheet and the tour are not yet on Base UI. Whether its `Drawer` or non-modal `Dialog` can host them without a portal, which the server-rendered sheet needs, is open, and so is how Base UI's Escape handling orders with `useEscapeLayer` while both exist.
+- The chart sheet and the tour stay off Base UI (#517). `Drawer` and `Dialog` popups require a portal, which renders nothing on the server, and the server-rendered sheet needs to be in that HTML; the tour would become a dialog that takes focus. So `useEscapeLayer` stays for them, and the Popover wrapper defers to it: a Base UI popover passes Escape on while a higher layer is open.
 - Row-sized press targets use `RowButton`, and one-off round controls use `IconButton`'s size and `press` variants. The country list's close button still carries its own classes until `IconButton` has its size.
 
 ## Revisit if
