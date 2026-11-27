@@ -205,15 +205,14 @@ function settleTo(
   }
 }
 
-// Step one country toward the tapped side, unless an external landing took the
-// globe off the press or read mode holds it still, which settles it in place.
+// Step one country toward the tapped side, unless read mode holds the globe
+// still, which settles it in place.
 function runStep(
   s: GestureState,
   commands: GestureCommand[],
   cfg: GestureConfig,
   side: 'left' | 'right',
 ): void {
-  if (s.mode !== 'drag') return;
   if (cfg.readMode) {
     s.mode = 'settle';
     return;
@@ -328,9 +327,14 @@ export function reduce(state: GestureState, event: GestureEvent, cfg: GestureCon
       // Follow the URL country: settle to it like a gesture would when we aren't
       // there. A gesture's own settle wrote the URL first, so code === settledCode by the
       // time this runs and it no-ops, no feedback loop.
-      if (event.code && event.code !== s.settledCode) {
-        settleTo(s, commands, cfg, event.code, false, 'external');
+      if (!event.code || event.code === s.settledCode) break;
+      // A landing ends any press in progress, so the finger's later moves,
+      // release, or cancel can't pull the globe off it.
+      if (s.activePointerId !== null) {
+        commands.push({ kind: 'releasePointer', id: s.activePointerId });
+        s.activePointerId = null;
       }
+      settleTo(s, commands, cfg, event.code, false, 'external');
       break;
     }
 
