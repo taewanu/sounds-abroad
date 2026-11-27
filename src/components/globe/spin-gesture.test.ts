@@ -416,6 +416,29 @@ test('an external landing during the press wins over the tap', () => {
   expect(landings(commands)).toEqual(['mx']);
 });
 
+test('an external landing cut in instantly during the press wins over the tap', () => {
+  const { state, commands } = run(
+    initGestureState(START),
+    [down(1, 100, 100), { type: 'externalSelect', code: 'mx' }, up(1, 100, 100, 5, 'left')],
+    cfg({ reducedMotion: true }),
+  );
+
+  expect(landings(commands)).toEqual(['mx']);
+  expect(state.settledCode).toBe('mx');
+});
+
+test('an external landing that finishes settling during the press wins over the tap', () => {
+  const { state, commands } = run(initGestureState(START), [
+    down(1, 100, 100),
+    { type: 'externalSelect', code: 'mx' },
+    ...frames(600),
+    up(1, 100, 100, 10_000, 'left'),
+  ]);
+
+  expect(landings(commands)).toEqual(['mx']);
+  expect(state.settledCode).toBe('mx');
+});
+
 test('a tap released under read mode steps nowhere', () => {
   const pressed = run(initGestureState(START), [down(1, 100, 100)]).state;
 

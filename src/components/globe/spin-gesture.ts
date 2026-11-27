@@ -205,16 +205,16 @@ function settleTo(
   }
 }
 
-// Step one country toward the tapped side, unless read mode holds the globe
-// still or an external pick landed during the press (mode "settle"), in which
-// case the globe goes back to settling instead of staying frozen mid-glide.
+// Step one country toward the tapped side, unless an external landing took the
+// globe off the press or read mode holds it still, which settles it in place.
 function runStep(
   s: GestureState,
   commands: GestureCommand[],
   cfg: GestureConfig,
   side: 'left' | 'right',
 ): void {
-  if (cfg.readMode || s.mode === 'settle') {
+  if (s.mode !== 'drag') return;
+  if (cfg.readMode) {
     s.mode = 'settle';
     return;
   }
