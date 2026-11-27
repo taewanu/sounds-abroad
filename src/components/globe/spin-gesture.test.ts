@@ -3,13 +3,15 @@ import { expect, test } from 'vitest';
 import { COUNTRIES } from '@/lib/countries';
 
 import {
-  DOUBLE_TAP_MS,
+  type GestureCommand,
   type GestureConfig,
   type GestureEvent,
   type GestureState,
   initGestureState,
   reduce,
+  TAP_MAX_PX,
 } from './spin-gesture';
+import { STEP_SWEEP } from './spin-select';
 
 const DEG = Math.PI / 180;
 const START = 'us';
@@ -39,7 +41,7 @@ const half = () => 0.5; // deterministic rng stub for the snap draw
 // every command emitted along the way.
 function run(state: GestureState, events: GestureEvent[], config: GestureConfig = CFG) {
   let s = state;
-  const commands = [];
+  const commands: GestureCommand[] = [];
   for (const event of events) {
     const result = reduce(s, event, config);
     s = result.state;
@@ -55,6 +57,74 @@ const down = (id: number, x: number, y: number, t = 0): GestureEvent => ({
   y,
   t,
 });
+
+const move = (id: number, x: number, y: number, t: number): GestureEvent => ({
+  type: 'pointerMove',
+  id,
+  x,
+  y,
+  t,
+});
+
+const up = (id: number, x: number, y: number, t: number, side: 'left' | 'right'): GestureEvent => ({
+  type: 'pointerUp',
+  id,
+  x,
+  y,
+  t,
+  side,
+});
+
+// A press and a release on the same spot.
+const tap = (side: 'left' | 'right', t = 0): GestureEvent[] => [
+  down(1, 100, 100, t),
+  up(1, 100, 100, t, side),
+];
+
+const landings = (commands: GestureCommand[]) =>
+  commands.flatMap((c) => (c.kind === 'settle' ? [c.code] : []));
+
+// Signed shortest azimuth turn from one heading to another: negative is west.
+const turn = (from: number, to: number) => Math.atan2(Math.sin(to - from), Math.cos(to - from));
+
+const frames = (n: number): GestureEvent[] =>
+  Array.from({ length: n }, () => ({ type: 'frame', dt: 0.016, rng: half }));
+
+// Taps toward one side in a row with no wait, from a globe resting on `code`.
+const walk = (code: string, side: 'left' | 'right', taps: number) =>
+  landings(
+    run(initGestureState(code), Array.from({ length: taps }, (_, i) => tap(side, i)).flat())
+      .commands,
+  );
+
+const UNIT = COUNTRIES.map((c) => ({
+  code: c.code,
+  x: Math.cos(c.lat * DEG) * Math.sin(c.lon * DEG),
+  y: Math.sin(c.lat * DEG),
+  z: Math.cos(c.lat * DEG) * Math.cos(c.lon * DEG),
+}));
+
+// The country whose centre faces the rest direction most squarely.
+function nearestAt(el: number, az: number): string {
+  const [x, y, z] = [Math.cos(el) * Math.sin(az), Math.sin(el), Math.cos(el) * Math.cos(az)];
+  let best = UNIT[0];
+  for (const u of UNIT) {
+    if (u.x * x + u.y * y + u.z * z > best.x * x + best.y * y + best.z * z) best = u;
+  }
+  return best.code;
+}
+
+// The countries a sweep along `code`'s latitude enters in one full turn toward
+// `dir`, ending back on `code`.
+function ringOf(code: string, dir: 1 | -1): string[] {
+  const entered: string[] = [];
+  let last = code;
+  for (let k = 1; k <= Math.round((2 * Math.PI) / STEP_SWEEP); k++) {
+    const at = nearestAt(elOf(code), azOf(code) + dir * k * STEP_SWEEP);
+    if (at !== last) entered.push((last = at));
+  }
+  return entered;
+}
 
 test('initGestureState seeds settle targets onto the resting country', () => {
   const s = initGestureState(START);
@@ -134,218 +204,260 @@ test('read mode flipping on mid-drag rebaselines the pointer without rotating', 
   expect(state.lastX).toBe(120);
 });
 
-test('a moved release flings with velocity from the flick, not a tap select', () => {
+test('a moved release flings with velocity from the flick, not a step', () => {
   const { state, commands } = run(initGestureState(START), [
     down(1, 100, 100),
-    { type: 'pointerMove', id: 1, x: 140, y: 100, t: 10 },
-    {
-      type: 'pointerUp',
-      id: 1,
-      x: 140,
-      y: 100,
-      t: 10,
-      region: 'center',
-      hitCode: 'ca',
-      listening: false,
-    },
+    move(1, 140, 100, 10),
+    up(1, 140, 100, 10, 'right'),
   ]);
 
   expect(state.mode).toBe('fling');
   expect(state.activePointerId).toBeNull();
-  expect(commands.some((c) => c.kind === 'settle')).toBe(false);
+  expect(landings(commands)).toEqual([]);
 });
 
-test('a center tap selects the hit country and settles to it', () => {
+test('a tap on the left half steps to another country west of the current one', () => {
+  const { state, commands } = run(initGestureState(START), tap('left'));
+
+  expect(state.mode).toBe('settle');
+  expect(state.settledCode).not.toBe(START);
+  expect(turn(azOf(START), state.settleAz)).toBeLessThan(0);
+  expect(commands).toContainEqual({
+    kind: 'settle',
+    code: state.settledCode,
+    changed: true,
+    viaTap: true,
+    origin: 'gesture',
+  });
+});
+
+test('a tap on the right half steps to another country east of the current one', () => {
+  const { state, commands } = run(initGestureState(START), tap('right'));
+
+  expect(state.mode).toBe('settle');
+  expect(state.settledCode).not.toBe(START);
+  expect(turn(azOf(START), state.settleAz)).toBeGreaterThan(0);
+  expect(commands).toContainEqual({
+    kind: 'settle',
+    code: state.settledCode,
+    changed: true,
+    viaTap: true,
+    origin: 'gesture',
+  });
+});
+
+test('a step lands as a gesture, so its landing pushes a history entry', () => {
+  const { commands } = run(initGestureState(START), tap('left'));
+
+  expect(commands.filter((c) => c.kind === 'settle')).toEqual([
+    expect.objectContaining({ origin: 'gesture' }),
+  ]);
+});
+
+test('repeated taps each step one country further, with no wait between them', () => {
+  const { commands } = run(initGestureState(START), [
+    ...tap('left', 0),
+    ...tap('left', 1),
+    ...tap('left', 2),
+  ]);
+
+  expect(landings(commands)).toEqual(ringOf(START, -1).slice(0, 3));
+});
+
+test('a step and a step back return every country to itself', () => {
+  const unreturned: string[] = [];
+
+  for (const { code } of COUNTRIES) {
+    for (const [there, back] of [
+      ['right', 'left'],
+      ['left', 'right'],
+    ] as const) {
+      const path = landings(
+        run(initGestureState(code), [...tap(there, 0), ...tap(back, 1)]).commands,
+      );
+      if (path[1] !== code) unreturned.push(`${code} ${there}: ${path.join(' ')}`);
+    }
+  }
+
+  expect(unreturned).toEqual([]);
+});
+
+// A longer timeout, since every start walks its whole ring: about 2.5 s in a
+// full local run, against a default of 5 s that a slower runner could exceed.
+test(
+  'repeated steps visit every country the starting latitude crosses, in order, before returning',
+  {
+    timeout: 20_000,
+  },
+  () => {
+    const wrong: string[] = [];
+
+    for (const { code } of COUNTRIES) {
+      const ring = ringOf(code, 1);
+      const walked = walk(code, 'right', ring.length);
+      if (walked.join() !== ring.join() || walked.indexOf(code) !== walked.length - 1) {
+        wrong.push(`${code}: ${walked.join(' ')} not ${ring.join(' ')}`);
+      }
+    }
+
+    expect(wrong).toEqual([]);
+  },
+);
+
+test('an outside landing restarts the row on its own latitude', () => {
+  const stepped = run(initGestureState(START), [...tap('left', 0), ...tap('left', 1)]).state;
+
+  const { commands } = run(stepped, [{ type: 'externalSelect', code: 'de' }, ...tap('right', 2)]);
+
+  expect(landings(commands)).toEqual(['de', ...walk('de', 'right', 1)]);
+});
+
+test('a drag restarts the row on the latitude where its fling lands', () => {
+  const stepped = run(initGestureState(START), [...tap('left', 0), ...tap('left', 1)]).state;
+  const flung = run(stepped, [
+    down(1, 100, 100, 2),
+    move(1, 160, 130, 12),
+    up(1, 160, 130, 12, 'right'),
+    ...frames(600),
+  ]).state;
+  expect(flung.mode).toBe('idle');
+
+  const { commands } = run(flung, tap('right', 3));
+
+  expect(landings(commands)).toEqual(walk(flung.settledCode, 'right', 1));
+});
+
+test('a release at exactly the tap distance threshold still steps', () => {
+  const { commands } = run(initGestureState(START), [
+    down(1, 100, 100),
+    move(1, 100 + TAP_MAX_PX, 100, 10),
+    up(1, 100 + TAP_MAX_PX, 100, 10, 'left'),
+  ]);
+
+  expect(landings(commands)).toHaveLength(1);
+});
+
+test('a release past the tap distance threshold flings instead of stepping', () => {
   const { state, commands } = run(initGestureState(START), [
     down(1, 100, 100),
-    {
-      type: 'pointerUp',
-      id: 1,
-      x: 100,
-      y: 100,
-      t: 5,
-      region: 'center',
-      hitCode: 'ca',
-      listening: true,
-    },
+    move(1, 100 + TAP_MAX_PX + 1, 100, 10),
+    up(1, 100 + TAP_MAX_PX + 1, 100, 10, 'left'),
+  ]);
+
+  expect(state.mode).toBe('fling');
+  expect(landings(commands)).toEqual([]);
+});
+
+test('a drag that returns within the tap distance threshold steps rather than flings', () => {
+  const { state, commands } = run(initGestureState(START), [
+    down(1, 100, 100),
+    move(1, 160, 100, 10),
+    move(1, 104, 100, 20),
+    up(1, 104, 100, 20, 'right'),
   ]);
 
   expect(state.mode).toBe('settle');
-  expect(state.settleAz).toBeCloseTo(azOf('ca'));
-  expect(commands).toContainEqual({
-    kind: 'settle',
-    code: 'ca',
-    changed: true,
-    viaTap: true,
-    origin: 'gesture',
-  });
+  expect(landings(commands)).toHaveLength(1);
+  expect(turn(azOf(START), state.settleAz)).toBeGreaterThan(0);
 });
 
-test('an ocean tap re-centres the current country instead of jumping away', () => {
+test('a tap during an in-flight settle steps on from where that settle was heading', () => {
+  const heading = 'de';
+  const settling = run(initGestureState(START), [{ type: 'externalSelect', code: heading }]).state;
+
+  const { state, commands } = run(settling, tap('right'));
+
+  expect(state.mode).toBe('settle');
+  expect(state.settledCode).not.toBe(heading);
+  expect(turn(azOf(heading), state.settleAz)).toBeGreaterThan(0);
+  expect(commands).toContainEqual(expect.objectContaining({ kind: 'settle', changed: true }));
+});
+
+test('a tap that stops a fling steps from where the spin stopped', () => {
+  const stoppedAt = 'de';
+  const flinging: GestureState = {
+    ...initGestureState(START),
+    mode: 'fling',
+    vAz: 5,
+    az: azOf(stoppedAt),
+    el: elOf(stoppedAt),
+  };
+
+  const { state } = run(flinging, tap('right'));
+
+  expect(state.settledCode).not.toBe(stoppedAt);
+  expect(turn(azOf(stoppedAt), state.settleAz)).toBeGreaterThan(0);
+});
+
+test('a tap after read mode parked a fling steps from where it parked', () => {
+  const parkedAt = 'de';
+  const flinging: GestureState = {
+    ...initGestureState(START),
+    mode: 'fling',
+    vAz: 5,
+    az: azOf(parkedAt),
+    el: elOf(parkedAt),
+  };
+  const parked = run(flinging, frames(1), cfg({ readMode: true })).state;
+
+  const { state } = run(parked, tap('right'));
+
+  expect(state.settledCode).not.toBe(parkedAt);
+  expect(turn(azOf(parkedAt), state.settleAz)).toBeGreaterThan(0);
+});
+
+test('an external landing during the press wins over the tap', () => {
   const { commands } = run(initGestureState(START), [
     down(1, 100, 100),
-    {
-      type: 'pointerUp',
-      id: 1,
-      x: 100,
-      y: 100,
-      t: 5,
-      region: 'center',
-      hitCode: null,
-      listening: true,
-    },
+    { type: 'externalSelect', code: 'mx' },
+    up(1, 100, 100, 5, 'left'),
   ]);
 
-  expect(commands).toContainEqual({
-    kind: 'settle',
-    code: START,
-    changed: false,
-    viaTap: true,
-    origin: 'gesture',
-  });
+  expect(landings(commands)).toEqual(['mx']);
 });
 
-test('a tap landing during an in-flight settle redirects to the tapped country', () => {
-  const settling: GestureState = {
-    ...initGestureState(START),
-    mode: 'settle',
-    az: azOf('ca'),
-    el: elOf('ca'),
-    settleAz: azOf('ca'),
-    settleEl: elOf('ca'),
-  };
-  // The press freezes the glide to "drag"; the release taps a new country, so
-  // runSelect's mode-"settle" guard is past and the settle redirects.
-  const { state, commands } = run(settling, [
+test('an external landing cut in instantly during the press wins over the tap', () => {
+  const { state, commands } = run(
+    initGestureState(START),
+    [down(1, 100, 100), { type: 'externalSelect', code: 'mx' }, up(1, 100, 100, 5, 'left')],
+    cfg({ reducedMotion: true }),
+  );
+
+  expect(landings(commands)).toEqual(['mx']);
+  expect(state.settledCode).toBe('mx');
+});
+
+test('an external landing that finishes settling during the press wins over the tap', () => {
+  const { state, commands } = run(initGestureState(START), [
     down(1, 100, 100),
-    {
-      type: 'pointerUp',
-      id: 1,
-      x: 100,
-      y: 100,
-      t: 5,
-      region: 'center',
-      hitCode: 'mx',
-      listening: true,
-    },
+    { type: 'externalSelect', code: 'mx' },
+    ...frames(600),
+    up(1, 100, 100, 10_000, 'left'),
   ]);
 
-  expect(state.settleAz).toBeCloseTo(azOf('mx'));
-  expect(commands).toContainEqual({
-    kind: 'settle',
-    code: 'mx',
-    changed: true,
-    viaTap: true,
-    origin: 'gesture',
-  });
+  expect(landings(commands)).toEqual(['mx']);
+  expect(state.settledCode).toBe('mx');
 });
 
-test('a lone empty side-third tap while listening arms the window and does nothing else', () => {
-  const { state, commands } = run(initGestureState(START), [
-    down(1, 20, 100),
-    {
-      type: 'pointerUp',
-      id: 1,
-      x: 20,
-      y: 100,
-      t: 5,
-      region: 'left',
-      hitCode: null,
-      listening: true,
-    },
-  ]);
+test('a tap released under read mode steps nowhere', () => {
+  const pressed = run(initGestureState(START), [down(1, 100, 100)]).state;
 
-  expect(state.lastEdgeTapAt).toBe(5);
-  expect(commands.some((c) => c.kind === 'settle')).toBe(false);
-  expect(commands.some((c) => c.kind === 'signalSkip')).toBe(false);
+  const { state, commands } = run(pressed, [up(1, 100, 100, 5, 'left')], cfg({ readMode: true }));
+
+  expect(landings(commands)).toEqual([]);
+  expect(state.settledCode).toBe(START);
+  expect(state.settleAz).toBeCloseTo(azOf(START));
 });
 
-test('a side-third tap on a pin selects immediately instead of arming a skip', () => {
-  const { state, commands } = run(initGestureState(START), [
-    down(1, 20, 100),
-    {
-      type: 'pointerUp',
-      id: 1,
-      x: 20,
-      y: 100,
-      t: 5,
-      region: 'left',
-      hitCode: 'ca',
-      listening: true,
-    },
-  ]);
+test('a tap released under read mode resumes the settle its press froze', () => {
+  const heading = 'de';
+  const settling = run(initGestureState(START), [{ type: 'externalSelect', code: heading }]).state;
+  const pressed = run(settling, [down(1, 100, 100)]).state;
 
-  expect(state.lastEdgeTapAt).toBeNull();
-  expect(state.settleAz).toBeCloseTo(azOf('ca'));
-  expect(commands).toContainEqual({
-    kind: 'settle',
-    code: 'ca',
-    changed: true,
-    viaTap: true,
-    origin: 'gesture',
-  });
-});
+  const { state } = run(pressed, [up(1, 100, 100, 5, 'left')], cfg({ readMode: true }));
 
-test('a second side tap landing on a pin selects rather than skips', () => {
-  const armed: GestureState = {
-    ...initGestureState(START),
-    mode: 'drag',
-    activePointerId: 1,
-    lastEdgeTapAt: 100,
-    downX: 20,
-    downY: 100,
-  };
-  const { commands } = run(armed, [
-    {
-      type: 'pointerUp',
-      id: 1,
-      x: 20,
-      y: 100,
-      t: 100 + DOUBLE_TAP_MS - 1,
-      region: 'left',
-      hitCode: 'ca',
-      listening: true,
-    },
-  ]);
-
-  expect(commands).toContainEqual({
-    kind: 'settle',
-    code: 'ca',
-    changed: true,
-    viaTap: true,
-    origin: 'gesture',
-  });
-  expect(commands.some((c) => c.kind === 'signalSkip')).toBe(false);
-});
-
-test("two empty side taps within the window skip in the second tap's direction", () => {
-  const { commands } = run(initGestureState(START), [
-    down(1, 20, 100),
-    {
-      type: 'pointerUp',
-      id: 1,
-      x: 20,
-      y: 100,
-      t: 5,
-      region: 'left',
-      hitCode: null,
-      listening: true,
-    },
-    down(1, 20, 100, 5 + DOUBLE_TAP_MS - 1),
-    {
-      type: 'pointerUp',
-      id: 1,
-      x: 20,
-      y: 100,
-      t: 5 + DOUBLE_TAP_MS - 1,
-      region: 'left',
-      hitCode: null,
-      listening: true,
-    },
-  ]);
-
-  expect(commands).toContainEqual({ kind: 'signalSkip', dir: -1 });
-  expect(commands.some((c) => c.kind === 'settle')).toBe(false);
+  expect(state.mode).toBe('settle');
+  expect(state.settleAz).toBeCloseTo(azOf(heading));
 });
 
 test('pointerCancel snaps to a country so it never rests on open ocean', () => {
@@ -365,17 +477,19 @@ test('pointerCancel snaps to a country so it never rests on open ocean', () => {
   expect(commands).toContainEqual({ kind: 'releasePointer', id: 1 });
 });
 
-test('pointerCancel wipes an armed skip window as it snaps', () => {
-  const armedDrag: GestureState = {
-    ...initGestureState(START),
-    mode: 'drag',
-    activePointerId: 1,
-    lastEdgeTapAt: 100,
-  };
-  const { state, commands } = run(armedDrag, [{ type: 'pointerCancel', id: 1, rng: half }]);
+test('a cancelled press re-lands where it rests instead of stepping', () => {
+  const { commands } = run(initGestureState(START), [
+    down(1, 100, 100),
+    { type: 'pointerCancel', id: 1, rng: half },
+  ]);
 
-  expect(commands.some((c) => c.kind === 'settle')).toBe(true);
-  expect(state.lastEdgeTapAt).toBeNull();
+  expect(commands).toContainEqual({
+    kind: 'settle',
+    code: START,
+    changed: false,
+    viaTap: false,
+    origin: 'external',
+  });
 });
 
 test('externalSelect settles to a new ?cc= country', () => {
@@ -460,114 +574,10 @@ test('a settle step clamps elevation to the pole guard despite outward velocity'
   expect(state.el).toBeLessThanOrEqual(EL_LIMIT);
 });
 
-test('reduced motion cuts straight to the target with no settle glide', () => {
-  const { state } = run(
-    initGestureState(START),
-    [
-      down(1, 100, 100),
-      {
-        type: 'pointerUp',
-        id: 1,
-        x: 100,
-        y: 100,
-        t: 5,
-        region: 'center',
-        hitCode: 'ca',
-        listening: true,
-      },
-    ],
-    cfg({ reducedMotion: true }),
-  );
+test('reduced motion cuts straight to the stepped country with no settle glide', () => {
+  const { state } = run(initGestureState(START), tap('left'), cfg({ reducedMotion: true }));
 
   expect(state.mode).toBe('idle');
-  expect(state.az).toBeCloseTo(azOf('ca'));
-});
-
-// The skip-during-settle resume. A second empty side-third tap within the window
-// is a skip: it moves no globe of its own, but the press that began it froze
-// whatever settle was gliding. These lock the judgment the resume must make.
-
-test('a skip signals its direction and settles nothing of its own', () => {
-  const armed: GestureState = {
-    ...initGestureState(START),
-    mode: 'drag',
-    activePointerId: 1,
-    lastEdgeTapAt: 100,
-    downX: 20,
-    downY: 100,
-  };
-  const { state, commands } = run(armed, [
-    {
-      type: 'pointerUp',
-      id: 1,
-      x: 20,
-      y: 100,
-      t: 100 + DOUBLE_TAP_MS - 1,
-      region: 'left',
-      hitCode: null,
-      listening: true,
-    },
-  ]);
-
-  expect(commands).toContainEqual({ kind: 'signalSkip', dir: -1 });
-  expect(commands.some((c) => c.kind === 'settle')).toBe(false);
-  expect(state.lastEdgeTapAt).toBeNull();
-});
-
-test('a skip mid-glide resumes the interrupted settle, never stranding the globe', () => {
-  const interrupted: GestureState = {
-    ...initGestureState(START),
-    mode: 'drag',
-    activePointerId: 1,
-    lastEdgeTapAt: 100,
-    downX: 20,
-    downY: 100,
-    az: azOf('ca'),
-    el: elOf('ca'),
-    settleAz: azOf('mx'), // targets still hold the intended landing
-    settleEl: elOf('mx'),
-  };
-  const { state } = run(interrupted, [
-    {
-      type: 'pointerUp',
-      id: 1,
-      x: 20,
-      y: 100,
-      t: 100 + DOUBLE_TAP_MS - 1,
-      region: 'left',
-      hitCode: null,
-      listening: true,
-    },
-  ]);
-
-  expect(state.mode).toBe('settle');
-});
-
-test('a skip at rest returns to idle rather than re-running a finished settle', () => {
-  const atRest: GestureState = {
-    ...initGestureState(START),
-    mode: 'drag',
-    activePointerId: 1,
-    lastEdgeTapAt: 100,
-    downX: 20,
-    downY: 100,
-    az: azOf('ca'),
-    el: elOf('ca'),
-    settleAz: azOf('ca'),
-    settleEl: elOf('ca'),
-  };
-  const { state } = run(atRest, [
-    {
-      type: 'pointerUp',
-      id: 1,
-      x: 20,
-      y: 100,
-      t: 100 + DOUBLE_TAP_MS - 1,
-      region: 'left',
-      hitCode: null,
-      listening: true,
-    },
-  ]);
-
-  expect(state.mode).toBe('idle');
+  expect(state.settledCode).not.toBe(START);
+  expect(state.az).toBeCloseTo(state.settleAz);
 });

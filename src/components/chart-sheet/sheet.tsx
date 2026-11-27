@@ -410,7 +410,7 @@ export function ChartSheet({
   // transform every render and fight the imperative writes.
   const [initialSnap] = useState(snap);
 
-  // Transient gesture state — refs so per-frame updates never re-render.
+  // Transient gesture state, held in refs so per-frame updates never re-render.
   const curYRef = useRef(0); // current translateY (px)
   const heightRef = useRef(0); // sheet height (px), cached at drag start
   const pressedRef = useRef(false); // pointer down, drag not yet committed
@@ -850,9 +850,9 @@ export function ChartSheet({
         transform: `translateY(${SNAP_Y[initialSnap]})`,
         willChange: 'transform',
       }}
-      // Explicit z so the edge-tap hint can bracket the sheet: its aurora rails
-      // sit below (a lower z) and its sheet-dim above, reproducing the backdrop
-      // sandwich. Stays under the mini-player (z-50) and the tour overlay (z-60).
+      // Explicit z so the globe cues stack around the sheet: the edge chevrons sit
+      // below it and the skip flash above. Stays under the mini-player (z-50) and
+      // the tour overlay (z-60).
       className="group fixed inset-x-0 z-20 flex flex-col rounded-t-2xl border-t border-fg-1/10 bg-void text-fg-1 shadow-sheet"
     >
       <div className="shrink-0 touch-none">

@@ -281,3 +281,14 @@ than a rewrite of pointer handling.
   move together rather than leaving one version scheme per record, and the
   abandoned keys are cleaned up.
 - No centre-tap meaning exists. This is reserved rather than rejected.
+
+## Amendment (2026-11-26): the skip flash stays a track cue
+
+A step confirms itself, so the skip flash does not. The Decision above says the
+flash that confirmed a skip "becomes the confirmation of a step"; as built, the
+globe turning to the next country and the landing haptic already show a step
+landed. The flash keeps one meaning, a track change, and stays an overlay that
+never rotates the globe (`src/components/globe/skip-flash.tsx`), so a song skip
+and a country step never share a cue. It fires when playback rolls past the end
+of a chart into another chart or country, forward or back, and when a next has
+to wait for the rest of the chart's rows to load before it can play.

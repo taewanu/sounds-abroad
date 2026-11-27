@@ -173,8 +173,8 @@ function TourRunner({ beats, snap, currentTrackKey, selectedCode, onDone }: Tour
     }
     if (selectedCode !== prevCodeRef.current) {
       prevCodeRef.current = selectedCode;
-      // A bare globe tap-select changes the country but is not the flick this
-      // beat teaches, so an accidental tap must not skip it. A real fling or a
+      // A tap step changes the country but is not the flick this beat
+      // teaches, so a tap must not skip it. A real fling or a
       // deliberate list pick (both leave lastSettleViaTap false) still advances.
       if (globeChartStore.getState().lastSettleViaTap) return;
       dispatch({ type: 'USER_SELECTED' });

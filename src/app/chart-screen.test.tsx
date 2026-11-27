@@ -468,18 +468,27 @@ describe('ChartScreen globe coupling', () => {
     expect(globeChartStore.getState().readMode).toBe(false);
   });
 
-  test("an edge-skip gesture latches the hint record's used flag", () => {
+  test("a tap step latches the edge chevrons' used flag", () => {
     localStorage.clear();
     renderChartScreen(CHARTS, CODE_BR);
     expect(readRecord().used).toBe(false);
 
     act(() => {
-      globeChartStore.getState().signalSkip(1);
+      globeChartStore.getState().signalSettle(true);
     });
 
-    // The gesture alone latches it: no track is playing, so step declines the
-    // skip, yet the teaching affordances still retire.
     expect(readRecord().used).toBe(true);
+  });
+
+  test("a landing that is not a tap step leaves the edge chevrons' flag unset", () => {
+    localStorage.clear();
+    renderChartScreen(CHARTS, CODE_BR);
+
+    act(() => {
+      globeChartStore.getState().signalSettle(false);
+    });
+
+    expect(readRecord().used).toBe(false);
   });
 
   test('a settle never starts audio on its own', () => {
@@ -587,23 +596,15 @@ describe('ChartScreen commentary badge', () => {
   });
 });
 
-describe('ChartScreen edge-skip cues', () => {
-  const playable = COUNTRY_US.tracks.find((t) => t.previewUrl)!;
-
-  function playFromTheChart() {
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: `Play preview of ${playable.name} by ${playable.artist}`,
-      }),
-    );
-  }
+describe('ChartScreen edge chevrons', () => {
+  const concludeTour = () => writeTourRecord({ learned: [], shows: 0, dismissed: true });
 
   beforeEach(() => {
     mockPathname.value = `/c/${CODE_US}`;
     localStorage.clear();
     audioEngine.reset();
-    // The cues are touch-only; without a coarse pointer they'd stay hidden for
-    // that reason instead of the one under test.
+    // The chevrons are touch-only; without a coarse pointer they'd stay hidden
+    // for that reason instead of the one under test.
     vi.spyOn(window, 'matchMedia').mockImplementation(
       (query: string) =>
         ({
@@ -620,31 +621,40 @@ describe('ChartScreen edge-skip cues', () => {
     vi.restoreAllMocks();
   });
 
-  test('playing a track while the tour still has gestures to teach surfaces no cue', () => {
+  test('the chevrons stay hidden while the tour still has gestures to teach', () => {
     renderChartScreen(CHARTS, CODE_US);
 
-    playFromTheChart();
-
-    expect(screen.queryByTestId('edge-tap-badge')).toBeNull();
     expect(screen.queryByTestId('edge-chevrons')).toBeNull();
   });
 
-  test("a track played mid-tour spends none of the hint's capped shows", () => {
+  test('the chevrons show with nothing playing once the tour has concluded', () => {
+    concludeTour();
+
     renderChartScreen(CHARTS, CODE_US);
 
-    playFromTheChart();
-
-    expect(readRecord().shows).toBe(0);
+    expect(screen.getByTestId('edge-chevrons')).toBeTruthy();
   });
 
-  test('the cues surface once the tour has concluded', () => {
-    writeTourRecord({ learned: [], shows: 0, dismissed: true });
-
+  test('the chevrons hide while the sheet covers the globe', () => {
+    concludeTour();
     renderChartScreen(CHARTS, CODE_US);
-    playFromTheChart();
-
-    expect(screen.getByTestId('edge-tap-badge')).toBeTruthy();
     expect(screen.getByTestId('edge-chevrons')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Expand chart' }));
+
+    expect(screen.queryByTestId('edge-chevrons')).toBeNull();
+  });
+
+  test('the first step retires the chevrons', () => {
+    concludeTour();
+    renderChartScreen(CHARTS, CODE_US);
+    expect(screen.getByTestId('edge-chevrons')).toBeTruthy();
+
+    act(() => {
+      globeChartStore.getState().signalSettle(true);
+    });
+
+    expect(screen.queryByTestId('edge-chevrons')).toBeNull();
   });
 });
 
@@ -713,21 +723,6 @@ describe('ChartScreen directional cue', () => {
 
     act(() => {
       audioEngine.end();
-    });
-
-    expect(cueDir(container)).toBe('next');
-  });
-
-  test('a globe skip-intent publishes its direction through the same step', () => {
-    const { container } = renderChartScreen(ADJACENCY_CHARTS, ADJ_CODE);
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Play preview of Playable head by Head artist',
-      }),
-    );
-
-    act(() => {
-      globeChartStore.getState().signalSkip(1);
     });
 
     expect(cueDir(container)).toBe('next');
@@ -841,7 +836,6 @@ describe('ChartScreen end-of-chart roll', () => {
       selectedCountry: null,
       readMode: false,
       settleSignal: 0,
-      skipIntent: { dir: 1, nonce: 0 },
       visited: new Set(),
     });
     replaceState = vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
@@ -939,28 +933,12 @@ describe('ChartScreen end-of-chart roll', () => {
     expect(sheet.dataset.snap).toBe('peek');
   });
 
-  test('an edge-tap skip intent at the last playable rolls with a single forward cue', async () => {
+  test('pressing next at the last playable rolls with a single forward cue', async () => {
     const { container } = await playLastPlayable(ROLL_CHARTS);
 
-    await advance(() => globeChartStore.getState().signalSkip(1));
+    await advance(() => fireEvent.click(screen.getByRole('button', { name: 'Next track' })));
 
     expect(screen.getByText(LANDING_START)).toBeTruthy();
-    expect(container.querySelectorAll('.skip-flash')).toHaveLength(1);
-  });
-
-  test('an edge-tap skip intent mid-chart still advances and flashes', () => {
-    const { container } = renderChartScreen(ROLL_CHARTS, ADJ_CODE);
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Play preview of Playable head by Head artist',
-      }),
-    );
-
-    act(() => {
-      globeChartStore.getState().signalSkip(1);
-    });
-
-    expect(playingRank(container)).toBe('3');
     expect(container.querySelectorAll('.skip-flash')).toHaveLength(1);
   });
 
@@ -1222,7 +1200,6 @@ describe('ChartScreen playlist playback', () => {
       selectedCountry: null,
       readMode: false,
       settleSignal: 0,
-      skipIntent: { dir: 1, nonce: 0 },
       visited: new Set(),
     });
     vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});

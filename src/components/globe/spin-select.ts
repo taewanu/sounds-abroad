@@ -126,3 +126,20 @@ export function pickSnapCountry(
     rng(),
   );
 }
+
+// Step sweep resolution: a coarser one skips small neighbours, while this one
+// misses only a cell that the row crosses for less than its width.
+export const STEP_SWEEP = 0.1 * DEG;
+
+// A step sweeps from (el, az) along that latitude toward `dir` (-1 west, 1 east)
+// until the nearest country changes, and returns that country with the azimuth
+// where the sweep entered it so the next step continues the same row.
+export function pickStep(el: number, az: number, dir: 1 | -1): { code: string; az: number } {
+  const from = rankNearest(el, az, 1)[0].code;
+  for (let offset = STEP_SWEEP; offset < 2 * Math.PI; offset += STEP_SWEEP) {
+    const at = az + dir * offset;
+    const code = rankNearest(el, at, 1)[0].code;
+    if (code !== from) return { code, az: at };
+  }
+  return { code: from, az };
+}
