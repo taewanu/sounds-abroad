@@ -290,4 +290,5 @@ globe turning to the next country and the landing haptic already show a step
 landed. The flash keeps one meaning, a track change, and stays an overlay that
 never rotates the globe (`src/components/globe/skip-flash.tsx`), so a song skip
 and a country step never share a cue. It fires when playback rolls past the end
-of a chart into another chart or country, forward or back.
+of a chart into another chart or country, forward or back, and when a next has
+to wait for the rest of the chart's rows to load before it can play.
