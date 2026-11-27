@@ -17,8 +17,8 @@ const serverUsed = () => true;
 // Faint directional chevrons at both globe margins while the globe takes taps:
 // a standing reminder that tapping either half steps one country west or east.
 // Touch-primary devices only, since the gesture model is designed for touch and
-// a pointer has its own hover highlight. Retires permanently on the first step,
-// via the edge-hint record. Pointer-transparent and below the sheet, so it reads
+// a pointer already gets the hovered country's border. Retires permanently on
+// the first step, via the edge-hint record. Pointer-transparent and below the sheet, so it reads
 // as part of the globe backdrop, not chrome.
 export function EdgeChevrons({ active, sheetSnap }: { active: boolean; sheetSnap: SnapState }) {
   const used = useSyncExternalStore(subscribeRecord, readUsed, serverUsed);
