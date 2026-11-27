@@ -126,3 +126,18 @@ export function pickSnapCountry(
     rng(),
   );
 }
+
+// A coarser sweep jumps over the smallest neighbours a drag still crosses.
+const STEP_SWEEP = 0.1 * DEG;
+
+// Step target: the first country the snap picks as the rest direction sweeps
+// from (el, az) toward `dir` (-1 west, 1 east), the order a horizontal drag
+// walks.
+export function pickStepCountry(el: number, az: number, dir: 1 | -1): string {
+  const from = rankNearest(el, az, 1)[0].code;
+  for (let offset = STEP_SWEEP; offset < 2 * Math.PI; offset += STEP_SWEEP) {
+    const code = rankNearest(el, az + dir * offset, 1)[0].code;
+    if (code !== from) return code;
+  }
+  return from;
+}

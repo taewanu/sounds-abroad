@@ -3,8 +3,6 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { globeChartStore } from '@/lib/globe-chart-store';
-
 import {
   type GestureCommand,
   type GestureConfig,
@@ -13,11 +11,8 @@ import {
   initGestureState,
   reduce,
 } from './spin-gesture';
-import { pickNearestToPoint, projectFrontCountries } from './spin-select';
-import { horizontalThird } from './tap-detect';
 
 const RADIUS = 3.5;
-const TAP_HIT_PX = 44; // a tap beyond this from every country pin selects nothing
 
 interface SpinSnapControlsProps {
   initialCode: string;
@@ -35,17 +30,17 @@ interface SpinSnapControlsProps {
   readMode: boolean;
   // `changed` is false when the settle re-lands the country already shown, so
   // the caller can fire on every settle but gate country-change side effects.
-  // `viaTap` is true only for a bare tap-select, so the tour can tell an
-  // accidental tap from the flick it teaches. `origin` is "gesture" for a fling
-  // or tap and "external" for a URL/list/programmatic settle, so the caller can
-  // push a history entry for the first and relabel in place for the second.
+  // `viaTap` is true only for a tap step, so the tour can tell a tap from the
+  // flick it teaches. `origin` is "gesture" for a fling or step and "external"
+  // for a URL/list/programmatic settle, so the caller can push a history entry
+  // for the first and relabel in place for the second.
   onSettle: (code: string, changed: boolean, viaTap: boolean, origin: SettleOrigin) => void;
 }
 
 // Drives the camera as a spun globe: drag to rotate, release to fling with
-// momentum, and on coming to rest snap to the nearest country. A tap jumps
-// straight to the nearest country. There is no free-rotate; it never rests on
-// open ocean. The gesture machine itself lives in the pure `spin-gesture`
+// momentum, and on coming to rest snap to the nearest country. A tap on either
+// half steps one country west or east. There is no free-rotate; it never rests
+// on open ocean. The gesture machine itself lives in the pure `spin-gesture`
 // reducer; this component owns only the impure edges: DOM pointer events in,
 // commands and the camera draw out.
 export function SpinSnapControls({
@@ -108,15 +103,12 @@ export function SpinSnapControls({
     camera.lookAt(0, 0, 0);
   };
 
-  // Run one command: the impure work the reducer can only name (notify, skip,
+  // Run one command: the impure work the reducer can only name (notify,
   // capture/release the pointer).
   const runCommand = useCallback((command: GestureCommand, el: HTMLCanvasElement) => {
     switch (command.kind) {
       case 'settle':
         onSettleRef.current(command.code, command.changed, command.viaTap, command.origin);
-        break;
-      case 'signalSkip':
-        globeChartStore.getState().signalSkip(command.dir);
         break;
       case 'capturePointer':
         el.setPointerCapture?.(command.id);
@@ -172,27 +164,14 @@ export function SpinSnapControls({
     };
 
     const onUp = (e: PointerEvent) => {
-      // Resolve the DOM-dependent tap payload up front so the reducer stays
-      // camera-free: which third the release fell in, and the nearest front
-      // country to it (null on an ocean tap). Only the tap branch consults them.
       const rect = el.getBoundingClientRect();
-      const region = horizontalThird(e.clientX - rect.left, rect.width);
-      const candidates = projectFrontCountries(camera, rect.width, rect.height);
-      const hitCode = pickNearestToPoint(
-        candidates,
-        e.clientX - rect.left,
-        e.clientY - rect.top,
-        TAP_HIT_PX,
-      );
       dispatch({
         type: 'pointerUp',
         id: e.pointerId,
         x: e.clientX,
         y: e.clientY,
         t: e.timeStamp,
-        region,
-        hitCode,
-        listening: globeChartStore.getState().listening,
+        side: e.clientX - rect.left < rect.width / 2 ? 'left' : 'right',
       });
     };
 
@@ -210,7 +189,7 @@ export function SpinSnapControls({
       el.removeEventListener('pointerup', onUp);
       el.removeEventListener('pointercancel', onCancel);
     };
-  }, [gl, camera, dispatch]);
+  }, [gl, dispatch]);
 
   useFrame((_, dt) => {
     dispatch({ type: 'frame', dt, rng: Math.random });

@@ -2,7 +2,7 @@
 
 # Sounds Abroad
 
-Spin a globe, tap a country, hear what's trending there.
+Spin a globe, land on a country, hear what's trending there.
 
 [soundsabroad.app](https://soundsabroad.app)
 

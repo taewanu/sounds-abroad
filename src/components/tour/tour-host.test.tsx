@@ -118,7 +118,7 @@ describe('TourHost', () => {
     expect(getByTestId('tour-overlay').getAttribute('data-beat')).toBe('sheet');
   });
 
-  test('a bare globe tap-select does not skip the gesture beat', () => {
+  test('a tap step does not skip the gesture beat', () => {
     stubMatchMedia(false);
     const { getByTestId, rerenderWith } = renderHost();
     makeGlobeReady();

@@ -1,8 +1,7 @@
 // The tour's memory of what a user has actually learned, so a later launch
 // re-teaches only the gestures they haven't performed and never nags. Pure: the
 // host reads the persisted record, asks decideShow what to run, and folds the
-// run's outcome back in. Only the three linear beats are teachable here; the
-// double-tap skip lives in its own contextual hint with its own record.
+// run's outcome back in. Only the three linear beats are teachable here.
 
 import type { TeachBeat } from './tour-step';
 import { TEACH_ORDER } from './tour-step';

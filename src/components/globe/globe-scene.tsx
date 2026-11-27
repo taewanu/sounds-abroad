@@ -94,7 +94,7 @@ function SceneContent() {
     (code: string, changed: boolean, viaTap: boolean, origin: SettleOrigin) => {
       // Every settle resurfaces the result (raises a dismissed sheet, re-arms
       // the tour hint), even when the country is unchanged. viaTap rides along
-      // so the tour can tell a tap-select from the flick it teaches.
+      // so the tour can tell a tap step from the flick it teaches.
       globeChartStore.getState().signalSettle(viaTap);
       if (!changed) return;
       triggerLandingHaptic();
@@ -112,7 +112,7 @@ function SceneContent() {
   );
 
   // "Surprise me": on a bumped shuffle signal, draw a fair random country and
-  // publish it via shuffleTo — sets selectedCountry (the globe's targetCode
+  // publish it via shuffleTo, which sets selectedCountry (the globe's targetCode
   // effect then settles to it, handleSettle owns the URL write, visited, and
   // haptic) and records the landing so the button announces this shuffle's own
   // pick, not whatever selection changes next. Ref-gated so only a real bump

@@ -15,7 +15,6 @@ import { ChartSheet, type SnapState } from '@/components/chart-sheet/sheet';
 import { useChartTracks } from '@/components/chart-sheet/use-chart-tracks';
 import { EdgeChevrons } from '@/components/globe/edge-chevrons';
 import { markUsed } from '@/components/globe/edge-hint-record';
-import { EdgeTapHint } from '@/components/globe/edge-tap-hint';
 import { SkipFlash } from '@/components/globe/skip-flash';
 import { MiniPlayer } from '@/components/mini-player';
 import { TourHost } from '@/components/tour/tour-host';
@@ -259,7 +258,7 @@ function ChartScreenInner({
     dir: 1 | -1;
     nonce: number;
   } | null>(null);
-  // One counter for every skip cue (edge-tap, roll, back-roll): two counters
+  // One counter for every skip cue (roll, continuation, back-roll): two counters
   // could collide on a nonce and swallow a flash, since SkipFlash replays only
   // on a nonce it hasn't seen.
   const flashNonceRef = useRef(0);
@@ -301,11 +300,11 @@ function ChartScreenInner({
   );
   const tourGateOpen = useTourGateOpen();
 
-  // Only while the globe is visible: at full the sheet covers it, so a cue there
-  // would burn one of the hint's capped displays unseen. The tour gate is the
-  // third term because playback can start from a row tap the tour never asked
-  // for, which would otherwise teach the edge skip over the tour's own lesson.
-  const edgeCuesActive = hasCurrentTrack && snap !== 'full' && tourGateOpen;
+  // Whenever the globe takes taps: at full the sheet covers it and read mode
+  // refuses presses, and while the tour gate is shut the chevrons would teach
+  // over the tour's own lesson. Nothing needs to play, since a step works in
+  // silence.
+  const chevronsActive = snap !== 'full' && tourGateOpen;
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -618,7 +617,7 @@ function ChartScreenInner({
       if (!playing) return null;
       const adj = findAdjacentPlayable(playing, currentTrack, dir);
       // Publish the direction after each real change, so every surface that
-      // steps (buttons, swipe, media keys, edge-tap, auto-advance, and a roll)
+      // steps (buttons, swipe, media keys, auto-advance, and a roll)
       // feeds the one directional mini-player cue with no per-surface wiring.
       if (adj) {
         playAdjacent(adj, currentCountryCode, currentChartRef, currentTrack, dir);
@@ -681,8 +680,8 @@ function ChartScreenInner({
   const goPrev = useCallback(() => step(-1), [step]);
   const goNext = useCallback(() => step(1), [step]);
 
-  // A track ending advances through the same step as the buttons, swipe, media
-  // keys, and edge-tap, so every "next track" shares one adjacency rule and,
+  // A track ending advances through the same step as the buttons, swipe, and
+  // media keys, so every "next track" shares one adjacency rule and,
   // past the last playable, the same roll into a fresh country. A direct store
   // subscription (not a selector + effect) because the ended signal is an
   // external event to react to, not state this screen renders; the signal diff
@@ -750,16 +749,7 @@ function ChartScreenInner({
     setSkipHandlers({ previoustrack: goPrev, nexttrack: goNext });
   }, [goPrev, goNext]);
 
-  // Mirror the listening gate to the globe so an edge-tap on the layout-backdrop
-  // globe knows a track is loaded and skips instead of selecting a country. The
-  // globe sits outside the audio provider, so it can't read currentTrack; this
-  // crosses the same seam selectedCountry already does.
-  useEffect(() => {
-    globeChartStore.getState().setListening(hasCurrentTrack);
-    return () => globeChartStore.getState().setListening(false);
-  }, [hasCurrentTrack]);
-
-  // Mirror the mode to the globe for the same reason: the globe writes the
+  // Mirror the mode to the globe, which sits outside this tree: it writes the
   // country URL on every settle and can't read the query back, so without this
   // a fling landing would relabel to the default mode and drop the one the
   // listener is reading in.
@@ -794,28 +784,19 @@ function ChartScreenInner({
       );
   };
 
-  // A globe edge-tap raises a skip-intent; the chart owns adjacency, so it runs
-  // the shared step and flashes only on a real track change. Reacting inside the
-  // change callback (the pattern for an external system) spares the screen a
-  // re-render per skip. A roll or back-roll fires its own cue inside step, so
-  // only a plain adjacent move flashes here. The same signal watches
-  // selectedCountry: any selection that isn't the roll's own landing discards
-  // the back-roll record, which is how a manual country pick clears it. An
-  // Effect Event captures the latest step/flashSkip so the store listener
-  // subscribes once for the screen's life, never re-subscribing on their churn.
+  // Globe signals, handled inside the store's change callback (the pattern for
+  // an external system) so none costs the screen a re-render. A shuffle landing
+  // plays. A tap step latches the chevrons' record, so they retire even when the
+  // step landed while they were hidden. Any selection that isn't the roll's own
+  // landing discards the back-roll record, which is how a manual country pick
+  // clears it. An Effect Event captures the latest callbacks so the store
+  // listener subscribes once for the screen's life, never re-subscribing on
+  // their churn.
   const onGlobeSignal = useEffectEvent((state: GlobeChartState, prev: GlobeChartState) => {
     if (state.shuffleLanded !== prev.shuffleLanded && state.shuffleLanded !== null) {
       playShuffleLanding(state.shuffleLanded.code);
     }
-    if (state.skipIntent.nonce !== prev.skipIntent.nonce) {
-      // The gesture itself proves the edge skip is learned, so the teaching
-      // affordances retire even when step clamps at the end of the chart,
-      // matching the hint's own dismiss-on-gesture rule.
-      markUsed();
-      if (step(state.skipIntent.dir) === 'adjacent') {
-        flashSkip(state.skipIntent.dir);
-      }
-    }
+    if (state.settleSignal !== prev.settleSignal && state.lastSettleViaTap) markUsed();
     if (state.selectedCountry !== prev.selectedCountry) {
       setRollRecord((record) => recordAfterSelection(record, state.selectedCountry));
     }
@@ -850,8 +831,7 @@ function ChartScreenInner({
         prevTrack={prevTrack}
         nextTrack={nextTrack}
       />
-      <EdgeTapHint active={edgeCuesActive} snap={snap} />
-      <EdgeChevrons active={edgeCuesActive} sheetSnap={snap} />
+      <EdgeChevrons active={chevronsActive} sheetSnap={snap} />
       <SkipFlash skip={skipFlash} sheetSnap={snap} />
       <TourHost
         snap={snap}

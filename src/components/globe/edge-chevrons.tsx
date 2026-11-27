@@ -10,17 +10,16 @@ import { readRecord, subscribeRecord } from './edge-hint-record';
 
 // SSR can't read the record; defaulting to "used" keeps the cue hidden until
 // the client confirms the gesture is still unlearned, so it can only appear,
-// never flash and vanish for a user who already skips.
+// never flash and vanish for a user who already steps.
 const readUsed = () => readRecord().used;
 const serverUsed = () => true;
 
-// Faint directional chevrons at both globe margins while a track plays: a
-// standing reminder that the edges skip, so the gesture stays discoverable
-// after the contextual hint has passed. Touch-primary devices only; pointer
-// devices have the visible prev/next buttons as their skip path. Retires
-// permanently on the first edge skip, via the shared edge-hint record.
-// Pointer-transparent and below the sheet, so it reads as part of the globe
-// backdrop, not chrome.
+// Faint directional chevrons at both globe margins while the globe takes taps:
+// a standing reminder that tapping either half steps one country west or east.
+// Touch-primary devices only, since the gesture model is designed for touch and
+// a pointer has its own hover highlight. Retires permanently on the first step,
+// via the edge-hint record. Pointer-transparent and below the sheet, so it reads
+// as part of the globe backdrop, not chrome.
 export function EdgeChevrons({ active, sheetSnap }: { active: boolean; sheetSnap: SnapState }) {
   const used = useSyncExternalStore(subscribeRecord, readUsed, serverUsed);
   const coarsePointer = useCoarsePointer();

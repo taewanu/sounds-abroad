@@ -1,22 +1,21 @@
 import { COUNTRIES } from '@/lib/countries';
 
 import { flickToSpin } from './spin-feel';
-import { pickSnapCountry } from './spin-select';
-import { type HorizontalThird, classifyTap, isTap } from './tap-detect';
+import { pickSnapCountry, pickStepCountry } from './spin-select';
+import { isTap } from './tap-detect';
 
 // The gesture state machine for the spun globe, as a pure reducer. Every drag,
-// fling, settle, tap, skip, and interruption transition lives here so the
-// interruption matrix (tap-during-settle, skip-during-settle, pointer
-// arbitration) is table-testable instead of reasoned by hand in event-handler
-// closures. The React shell (`spin-snap-controls.tsx`) owns only the impure
-// edges: it translates DOM pointer events into the events below, runs the
-// returned commands, and draws the camera from the returned state.
+// fling, settle, step, and interruption transition lives here so the
+// interruption matrix (tap-during-settle, pointer arbitration) is table-testable
+// instead of reasoned by hand in event-handler closures. The React shell
+// (`spin-snap-controls.tsx`) owns only the impure edges: it translates DOM
+// pointer events into the events below, runs the returned commands, and draws
+// the camera from the returned state.
 //
 // Purity contract: `reduce` never touches the DOM, the camera, the chart store,
 // or `Math.random`. Anything impure enters as event payload the shell resolves
-// first (the tap's `region` and `hitCode`, the snap draw's `rng`) or leaves as
-// a command the shell runs (`settle`, `signalSkip`, `capturePointer`,
-// `releasePointer`).
+// first (the tap's `side`, the snap draw's `rng`) or leaves as a command the
+// shell runs (`settle`, `capturePointer`, `releasePointer`).
 
 const DEG = Math.PI / 180;
 const DRAG_RAD_PER_PX = 0.005; // base drag gain, scaled by the sensitivity slider
@@ -28,11 +27,8 @@ const SNAP_OMEGA = 17; // snap spring frequency: higher settles faster
 // the globe; the cap turns that into a steady glide. Small post-fling snaps
 // stay under it, so their feel is untouched.
 const MAX_SETTLE_VEL = 7;
-const TAP_MAX_PX = 8; // press-to-release drift under which a gesture is a tap
-export const DOUBLE_TAP_MS = 280; // edge double-tap window: a 2nd side-third tap within this skips
-// Angular tolerance (rad) for "the camera sits on the settle target": ends a
-// settle, and tells a skip whether a settle was interrupted mid-glide.
-const SETTLE_EPS = 0.002;
+export const TAP_MAX_PX = 8; // press-to-release drift under which a gesture is a tap
+const SETTLE_EPS = 0.002; // rad from the settle target under which a settle ends
 
 const COUNTRY_BY_CODE = new Map(COUNTRIES.map((c) => [c.code, c]));
 
@@ -46,14 +42,15 @@ export type GestureMode = 'idle' | 'drag' | 'fling' | 'settle';
 
 // The whole gesture machine as plain data: camera orientation and velocity, the
 // live mode, the settle targets and last-landed country, the one pointer that
-// owns the active gesture, the press/last-sample bookkeeping that anchors
-// tap-vs-spin and release velocity, and the double-tap arm window.
+// owns the active gesture, and the press/last-sample bookkeeping that anchors
+// tap-vs-spin and release velocity.
 export interface GestureState {
   az: number;
   el: number;
   vAz: number;
   vEl: number;
   mode: GestureMode;
+  // Where the globe rests or is headed, which is where a step counts from.
   settleAz: number;
   settleEl: number;
   settledCode: string;
@@ -68,9 +65,6 @@ export interface GestureState {
   lastT: number;
   vx: number;
   vy: number;
-  // Time of the prior empty side-third tap, or null. Arms the double-tap
-  // window: a second side tap within DOUBLE_TAP_MS turns the pair into a skip.
-  lastEdgeTapAt: number | null;
 }
 
 // Config the shell feeds in with each event: the live slider/prop snapshot the
@@ -96,12 +90,8 @@ export type GestureEvent =
       x: number;
       y: number;
       t: number;
-      // Which horizontal third the release fell in (shell reads the rect).
-      region: HorizontalThird;
-      // Nearest front-facing country to the tap, or null on an ocean tap (shell
-      // projects the camera). Only consulted when the release classifies a tap.
-      hitCode: string | null;
-      listening: boolean;
+      // Which half of the globe the release fell in; a tap steps toward it.
+      side: 'left' | 'right';
     }
   | { type: 'pointerCancel'; id: number; rng: () => number }
   // The URL country changed: the a11y list or a shared link drives the globe.
@@ -109,7 +99,7 @@ export type GestureEvent =
   | { type: 'frame'; dt: number; rng: () => number };
 
 // Whether the listener chose this settle as a destination. A gesture (a
-// completed fling or tap) did, so it earns a history entry; everything else is
+// completed fling or step) did, so it earns a history entry; everything else is
 // "external" and relabels in place: a followed URL or shared link, a
 // programmatic roll, or an interrupted touch snapping back to the nearest
 // country, none of which is a landing the listener aimed for.
@@ -125,7 +115,6 @@ export type GestureCommand =
       viaTap: boolean;
       origin: SettleOrigin;
     }
-  | { kind: 'signalSkip'; dir: 1 | -1 }
   | { kind: 'capturePointer'; id: number }
   | { kind: 'releasePointer'; id: number };
 
@@ -134,10 +123,6 @@ export interface ReduceResult {
   commands: GestureCommand[];
 }
 
-// Resting state seeded to a country. The settle targets start on the resting
-// position so "az/el are at the settle targets" reads true from the first
-// frame; the skip-during-settle resume relies on that to tell a stranded glide
-// from rest.
 export function initGestureState(code: string): GestureState {
   const start = COUNTRY_BY_CODE.get(code);
   const startAz = start ? start.lon * DEG : 0;
@@ -159,14 +144,13 @@ export function initGestureState(code: string): GestureState {
     lastT: 0,
     vx: 0,
     vy: 0,
-    lastEdgeTapAt: null,
   };
 }
 
 const owns = (s: GestureState, id: number) => s.activePointerId === id;
 
 // Aim at a country: record the landing, notify via a `settle` command no matter
-// how we got here (fling, tap, external URL pick), then either cut instantly
+// how we got here (fling, step, external URL pick), then either cut instantly
 // (reduced motion) or hand off to the snap spring the `frame` event runs.
 // Mutates the draft `s` and appends to `commands`; both are call-local copies,
 // so `reduce` stays pure. A null/unknown code just parks at idle.
@@ -211,21 +195,23 @@ function settleTo(
   }
 }
 
-// Select the tapped country, re-centring the current one on an ocean miss so a
-// tap never jumps away. Bails when the situation forbids moving the globe: read
-// mode holds it still under the reader, and mode "settle" means an external
-// URL pick already landed a selection.
-function runSelect(
+// Step one country toward the tapped side, unless read mode holds the globe
+// still or an external pick landed during the press (mode "settle"), in which
+// case the globe goes back to settling instead of staying frozen mid-glide.
+function runStep(
   s: GestureState,
   commands: GestureCommand[],
   cfg: GestureConfig,
-  code: string | null,
+  side: 'left' | 'right',
 ): void {
-  if (cfg.readMode || s.mode === 'settle') return;
-  s.lastEdgeTapAt = null;
-  // viaTap: a bare tap-select, so the tour's gesture beat can ignore it rather
-  // than treat an accidental tap as the flick it teaches.
-  settleTo(s, commands, cfg, code ?? s.settledCode, true);
+  if (cfg.readMode || s.mode === 'settle') {
+    s.mode = 'settle';
+    return;
+  }
+  const dir = side === 'left' ? -1 : 1;
+  // viaTap lets the tour's gesture beat ignore a step instead of counting it as
+  // the flick it teaches.
+  settleTo(s, commands, cfg, pickStepCountry(s.settleEl, s.settleAz, dir), true);
 }
 
 export function reduce(state: GestureState, event: GestureEvent, cfg: GestureConfig): ReduceResult {
@@ -239,8 +225,12 @@ export function reduce(state: GestureState, event: GestureEvent, cfg: GestureCon
       // A gesture already owns a pointer: ignore a second finger rather than let
       // it reset the drag anchor and hurl the globe on the next move.
       if (s.activePointerId !== null) break;
-      // The armed double-tap window survives this press so a second empty side
-      // tap can still skip.
+      // A globe that isn't settling has no destination yet, so a step counts
+      // from wherever this press stops it.
+      if (s.mode !== 'settle') {
+        s.settleAz = s.az;
+        s.settleEl = s.el;
+      }
       s.mode = 'drag';
       s.vAz = 0;
       s.vEl = 0;
@@ -289,53 +279,10 @@ export function reduce(state: GestureState, event: GestureEvent, cfg: GestureCon
       commands.push({ kind: 'releasePointer', id: event.id });
 
       if (isTap({ x: s.downX, y: s.downY }, { x: event.x, y: event.y }, TAP_MAX_PX)) {
-        const action = classifyTap({
-          listening: event.listening,
-          region: event.region,
-          hit: event.hitCode !== null,
-          now: event.t,
-          lastEdgeTapAt: s.lastEdgeTapAt,
-          windowMs: DOUBLE_TAP_MS,
-        });
-
-        // A skip and an arming tap move no globe of their own. The press that
-        // began this tap froze any in-flight settle by setting mode to "drag"
-        // (see pointerDown). At rest az/el already sit on the targets, so return
-        // to idle; otherwise a settle was interrupted mid-glide and its targets
-        // still hold the intended landing, so resume it rather than strand the
-        // globe mid-flight, possibly on open ocean.
-        const resumeFrozenSettle = () => {
-          const atTarget =
-            Math.abs(shortestAngle(s.settleAz - s.az)) < SETTLE_EPS &&
-            Math.abs(s.settleEl - s.el) < SETTLE_EPS;
-          s.mode = atTarget ? 'idle' : 'settle';
-        };
-
-        if (action.kind === 'skip') {
-          // A second empty side-third tap within the window: skip instead of
-          // select.
-          s.lastEdgeTapAt = null;
-          resumeFrozenSettle();
-          commands.push({ kind: 'signalSkip', dir: action.dir });
-          break;
-        }
-
-        if (action.kind === 'armSkip') {
-          // First empty side-third tap while listening: arm the skip window and
-          // select nothing, so a second tap within it reads as a skip.
-          s.lastEdgeTapAt = event.t;
-          resumeFrozenSettle();
-          break;
-        }
-
-        // A pin hit, a center tap, or no preview: select with no delay and arm
-        // no window.
-        runSelect(s, commands, cfg, event.hitCode ?? s.settledCode);
+        runStep(s, commands, cfg, event.side);
         break;
       }
 
-      // A fling is a fresh intent: drop any armed double-tap window.
-      s.lastEdgeTapAt = null;
       s.vAz = -flickToSpin(s.vx) * cfg.sensitivity;
       s.vEl = cfg.horizontalLock ? 0 : flickToSpin(s.vy) * cfg.sensitivity;
       s.mode = 'fling';
@@ -345,11 +292,10 @@ export function reduce(state: GestureState, event: GestureEvent, cfg: GestureCon
     case 'pointerCancel': {
       // An interrupted touch (system gesture, multi-touch) fires pointercancel,
       // not pointerup. Snap to the nearest country so it still never rests on
-      // open ocean, and end any armed double-tap window.
+      // open ocean.
       if (s.activePointerId === null || !owns(s, event.id)) break;
       s.activePointerId = null;
       commands.push({ kind: 'releasePointer', id: event.id });
-      s.lastEdgeTapAt = null;
       // The snap-back is recovery, not a chosen landing, so it relabels in place
       // rather than pushing a history entry the back button would have to undo.
       settleTo(
@@ -366,10 +312,8 @@ export function reduce(state: GestureState, event: GestureEvent, cfg: GestureCon
     case 'externalSelect': {
       // Follow the URL country: settle to it like a gesture would when we aren't
       // there. A gesture's own settle wrote the URL first, so code === settledCode by the
-      // time this runs and it no-ops, no feedback loop. Drop any armed skip
-      // window so a following tap isn't misread as a second tap.
+      // time this runs and it no-ops, no feedback loop.
       if (event.code && event.code !== s.settledCode) {
-        s.lastEdgeTapAt = null;
         settleTo(s, commands, cfg, event.code, false, 'external');
       }
       break;

@@ -6,12 +6,12 @@ import { SNAP_Y_PCT, type SnapState } from '@/components/chart-sheet/sheet';
 import { ChevronsRightIcon } from '@/components/icons/chevrons-right';
 
 // Tune the skip cue here: how long the chevron stays on screen and how far it
-// slides toward the tapped edge. Kept brief so it confirms the skip without
+// slides toward its edge. Kept brief so it confirms the skip without
 // pulling the eye off the globe.
 const FLASH_MS = 460;
 const TRAVEL_PX = 24;
 
-// A transient directional chevron on the tapped globe edge confirms a track
+// A transient directional chevron at the globe edge confirms a track
 // skip (next = right, prev = left): it fades in, slides toward that edge, and
 // fades out. It stays an overlay, never a globe rotation, so "skip a song" reads
 // distinct from rotating to a country. Pointer-transparent so it never blocks

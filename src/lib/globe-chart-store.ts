@@ -7,7 +7,7 @@ import { DEFAULT_CHART_MODE, type ChartMode } from './chart-mode';
 // (a fixed backdrop in the layout) and the chart sheet (page children). Read
 // mode and "a landing happened" aren't shareable state, so they don't belong
 // in the URL. A module singleton, not a provider store, because this is app-global
-// client-only UI state with no request scope — and the globe lives outside the
+// client-only UI state with no request scope, and the globe lives outside the
 // audio provider anyway.
 export interface GlobeChartState {
   // The resolved country the globe centers on. The country URL is the shareable
@@ -23,28 +23,17 @@ export interface GlobeChartState {
   // raise a dismissed sheet, so re-landing on the same country still raises
   // (a plain country diff would miss that).
   settleSignal: number;
-  // Whether the most recent settle came from a bare globe tap (vs a fling, an
+  // Whether the most recent settle came from a tap step (vs a fling, an
   // external URL/list pick, or a snap). The onboarding tour's gesture beat
-  // reads this so an accidental tap-select does not count as performing the
-  // flick it teaches; a real fling or a deliberate list pick still advances.
+  // reads this so a step does not count as performing the flick it teaches; a
+  // real fling or a deliberate list pick still advances. The chart reads it to
+  // retire the edge chevrons on the first step.
   lastSettleViaTap: boolean;
-  // A track is loaded (the "listening" state), so a no-movement tap on the globe
-  // edge skips a track instead of selecting a country. The audio store lives in
-  // the page's provider, which the layout-backdrop globe can't read, so the
-  // chart mirrors the gate here alongside selectedCountry.
-  listening: boolean;
   // The songs-chart mode (most played / only here) the chart is reading in. The
   // URL is its shareable mirror, but the globe writes that URL on every settle
   // and a layout backdrop can't read the query back, so the chart publishes the
   // mode here for the globe to carry through a landing rather than drop it.
   chartMode: ChartMode;
-  // The globe's edge-tap skip-intent, a plain data signal: `dir` is the
-  // direction (prev -1 / next +1) and `nonce` bumps on each tap so a repeat
-  // direction still fires (a plain `dir` diff would miss next-after-next). The
-  // chart subscribes, runs its shared step (the one owner of adjacency), and
-  // drives the skip flash from step's result. The globe carries no callback and
-  // learns no outcome, so the whole seam is data, not behavior.
-  skipIntent: { dir: 1 | -1; nonce: number };
   // Monotonic counter a "surprise me" button bumps to fling the globe to a
   // random country. The pick lives in the globe (where the anti-repeat `visited`
   // set does), so the button can't run it directly; it signals across this seam
@@ -74,8 +63,6 @@ export interface GlobeChartState {
   setReadMode: (readMode: boolean) => void;
   setChartMode: (mode: ChartMode) => void;
   signalSettle: (viaTap?: boolean) => void;
-  setListening: (listening: boolean) => void;
-  signalSkip: (dir: 1 | -1) => void;
   requestShuffle: () => void;
   // Land a shuffle draw: move the globe and record the landing to announce.
   shuffleTo: (code: string) => void;
@@ -86,9 +73,7 @@ export const globeChartStore = createStore<GlobeChartState>()((set) => ({
   readMode: false,
   settleSignal: 0,
   lastSettleViaTap: false,
-  listening: false,
   chartMode: DEFAULT_CHART_MODE,
-  skipIntent: { dir: 1, nonce: 0 },
   visited: new Set<string>(),
   drawableCodes: [],
   shuffleSignal: 0,
@@ -102,11 +87,6 @@ export const globeChartStore = createStore<GlobeChartState>()((set) => ({
     set((state) => ({
       settleSignal: state.settleSignal + 1,
       lastSettleViaTap: viaTap,
-    })),
-  setListening: (listening) => set({ listening }),
-  signalSkip: (dir) =>
-    set((state) => ({
-      skipIntent: { dir, nonce: state.skipIntent.nonce + 1 },
     })),
   requestShuffle: () => set((state) => ({ shuffleSignal: state.shuffleSignal + 1 })),
   shuffleTo: (code) =>
