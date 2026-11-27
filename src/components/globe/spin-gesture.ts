@@ -1,7 +1,7 @@
 import { COUNTRIES } from '@/lib/countries';
 
 import { flickToSpin } from './spin-feel';
-import { pickSnapCountry, pickStepCountry } from './spin-select';
+import { pickSnapCountry, pickStep } from './spin-select';
 import { isTap } from './tap-detect';
 
 // The gesture state machine for the spun globe, as a pure reducer. Every drag,
@@ -50,10 +50,14 @@ export interface GestureState {
   vAz: number;
   vEl: number;
   mode: GestureMode;
-  // Where the globe rests or is headed, which is where a step counts from.
+  // Where the globe rests or is headed.
   settleAz: number;
   settleEl: number;
   settledCode: string;
+  // The step cursor, a rest direction on the row that taps walk: a step moves
+  // it along the row, and any other landing restarts the row on that landing.
+  stepAz: number;
+  stepEl: number;
   // The pointer owning the active gesture, or null when none does.
   // touchAction:"none" routes every touch to one element, so a second finger's
   // move/up must not steer or end the first finger's drag.
@@ -136,6 +140,8 @@ export function initGestureState(code: string): GestureState {
     settleAz: startAz,
     settleEl: startEl,
     settledCode: code,
+    stepAz: startAz,
+    stepEl: startEl,
     activePointerId: null,
     downX: 0,
     downY: 0,
@@ -169,6 +175,10 @@ function settleTo(
   }
   s.settleAz = country.lon * DEG;
   s.settleEl = country.lat * DEG;
+  if (!viaTap) {
+    s.stepAz = s.settleAz;
+    s.stepEl = s.settleEl;
+  }
   // Notify on every settle, even re-landing the same country, so the chart
   // resurfaces and the tour re-arms its hint; `changed` lets the shell gate the
   // country-change side effects (URL, visited, haptic).
@@ -208,10 +218,20 @@ function runStep(
     s.mode = 'settle';
     return;
   }
-  const dir = side === 'left' ? -1 : 1;
+  const step = pickStep(s.stepEl, s.stepAz, side === 'left' ? -1 : 1);
+  s.stepAz = step.az;
   // viaTap lets the tour's gesture beat ignore a step instead of counting it as
   // the flick it teaches.
-  settleTo(s, commands, cfg, pickStepCountry(s.settleEl, s.settleAz, dir), true);
+  settleTo(s, commands, cfg, step.code, true);
+}
+
+// A spin that stopped short of a landing rests where it stopped, so the camera
+// becomes both the settle target and the start of a new row.
+function anchorAtCamera(s: GestureState): void {
+  s.settleAz = s.az;
+  s.settleEl = s.el;
+  s.stepAz = s.az;
+  s.stepEl = s.el;
 }
 
 export function reduce(state: GestureState, event: GestureEvent, cfg: GestureConfig): ReduceResult {
@@ -225,12 +245,7 @@ export function reduce(state: GestureState, event: GestureEvent, cfg: GestureCon
       // A gesture already owns a pointer: ignore a second finger rather than let
       // it reset the drag anchor and hurl the globe on the next move.
       if (s.activePointerId !== null) break;
-      // A globe that isn't settling has no destination yet, so a step counts
-      // from wherever this press stops it.
-      if (s.mode !== 'settle') {
-        s.settleAz = s.az;
-        s.settleEl = s.el;
-      }
+      if (s.mode === 'fling') anchorAtCamera(s);
       s.mode = 'drag';
       s.vAz = 0;
       s.vEl = 0;
@@ -333,6 +348,7 @@ export function reduce(state: GestureState, event: GestureEvent, cfg: GestureCon
           s.vAz = 0;
           s.vEl = 0;
           s.mode = 'idle';
+          anchorAtCamera(s);
         }
         break;
       }

@@ -7,7 +7,7 @@ import { latLonToVec3 } from '@/lib/lat-lon-to-vec3';
 import {
   pickNearestToPoint,
   pickSnapCountry,
-  pickStepCountry,
+  pickStep,
   projectFrontCountries,
   rankNearest,
 } from './spin-select';
@@ -155,12 +155,12 @@ test('every country appears in some nearest pool over the reachable sphere', () 
   expect(unreachable).toEqual([]);
 });
 
-test('pickStepCountry moves every country to another one on the side it steps toward', () => {
+test('pickStep moves every country to another one on the side it steps toward', () => {
   const wrong: string[] = [];
 
   for (const country of COUNTRIES) {
     for (const dir of [-1, 1] as const) {
-      const code = pickStepCountry(country.lat * DEG, country.lon * DEG, dir);
+      const { code } = pickStep(country.lat * DEG, country.lon * DEG, dir);
       const landed = COUNTRIES.find((c) => c.code === code)!;
       const turn = Math.atan2(
         Math.sin((landed.lon - country.lon) * DEG),
@@ -175,7 +175,7 @@ test('pickStepCountry moves every country to another one on the side it steps to
   expect(wrong).toEqual([]);
 });
 
-test('pickStepCountry lands on the first country a drag along the same latitude would centre', () => {
+test('pickStep lands on the first country a drag along the same latitude would centre', () => {
   const FINE = 0.05 * DEG; // finer than the step's own sweep, so a skip shows
   const skipped: string[] = [];
 
@@ -187,11 +187,29 @@ test('pickStepCountry lands on the first country a drag along the same latitude 
       for (let offset = FINE; firstOther === country.code; offset += FINE) {
         firstOther = rankNearest(el, az + dir * offset, 1)[0].code;
       }
-      const stepped = pickStepCountry(el, az, dir);
+      const stepped = pickStep(el, az, dir).code;
       if (stepped !== firstOther)
         skipped.push(`${country.code} ${dir}: ${stepped} not ${firstOther}`);
     }
   }
 
   expect(skipped).toEqual([]);
+});
+
+test('pickStep leaves its cursor inside the landed country on the side it stepped toward', () => {
+  const wrong: string[] = [];
+
+  for (const country of COUNTRIES) {
+    const el = country.lat * DEG;
+    const az = country.lon * DEG;
+    for (const dir of [-1, 1] as const) {
+      const step = pickStep(el, az, dir);
+      const turn = Math.atan2(Math.sin(step.az - az), Math.cos(step.az - az));
+      if (rankNearest(el, step.az, 1)[0].code !== step.code || Math.sign(turn) !== dir) {
+        wrong.push(`${country.code} ${dir} -> ${step.code}`);
+      }
+    }
+  }
+
+  expect(wrong).toEqual([]);
 });

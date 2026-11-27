@@ -11,6 +11,7 @@ import {
   reduce,
   TAP_MAX_PX,
 } from './spin-gesture';
+import { STEP_SWEEP } from './spin-select';
 
 const DEG = Math.PI / 180;
 const START = 'us';
@@ -85,6 +86,45 @@ const landings = (commands: GestureCommand[]) =>
 
 // Signed shortest azimuth turn from one heading to another: negative is west.
 const turn = (from: number, to: number) => Math.atan2(Math.sin(to - from), Math.cos(to - from));
+
+const frames = (n: number): GestureEvent[] =>
+  Array.from({ length: n }, () => ({ type: 'frame', dt: 0.016, rng: half }));
+
+// Taps toward one side in a row with no wait, from a globe resting on `code`.
+const walk = (code: string, side: 'left' | 'right', taps: number) =>
+  landings(
+    run(initGestureState(code), Array.from({ length: taps }, (_, i) => tap(side, i)).flat())
+      .commands,
+  );
+
+const UNIT = COUNTRIES.map((c) => ({
+  code: c.code,
+  x: Math.cos(c.lat * DEG) * Math.sin(c.lon * DEG),
+  y: Math.sin(c.lat * DEG),
+  z: Math.cos(c.lat * DEG) * Math.cos(c.lon * DEG),
+}));
+
+// The country whose centre faces the rest direction most squarely.
+function nearestAt(el: number, az: number): string {
+  const [x, y, z] = [Math.cos(el) * Math.sin(az), Math.sin(el), Math.cos(el) * Math.cos(az)];
+  let best = UNIT[0];
+  for (const u of UNIT) {
+    if (u.x * x + u.y * y + u.z * z > best.x * x + best.y * y + best.z * z) best = u;
+  }
+  return best.code;
+}
+
+// The countries a sweep along `code`'s latitude enters in one full turn toward
+// `dir`, ending back on `code`.
+function ringOf(code: string, dir: 1 | -1): string[] {
+  const entered: string[] = [];
+  let last = code;
+  for (let k = 1; k <= Math.round((2 * Math.PI) / STEP_SWEEP); k++) {
+    const at = nearestAt(elOf(code), azOf(code) + dir * k * STEP_SWEEP);
+    if (at !== last) entered.push((last = at));
+  }
+  return entered;
+}
 
 test('initGestureState seeds settle targets onto the resting country', () => {
   const s = initGestureState(START);
@@ -221,12 +261,70 @@ test('repeated taps each step one country further, with no wait between them', (
     ...tap('left', 2),
   ]);
 
-  const path = [START, ...landings(commands)];
-  expect(path).toHaveLength(4);
-  expect(new Set(path).size).toBe(path.length);
-  for (let i = 1; i < path.length; i++) {
-    expect(turn(azOf(path[i - 1]), azOf(path[i]))).toBeLessThan(0);
+  expect(landings(commands)).toEqual(ringOf(START, -1).slice(0, 3));
+});
+
+test('a step and a step back return every country to itself', () => {
+  const unreturned: string[] = [];
+
+  for (const { code } of COUNTRIES) {
+    for (const [there, back] of [
+      ['right', 'left'],
+      ['left', 'right'],
+    ] as const) {
+      const path = landings(
+        run(initGestureState(code), [...tap(there, 0), ...tap(back, 1)]).commands,
+      );
+      if (path[1] !== code) unreturned.push(`${code} ${there}: ${path.join(' ')}`);
+    }
   }
+
+  expect(unreturned).toEqual([]);
+});
+
+// A longer timeout, since every start walks its whole ring: about 2.5 s in a
+// full local run, against a default of 5 s that a slower runner could exceed.
+test(
+  'repeated steps visit every country the starting latitude crosses, in order, before returning',
+  {
+    timeout: 20_000,
+  },
+  () => {
+    const wrong: string[] = [];
+
+    for (const { code } of COUNTRIES) {
+      const ring = ringOf(code, 1);
+      const walked = walk(code, 'right', ring.length);
+      if (walked.join() !== ring.join() || walked.indexOf(code) !== walked.length - 1) {
+        wrong.push(`${code}: ${walked.join(' ')} not ${ring.join(' ')}`);
+      }
+    }
+
+    expect(wrong).toEqual([]);
+  },
+);
+
+test('an outside landing restarts the row on its own latitude', () => {
+  const stepped = run(initGestureState(START), [...tap('left', 0), ...tap('left', 1)]).state;
+
+  const { commands } = run(stepped, [{ type: 'externalSelect', code: 'de' }, ...tap('right', 2)]);
+
+  expect(landings(commands)).toEqual(['de', ...walk('de', 'right', 1)]);
+});
+
+test('a drag restarts the row on the latitude where its fling lands', () => {
+  const stepped = run(initGestureState(START), [...tap('left', 0), ...tap('left', 1)]).state;
+  const flung = run(stepped, [
+    down(1, 100, 100, 2),
+    move(1, 160, 130, 12),
+    up(1, 160, 130, 12, 'right'),
+    ...frames(600),
+  ]).state;
+  expect(flung.mode).toBe('idle');
+
+  const { commands } = run(flung, tap('right', 3));
+
+  expect(landings(commands)).toEqual(walk(flung.settledCode, 'right', 1));
 });
 
 test('a release at exactly the tap distance threshold still steps', () => {
@@ -265,13 +363,7 @@ test('a drag that returns within the tap distance threshold steps rather than fl
 
 test('a tap during an in-flight settle steps on from where that settle was heading', () => {
   const heading = 'de';
-  const settling: GestureState = {
-    ...initGestureState(START),
-    mode: 'settle',
-    settleAz: azOf(heading),
-    settleEl: elOf(heading),
-    settledCode: heading,
-  };
+  const settling = run(initGestureState(START), [{ type: 'externalSelect', code: heading }]).state;
 
   const { state, commands } = run(settling, tap('right'));
 
@@ -299,12 +391,14 @@ test('a tap that stops a fling steps from where the spin stopped', () => {
 
 test('a tap after read mode parked a fling steps from where it parked', () => {
   const parkedAt = 'de';
-  const parked: GestureState = {
+  const flinging: GestureState = {
     ...initGestureState(START),
-    mode: 'idle',
+    mode: 'fling',
+    vAz: 5,
     az: azOf(parkedAt),
     el: elOf(parkedAt),
   };
+  const parked = run(flinging, frames(1), cfg({ readMode: true })).state;
 
   const { state } = run(parked, tap('right'));
 
@@ -334,13 +428,7 @@ test('a tap released under read mode steps nowhere', () => {
 
 test('a tap released under read mode resumes the settle its press froze', () => {
   const heading = 'de';
-  const settling: GestureState = {
-    ...initGestureState(START),
-    mode: 'settle',
-    settleAz: azOf(heading),
-    settleEl: elOf(heading),
-    settledCode: heading,
-  };
+  const settling = run(initGestureState(START), [{ type: 'externalSelect', code: heading }]).state;
   const pressed = run(settling, [down(1, 100, 100)]).state;
 
   const { state } = run(pressed, [up(1, 100, 100, 5, 'left')], cfg({ readMode: true }));
