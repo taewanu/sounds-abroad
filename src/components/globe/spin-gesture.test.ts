@@ -449,6 +449,19 @@ test('an external landing during a press ends the press and releases its pointer
   expect(commands).toContainEqual({ kind: 'releasePointer', id: 1 });
 });
 
+test('an external code outside the country list leaves the press in control', () => {
+  const { state, commands } = run(initGestureState(START), [
+    down(1, 100, 100),
+    move(1, 200, 100, 10),
+    { type: 'externalSelect', code: 'zz' },
+    up(1, 200, 100, 20, 'left'),
+    ...frames(600),
+  ]);
+
+  expect(landings(commands)).toHaveLength(1);
+  expect(COUNTRIES.map((c) => c.code)).toContain(state.settledCode);
+});
+
 const AFTER_LANDING = [
   {
     path: 'jitters inside the tap threshold',

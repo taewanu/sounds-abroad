@@ -327,7 +327,9 @@ export function reduce(state: GestureState, event: GestureEvent, cfg: GestureCon
       // Follow the URL country: settle to it like a gesture would when we aren't
       // there. A gesture's own settle wrote the URL first, so code === settledCode by the
       // time this runs and it no-ops, no feedback loop.
-      if (!event.code || event.code === s.settledCode) break;
+      if (!event.code || event.code === s.settledCode || !COUNTRY_BY_CODE.has(event.code)) {
+        break;
+      }
       // A landing ends any press in progress, so the finger's later moves,
       // release, or cancel can't pull the globe off it.
       if (s.activePointerId !== null) {
