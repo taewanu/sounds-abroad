@@ -1,10 +1,11 @@
-import { PerspectiveCamera, Vector3 } from 'three';
+import { type Camera, PerspectiveCamera, Vector2, Vector3 } from 'three';
 import { expect, test } from 'vitest';
 
 import { COUNTRIES, type CountryEntry } from '@/lib/countries';
 import { latLonToVec3 } from '@/lib/lat-lon-to-vec3';
 
 import {
+  pickHoverCountry,
   pickNearestToPoint,
   pickSnapCountry,
   pickStep,
@@ -14,6 +15,10 @@ import {
 
 const GLOBE_RADIUS = 3.5;
 const DEG = Math.PI / 180;
+// Past this angle from the camera direction, the unit globe's surface faces away from the camera.
+const HORIZON = Math.acos(1 / GLOBE_RADIUS);
+const SIZE = 600;
+const OFF_LIMB_PX = 6;
 
 function directionOf(code: string): Vector3 {
   const country = COUNTRIES.find((c) => c.code === code);
@@ -45,6 +50,17 @@ function farthestFrom(direction: Vector3): string {
   return farthest;
 }
 
+function tiltedFrom(code: string, angle: number): Vector3 {
+  const centre = directionOf(code);
+  const axis = new Vector3().crossVectors(centre, new Vector3(0, 1, 0)).normalize();
+  return centre.applyAxisAngle(axis, angle);
+}
+
+function screenOf(code: string, camera: Camera): Vector2 {
+  const ndc = directionOf(code).project(camera);
+  return new Vector2(((ndc.x + 1) / 2) * SIZE, ((1 - ndc.y) / 2) * SIZE);
+}
+
 function screenAt(country: CountryEntry, sx: number, sy: number) {
   return { country, sx, sy };
 }
@@ -62,14 +78,47 @@ test('projectFrontCountries keeps the faced country and drops its far-side oppos
   expect(codes).not.toContain(opposite);
 });
 
-test('pickNearestToPoint returns the candidate closest to the tap point', () => {
+test('projectFrontCountries keeps a country just inside the limb and drops it just behind', () => {
+  const [country] = COUNTRIES;
+  const inside = cameraFacing(tiltedFrom(country.code, HORIZON - DEG));
+  const behind = cameraFacing(tiltedFrom(country.code, HORIZON + DEG));
+
+  const codesInside = projectFrontCountries(inside, SIZE, SIZE).map((s) => s.country.code);
+  const codesBehind = projectFrontCountries(behind, SIZE, SIZE).map((s) => s.country.code);
+
+  expect(codesInside).toContain(country.code);
+  expect(codesBehind).not.toContain(country.code);
+});
+
+test('pickHoverCountry names the country whose centre is under the cursor', () => {
+  const [faced] = COUNTRIES;
+  const camera = cameraFacing(directionOf(faced.code));
+
+  expect(pickHoverCountry(camera, SIZE, SIZE, SIZE / 2, SIZE / 2)).toBe(faced.code);
+});
+
+test('pickHoverCountry returns null when the cursor is off the globe beside a country centre', () => {
+  const [country] = COUNTRIES;
+  const camera = cameraFacing(tiltedFrom(country.code, HORIZON - DEG));
+  const middle = new Vector2(SIZE / 2, SIZE / 2);
+  const centre = screenOf(country.code, camera);
+  const offGlobe = centre
+    .clone()
+    .sub(middle)
+    .setLength(centre.distanceTo(middle) + OFF_LIMB_PX)
+    .add(middle);
+
+  expect(pickHoverCountry(camera, SIZE, SIZE, offGlobe.x, offGlobe.y)).toBeNull();
+});
+
+test('pickNearestToPoint returns the candidate closest to the point', () => {
   const [near, mid, far] = COUNTRIES;
   const candidates = [screenAt(near, 100, 100), screenAt(mid, 300, 300), screenAt(far, 500, 100)];
 
   expect(pickNearestToPoint(candidates, 290, 310, 44)).toBe(mid.code);
 });
 
-test('pickNearestToPoint returns null when the nearest pin is beyond maxPx', () => {
+test('pickNearestToPoint returns null when the nearest candidate is beyond maxPx', () => {
   const [only] = COUNTRIES;
   const candidates = [screenAt(only, 100, 100)];
 

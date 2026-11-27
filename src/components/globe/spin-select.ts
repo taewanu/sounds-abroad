@@ -1,18 +1,19 @@
 import type { Camera } from 'three';
-import { Vector3 } from 'three';
+import { Raycaster, Sphere, Vector2, Vector3 } from 'three';
 
 import { COUNTRIES, type CountryEntry } from '@/lib/countries';
 import { weightedDraw } from '@/lib/fairness-draw';
 import { latLonToVec3 } from '@/lib/lat-lon-to-vec3';
 
 const DEG = Math.PI / 180;
-const PIN_ELEVATION = 1.015;
-// Drop pins near or behind the limb: their projection overlaps the front face.
-const FRONT_DOT_MIN = 0.1;
+// A cursor farther than this from every visible country centre hovers nothing.
+const HOVER_HIT_PX = 44;
+const GLOBE = new Sphere(new Vector3(), 1);
 
-const WORLD_BY_CODE = new Map<string, Vector3>(
-  COUNTRIES.map((c) => [c.code, latLonToVec3(c.lat, c.lon, PIN_ELEVATION)]),
-);
+const CENTRES = COUNTRIES.map((country) => ({
+  country,
+  centre: latLonToVec3(country.lat, country.lon),
+}));
 
 export interface ScreenCountry {
   country: CountryEntry;
@@ -20,20 +21,18 @@ export interface ScreenCountry {
   sy: number;
 }
 
-// Countries on the camera-facing hemisphere, projected to canvas pixel space
-// (origin top-left, y down) so a tap point and a pin share one frame.
+// Countries whose centre the camera can see, projected to canvas pixel space
+// (origin top-left, y down) so a cursor point and a centre share one frame.
 export function projectFrontCountries(
   camera: Camera,
   width: number,
   height: number,
 ): ScreenCountry[] {
-  const camDir = camera.position.clone().normalize();
   const result: ScreenCountry[] = [];
-  for (const country of COUNTRIES) {
-    const world = WORLD_BY_CODE.get(country.code);
-    if (!world) continue;
-    if (world.clone().normalize().dot(camDir) <= FRONT_DOT_MIN) continue;
-    const ndc = world.clone().project(camera);
+  for (const { country, centre } of CENTRES) {
+    // A point on the unit globe is visible only while the camera sits above its tangent plane.
+    if (centre.dot(camera.position) <= 1) continue;
+    const ndc = centre.clone().project(camera);
     result.push({
       country,
       sx: ((ndc.x + 1) / 2) * width,
@@ -43,9 +42,8 @@ export function projectFrontCountries(
   return result;
 }
 
-// Tap target: the front-facing country whose pin is nearest the tap point, or
-// null when even the nearest pin is farther than `maxPx` (a tap on open ocean
-// selects nothing). `bestDist` is a squared pixel distance.
+// The candidate nearest the point, or null when even the nearest is farther
+// than `maxPx`. `bestDist` is a squared pixel distance.
 export function pickNearestToPoint(
   candidates: readonly ScreenCountry[],
   px: number,
@@ -64,6 +62,21 @@ export function pickNearestToPoint(
   // Near enough → that country; beyond the radius → nothing. Comparison stays
   // in squared space (bestDist is squared) to skip a sqrt.
   return bestDist <= maxPx ** 2 ? best : null;
+}
+
+// The country a cursor at canvas point (x, y) hovers, or null when the cursor
+// is off the globe or no visible centre is within HOVER_HIT_PX of it.
+export function pickHoverCountry(
+  camera: Camera,
+  width: number,
+  height: number,
+  x: number,
+  y: number,
+): string | null {
+  const raycaster = new Raycaster();
+  raycaster.setFromCamera(new Vector2((x / width) * 2 - 1, 1 - (y / height) * 2), camera);
+  if (!raycaster.ray.intersectsSphere(GLOBE)) return null;
+  return pickNearestToPoint(projectFrontCountries(camera, width, height), x, y, HOVER_HIT_PX);
 }
 
 export interface PoolEntry {
