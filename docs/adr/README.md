@@ -11,9 +11,9 @@ Add a row when you add an ADR. Move a record to Historical only once no running 
 | [0002](0002-public-repo-for-actions-budget.md)             | Toolchain  | A public repo, for the free Actions minutes the crawl needs                                                                   |
 | [0003](0003-zustand-for-client-state.md)                   | Client     | Zustand for client state                                                                                                      |
 | [0005](0005-semver-milestone-versions.md)                  | Process    | Milestones name semver versions, not phases                                                                                   |
-| [0007](0007-out-of-band-human-curated-commentary.md)       | Commentary | Out-of-band commentary and its sidecar. 0008 and 0009 replace its trust model; 0026 revisits regeneration and cadence         |
+| [0007](0007-out-of-band-human-curated-commentary.md)       | Commentary | Out-of-band commentary. Its trust model is replaced by 0008 and 0009; generation and the sidecar still hold. Amended by 0026  |
 | [0008](0008-risk-tiered-commentary-gate.md)                | Commentary | A risk-tiered gate with code as the primary guard                                                                             |
-| [0009](0009-fully-automated-commentary-gate.md)            | Commentary | No human in the publish path. 0026 revisits what a card may claim and grounds the tag                                         |
+| [0009](0009-fully-automated-commentary-gate.md)            | Commentary | No human in the publish path. Amended by 0026: what a card may claim, and grounding reads the tag                             |
 | [0010](0010-defer-quoted-span-lyric-judge.md)              | Commentary | Defer an LLM judge for the no-lyric lint; `quoted-span` still hard-drops                                                      |
 | [0011](0011-globe-as-output-gesture-model.md)              | Globe      | Globe-as-output gestures. Superseded by 0020, but stays here while 0020 is unfinished because it still describes running code |
 | [0012](0012-spotify-track-deeplink-resolution.md)          | Crawl      | Resolve Spotify track deeplinks at crawl time                                                                                 |

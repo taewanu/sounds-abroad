@@ -1,12 +1,12 @@
 # ADR-0026: A card says why a song is moving now, or there is no card
 
-**Status:** Accepted (2026-11-26), not yet built: until it ships, the code follows ADR-0007 and ADR-0009, so check `main` before assuming any rule below. Revisits [ADR-0007](0007-out-of-band-human-curated-commentary.md), whose cards persist and are never regenerated and whose drafting runs only by hand, and [ADR-0009](0009-fully-automated-commentary-gate.md), whose drafting lets a stable fact stand in when no source states a cause and leaves the tag ungrounded. The gate ADR-0009 built stands unchanged. The owner set the top N and the expiry length on 2026-11-26 as estimates, not measurements, and the cadence waits on one measured run.
+**Status:** Accepted (2026-11-26), not yet built: until it ships, the code follows ADR-0007 and ADR-0009, so check `main` before assuming any rule below. Amends [ADR-0007](0007-out-of-band-human-curated-commentary.md), whose cards persist and are never regenerated, whose significance trigger queues only movers, and whose drafting runs only by hand, and [ADR-0009](0009-fully-automated-commentary-gate.md), whose drafting lets a stable fact stand in when no source states a cause and whose grounding leaves the tag unread. The gate keeps ADR-0009's shape: binary checks on the whole card, and no human in the path. The owner set the top N and the expiry length on 2026-11-26 as estimates, not measurements, and the cadence waits on one measured run.
 
 ## Context
 
 Almost no song carries a commentary card, and the few cards that exist say what a song is rather than why it is charting now. Counted on the live payload from the crawl of 2026-11-27 01:45 UTC, across the eager rows of all 65 countries:
 
-- 3 of the 951 distinct tracks in the top 25s carry a card. All 3 are `what-it-is`, and all share one batch's timestamp, 2026-07-28, 121 days before this record.
+- 3 of the 951 distinct tracks in the top 25s carry a card. All 3 are `what-it-is`, and all share one batch's timestamp, 2026-07-28 04:12 UTC, 121 days before this record.
 - Their tags are frozen at July: one still reads "Spider-Man theme, opening week", another "No. 1 global debut".
 - "Flower in a Hurricane" by Justice, the song from the GTA VI launch trailer of 2026-10-15, sits in 39 countries' top 25 and 34 countries' top 10 and has no card.
 
@@ -22,25 +22,26 @@ The Justice song shows the gate is not what blocks a strong card. [Billboard's c
 
 ## Decision
 
-**A card states a reason the song is moving now that its sources state, or no card is shown.** Four rules carry it. The gate ADR-0009 built is unchanged: code alone decides, every check is a binary pass, and any doubt drops the card.
+**A card states a reason the song is moving now that its sources state, or no card is shown.** Four rules carry it. The gate keeps ADR-0009's shape: code alone decides, every check is a binary pass on the whole card, and any doubt drops it. Grounding, one of those checks, now also reads the tag.
 
 ### Why-now or nothing
 
 - **The drafter looks first for a cause a source states:** a soundtrack or sync placement, a release, an award, a holiday, a viral moment. Every new card is `why-charting`.
 - **When no source states a cause, the draft returns no card.** It never falls back to a stable fact about the song.
-- **A no-cause result is its own outcome, reported apart from a gate drop.** It does not spend the drop ledger's attempts (ADR-0009's 2026-06-23 amendment), and the track is not drafted again until the expiry length below has passed.
+- **A no-cause result is its own outcome, reported apart from a gate drop.** The drop ledger (`commentary/v1/drops.json`) records it under the track's key with its time, apart from the attempt count, so it never spends the attempts ADR-0009's 2026-06-23 amendment budgets. The worklist skips the key until the expiry length below has passed since that time.
+- **A track that has spent its two gate attempts stays off every queue, the top N included.**
 - **The tag is grounded with the lead and detail.** `CommentarySchema` requires a tag, so a tag the sources do not state drops the whole card, as any other ungrounded claim does. Leaving the tag out instead would make `tag` optional in `src/lib/chart-schema.ts`, a change to the published chart shape that this record does not make.
 
-The reason is the card's job. ADR-0007 described a card as what a song is about and why it is charting; a stable fact answers only the first half, and preferring it produced the three trivia cards above. No card costs only coverage, which ADR-0009 already accepts as the price of failing closed. A no-cause result stays out of the attempt budget because press can report a cause after a song starts moving, which a permanent tombstone would never see, and it waits out the expiry length because retrying every run would spend quota on the same empty search. Grounding the tag closes the one field nothing checked, and dropping the card rather than stripping the tag keeps the gate entry-level, as ADR-0009's 2026-07-10 amendment chose.
+The reason is the card's job. ADR-0007 described a card as what a song is about and why it is charting; a stable fact answers only the first half, and preferring it produced the three trivia cards above. No card costs only coverage, which ADR-0009 already accepts as the price of failing closed. A no-cause result stays out of the attempt budget because press can report a cause after a song starts moving, which a permanent tombstone would never see, and it waits out the expiry length because retrying every run would spend quota on the same empty search. The record lives in the drop ledger because the worklist already reads it and the crawl never bakes it, so a record of a try never reaches the payload. A spent attempt budget still holds against the top N because a top-10 position does not change why the drafts failed the gate, and without the budget such a track would cost a draft every run. Grounding the tag closes the one field nothing checked, and dropping the card rather than stripping the tag keeps the gate entry-level, as ADR-0009's 2026-07-10 amendment chose.
 
 ### Expiry
 
 - **A `why-charting` card stops being baked once it is older than the expiry length**, counted from its `generatedAt`. Its track can then be queued and redrafted; if no source still states a cause, it shows no card.
 - **No `what-it-is` card is baked**, whatever its age.
-- **The store keeps every published card.** Nothing is deleted; the crawl stops baking what has expired.
+- **Expiry deletes nothing; it only stops baking.** An expired card stays in the live store until a redraft of its key publishes. The live store holds one card per key, so that publish replaces the card there, and the run's backup of the whole store (`backupCommentary` in `scripts/commentary/upload-commentary.ts`) keeps the previous one.
 - **A card dates its cause** ("the game's release on 2026-11-19") instead of saying "this week", since a card shows for up to the expiry length and a relative time goes false before then.
 
-The reason is that a claim about a moment goes stale when the moment passes, and nothing ends a card today: the live payload still shows "Spider-Man theme, opening week" 121 days after it was written. Expiring at bake time (`bakeCommentary` in `scripts/crawl/run.ts`) reads a field every card already has, so neither the store nor `src/lib/chart-schema.ts` changes, and `what-it-is` stays a valid value for the cards already stored. The crawl runs four times a day (`.github/workflows/cron-crawl.yml`), so an expired card leaves the payload within one crawl. Keeping the store whole makes the rule reversible: a different expiry length shows or hides stored cards with no redraft, and published commentary is never deleted from the object store in this repo.
+The reason is that a claim about a moment goes stale when the moment passes, and nothing ends a card today: the live payload still shows "Spider-Man theme, opening week" 121 days after it was written. Expiring at bake time (`bakeCommentary` in `scripts/crawl/run.ts`) reads a field every card already has, so neither the store's shape nor `src/lib/chart-schema.ts` changes, and `what-it-is` stays a valid value for the cards already stored. The crawl runs four times a day (`.github/workflows/cron-crawl.yml`), so an expired card leaves the payload within one crawl. Deleting nothing keeps the rule reversible: until a redraft replaces it, a stored card shows or hides with the expiry length at no drafting cost, and a replaced card survives in the backup taken before every overwrite, since published commentary is never deleted from the object store in this repo.
 
 ### Queue
 
@@ -64,8 +65,8 @@ The cost is quota:
 - **It authenticates with `CLAUDE_CODE_OAUTH_TOKEN`**, a token from `claude setup-token`, so a run spends the Claude plan's quota rather than a metered API key.
 - **It starts only after the drafter and the queue follow the three rules above.**
 - **Its first run is triggered by hand and measured:** plan quota per card, web searches, store writes and wall time. The owner sets the batch size and the cadence from that measurement, and only then does the workflow gain a schedule.
-- **A run that publishes nothing reports differently from a run that failed.** Today a batch that drafts nothing exits 1 (`scripts/commentary/draft-batch.ts`). Under why-now or nothing, drafting nothing is the normal result for a batch whose tracks have no stated cause, so a schedule would report it as a failure.
-- **The owner adds the secrets:** the token, and a store write credential, scoped to the commentary prefix if the store supports it.
+- **A run that publishes nothing reports differently from a run that failed.** Today an empty worklist exits 0, and a batch whose every selected track fails to draft exits 1 (`scripts/commentary/draft-batch.ts`). A no-cause result returns no draft, so if it is counted as a failed draft, as today's code would count it, a batch whose tracks all have no stated cause exits 1, and a schedule would report the normal result as a failure.
+- **The owner adds the secrets:** the token, which lasts one year and then needs renewing, and a store write credential, scoped to the commentary prefix if the store supports it.
 
 Each part has its reason:
 
@@ -74,7 +75,7 @@ Each part has its reason:
 - **After the other rules,** because automation multiplies whatever the prompt produces, and the current prompt produces trivia.
 - **Measured before scheduled,** because no one knows yet what a card costs in quota.
 
-**The subscription-token caveat.** Claude Code's documentation lists the token for "CI pipelines and scripts", and its Legal and compliance page says advertised plan limits "assume ordinary, individual usage" of Claude Code and the Agent SDK, without defining that usage (both read 2026-11-26). Whether an unattended schedule counts as ordinary usage is a judgment the terms do not settle. The measured run bounds how much of the plan a cadence takes, and the injected clients keep a metered key one change away.
+**The subscription-token caveat.** The terms allow the token for scripts but leave the line between ordinary use and a product undrawn. Claude Code's Authentication page says to "generate a one-year OAuth token with `claude setup-token`" for "CI pipelines, scripts, or other environments where interactive browser login isn't available". Its Legal and compliance page, under "Authentication and credential use", says OAuth authentication "is designed to support ordinary use of Claude Code and other native Anthropic applications", and that developers "building products or services that interact with Claude's capabilities, including those using the Agent SDK, should use API key authentication". Under "Acceptable use", the same page says advertised plan limits "assume ordinary, individual usage of Claude Code and the Agent SDK". Neither page defines ordinary use (both read 2026-11-26). One reading puts a scheduled job that writes the cards a public site shows closer to the products-and-services sentence than to ordinary, individual use, so the plan token is a judgment the terms do not settle, and an API key is the path they name. The measured run bounds how much of the plan a cadence takes, and the injected clients keep a metered key one change away.
 
 ## Numbers
 
@@ -86,21 +87,21 @@ The owner set both numbers on 2026-11-26. Both are estimates, not measurements, 
 - **It sizes the first backlog at 382 drafts.** On the crawl of 2026-11-27 01:45 UTC, the 65 top 10s hold 382 distinct tracks. A track keys once however many countries chart it, so 382 is the drafts a full backlog costs, each with one judge call: 77 runs at today's default batch of 5.
 - **It starts at the top of the chart, because quota is unmeasured.** A top 5 holds 188 distinct tracks and a top 25 holds 951, so a top 10 keeps the backlog to two fifths of what covering every eager row would cost.
 - **It keeps the Justice song in reach:** "Flower in a Hurricane" is in 34 of the 65 top 10s.
-- **After the backlog, a run queues only what changed:** tracks entering a top 10, cards past their expiry, and no-cause tracks due a retry.
-- **Meters:** plan quota per run, no-cause results per run, and the share of baked top-10 rows with a card. If the queue left after each run grows from run to run, N is too large for the cadence. If no-cause results fill most of each run, the retries are spending quota on top-10 tracks whose sources state no cause. If the share stays near full while quota per run goes unused, N can grow.
+- **After the backlog, the top-10 rule queues only what changed:** tracks entering a top 10, cards past their expiry, and no-cause tracks due a retry. The movement and gem triggers add their own tracks below the top 10 on top of that, single-market movers now included.
+- **Meters:** plan quota per run, no-cause results per run, and the share of baked top-10 rows with a card. If the top-10 part of the queue left after each run grows from run to run, N is too large for the cadence; growth from tracks below the top 10 points at the movement triggers instead, so the queue is read split by worklist reason. If no-cause results fill most of each run, the retries are spending quota on top-10 tracks whose sources state no cause. If the share stays near full while quota per run goes unused, N can grow.
 
 ### Expiry length: 14 days from `generatedAt`
 
 - **It bounds the measured failure:** no baked claim is older than two weeks, against 121 days today.
 - **It keeps pace with a changing cause:** the Justice song's cause moved from the trailer (2026-10-15) to the game's release (2026-11-19) within 35 days, and a card first drafted with the trailer would have been redrafted twice in that span.
-- **It is priced in plan quota, not store writes:** a publishing run writes the same three objects whatever its card count, so expiry sets only how often a top-10 track is drafted again, whether it holds a card or had no stated cause. The ceiling is about 27 drafts a day (382 tracks over 14 days), reached only if every one kept charting; 7 days would double it to about 55.
+- **It is priced in plan quota, not store writes:** a publishing run writes the same three objects whatever its card count, so expiry sets only how often a top-10 track is drafted again, whether it holds a card or had no stated cause. That repeat draw is about 27 drafts a day (382 tracks over 14 days) if every one kept charting, and 7 days would double it to about 55. It is not a ceiling: songs entering a top 10 and tracks the movement and gem triggers add cost first drafts on top.
 - **Meters:** plan quota per run, no-cause results per run, and the share of baked rows with a card. Redrafts and no-cause retries taking a large share of quota per run, or a steep fall in the share as cards reach their expiry, mean the length is too short. Too long has no meter of its own: it shows as a baked card whose dated cause the chart has moved past, found by reading the payload.
 
 ### Cadence: set from the measured run
 
 No estimate is made here, because a card's cost in quota is unmeasured. What a run costs is countable from today's code:
 
-- **Store writes per run:** a run that publishes writes three objects (the drop ledger, a backup copy of the store, the store), or two when the store was empty; a run that drafts but publishes nothing writes one, the drop ledger; a run that drafts nothing writes none (`scripts/commentary/draft-batch.ts`, `scripts/commentary/publish-store.ts`). Each publishing run also leaves one backup object that nothing deletes.
+- **Store writes per run:** a run that publishes writes three objects (the drop ledger, a backup copy of the store, the store), or two when the store was empty; a run that drafts but publishes nothing writes one, the drop ledger; a run with an empty worklist, or whose every draft fails, writes none (`scripts/commentary/draft-batch.ts`, `scripts/commentary/publish-store.ts`). Recording no-cause results in the drop ledger adds one write to a run whose drafts all end with no stated cause, where today's code writes none. Each publishing run also leaves one backup object that nothing deletes.
 - **Plan quota per run:** one drafter call with web search per queued track and one judge call per draft, bounded by the batch limit (`--limit`, default 5).
 - **Meters:** plan quota per run and store writes per run. The cadence is wrong if a day's runs take more of the plan than the owner allots, or if most runs publish nothing, spending writes and quota on an empty queue.
 
@@ -134,17 +135,17 @@ No estimate is made here, because a card's cost in quota is unmeasured. What a r
 - Gems and other single-market tracks may still go cardless where the allowlist has no home-market outlet: 9 of the 10 drop-ledger entries read on 2026-11-05 failed `source-authority`. Widening the allowlist is the lever, and this record does not pull it.
 - A tag the sources do not state now drops a card whose lead and detail passed.
 - Expiry spends quota redrafting songs that keep charting.
-- The schedule rests on terms that leave "ordinary, individual usage" undefined.
+- The schedule rests on terms that leave "ordinary, individual usage" undefined, and it stops when the one-year token expires unless the secret is renewed.
 
 **Neutral**
 
-- The gate is unchanged: the same checks, the same allowlist, no human.
+- The gate keeps its shape: binary checks on the whole card, the same allowlist, no human. Only grounding's input grows, by the tag.
 - `src/lib/chart-schema.ts` is unchanged. `what-it-is` stays valid for stored cards and for a hand-written one, which the gate still accepts and the bake ignores.
-- The store only grows: every card stays, and each publishing run adds a backup.
+- The live store holds one card per key, so a redraft replaces the card it renews. Each publishing run adds a backup of the whole store first, and nothing deletes the backups.
 
 ## Revisit if
 
 - The measured run shows a useful cadence takes more of the plan than the owner allots, or the plan limits the account: move the backend to a metered key.
-- Anthropic defines "ordinary, individual usage" in a way that excludes an unattended schedule.
+- Anthropic defines "ordinary, individual usage" in a way that excludes an unattended schedule, or applies the products-and-services sentence to it.
 - No-cause results still fill most of each run after the backlog drains: give a no-cause retry its own, longer interval than the expiry length.
 - The share of baked rows with a card stays near zero after the backlog drains: the cause search or the allowlist, not this policy, is the next lever.
