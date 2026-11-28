@@ -439,6 +439,113 @@ test('an external landing that finishes settling during the press wins over the 
   expect(state.settledCode).toBe('mx');
 });
 
+test('an external landing during a press ends the press and releases its pointer', () => {
+  const { state, commands } = run(initGestureState(START), [
+    down(1, 100, 100),
+    { type: 'externalSelect', code: 'fi' },
+  ]);
+
+  expect(state.activePointerId).toBeNull();
+  expect(commands).toContainEqual({ kind: 'releasePointer', id: 1 });
+});
+
+test('an external code outside the country list leaves the press in control', () => {
+  const { state, commands } = run(initGestureState(START), [
+    down(1, 100, 100),
+    move(1, 200, 100, 10),
+    { type: 'externalSelect', code: 'zz' },
+    up(1, 200, 100, 20, 'left'),
+    ...frames(600),
+  ]);
+
+  expect(landings(commands)).toHaveLength(1);
+  expect(COUNTRIES.map((c) => c.code)).toContain(state.settledCode);
+});
+
+const AFTER_LANDING = [
+  {
+    path: 'jitters inside the tap threshold',
+    events: [move(1, 107, 100, 10), up(1, 107, 100, 20, 'left')],
+  },
+  {
+    path: 'wanders off and back',
+    events: [move(1, 100, 400, 10), move(1, 100, 100, 20), up(1, 100, 100, 30, 'left')],
+  },
+];
+
+test.each(
+  AFTER_LANDING.flatMap((after) =>
+    [false, true].map((reducedMotion) => ({ ...after, reducedMotion })),
+  ),
+)(
+  'a press an external landing interrupts rests on that landing when the finger $path (reduced motion: $reducedMotion)',
+  ({ events, reducedMotion }) => {
+    const landing = 'fi';
+
+    // Frames before the finger moves let the landing finish mid-press, which a
+    // reduced-motion cut does at once.
+    const { state, commands } = run(
+      initGestureState(START),
+      [
+        down(1, 100, 100),
+        { type: 'externalSelect', code: landing },
+        ...frames(600),
+        ...events,
+        ...frames(600),
+      ],
+      cfg({ sensitivity: 1.4, reducedMotion }),
+    );
+
+    expect(landings(commands)).toEqual([landing]);
+    expect(state.mode).toBe('idle');
+    expect(state.az).toBeCloseTo(azOf(landing));
+    expect(state.el).toBeCloseTo(elOf(landing));
+  },
+);
+
+test('a drag past the tap threshold after an external landing neither flings nor snaps away from it', () => {
+  const landing = 'fi';
+
+  const { state, commands } = run(initGestureState(START), [
+    down(1, 100, 100),
+    { type: 'externalSelect', code: landing },
+    move(1, 160, 130, 10),
+    up(1, 160, 130, 10, 'right'),
+    ...frames(600),
+  ]);
+
+  expect(landings(commands)).toEqual([landing]);
+  expect(state.az).toBeCloseTo(azOf(landing));
+  expect(state.el).toBeCloseTo(elOf(landing));
+});
+
+test('a pointer cancel after an external landing keeps that landing', () => {
+  const landing = 'fi';
+
+  const { state, commands } = run(initGestureState(START), [
+    down(1, 100, 100),
+    { type: 'externalSelect', code: landing },
+    { type: 'pointerCancel', id: 1, rng: half },
+    ...frames(600),
+  ]);
+
+  expect(landings(commands)).toEqual([landing]);
+  expect(state.az).toBeCloseTo(azOf(landing));
+  expect(state.el).toBeCloseTo(elOf(landing));
+});
+
+test('an external select that repeats the current landing leaves a press free to step', () => {
+  const stepped = run(initGestureState(START), tap('left', 0)).state;
+
+  const { commands } = run(stepped, [
+    down(1, 100, 100, 1),
+    { type: 'externalSelect', code: stepped.settledCode },
+    up(1, 100, 100, 1, 'left'),
+  ]);
+
+  expect(landings(commands)).toEqual(walk(START, 'left', 2).slice(1));
+});
+
 test('a tap released under read mode steps nowhere', () => {
   const pressed = run(initGestureState(START), [down(1, 100, 100)]).state;
 
