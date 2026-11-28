@@ -27,7 +27,9 @@ export function CountryNameLabel({ code }: { code: string | null }) {
 
   if (!country || !anchor) return null;
   return (
-    <Html ref={labelRef} position={anchor} pointerEvents="none">
+    // drei applies its pointerEvents prop only in transform mode, so the wrapper
+    // class keeps a press on the label falling through to the globe canvas.
+    <Html ref={labelRef} position={anchor} wrapperClass="pointer-events-none">
       <span
         aria-hidden
         className="absolute -mt-[3.5px] -ml-[3.5px] size-[7px] rounded-full bg-sunrise shadow-[0_0_0_2px_rgba(5,6,8,0.7),0_0_10px_rgba(255,136,102,0.8)]"
