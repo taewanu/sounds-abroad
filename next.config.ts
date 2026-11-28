@@ -9,8 +9,8 @@ const isDev = process.env.NODE_ENV === 'development';
 /**
  * The policy is the backstop for the sinks closed at ingestion: an address that
  * slips past every schema still cannot load or connect to an origin this site
- * does not use. Served report-only until its reports from real traffic are
- * reviewed; enforcement is the follow-up, not this header. Static (no nonce) on
+ * does not use. Enforced, with violations still reported to the error
+ * processor so a blocked legitimate load shows up there. Static (no nonce) on
  * purpose: a nonce forces per-request rendering, which ADR-0018 rules out, so
  * inline script/style stay allowed, which is the framework's documented shape
  * for statically rendered pages.
@@ -59,7 +59,7 @@ function cspHeaders() {
   const value = endpoint
     ? `${contentSecurityPolicy}; report-uri ${endpoint}; report-to csp-endpoint`
     : contentSecurityPolicy;
-  const headers = [{ key: 'Content-Security-Policy-Report-Only', value }];
+  const headers = [{ key: 'Content-Security-Policy', value }];
   if (endpoint) {
     headers.push({
       key: 'Reporting-Endpoints',
