@@ -688,6 +688,27 @@ describe('ChartSheet', () => {
     });
   });
 
+  test('under reduced motion a tapped clipped row jumps into view without travel', async () => {
+    const matchMedia = preferReducedMotion();
+    try {
+      const scrollIntoViewMock = vi.fn();
+      Element.prototype.scrollIntoView = scrollIntoViewMock;
+      renderAtPeek(SPREAD_COUNTRY, 3);
+      scrollIntoViewMock.mockClear();
+      stubRects(rect(0, 100), rect(200, 240));
+
+      fireEvent.click(playButtonFor(SPREAD_COUNTRY.tracks[2]));
+      await frames(1);
+
+      expect(scrollIntoViewMock).toHaveBeenCalledWith({
+        block: 'nearest',
+        behavior: 'instant',
+      });
+    } finally {
+      matchMedia.mockRestore();
+    }
+  });
+
   test('leaves a fully-visible tapped row where it is', async () => {
     const scrollIntoViewMock = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoViewMock;

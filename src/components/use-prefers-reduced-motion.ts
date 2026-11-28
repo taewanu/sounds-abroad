@@ -16,6 +16,12 @@ export function prefersReducedMotion(): boolean {
   return window.matchMedia(QUERY).matches;
 }
 
+// How a programmatic scroll should move: a jump under reduced motion, a glide
+// otherwise.
+export function preferredScrollBehavior(): ScrollBehavior {
+  return prefersReducedMotion() ? 'instant' : 'smooth';
+}
+
 // Tracks the OS "reduce motion" setting as a live boolean. Server has no
 // matchMedia, so the SSR snapshot assumes motion is allowed; the store corrects
 // it on hydration if the user prefers reduced motion.

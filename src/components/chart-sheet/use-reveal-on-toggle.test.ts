@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { REVEAL_MARGIN_PX, revealInList } from './use-reveal-on-toggle';
 
@@ -33,6 +33,26 @@ function scrolledBy(scrollBy: ReturnType<typeof vi.fn>) {
   return (scrollBy.mock.calls[0]?.[0] as ScrollToOptions | undefined)?.top;
 }
 
+function scrollBehavior(scrollBy: ReturnType<typeof vi.fn>) {
+  return (scrollBy.mock.calls[0]?.[0] as ScrollToOptions | undefined)?.behavior;
+}
+
+function preferReducedMotion(reduce: boolean) {
+  vi.spyOn(window, 'matchMedia').mockImplementation(
+    (query: string) =>
+      ({
+        matches: reduce && query.includes('reduce'),
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }) as unknown as MediaQueryList,
+  );
+}
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe('revealInList', () => {
   test('scrolls up to show a card whose top is above the list', () => {
     const { card, scrollBy } = cardInList(LIST_TOP - 50, LIST_TOP + 30);
@@ -65,5 +85,23 @@ describe('revealInList', () => {
     revealInList(card);
 
     expect(scrollBy).not.toHaveBeenCalled();
+  });
+
+  test('glides to the card when the OS allows motion', () => {
+    preferReducedMotion(false);
+    const { card, scrollBy } = cardInList(LIST_TOP - 50, LIST_TOP + 30);
+
+    revealInList(card);
+
+    expect(scrollBehavior(scrollBy)).toBe('smooth');
+  });
+
+  test('jumps to the card without travel under reduced motion', () => {
+    preferReducedMotion(true);
+    const { card, scrollBy } = cardInList(LIST_TOP - 50, LIST_TOP + 30);
+
+    revealInList(card);
+
+    expect(scrollBehavior(scrollBy)).toBe('instant');
   });
 });

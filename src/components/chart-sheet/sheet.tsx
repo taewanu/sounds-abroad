@@ -14,6 +14,7 @@ import {
 import { PillButton } from '@/components/ui/pill-button';
 import { ESCAPE_LAYER, useEscapeLayer } from '@/components/use-escape-layer';
 import {
+  preferredScrollBehavior,
   prefersReducedMotion,
   usePrefersReducedMotion,
 } from '@/components/use-prefers-reduced-motion';
@@ -791,7 +792,7 @@ export function ChartSheet({
         // A tap only clears the clip, so it settles the row to the nearest edge;
         // an indirect reveal centres it (or tops it at peek) to bring context.
         block: tapped ? 'nearest' : snap === 'peek' ? 'start' : 'center',
-        behavior: 'smooth',
+        behavior: preferredScrollBehavior(),
       });
     };
 
