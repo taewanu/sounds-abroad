@@ -5,7 +5,7 @@ import { Suspense, use, useCallback, useEffect, useRef, useState } from 'react';
 import { PerspectiveCamera } from 'three';
 
 import { SONGS_CHART } from '@/lib/chart-ref';
-import { chartPath } from '@/lib/chart-url';
+import { chartPath, countryCodeFromPath } from '@/lib/chart-url';
 import { COUNTRIES } from '@/lib/countries';
 import { addVisited, pickShuffleCountry } from '@/lib/fairness-draw';
 import { globeChartStore, useGlobeChart } from '@/lib/globe-chart-store';
@@ -84,9 +84,11 @@ function SceneContent() {
   // keeps the mode the listener is reading in, so a fling in only here relabels
   // to only here rather than dropping to the default. A gesture landing is a
   // fresh destination the listener chose, so it pushes a history entry and the
-  // back button returns to the country before it; an external settle (a shared
-  // link, a programmatic roll) relabels in place, since its own writer owns the
-  // history and a roll must not trap the listener behind every auto-advance.
+  // back button returns to the country before it; an external settle relabels
+  // in place, since a roll must not trap the listener behind every
+  // auto-advance. An external settle following a URL that already names the
+  // country (a shared link, a roll, the back button) writes nothing, because
+  // rewriting it would drop the chart that URL names.
   const handleSettle = useCallback(
     (code: string, changed: boolean, viaTap: boolean, origin: SettleOrigin) => {
       // Every settle resurfaces the result (raises a dismissed sheet, re-arms
@@ -100,7 +102,7 @@ function SceneContent() {
       const url = chartPath(code, SONGS_CHART, chartMode);
       if (origin === 'gesture') {
         window.history.pushState(null, '', url);
-      } else {
+      } else if (countryCodeFromPath(window.location.pathname) !== code) {
         window.history.replaceState(null, '', url);
       }
       setVisited(addVisited(visited, code));

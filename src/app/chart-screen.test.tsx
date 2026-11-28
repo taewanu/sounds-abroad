@@ -8,7 +8,7 @@ import { requestUrl } from '@/lib/__fixtures__/request-url';
 import type { AudioEngine } from '@/lib/audio-engine';
 import { SONGS_CHART } from '@/lib/chart-ref';
 import { emptyCountry, type ChartFile, type Country, type Track } from '@/lib/chart-schema';
-import { chartPath } from '@/lib/chart-url';
+import { chartPath, countryPath } from '@/lib/chart-url';
 import { COUNTRIES } from '@/lib/countries';
 import { MAX_ROLL_ATTEMPTS } from '@/lib/end-of-chart-roll';
 import { globeChartStore } from '@/lib/globe-chart-store';
@@ -1158,9 +1158,12 @@ describe('ChartScreen playlist playback', () => {
   const FIRST_HEAD = playlistTrack(1, 'First head');
   const FIRST_TAIL = playlistTrack(2, 'First tail');
   const SECOND_ONLY = playlistTrack(1, 'Second only');
+  const PL_ROLLED_IN = `pl.${'c'.repeat(32)}`;
+  const PL_ROLLED_IN_LABEL = 'Rolled-in playlist';
   const TRACKS_BY_CHART: Record<string, ReturnType<typeof playlistTrack>[]> = {
     [PL_FIRST]: [FIRST_HEAD, FIRST_TAIL],
     [PL_SECOND]: [SECOND_ONLY],
+    [PL_ROLLED_IN]: [playlistTrack(1, 'Rolled-in only')],
   };
 
   function playlistEntry(id: string, name: string) {
@@ -1190,6 +1193,20 @@ describe('ChartScreen playlist playback', () => {
         playlistsValid: true,
       },
       [DRAW_1]: rollCountry([rollTrack(1, LANDING_START, 'https://example.com/landing.m4a')]),
+    },
+  };
+
+  // PLAYLIST_CHARTS with a playlist chart in the country a roll lands on, so the
+  // listener can be reading another of its charts when they step back out.
+  const ROLLED_IN_RAIL_CHARTS: ChartFile = {
+    ...PLAYLIST_CHARTS,
+    countries: {
+      ...PLAYLIST_CHARTS.countries,
+      [DRAW_1]: {
+        ...PLAYLIST_CHARTS.countries[DRAW_1],
+        playlists: [playlistEntry(PL_ROLLED_IN, PL_ROLLED_IN_LABEL)],
+        playlistsValid: true,
+      },
     },
   };
 
@@ -1286,15 +1303,13 @@ describe('ChartScreen playlist playback', () => {
   });
 
   test('tapping the mini-player puts the playing chart back on screen', async () => {
-    vi.spyOn(window.history, 'pushState').mockImplementation(() => {});
-    renderChartScreen(PLAYLIST_CHARTS, PL_CODE);
+    followHistoryWrites();
+    const { tapMiniPlayer } = browsing();
     await openChart(PL_FIRST_LABEL);
     playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
 
     await openChart('Top Songs');
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Reopen chart' }));
-    });
+    await tapMiniPlayer();
 
     // The selected tab, not the URL: the URL write was the half that already
     // worked while the chart on screen stayed behind.
@@ -1375,18 +1390,19 @@ describe('ChartScreen playlist playback', () => {
   // The screen reads its country from the URL, so a history write is what moves
   // it. These stand in for the router integration that re-resolves the URL in
   // the browser: the writes land in the mocked hooks, and repaint re-reads them.
+  function applyUrl(url: string) {
+    const [path, query = ''] = url.split('?');
+    mockPathname.value = path;
+    mockSearchParams.value = new URLSearchParams(query);
+  }
+
   function followHistoryWrites() {
-    const apply = (url: string) => {
-      const [path, query = ''] = url.split('?');
-      mockPathname.value = path;
-      mockSearchParams.value = new URLSearchParams(query);
-    };
     vi.spyOn(window.history, 'pushState').mockImplementation((_data, _title, url) =>
-      apply(String(url)),
+      applyUrl(String(url)),
     );
     return vi
       .spyOn(window.history, 'replaceState')
-      .mockImplementation((_data, _title, url) => apply(String(url)));
+      .mockImplementation((_data, _title, url) => applyUrl(String(url)));
   }
 
   /** The URL the mocked router hooks now resolve, as one path. */
@@ -1398,19 +1414,23 @@ describe('ChartScreen playlist playback', () => {
   // Plumbing only: renders, and binds the two moves these tests make to the
   // repaint that carries a URL change into the tree. The country is read by the
   // outer component, which a state change inside the sheet never repaints.
-  function browsing() {
-    const { rerender } = renderChartScreen(PLAYLIST_CHARTS, PL_CODE);
+  function browsing(charts: ChartFile = PLAYLIST_CHARTS) {
+    const { rerender } = renderChartScreen(charts, PL_CODE);
     const repaint = async () => {
       await act(async () => {
-        rerender(<ChartScreen charts={PLAYLIST_CHARTS} />);
+        rerender(<ChartScreen charts={charts} />);
       });
     };
+    // A URL written by something other than the screen: the globe, the country
+    // selector, or the browser's back and forward buttons.
+    const arriveAt = async (url: string) => {
+      applyUrl(url);
+      await repaint();
+    };
     return {
-      browseTo: async (code: string) => {
-        mockPathname.value = `/c/${code}`;
-        mockSearchParams.value = new URLSearchParams();
-        await repaint();
-      },
+      repaint,
+      arriveAt,
+      browseTo: (code: string) => arriveAt(countryPath(code)),
       tapMiniPlayer: async () => {
         await act(async () => {
           fireEvent.click(screen.getByRole('button', { name: 'Reopen chart' }));
@@ -1490,7 +1510,7 @@ describe('ChartScreen playlist playback', () => {
     expect(selectedTab()).toBe('Top Songs');
   });
 
-  test('a spent restore does not reopen its chart on a later arrival', async () => {
+  test('a later arrival naming no chart opens the songs chart after a return to a playlist', async () => {
     followHistoryWrites();
     const { browseTo, tapMiniPlayer } = browsing();
     await openChart(PL_FIRST_LABEL);
@@ -1501,10 +1521,101 @@ describe('ChartScreen playlist playback', () => {
     await browseTo(DRAW_1);
     await browseTo(PL_CODE);
 
-    // The record a tap leaves is spent by the arrival it was made for. Were it
-    // to survive, every later arrival at that country would open the chart
-    // instead of its songs chart, which is ADR-0017 reversed by the back door.
+    // The return opens its chart through the URL it wrote. Were that chart to
+    // stick, every later arrival at the country would open it instead of the
+    // songs chart, which is ADR-0017 reversed by the back door.
     expect(selectedTab()).toBe('Top Songs');
+  });
+
+  // Rolls out of the country's last playlist chart into the drawn country, so
+  // the return path leads back to a playlist rather than to a songs chart.
+  async function rollOutOfPlaylist(repaint: () => Promise<void>) {
+    await openChart(PL_SECOND_LABEL);
+    playPreview(SECOND_ONLY.name, SECOND_ONLY.artist);
+    await act(async () => {
+      audioEngine.end();
+    });
+    await repaint();
+  }
+
+  test('a back-roll to a playlist leaves the URL naming the chart on screen', async () => {
+    followHistoryWrites();
+    const { repaint } = browsing();
+    await rollOutOfPlaylist(repaint);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Previous track' }));
+    await repaint();
+
+    // Playback returns to the playlist, while the screen opens the country on
+    // its songs chart, so the URL names the songs chart (ADR-0017).
+    expect(miniPlayerTrackName()).toBe(SECOND_ONLY.name);
+    expect(selectedTab()).toBe('Top Songs');
+    expect(urlNow()).toBe(chartPath(PL_CODE, SONGS_CHART));
+  });
+
+  test('a back-roll names the chart on screen whichever chart the rolled-in country had open', async () => {
+    followHistoryWrites();
+    const { repaint } = browsing(ROLLED_IN_RAIL_CHARTS);
+    await rollOutOfPlaylist(repaint);
+    await openChart(PL_ROLLED_IN_LABEL);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Previous track' }));
+    await repaint();
+
+    expect(selectedTab()).toBe('Top Songs');
+    expect(urlNow()).toBe(chartPath(PL_CODE, SONGS_CHART));
+  });
+
+  test('an arrival naming a chart of another country opens that chart', async () => {
+    followHistoryWrites();
+    const { browseTo, arriveAt } = browsing();
+    await openChart(PL_FIRST_LABEL);
+    await browseTo(DRAW_1);
+
+    await arriveAt(chartPath(PL_CODE, PL_FIRST));
+
+    expect(selectedTab()).toBe(PL_FIRST_LABEL);
+    expect(urlNow()).toBe(chartPath(PL_CODE, PL_FIRST));
+  });
+
+  test('an arrival naming another chart of the country on screen opens that chart', async () => {
+    followHistoryWrites();
+    const { arriveAt, tapMiniPlayer } = browsing();
+    await openChart(PL_FIRST_LABEL);
+    playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
+    await openChart('Top Songs');
+    await tapMiniPlayer();
+
+    await arriveAt(chartPath(PL_CODE, SONGS_CHART));
+
+    expect(selectedTab()).toBe('Top Songs');
+    expect(urlNow()).toBe(chartPath(PL_CODE, SONGS_CHART));
+  });
+
+  test('an arrival puts on the mode its URL names', async () => {
+    followHistoryWrites();
+    const { arriveAt } = browsing();
+
+    await arriveAt(chartPath(PL_CODE, SONGS_CHART, 'only_here'));
+
+    expect(screen.getByRole('button', { name: 'Only here' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
+    expect(urlNow()).toBe(chartPath(PL_CODE, SONGS_CHART, 'only_here'));
+  });
+
+  test('a mini-player return keeps the URL it pushed when the mode on screen has moved', async () => {
+    followHistoryWrites();
+    const { tapMiniPlayer } = browsing();
+    await openChart(PL_FIRST_LABEL);
+    playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
+    await openChart('Top Songs');
+    fireEvent.click(screen.getByRole('button', { name: 'Only here' }));
+
+    await tapMiniPlayer();
+
+    expect(selectedTab()).toBe(PL_FIRST_LABEL);
+    expect(urlNow()).toBe(chartPath(PL_CODE, PL_FIRST));
   });
 });
 
@@ -2106,7 +2217,11 @@ describe('ChartScreen stepping past the eager rows', () => {
   });
 
   test('returning by the mini-player restores the mode the track is heard in', async () => {
-    vi.spyOn(window.history, 'pushState').mockImplementation(() => {});
+    vi.spyOn(window.history, 'pushState').mockImplementation((_data, _title, url) => {
+      const [path, query = ''] = String(url).split('?');
+      mockPathname.value = path;
+      mockSearchParams.value = new URLSearchParams(query);
+    });
     const { reach } = stubObserver();
     const { rerender } = renderChartScreen(DEEP_CHARTS, DEEP_CODE);
     await act(async () => {
@@ -2116,13 +2231,12 @@ describe('ChartScreen stepping past the eager rows', () => {
     play('Deep 2', 'Deep artist 2');
 
     // Browse elsewhere and re-aim the mode there, so the mode on screen and the
-    // mode playback carries have parted. The URL write is mocked, so the return
-    // navigation is simulated by hand.
+    // mode playback carries have parted. The tap's URL lands in the mocked
+    // router hooks, and the repaint carries it into the tree.
     mockPathname.value = `/c/${AWAY_CODE}`;
     rerender(<ChartScreen charts={DEEP_CHARTS} />);
     fireEvent.click(screen.getByRole('button', { name: 'Most played' }));
     fireEvent.click(screen.getByRole('button', { name: 'Reopen chart' }));
-    mockPathname.value = `/c/${DEEP_CODE}`;
     rerender(<ChartScreen charts={DEEP_CHARTS} />);
 
     // The track was heard in Only here, so the return lands in it, over the Most

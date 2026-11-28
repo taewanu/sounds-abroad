@@ -4,7 +4,8 @@ import { useRef, useState } from 'react';
 
 import { PillButton } from '@/components/ui/pill-button';
 import * as Popover from '@/components/ui/popover';
-import { countryPath } from '@/lib/chart-url';
+import { SONGS_CHART } from '@/lib/chart-ref';
+import { chartPath } from '@/lib/chart-url';
 import { COUNTRIES } from '@/lib/countries';
 import { countryByCode } from '@/lib/country-code';
 import { globeChartStore, useGlobeChart } from '@/lib/globe-chart-store';
@@ -61,7 +62,10 @@ export function CountrySelector() {
     // to a settle that lands where it already was. Writing history before the
     // store keeps back working whatever the store's listeners do.
     if (code !== currentCode) {
-      window.history.pushState(null, '', countryPath(code));
+      // The mode rides along, as on a globe landing: the screen reads the mode
+      // a URL names, so a bare country path would drop the one on screen.
+      const { chartMode } = globeChartStore.getState();
+      window.history.pushState(null, '', chartPath(code, SONGS_CHART, chartMode));
     }
     // The store reaches the layout globe, whose useSearchParams cannot see this.
     globeChartStore.getState().setSelectedCountry(code);
