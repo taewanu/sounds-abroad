@@ -1196,7 +1196,7 @@ describe('ChartScreen playlist playback', () => {
     },
   };
 
-  // The same, with a playlist chart in the country a roll lands on too, so the
+  // PLAYLIST_CHARTS with a playlist chart in the country a roll lands on, so the
   // listener can be reading another of its charts when they step back out.
   const ROLLED_IN_RAIL_CHARTS: ChartFile = {
     ...PLAYLIST_CHARTS,
@@ -1510,7 +1510,7 @@ describe('ChartScreen playlist playback', () => {
     expect(selectedTab()).toBe('Top Songs');
   });
 
-  test('a spent restore does not reopen its chart on a later arrival', async () => {
+  test('a later arrival naming no chart opens the songs chart after a return to a playlist', async () => {
     followHistoryWrites();
     const { browseTo, tapMiniPlayer } = browsing();
     await openChart(PL_FIRST_LABEL);
@@ -1521,9 +1521,9 @@ describe('ChartScreen playlist playback', () => {
     await browseTo(DRAW_1);
     await browseTo(PL_CODE);
 
-    // The record a tap leaves is spent by the arrival it was made for. Were it
-    // to survive, every later arrival at that country would open the chart
-    // instead of its songs chart, which is ADR-0017 reversed by the back door.
+    // The return opens its chart through the URL it wrote. Were that chart to
+    // stick, every later arrival at the country would open it instead of the
+    // songs chart, which is ADR-0017 reversed by the back door.
     expect(selectedTab()).toBe('Top Songs');
   });
 

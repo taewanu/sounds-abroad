@@ -625,6 +625,9 @@ function ChartScreenInner({
       const store = globeChartStore.getState();
       if (back.countryCode !== store.selectedCountry) suppressResurfaceRef.current = true;
       store.setSelectedCountry(back.countryCode);
+      // The songs chart rather than back.chartRef, because the country change
+      // opens the sheet on it (ADR-0017): the URL names the screen, and the
+      // mini-player names what plays.
       window.history.replaceState(null, '', chartPath(back.countryCode, SONGS_CHART, heardIn()));
       signalStep(dir);
       flashSkip(-1);
