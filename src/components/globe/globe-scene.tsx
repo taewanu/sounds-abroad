@@ -15,6 +15,7 @@ import { tourBridge } from '@/lib/tour-bridge';
 import { usePrefersReducedMotion } from '../use-prefers-reduced-motion';
 import { cameraForViewport } from './camera-fit';
 import { ChartedCountryFill, SelectedCountryFill } from './country-fill';
+import { CountryNameLabel } from './country-name-label';
 import { CountryOutlinesLayer } from './country-outlines';
 import { triggerLandingHaptic } from './landing-haptic';
 import type { SettleOrigin } from './spin-gesture';
@@ -136,6 +137,7 @@ function SceneContent() {
       <Suspense fallback={null}>
         <CountryLayers hoveredIsoNum={hoveredIsoNum} selectedIsoNum={selectedIsoNum} />
       </Suspense>
+      <CountryNameLabel code={selectedCode} />
       <PointerHover onHoverChange={setHoveredCode} />
       <SpinSnapControls
         initialCode={initialCode}
