@@ -14,6 +14,7 @@
  * cheaper mistake.
  */
 
+import type { Commentary } from './chart-schema';
 import { fenceUntrusted } from './prompt-fence';
 
 export interface GroundingVerdict {
@@ -60,15 +61,18 @@ export function buildGroundingPrompt(claimText: string, sourceText: string): str
 /**
  * The verdict seam: build the prompt from the blurb's claims, ask the injected
  * client, and collapse its judgment into the boolean the gate classifier
- * routes on. An empty `detail` grounds the lead alone.
+ * routes on. The tag is judged with the lead and detail, since it names why the
+ * song is moving now and the card shows it (ADR-0026). An empty `detail` is
+ * left out.
  */
 export async function gradeGrounding(
-  lead: string,
-  detail: string | undefined,
+  claims: Pick<Commentary, 'lead' | 'detail' | 'tag'>,
   sourceText: string,
   judge: GroundingClient,
 ): Promise<GroundingVerdict> {
-  const claimText = [lead, detail].filter((t): t is string => Boolean(t && t.trim())).join('\n\n');
+  const claimText = [claims.lead, claims.detail, claims.tag]
+    .filter((t): t is string => Boolean(t && t.trim()))
+    .join('\n\n');
   const raw = await judge(buildGroundingPrompt(claimText, sourceText));
   return interpretJudgment(raw);
 }

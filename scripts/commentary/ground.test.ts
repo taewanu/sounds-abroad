@@ -73,6 +73,23 @@ test('groundEntry grounds a why-charting entry the same way as what-it-is', asyn
   expect(verdict.grounded).toBe(true);
 });
 
+test('groundEntry drops the card when the judge finds the tag unstated', async () => {
+  const deps: GroundEntryDeps = {
+    fetchSourceText: async () => 'source body',
+    judge: async (prompt) =>
+      prompt.includes('an unstated tag')
+        ? { status: 'ungrounded', reason: 'No source states the tag.' }
+        : { status: 'grounded', reason: 'The source states the claim.' },
+  };
+
+  const verdict = await groundEntry(
+    { ...entry('why-charting', ['https://example.com/1']), tag: 'an unstated tag' },
+    deps,
+  );
+
+  expect(verdict.grounded).toBe(false);
+});
+
 test('groundEntry drops the card when every source is unreachable', async () => {
   const deps: GroundEntryDeps = {
     fetchSourceText: async () => null,

@@ -3,7 +3,7 @@ import type { CommentaryStore } from '../../src/lib/commentary-store';
 import { fetchPublishedCharts } from '../crawl/published-charts';
 import { assertObjectStoreEnv } from '../lib/object-store';
 import { createClaudeDrafter, draftEntry } from './draft';
-import { recordAttempts } from './drops';
+import { recordOutcomes } from './drops';
 import { salvageCommentaryStore } from './fetch-commentary';
 import { readDrops } from './fetch-drops';
 import { createClaudeJudge, fetchSourceText, groundEntry } from './ground';
@@ -98,13 +98,22 @@ const generatedAt = new Date().toISOString();
 const drafter = createClaudeDrafter();
 
 const candidates: CommentaryStore = {};
+// Keys whose sources state no reason the track is moving now (ADR-0026). Not a
+// failure and not a gate drop: the ledger records them apart from attempts.
+const noStatedCauseKeys: string[] = [];
 for (const item of selected) {
   console.log(`  drafting "${item.name}" by ${item.artist}...`);
-  const draft = await draftEntry(item, generatedAt, drafter);
-  if (!draft) {
+  const result = await draftEntry(item, generatedAt, drafter);
+  if (!result) {
     console.warn(`    could not draft (malformed or research failed); skipping.`);
     continue;
   }
+  if (result.kind === 'no-stated-cause') {
+    noStatedCauseKeys.push(item.key);
+    console.log(`    no stated cause: no source says why it is moving now, so no card.`);
+    continue;
+  }
+  const draft = result.entry;
   candidates[item.key] = draft;
   // Echo the full blurb the drafter produced so a run shows every field a drop
   // is judged against (tag and detail trip lints too) and the sources the
@@ -115,9 +124,11 @@ for (const item of selected) {
   console.log(`    sources: ${draft.sources.join(', ')}`);
 }
 
+// Only a batch where every draft failed is an error. One whose drafts all end
+// with no stated cause is a normal result, and still writes the ledger below.
 const draftedCount = Object.keys(candidates).length;
-if (draftedCount === 0) {
-  console.error('No blurbs drafted. Nothing to route; the live store is unchanged.');
+if (draftedCount === 0 && noStatedCauseKeys.length === 0) {
+  console.error('Every draft failed. Nothing to route; the live store is unchanged.');
   process.exit(1);
 }
 
@@ -132,16 +143,22 @@ for (const { key, reasons } of dropped) {
   console.warn(`Dropped "${key}": ${reasons.join('; ')}`);
 }
 
-// Update the drop ledger before any early exit: this batch's drops must persist
-// even when nothing published, so the next batch stops re-drafting these keys.
-const nextDrops = recordAttempts(priorDrops, dropped, Object.keys(published), generatedAt);
+// Update the drop ledger before any early exit: this batch's drops and
+// no-stated-cause results must persist even when nothing published, so the
+// next batch can skip these keys.
+const nextDrops = recordOutcomes(
+  priorDrops,
+  { dropped, publishedKeys: Object.keys(published), noStatedCauseKeys },
+  generatedAt,
+);
 const dropsLedgerUrl = await uploadDrops(nextDrops);
 console.log(`Drop ledger now ${Object.keys(nextDrops).length} key(s) -> ${dropsLedgerUrl}`);
 
 const survivors = Object.keys(published).length;
+const noCause = noStatedCauseKeys.length;
 if (survivors === 0) {
   console.log(
-    `No drafts cleared the gate (${dropped.length} dropped). The live store is unchanged.`,
+    `No cards published (${dropped.length} dropped by the gate, ${noCause} with no stated cause). The live store is unchanged.`,
   );
   process.exit(0);
 }
@@ -159,5 +176,5 @@ const { url, backupUrl, total } = await publishStore(
 );
 if (backupUrl) console.log(`Backed up current store -> ${backupUrl}`);
 console.log(
-  `Published ${survivors} new blurb(s), dropped ${dropped.length}; store now ${total} -> ${url}`,
+  `Published ${survivors} new blurb(s), dropped ${dropped.length}, ${noCause} with no stated cause; store now ${total} -> ${url}`,
 );

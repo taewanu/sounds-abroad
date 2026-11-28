@@ -16,16 +16,33 @@ import { AUTHORITY_ALLOWLIST } from './source-authority';
  * trusting the model's shape, and the gate, not this step, is the trust arbiter.
  */
 
-/** The structured fields the drafting model returns, before validation. */
+/**
+ * What the drafter found: a card, or no source stating why the song is moving
+ * now (ADR-0026). The order is the order the model decides in.
+ */
+export const DRAFT_OUTCOMES = ['card', 'no-stated-cause'] as const;
+
+/**
+ * The structured fields the drafting model returns, before validation.
+ * `outcome` is typed as a string, not the union, because it is parsed from model
+ * output; the card fields are optional because a no-stated-cause draft has none.
+ */
 export interface RawDraft {
-  lead: string;
+  outcome: string;
+  lead?: string;
   detail?: string;
-  tag: string;
-  claim: string;
-  sources: string[];
+  tag?: string;
+  sources?: string[];
 }
 
 export type DraftClient = (prompt: string) => Promise<RawDraft>;
+
+/**
+ * A validated draft. A no-stated-cause result is an outcome of its own, apart
+ * from a malformed draft (null) and from a card the gate later drops, so a run
+ * can report it and the drop ledger can record it outside the attempt budget.
+ */
+export type DraftResult = { kind: 'card'; entry: Commentary } | { kind: 'no-stated-cause' };
 
 /** The track facts the prompt is built from, mapped from a worklist item. */
 export interface DraftInput {
@@ -38,31 +55,32 @@ export interface DraftInput {
 }
 
 /**
- * The drafting instructions, shaped by the gate the draft must pass. Its core
- * rule separates signal from claim: the chart positions we feed in are why we
- * PICKED the track, not something to assert, since they are our own ranking data
- * and no outlet reports them, so grounding can never verify them. The lead and
- * detail must instead claim a stable, press-backed fact about the song; the
- * timely hook lives in the tag, which grounding does not check. The model is
- * pointed at specific articles it has read, the authority allowlist, and the
- * no-lyric rule, so it drafts toward what the gate accepts rather than against it.
+ * The drafting instructions: a card says why the song is moving now, or there
+ * is no card (ADR-0026). The model looks for a cause a source states before it
+ * writes anything, and returns no-stated-cause rather than falling back to a
+ * stable fact. Every field, the tag included, must be stated by the cited
+ * sources, since grounding reads all three. The chart positions we feed in are
+ * why we PICKED the track, not something to assert: they are our own ranking
+ * data, which no outlet reports and grounding can never verify.
  */
 export function buildDraftPrompt(input: DraftInput): string {
   return [
-    'You write a short, factual blurb about a song for a music-discovery app, then cite where each fact is stated.',
+    'You write a short, factual note on why a song is charting now for a music-discovery app, then cite where each fact is stated.',
     'Research the track with web search and open the pages before writing.',
     '',
-    'What to claim:',
-    '- Default to a stable, well-documented fact about the SONG ITSELF: its release, album, collaborators, genre, or a milestone a major outlet reported (e.g. a first #1 on a named chart).',
-    '- Give a time-sensitive reason it is rising only when a source explicitly states that cause; otherwise stay with the stable fact.',
-    '- The chart positions below are OUR OWN ranking data and only tell you why we picked the track. No outlet publishes them, so never assert them as fact in the lead or detail; they cannot be verified. Treat them as context only.',
+    'Find the cause first:',
+    '- Look for the reason the song is moving now, as a source states it: a soundtrack or sync placement, a release, an award, a holiday, a viral moment, or a similar event a source names as the reason.',
+    '- A cause counts only when a source you opened explicitly states it. A cause you infer, such as a release that happens to fall near the chart move, does not count.',
+    '- If no source states a cause, return outcome "no-stated-cause" and leave every other field out. Never fall back to a stable fact about the song, such as its genre, album, or collaborators: no card is better than a card that does not say why.',
+    '- The chart positions below are OUR OWN ranking data and only tell you why we picked the track. No outlet publishes them, so never assert them as fact in any field; they cannot be verified. Treat them as context only.',
     '',
-    'Write:',
-    '- lead: one sentence, the single most interesting verifiable fact about the song.',
-    '- detail: an optional second sentence of context. Omit it rather than pad.',
-    '- tag: a 2-4 word hook for why it matters now (e.g. "new top-5 debut"). This is a hook, not a verified claim, and may reflect the chart movement.',
-    '- claim: "what-it-is" for a stable fact about the song, or "why-charting" for a stated, time-sensitive reason it is moving.',
-    '- sources: two or more URLs to specific articles or reviews you opened that EXPLICITLY STATE every claim in your lead and detail. Never cite an artist hub, a tag or category page, a search page, or a homepage; they state nothing. A claim a source only implies does not count; a later check drops any claim its sources do not state.',
+    'When a source states a cause, return outcome "card" and write:',
+    '- lead: one sentence stating the cause.',
+    '- detail: an optional second sentence of context the sources state. Omit it rather than pad.',
+    '- tag: 2-4 words naming the cause (e.g. "film soundtrack placement"). It is checked against the sources like the lead and detail, so it says only what they state; a tag they do not state drops the whole card.',
+    '- sources: two or more URLs to specific articles or reviews you opened that EXPLICITLY STATE every claim in your lead, detail, and tag. Never cite an artist hub, a tag or category page, a search page, or a homepage; they state nothing. A claim a source only implies does not count; a later check drops any card whose sources do not state it.',
+    '',
+    'Date the cause with the date a source gives, never with "this week", "recently", or "now": the card stays up for weeks, and a relative time goes false.',
     '',
     `At least one source must be from this trusted-outlet list: ${[...AUTHORITY_ALLOWLIST].join(', ')}. Use Wikipedia only to find the primary sources it cites, never as a cited source. Never cite lyrics sites, fan wikis, or gossip/SEO farms.`,
     '',
@@ -76,15 +94,17 @@ export function buildDraftPrompt(input: DraftInput): string {
 }
 
 /**
- * Validate the model's draft into a schema-valid commentary entry, stamping the
- * supplied timestamp. Returns null on any schema failure (bad claim tier,
- * non-URL or missing sources, empty lead), so a malformed draft is dropped
- * rather than published. The timestamp is injected, not read here, to keep the
- * seam pure and testable.
+ * Validate the model's draft. A card is stamped `why-charting` and the supplied
+ * timestamp, so no draft can publish as a stable fact whatever the model says.
+ * Returns null on an unknown outcome or any schema failure (non-URL or missing
+ * sources, empty lead or tag), so a malformed draft is dropped rather than
+ * published. The timestamp is injected, not read here, to keep the seam pure.
  */
-export function interpretDraft(raw: RawDraft, generatedAt: string): Commentary | null {
-  const parsed = CommentarySchema.safeParse({ ...raw, generatedAt });
-  return parsed.success ? parsed.data : null;
+export function interpretDraft(raw: RawDraft, generatedAt: string): DraftResult | null {
+  if (raw.outcome === 'no-stated-cause') return { kind: 'no-stated-cause' };
+  if (raw.outcome !== 'card') return null;
+  const parsed = CommentarySchema.safeParse({ ...raw, claim: 'why-charting', generatedAt });
+  return parsed.success ? { kind: 'card', entry: parsed.data } : null;
 }
 
 /**
@@ -96,7 +116,7 @@ export async function draftBlurb(
   input: DraftInput,
   generatedAt: string,
   client: DraftClient,
-): Promise<Commentary | null> {
+): Promise<DraftResult | null> {
   const raw = await client(buildDraftPrompt(input));
   return interpretDraft(raw, generatedAt);
 }
