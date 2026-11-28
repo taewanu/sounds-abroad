@@ -1,5 +1,7 @@
 import { type RefObject, useEffect, useState } from 'react';
 
+import { preferredScrollBehavior } from '@/components/use-prefers-reduced-motion';
+
 // Room left between a revealed card and the list's edge, so the card's outline
 // clears the viewport instead of sitting flush against it.
 export const REVEAL_MARGIN_PX = 12;
@@ -16,7 +18,7 @@ export function revealInList(card: HTMLElement) {
   const topRoom = cardRect.top - listRect.top - REVEAL_MARGIN_PX;
   const bottomOverflow = cardRect.bottom - listRect.bottom + REVEAL_MARGIN_PX;
   const delta = topRoom < 0 ? topRoom : Math.min(Math.max(bottomOverflow, 0), topRoom);
-  if (delta !== 0) list.scrollBy({ top: delta, behavior: 'smooth' });
+  if (delta !== 0) list.scrollBy({ top: delta, behavior: preferredScrollBehavior() });
 }
 
 // Frames to look for the panel's transition before treating it as instant
