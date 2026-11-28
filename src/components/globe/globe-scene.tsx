@@ -14,11 +14,11 @@ import { tourBridge } from '@/lib/tour-bridge';
 
 import { usePrefersReducedMotion } from '../use-prefers-reduced-motion';
 import { cameraForViewport } from './camera-fit';
-import { CountryFill } from './country-fill';
+import { ChartedCountryFill, SelectedCountryFill } from './country-fill';
 import { CountryOutlinesLayer } from './country-outlines';
-import { CountryPins } from './country-pins';
 import { triggerLandingHaptic } from './landing-haptic';
 import type { SettleOrigin } from './spin-gesture';
+import { pickHoverCountry } from './spin-select';
 import { SpinSnapControls } from './spin-snap-controls';
 import { StarBackdrop } from './star-backdrop';
 
@@ -32,10 +32,6 @@ const SPIN_HORIZONTAL_LOCK = false;
 const SPIN_FAIR = true;
 const FALLBACK_CODE = 'us';
 
-// Pins no longer handle selection; the canvas-level tap does. A stable no-op
-// keeps CountryPins' required onSelect from getting a new ref each render.
-const NO_OP = () => {};
-
 function CountryLayers({
   hoveredIsoNum,
   selectedIsoNum,
@@ -48,7 +44,8 @@ function CountryLayers({
   return (
     <>
       <CountryOutlinesLayer data={outlines} hoveredIsoNum={hoveredIsoNum} />
-      <CountryFill selectedIsoNum={selectedIsoNum} byIsoRings={outlines.byIsoRings} />
+      <ChartedCountryFill byIsoRings={outlines.byIsoRings} />
+      <SelectedCountryFill selectedIsoNum={selectedIsoNum} byIsoRings={outlines.byIsoRings} />
     </>
   );
 }
@@ -139,12 +136,7 @@ function SceneContent() {
       <Suspense fallback={null}>
         <CountryLayers hoveredIsoNum={hoveredIsoNum} selectedIsoNum={selectedIsoNum} />
       </Suspense>
-      <CountryPins
-        selectedCode={selectedCode}
-        hoveredCode={hoveredCode}
-        onSelect={NO_OP}
-        onHoverChange={setHoveredCode}
-      />
+      <PointerHover onHoverChange={setHoveredCode} />
       <SpinSnapControls
         initialCode={initialCode}
         targetCode={selectedCode}
@@ -160,6 +152,41 @@ function SceneContent() {
       />
     </>
   );
+}
+
+// Tracks the country under a mouse or pen cursor; touch input never hovers.
+function PointerHover({ onHoverChange }: { onHoverChange: (code: string | null) => void }) {
+  const camera = useThree((s) => s.camera);
+  const gl = useThree((s) => s.gl);
+
+  useEffect(() => {
+    const el = gl.domElement;
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerType === 'touch' || e.buttons !== 0) return;
+      const rect = el.getBoundingClientRect();
+      onHoverChange(
+        pickHoverCountry(
+          camera,
+          rect.width,
+          rect.height,
+          e.clientX - rect.left,
+          e.clientY - rect.top,
+        ),
+      );
+    };
+    // A press starts a step or a spin, which turns the globe under a still cursor.
+    const clear = () => onHoverChange(null);
+    el.addEventListener('pointermove', onMove);
+    el.addEventListener('pointerdown', clear);
+    el.addEventListener('pointerleave', clear);
+    return () => {
+      el.removeEventListener('pointermove', onMove);
+      el.removeEventListener('pointerdown', clear);
+      el.removeEventListener('pointerleave', clear);
+    };
+  }, [camera, gl, onHoverChange]);
+
+  return null;
 }
 
 // Keeps the globe a consistent size across aspect ratios on resize.
