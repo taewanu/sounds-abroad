@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest';
+import { assert, expect, test } from 'vitest';
 
 import type { DraftClient } from '../../src/lib/drafting';
 import { describeSubprocessFailure, draftEntry, toDraftInput } from './draft';
@@ -28,9 +28,9 @@ function item(overrides: Partial<WorklistItem> = {}): WorklistItem {
 const TS = '2026-06-19T00:00:00.000Z';
 
 const validDrafter: DraftClient = async () => ({
+  outcome: 'card',
   lead: 'A clean blurb about the song.',
-  tag: 'new entry',
-  claim: 'why-charting',
+  tag: 'soundtrack placement',
   sources: ['https://www.billboard.com/a', 'https://pitchfork.com/b'],
 });
 
@@ -46,9 +46,16 @@ test('toDraftInput passes the artist and title through unchanged', () => {
 });
 
 test('draftEntry stamps the supplied timestamp on a valid draft', async () => {
-  const entry = await draftEntry(item(), TS, validDrafter);
+  const result = await draftEntry(item(), TS, validDrafter);
 
-  expect(entry?.generatedAt).toBe(TS);
+  assert(result?.kind === 'card');
+  expect(result.entry.generatedAt).toBe(TS);
+});
+
+test('draftEntry reports a draft with no stated cause as its own outcome, not a failure', async () => {
+  const drafter: DraftClient = async () => ({ outcome: 'no-stated-cause' });
+
+  expect(await draftEntry(item(), TS, drafter)).toEqual({ kind: 'no-stated-cause' });
 });
 
 test('draftEntry returns null when the drafter throws', async () => {
@@ -61,9 +68,9 @@ test('draftEntry returns null when the drafter throws', async () => {
 
 test('draftEntry returns null when the draft fails the schema', async () => {
   const badDrafter: DraftClient = async () => ({
+    outcome: 'card',
     lead: '',
     tag: 'x',
-    claim: 'why-charting',
     sources: [],
   });
 

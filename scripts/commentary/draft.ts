@@ -1,11 +1,12 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
-import type { Commentary } from '../../src/lib/chart-schema';
 import {
+  DRAFT_OUTCOMES,
   draftBlurb,
   type DraftClient,
   type DraftInput,
+  type DraftResult,
   type RawDraft,
 } from '../../src/lib/drafting';
 import type { WorklistItem, WorklistReason } from './worklist';
@@ -14,7 +15,7 @@ import type { WorklistItem, WorklistReason } from './worklist';
  * The drafting shell: the subprocess half of auto-drafting, whose pure prompt
  * and validation logic live in `src/lib/drafting.ts`. It maps a worklist item to
  * the prompt facts, runs `claude -p` with web search to research and draft, and
- * routes the result through the seam. Kept out of unit tests on purpose — it
+ * routes the result through the seam. Kept out of unit tests on purpose: it
  * spends the subscription and reaches the network; the tested seam and the
  * `toDraftInput` mapping below hold the decision logic.
  */
@@ -23,21 +24,23 @@ const execFileAsync = promisify(execFile);
 
 /**
  * The structured-output contract handed to `claude -p`. Forcing the draft shape
- * means the shell reads validated fields instead of parsing prose; the claim
- * enum keeps the model on a known tier. `sources` is floored at two here, the
- * gate's corroboration minimum, so the model aims above the bar rather than at
- * the schema's one-source floor.
+ * means the shell reads validated fields instead of parsing prose. `outcome`
+ * comes first and is the only required field, so the model settles whether a
+ * source states a cause before it writes a card, and a no-stated-cause draft
+ * carries nothing else. There is no claim field: every card is `why-charting`.
+ * `sources` is floored at two, the gate's corroboration minimum, so the model
+ * aims above the bar rather than at the schema's one-source floor.
  */
 const RAW_DRAFT_SCHEMA = JSON.stringify({
   type: 'object',
   properties: {
+    outcome: { type: 'string', enum: DRAFT_OUTCOMES },
     lead: { type: 'string' },
     detail: { type: 'string' },
     tag: { type: 'string' },
-    claim: { type: 'string', enum: ['what-it-is', 'why-charting'] },
     sources: { type: 'array', items: { type: 'string' }, minItems: 2 },
   },
-  required: ['lead', 'tag', 'claim', 'sources'],
+  required: ['outcome'],
   additionalProperties: false,
 });
 
@@ -83,7 +86,7 @@ export function describeSubprocessFailure(error: unknown, timeoutMs: number): st
  * A DraftClient backed by the local Claude Code binary. Unlike the grounding
  * judge, the drafter must research before writing, so it keeps the web tools:
  * `--tools` makes only WebSearch and WebFetch available, and `--allowedTools`
- * permits them — both are needed, since in non-interactive mode an available
+ * permits them; both are needed, since in non-interactive mode an available
  * but un-permitted tool is auto-denied and the model drafts blind. The narrow
  * surface (no Bash/Edit) keeps it scoped rather than `--dangerously-skip-
  * permissions`. `--setting-sources ""` still strips project settings to a clean
@@ -162,14 +165,14 @@ export function toDraftInput(item: WorklistItem): DraftInput {
 /**
  * Draft one blurb for a worklist item end to end. The fail-closed boundary: a
  * throw from the drafter (subprocess down, timeout, bad output) drops only this
- * card as null, never aborting the batch. The draft is still only a candidate;
- * the publish gate decides what ships.
+ * card as null, never aborting the batch. A card is still only a candidate; the
+ * publish gate decides what ships.
  */
 export async function draftEntry(
   item: WorklistItem,
   generatedAt: string,
   drafter: DraftClient,
-): Promise<Commentary | null> {
+): Promise<DraftResult | null> {
   try {
     return await draftBlurb(toDraftInput(item), generatedAt, drafter);
   } catch (error) {

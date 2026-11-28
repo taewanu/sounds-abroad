@@ -13,7 +13,7 @@ import { assertAllowedTarget, guardedFetch, RefusedTargetError } from '../lib/ou
  * The grounding shell: the network-and-subprocess half of the check whose pure
  * verdict logic lives in `src/lib/grounding.ts`. It fetches a blurb's cited
  * sources, runs the `claude -p` judge, and routes the result through the seam.
- * Kept out of unit tests on purpose — it touches the network and a subprocess;
+ * Kept out of unit tests on purpose: it touches the network and a subprocess;
  * the tested seam holds the decision logic.
  */
 
@@ -209,7 +209,7 @@ export async function groundEntry(
   const combined = combineSourceTexts(texts);
   if (!combined.ok) return combined.verdict;
   try {
-    return await gradeGrounding(entry.lead, entry.detail, combined.sourceText, deps.judge);
+    return await gradeGrounding(entry, combined.sourceText, deps.judge);
   } catch {
     return {
       grounded: false,
