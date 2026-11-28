@@ -11,9 +11,9 @@ Add a row when you add an ADR. Move a record to Historical only once no running 
 | [0002](0002-public-repo-for-actions-budget.md)             | Toolchain  | A public repo, for the free Actions minutes the crawl needs                                                                   |
 | [0003](0003-zustand-for-client-state.md)                   | Client     | Zustand for client state                                                                                                      |
 | [0005](0005-semver-milestone-versions.md)                  | Process    | Milestones name semver versions, not phases                                                                                   |
-| [0007](0007-out-of-band-human-curated-commentary.md)       | Commentary | Out-of-band commentary. Its trust model is replaced by 0008 and 0009; generation and the sidecar still hold                   |
+| [0007](0007-out-of-band-human-curated-commentary.md)       | Commentary | Out-of-band commentary. Its trust model is replaced by 0008 and 0009; generation and the sidecar still hold. Amended by 0026  |
 | [0008](0008-risk-tiered-commentary-gate.md)                | Commentary | A risk-tiered gate with code as the primary guard                                                                             |
-| [0009](0009-fully-automated-commentary-gate.md)            | Commentary | No human in the publish path                                                                                                  |
+| [0009](0009-fully-automated-commentary-gate.md)            | Commentary | No human in the publish path. Amended by 0026, not yet built: what a card may claim, and grounding of the tag                 |
 | [0010](0010-defer-quoted-span-lyric-judge.md)              | Commentary | Defer an LLM judge for the no-lyric lint; `quoted-span` still hard-drops                                                      |
 | [0011](0011-globe-as-output-gesture-model.md)              | Globe      | Globe-as-output gestures. Superseded by 0020, but stays here while 0020 is unfinished because it still describes running code |
 | [0012](0012-spotify-track-deeplink-resolution.md)          | Crawl      | Resolve Spotify track deeplinks at crawl time                                                                                 |
@@ -30,6 +30,7 @@ Add a row when you add an ADR. Move a record to Historical only once no running 
 | [0023](0023-package-json-pins-node-and-pnpm.md)            | Toolchain  | `package.json` pins Node and pnpm, with no version manager                                                                    |
 | [0024](0024-vite-plus-lints-formats-and-runs-hooks.md)     | Toolchain  | Vite+ lints, formats and runs the git hooks; Next.js still builds                                                             |
 | [0025](0025-base-ui-under-own-base-components.md)          | Client     | Base UI under the repo's own base components, which own focus, press and transitions                                          |
+| [0026](0026-why-now-or-nothing-commentary.md)              | Commentary | A card says why a song is moving now, or there is none. Not yet built, so check `main` before assuming any part of it         |
 
 ## Historical
 
