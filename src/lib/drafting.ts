@@ -18,7 +18,7 @@ import { AUTHORITY_ALLOWLIST } from './source-authority';
 
 /**
  * What the drafter found: a card, or no source stating why the song is moving
- * now (ADR-0026). The order is the order the model decides in.
+ * now (ADR-0026).
  */
 export const DRAFT_OUTCOMES = ['card', 'no-stated-cause'] as const;
 

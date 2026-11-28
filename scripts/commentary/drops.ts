@@ -7,8 +7,9 @@ import type { DropRecord } from './route';
  * and when the drafter last found no source stating why it is moving now, kept
  * beside the commentary store but deliberately separate from it. The crawl
  * bakes every commentary entry into the served charts (ADR-0007), so a record
- * of a try can never live in commentary.json; it lives here, read only by the
- * drafting worklist to stop re-drafting a track (ADR-0009, ADR-0026, #139).
+ * of a try can never live in commentary.json; it lives here. The drafting
+ * worklist reads it to stop re-drafting a track that keeps dropping (ADR-0009,
+ * #139); the no-stated-cause time is for its wait (ADR-0026), not yet read.
  */
 
 /**

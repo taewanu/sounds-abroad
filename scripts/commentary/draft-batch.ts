@@ -144,8 +144,9 @@ for (const { key, reasons } of dropped) {
 }
 
 // Update the drop ledger before any early exit: this batch's drops and
-// no-stated-cause results must persist even when nothing published, so the
-// next batch can skip these keys.
+// no-stated-cause results must persist even when nothing published. The
+// worklist skips a key whose drops reach the budget; nothing reads the
+// no-stated-cause time yet, so that wait is still to come (ADR-0026).
 const nextDrops = recordOutcomes(
   priorDrops,
   { dropped, publishedKeys: Object.keys(published), noStatedCauseKeys },
