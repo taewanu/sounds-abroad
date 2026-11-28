@@ -35,9 +35,11 @@ const FALLBACK_CODE = 'us';
 
 function CountryLayers({
   hoveredIsoNum,
+  selectedCode,
   selectedIsoNum,
 }: {
   hoveredIsoNum: number | null;
+  selectedCode: string | null;
   selectedIsoNum: number | null;
 }) {
   const outlines = use(getCountryOutlinesPromise());
@@ -47,6 +49,7 @@ function CountryLayers({
       <CountryOutlinesLayer data={outlines} hoveredIsoNum={hoveredIsoNum} />
       <ChartedCountryFill byIsoRings={outlines.byIsoRings} />
       <SelectedCountryFill selectedIsoNum={selectedIsoNum} byIsoRings={outlines.byIsoRings} />
+      <CountryNameLabel code={selectedCode} byIsoRings={outlines.byIsoRings} />
     </>
   );
 }
@@ -135,9 +138,12 @@ function SceneContent() {
         <meshStandardMaterial color="#0a1a2a" roughness={0.95} metalness={0.05} />
       </mesh>
       <Suspense fallback={null}>
-        <CountryLayers hoveredIsoNum={hoveredIsoNum} selectedIsoNum={selectedIsoNum} />
+        <CountryLayers
+          hoveredIsoNum={hoveredIsoNum}
+          selectedCode={selectedCode}
+          selectedIsoNum={selectedIsoNum}
+        />
       </Suspense>
-      <CountryNameLabel code={selectedCode} />
       <PointerHover onHoverChange={setHoveredCode} />
       <SpinSnapControls
         initialCode={initialCode}

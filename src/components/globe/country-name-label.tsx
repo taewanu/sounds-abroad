@@ -3,17 +3,27 @@ import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 
 import { COUNTRIES } from '@/lib/countries';
+import { countryLabelPoint } from '@/lib/country-label-point';
+import type { CountryRings } from '@/lib/country-outlines';
 import { latLonToVec3 } from '@/lib/lat-lon-to-vec3';
 
 const COUNTRY_BY_CODE = new Map(COUNTRIES.map((c) => [c.code, c]));
 
-// Names the selected country at its anchor, the point the globe centres on.
-export function CountryNameLabel({ code }: { code: string | null }) {
+interface CountryNameLabelProps {
+  code: string | null;
+  byIsoRings: Map<number, CountryRings>;
+}
+
+// Names the selected country on its land, away from its borders, rather than at
+// the capital the globe centres on.
+export function CountryNameLabel({ code, byIsoRings }: CountryNameLabelProps) {
   const country = code !== null ? COUNTRY_BY_CODE.get(code) : undefined;
-  const anchor = useMemo(
-    () => (country ? latLonToVec3(country.lat, country.lon) : null),
-    [country],
-  );
+  const rings = country ? byIsoRings.get(country.isoNum) : undefined;
+  const anchor = useMemo(() => {
+    if (!country || !rings) return null;
+    const { lat, lon } = countryLabelPoint(rings, country);
+    return latLonToVec3(lat, lon);
+  }, [country, rings]);
   const labelRef = useRef<HTMLDivElement>(null);
 
   // A point on the unit globe faces the camera only while its dot product with
