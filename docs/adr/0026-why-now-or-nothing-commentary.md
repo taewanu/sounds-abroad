@@ -39,7 +39,7 @@ The reason is the card's job. ADR-0007 described a card as what a song is about 
 - **A `why-charting` card stops being baked once it is older than the expiry length**, counted from its `generatedAt`. Its track can then be queued and redrafted; if no source still states a cause, it shows no card.
 - **No `what-it-is` card is baked**, whatever its age.
 - **Expiry deletes nothing; it only stops baking.** An expired card stays in the live store until a redraft of its key publishes. The live store holds one card per key, so that publish replaces the card there, and the run's backup of the whole store (`backupCommentary` in `scripts/commentary/upload-commentary.ts`) keeps the previous one.
-- **A card dates its cause** ("the game's release on 2026-11-19") instead of saying "this week", since a card shows for up to the expiry length and a relative time goes false before then.
+- **A card dates its cause** ("the game's release on 2026-11-19") instead of saying "this week", since a card shows for up to the expiry length plus one crawl, and a relative time goes false before then.
 
 The reason is that a claim about a moment goes stale when the moment passes, and nothing ends a card today: the live payload still shows "Spider-Man theme, opening week" 121 days after it was written. Expiring at bake time (`bakeCommentary` in `scripts/crawl/run.ts`) reads a field every card already has, so neither the store's shape nor `src/lib/chart-schema.ts` changes, and `what-it-is` stays a valid value for the cards already stored. The crawl runs four times a day (`.github/workflows/cron-crawl.yml`), so an expired card leaves the payload within one crawl. Deleting nothing keeps the rule reversible: until a redraft replaces it, a stored card shows or hides with the expiry length at no drafting cost, and a replaced card survives in the backup taken before every overwrite, since published commentary is never deleted from the object store in this repo.
 
@@ -123,7 +123,7 @@ No estimate is made here, because a card's cost in quota is unmeasured. What a r
 
 - Every baked card states a sourced reason the song is moving now.
 - A card ends: no claim stays in the payload more than one crawl past its expiry, and a song that keeps charting is redrafted from current sources unless it has spent its two gate attempts.
-- The songs at the top of a chart are drafted, not only the ones that moved, and each gets a card when its sources state a cause.
+- The songs at the top of a chart become eligible for drafting, not only the ones that moved, outside a no-cause wait or a spent attempt budget; a song gets a card when its sources state a cause and the card passes the gate.
 - A song popular in only one country is queued like any other top-10 track.
 - Drafting runs without a laptop once a run is measured.
 
