@@ -160,8 +160,8 @@ function ChartScreenInner({
   // Which question the songs chart is answering. Held here, not in the sheet,
   // because next and prev step against the same rows the screen shows: were the
   // list and the step walk to read different modes, a step could land on a row
-  // the mode has filtered off screen. Seeded from the URL so a shared link or a
-  // reload reads in the mode it names, then carried in the URL alongside the
+  // the mode has filtered off screen. Set from the URL on every arrival so a
+  // shared link or a reload reads in the mode it names, then carried in the URL alongside the
   // chart so switching it neither navigates nor refetches the eager payload.
   const [mode, setMode] = useState<ChartMode>(urlMode);
   // Follows the mode on screen while the listener is looking at the playing
@@ -196,32 +196,33 @@ function ChartScreenInner({
   // replaceState leaves those stale, so after the first write they would keep
   // reporting the arrival query.
   const urlSays = useRef<string | null>(urlIsCanonical ? urlNames : null);
-  // Whether the sheet shows the chart the URL last arrived with. While it does
-  // not, the sheet is still on the chart being left, and writing would drop the
-  // very chart being opened.
-  const urlChartHonoured = useRef(false);
+  // Whether the screen has caught up with the URL's last arrival: its chart open
+  // or failed, its mode on. Until then a write would relabel the URL to what the
+  // screen is leaving.
+  const arrivalSettled = useRef(false);
   // An arrival is any URL this screen's writer did not write: the first load,
   // a landing, a roll, the mini-player's return, or the browser's back and
-  // forward. Each opens the chart it names, as the first load does, because a
-  // URL change never remounts this screen and so resets nothing on its own.
+  // forward. Each opens the chart and mode it names, as the first load does,
+  // because a URL change never remounts this screen.
   const arrive = useEffectEvent(() => {
     urlSays.current = urlIsCanonical ? urlNames : null;
-    urlChartHonoured.current = false;
+    arrivalSettled.current = false;
     chart.open(urlChart);
+    setMode(urlMode);
   });
   useEffect(() => {
     if (urlNames !== urlSays.current) arrive();
   }, [urlNames]);
   useEffect(() => {
-    if (!urlChartHonoured.current) {
-      if (chartRef !== urlChart && !chartFailed) return;
-      urlChartHonoured.current = true;
+    if (!arrivalSettled.current) {
+      if ((chartRef !== urlChart && !chartFailed) || mode !== urlMode) return;
+      arrivalSettled.current = true;
     }
     const want = chartPath(countryCode, chartRef, mode);
     if (urlSays.current === want) return;
     urlSays.current = want;
     window.history.replaceState(null, '', want);
-  }, [urlChart, chartFailed, chartRef, countryCode, mode]);
+  }, [urlChart, urlMode, chartFailed, chartRef, countryCode, mode]);
   const { peek: peekChart, read: readChart, open: openChart, peekTail, awaitTail } = chart;
 
   // The rows next and prev walk, assembled the same way the sheet lists them so
@@ -390,11 +391,10 @@ function ChartScreenInner({
 
   const handleMiniTap = useCallback(() => {
     // Return to what is playing, whole: the country, the chart within it, and
-    // the mode it is heard in. The country and chart travel in the URL and open
-    // as an arrival, so a tap that also moves country opens its chart after
-    // the sheet's reset to the songs chart rather than before it (ADR-0017).
-    // The URL is written only when the shown chart is not already the playing
-    // one, so a tap while looking at it adds no history entry.
+    // the mode it is heard in, all carried by the URL and opened as an arrival.
+    // Changing any of them here first would let the writer overwrite the URL
+    // the tap just pushed. A tap while looking at the playing chart, where the mode
+    // already matches, adds no history entry.
     const { currentCountryCode, currentChartRef, currentMode } = audioStore.getState();
     if (currentCountryCode && currentChartRef) {
       const onPlayingChart = currentCountryCode === countryCode && currentChartRef === chartRef;
@@ -405,7 +405,6 @@ function ChartScreenInner({
           chartPath(currentCountryCode, currentChartRef, currentMode ?? DEFAULT_CHART_MODE),
         );
       }
-      if (currentMode) setMode(currentMode);
     }
     setSnap((s) => (s === 'hidden' || s === 'closed' ? 'peek' : s));
     setScrollSignal((n) => n + 1);

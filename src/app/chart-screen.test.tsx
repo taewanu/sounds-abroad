@@ -1591,6 +1591,32 @@ describe('ChartScreen playlist playback', () => {
     expect(selectedTab()).toBe('Top Songs');
     expect(urlNow()).toBe(chartPath(PL_CODE, SONGS_CHART));
   });
+
+  test('an arrival puts on the mode its URL names', async () => {
+    followHistoryWrites();
+    const { arriveAt } = browsing();
+
+    await arriveAt(chartPath(PL_CODE, SONGS_CHART, 'only_here'));
+
+    expect(screen.getByRole('button', { name: 'Only here' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
+    expect(urlNow()).toBe(chartPath(PL_CODE, SONGS_CHART, 'only_here'));
+  });
+
+  test('a mini-player return keeps the URL it pushed when the mode on screen has moved', async () => {
+    followHistoryWrites();
+    const { tapMiniPlayer } = browsing();
+    await openChart(PL_FIRST_LABEL);
+    playPreview(FIRST_HEAD.name, FIRST_HEAD.artist);
+    await openChart('Top Songs');
+    fireEvent.click(screen.getByRole('button', { name: 'Only here' }));
+
+    await tapMiniPlayer();
+
+    expect(selectedTab()).toBe(PL_FIRST_LABEL);
+    expect(urlNow()).toBe(chartPath(PL_CODE, PL_FIRST));
+  });
 });
 
 describe('ChartScreen chart in the URL', () => {
@@ -2191,7 +2217,11 @@ describe('ChartScreen stepping past the eager rows', () => {
   });
 
   test('returning by the mini-player restores the mode the track is heard in', async () => {
-    vi.spyOn(window.history, 'pushState').mockImplementation(() => {});
+    vi.spyOn(window.history, 'pushState').mockImplementation((_data, _title, url) => {
+      const [path, query = ''] = String(url).split('?');
+      mockPathname.value = path;
+      mockSearchParams.value = new URLSearchParams(query);
+    });
     const { reach } = stubObserver();
     const { rerender } = renderChartScreen(DEEP_CHARTS, DEEP_CODE);
     await act(async () => {
@@ -2201,13 +2231,12 @@ describe('ChartScreen stepping past the eager rows', () => {
     play('Deep 2', 'Deep artist 2');
 
     // Browse elsewhere and re-aim the mode there, so the mode on screen and the
-    // mode playback carries have parted. The URL write is mocked, so the return
-    // navigation is simulated by hand.
+    // mode playback carries have parted. The tap's URL lands in the mocked
+    // router hooks, and the repaint carries it into the tree.
     mockPathname.value = `/c/${AWAY_CODE}`;
     rerender(<ChartScreen charts={DEEP_CHARTS} />);
     fireEvent.click(screen.getByRole('button', { name: 'Most played' }));
     fireEvent.click(screen.getByRole('button', { name: 'Reopen chart' }));
-    mockPathname.value = `/c/${DEEP_CODE}`;
     rerender(<ChartScreen charts={DEEP_CHARTS} />);
 
     // The track was heard in Only here, so the return lands in it, over the Most
