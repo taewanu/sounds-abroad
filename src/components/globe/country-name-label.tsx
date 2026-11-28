@@ -7,8 +7,7 @@ import { latLonToVec3 } from '@/lib/lat-lon-to-vec3';
 
 const COUNTRY_BY_CODE = new Map(COUNTRIES.map((c) => [c.code, c]));
 
-// Names the selected country at its anchor, the point the globe centres on, with
-// a dot that marks a country too small for its fill to show.
+// Names the selected country at its anchor, the point the globe centres on.
 export function CountryNameLabel({ code }: { code: string | null }) {
   const country = code !== null ? COUNTRY_BY_CODE.get(code) : undefined;
   const anchor = useMemo(
@@ -31,12 +30,8 @@ export function CountryNameLabel({ code }: { code: string | null }) {
     // class keeps a press on the label falling through to the globe canvas.
     <Html ref={labelRef} position={anchor} wrapperClass="pointer-events-none">
       <span
-        aria-hidden
-        className="absolute -mt-[3.5px] -ml-[3.5px] size-[7px] rounded-full bg-sunrise shadow-[0_0_0_2px_rgba(5,6,8,0.7),0_0_10px_rgba(255,136,102,0.8)]"
-      />
-      <span
         data-testid="country-name-label"
-        className="absolute bottom-2.5 -translate-x-1/2 text-micro font-semibold tracking-[0.14em] whitespace-nowrap text-fg-1 uppercase select-none [text-shadow:0_0_2px_var(--color-void),0_0_6px_var(--color-void),0_0_12px_rgba(5,6,8,0.9)]"
+        className="absolute -translate-x-1/2 -translate-y-1/2 text-micro font-semibold tracking-[0.14em] whitespace-nowrap text-fg-1 uppercase select-none [text-shadow:0_0_2px_var(--color-void),0_0_6px_var(--color-void),0_0_12px_rgba(5,6,8,0.9)]"
       >
         {country.name}
       </span>
