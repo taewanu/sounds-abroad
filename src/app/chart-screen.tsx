@@ -191,17 +191,27 @@ function ChartScreenInner({
   // reading.
   const chartRef = chart.ref;
   const chartFailed = chart.failed.has(urlChart);
+  const urlNames = chartPath(countryCode, urlChart, urlMode);
   // What the URL already says. A ref, not the search params, because
   // replaceState leaves those stale, so after the first write they would keep
   // reporting the arrival query.
-  const urlSays = useRef<string | null>(
-    urlIsCanonical ? chartPath(countryCode, urlChart, urlMode) : null,
-  );
-  // Whether the chart the URL names is the one on screen. While it is not, the
-  // sheet is still on the songs chart and writing would drop the very chart
-  // being read. Lowered wherever the URL is written ahead of the sheet opening
-  // what it names, arrival being the first such place and not the only one.
-  const urlChartHonoured = useRef(urlChart === SONGS_CHART);
+  const urlSays = useRef<string | null>(urlIsCanonical ? urlNames : null);
+  // Whether the sheet shows the chart the URL last arrived with. While it does
+  // not, the sheet is still on the chart being left, and writing would drop the
+  // very chart being opened.
+  const urlChartHonoured = useRef(false);
+  // An arrival is any URL this screen's writer did not write: the first load,
+  // a landing, a roll, the mini-player's return, or the browser's back and
+  // forward. Each opens the chart it names, as the first load does, because a
+  // URL change never remounts this screen and so resets nothing on its own.
+  const arrive = useEffectEvent(() => {
+    urlSays.current = urlIsCanonical ? urlNames : null;
+    urlChartHonoured.current = false;
+    chart.open(urlChart);
+  });
+  useEffect(() => {
+    if (urlNames !== urlSays.current) arrive();
+  }, [urlNames]);
   useEffect(() => {
     if (!urlChartHonoured.current) {
       if (chartRef !== urlChart && !chartFailed) return;
@@ -378,63 +388,28 @@ function ChartScreenInner({
     setSnap((s) => (s === 'hidden' || s === 'closed' ? 'peek' : s));
   }, [settleSignal]);
 
-  // A chart waiting for its country to arrive, recorded by a mini-player tap
-  // that crosses countries. A ref rather than state: writing it need not paint,
-  // and the arrival that spends it repaints on its own.
-  const pendingRestore = useRef<{ code: string; ref: ChartRef } | null>(null);
-  const openRestored = useEffectEvent((next: ChartRef) => openChart(next));
-  // Spent by the first country change after it was recorded, whichever country
-  // that is. Honoured when it is the one the record names, dropped otherwise:
-  // the listener has gone somewhere else, and a record left lying would open
-  // this chart on some later arrival that never asked for it.
-  useEffect(() => {
-    const wanted = pendingRestore.current;
-    if (wanted === null) return;
-    pendingRestore.current = null;
-    if (wanted.code === countryCode) openRestored(wanted.ref);
-  }, [countryCode]);
-
   const handleMiniTap = useCallback(() => {
     // Return to what is playing, whole: the country, the chart within it, and
-    // the mode it is heard in. The chart is restored through the sheet's own
-    // open rather than through the path, because the URL names a chart only on
-    // arrival and a write this late reaches nothing. The URL is written only
-    // when the shown chart is not already the playing one, so a tap while
-    // looking at it adds no history entry.
+    // the mode it is heard in. The country and chart travel in the URL and open
+    // as an arrival, so a tap that also moves country opens its chart after
+    // the sheet's reset to the songs chart rather than before it (ADR-0017).
+    // The URL is written only when the shown chart is not already the playing
+    // one, so a tap while looking at it adds no history entry.
     const { currentCountryCode, currentChartRef, currentMode } = audioStore.getState();
     if (currentCountryCode && currentChartRef) {
-      const onPlayingCountry = currentCountryCode === countryCode;
-      const onPlayingChart = onPlayingCountry && currentChartRef === chartRef;
+      const onPlayingChart = currentCountryCode === countryCode && currentChartRef === chartRef;
       if (!onPlayingChart) {
         window.history.pushState(
           null,
           '',
           chartPath(currentCountryCode, currentChartRef, currentMode ?? DEFAULT_CHART_MODE),
         );
-        // The URL now names a chart the sheet has yet to open, so hold the
-        // canonical writer until it does. Without this it would relabel to
-        // whatever the sheet shows meanwhile and correct itself a render
-        // later, showing a path nobody asked for in between.
-        urlChartHonoured.current = false;
       }
       if (currentMode) setMode(currentMode);
-      if (!onPlayingChart) {
-        // Within the country already on screen the chart opens straight away.
-        // A tap that also moves country cannot: the country arrives through the
-        // URL, and the sheet resets to the songs chart during that render
-        // (ADR-0017). So the chart is recorded and opened once the country it
-        // belongs to is the one on screen.
-        if (onPlayingCountry) openChart(currentChartRef);
-        else
-          pendingRestore.current = {
-            code: currentCountryCode,
-            ref: currentChartRef,
-          };
-      }
     }
     setSnap((s) => (s === 'hidden' || s === 'closed' ? 'peek' : s));
     setScrollSignal((n) => n + 1);
-  }, [audioStore, countryCode, chartRef, openChart]);
+  }, [audioStore, countryCode, chartRef]);
 
   // The badge rides the same reopen path as a strip tap, then asks the sheet to
   // expand the now-playing row's commentary card. The rank is the playing
